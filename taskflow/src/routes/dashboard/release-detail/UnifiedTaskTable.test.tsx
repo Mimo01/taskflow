@@ -85,17 +85,30 @@ function makeRow(overrides: Partial<DriftRow> = {}): DriftRow {
 }
 
 let issueSeq = 0;
-function makeIssue(overrides: { key?: string; summary?: string } = {}): JiraIssue {
+function makeIssue(
+  overrides: {
+    key?: string;
+    summary?: string;
+    status?: string;
+    statusCategory?: 'new' | 'indeterminate' | 'done';
+    issuetype?: string;
+    assignee?: string | null;
+  } = {},
+): JiraIssue {
   issueSeq += 1;
   return {
     id: String(issueSeq),
     key: overrides.key ?? `PROJ-${issueSeq}`,
     fields: {
       summary: overrides.summary ?? 'Something',
-      status: { id: '1', name: 'Status', statusCategory: { key: 'new' } },
-      assignee: null,
+      status: {
+        id: '1',
+        name: overrides.status ?? 'Status',
+        statusCategory: { key: overrides.statusCategory ?? 'new' },
+      },
+      assignee: overrides.assignee ? { displayName: overrides.assignee, avatarUrls: {} } : null,
       customfield_10016: null,
-      issuetype: { name: 'Story', subtask: false },
+      issuetype: { name: overrides.issuetype ?? 'Story', subtask: false },
     },
   } as unknown as JiraIssue;
 }
@@ -520,12 +533,14 @@ describe('WR-05: column header strip labels', () => {
     const issue = makeIssue({ key: 'PROJ-1' });
     renderSection({ primaryRows: [{ issue, mrs: [] }] });
 
-    expect(screen.getByText('Key')).toBeInTheDocument();
-    expect(screen.getByText('Summary')).toBeInTheDocument();
-    expect(screen.getByText('Assignee')).toBeInTheDocument();
-    expect(screen.getAllByText('Status').length).toBeGreaterThan(0);
-    expect(screen.getByText('BR')).toBeInTheDocument();
-    expect(screen.getByText('MS')).toBeInTheDocument();
+    // Scoped to the strip: the 261102-h1i toolbar also has Status/Assignee filter buttons.
+    const strip = screen.getByTestId('task-column-header');
+    expect(within(strip).getByText('Key')).toBeInTheDocument();
+    expect(within(strip).getByText('Summary')).toBeInTheDocument();
+    expect(within(strip).getByText('Assignee')).toBeInTheDocument();
+    expect(within(strip).getByText('Status')).toBeInTheDocument();
+    expect(within(strip).getByText('BR')).toBeInTheDocument();
+    expect(within(strip).getByText('MS')).toBeInTheDocument();
   });
 
   it('renders no element with role="table", role="row" or role="columnheader"', () => {
@@ -1929,10 +1944,16 @@ describe('responsive container tiers', () => {
 
     const taskList = screen.getByTestId('task-list');
     const strip = taskList.previousElementSibling as HTMLElement;
+    // Sortable headers (261102-h1i): the tier classes sit on the header cell that
+    // wraps the sort button.
     const assignee = within(strip).getByText('Assignee');
     expect(assignee).toHaveClass('@max-[860px]:sr-only');
-    expect(assignee.parentElement).toHaveClass(...personTier);
-    expect(within(strip).getByText('Status')).toHaveClass('@max-[400px]:hidden');
+    expect(within(strip).getByTestId('task-sort-header-assignee').parentElement).toHaveClass(
+      ...personTier,
+    );
+    expect(within(strip).getByTestId('task-sort-header-status').parentElement).toHaveClass(
+      '@max-[400px]:hidden',
+    );
     expect(within(strip).getByText('MR')).toHaveClass(
       '@max-[860px]:w-[5.5rem]',
       '@max-[520px]:hidden',
@@ -2201,5 +2222,166 @@ describe('261102-fkr: secondary title drops the leading key', () => {
     expect(row).toHaveTextContent('Tidy the cache');
     expect(row).not.toHaveTextContent('PROJ-9: Tidy');
     expect(within(row).getAllByText('PROJ-9')).toHaveLength(1);
+  });
+});
+
+describe('261102-h1i: issue filter + sort', () => {
+  beforeEach(() => {
+    usePeekStore.setState({ peekIssueKey: null });
+  });
+
+  function issues() {
+    return [
+      makeIssue({
+        key: 'PROJ-10',
+        summary: 'Fix Login bug',
+        status: 'Done',
+        statusCategory: 'done',
+        issuetype: 'Bug',
+        assignee: 'Alice',
+      }),
+      makeIssue({
+        key: 'PROJ-9',
+        summary: 'Add export',
+        status: 'In Progress',
+        statusCategory: 'indeterminate',
+        issuetype: 'Story',
+        assignee: null,
+      }),
+      makeIssue({
+        key: 'PROJ-11',
+        summary: 'Tidy styles',
+        status: 'To Do',
+        statusCategory: 'new',
+        issuetype: 'Task',
+        assignee: 'Bob',
+      }),
+    ];
+  }
+
+  // Popover options are buttons; the row text (status pill, 'Unassigned') is not.
+  const pickOption = async (name: string) => {
+    const opts = await screen.findAllByRole('button', { name });
+    return opts[opts.length - 1];
+  };
+
+  const visibleKeys = () =>
+    screen.queryAllByTestId('task-row').map((r) => r.textContent?.match(/PROJ-\d+/)?.[0] ?? '');
+
+  function renderIssues(overrides: Partial<UnifiedTaskTableProps> = {}) {
+    return renderSection({
+      primaryRows: issues().map((issue) => ({ issue, mrs: [] })),
+      ...overrides,
+    });
+  }
+
+  it('shows the toolbar only once issues have loaded and exist', () => {
+    const { unmount } = renderIssues({ isLoadingIssues: true });
+    expect(screen.queryByTestId('task-filter-toolbar')).toBeNull();
+    unmount();
+    const empty = renderSection({ primaryRows: [] });
+    expect(screen.queryByTestId('task-filter-toolbar')).toBeNull();
+    empty.unmount();
+    renderIssues();
+    expect(screen.getByTestId('task-filter-toolbar')).toHaveAttribute('role', 'toolbar');
+  });
+
+  it('search hides non-matching rows', () => {
+    renderIssues();
+    fireEvent.change(screen.getByLabelText('Search issues'), { target: { value: 'login' } });
+    expect(visibleKeys()).toEqual(['PROJ-10']);
+    fireEvent.change(screen.getByLabelText('Search issues'), { target: { value: 'proj-11' } });
+    expect(visibleKeys()).toEqual(['PROJ-11']);
+  });
+
+  it('Unassigned filter shows only unassigned rows; chip X removes it', async () => {
+    renderIssues();
+    fireEvent.click(screen.getByTestId('task-filter-assignee'));
+    fireEvent.click(await pickOption('Unassigned'));
+    expect(visibleKeys()).toEqual(['PROJ-9']);
+    const chipRemove = screen.getByTestId('task-filter-chip-assignee-__unassigned__');
+    expect(chipRemove.parentElement).toHaveTextContent('Assignee: Unassigned');
+    fireEvent.click(chipRemove);
+    expect(visibleKeys()).toHaveLength(3);
+  });
+
+  it('status and type filters narrow rows; Clear all resets everything', async () => {
+    renderIssues();
+    fireEvent.click(screen.getByTestId('task-filter-status'));
+    fireEvent.click(await pickOption('In Progress'));
+    expect(visibleKeys()).toEqual(['PROJ-9']);
+    fireEvent.click(screen.getByTestId('task-filter-type'));
+    fireEvent.click(await pickOption('Bug'));
+    // AND across dimensions: In Progress AND Bug -> nothing.
+    expect(visibleKeys()).toEqual([]);
+    fireEvent.click(screen.getByTestId('task-filter-clear-all'));
+    expect(visibleKeys()).toHaveLength(3);
+    expect(screen.queryByTestId('task-filter-clear-all')).toBeNull();
+  });
+
+  it('type filter matches by type name', async () => {
+    renderIssues();
+    fireEvent.click(screen.getByTestId('task-filter-type'));
+    fireEvent.click(await pickOption('Task'));
+    expect(visibleKeys()).toEqual(['PROJ-11']);
+  });
+
+  it('Key header cycles asc, desc, original with an indicator', () => {
+    renderIssues();
+    expect(visibleKeys()).toEqual(['PROJ-10', 'PROJ-9', 'PROJ-11']);
+    const header = screen.getByTestId('task-sort-header-key');
+    fireEvent.click(header);
+    expect(visibleKeys()).toEqual(['PROJ-9', 'PROJ-10', 'PROJ-11']);
+    expect(screen.getByTestId('task-sort-indicator-key')).toBeInTheDocument();
+    fireEvent.click(header);
+    expect(visibleKeys()).toEqual(['PROJ-11', 'PROJ-10', 'PROJ-9']);
+    fireEvent.click(header);
+    expect(visibleKeys()).toEqual(['PROJ-10', 'PROJ-9', 'PROJ-11']);
+    expect(screen.queryByTestId('task-sort-indicator-key')).toBeNull();
+  });
+
+  it('Status header orders To Do, In Progress, Done', () => {
+    renderIssues();
+    fireEvent.click(screen.getByTestId('task-sort-header-status'));
+    expect(visibleKeys()).toEqual(['PROJ-11', 'PROJ-9', 'PROJ-10']);
+  });
+
+  it('issue filters compose with the BR badge; secondary rows are unaffected', () => {
+    const [a, b, c] = issues();
+    const flagged = () => makeRow({ br: 'flag', flagged: true });
+    const secondary = makeRow({
+      mr: makeMR({ iid: 99, title: 'Orphan MR' }),
+      br: 'flag',
+      task: 'flag',
+      taskReason: 'no-linked-task',
+      taskKeys: [],
+    });
+    renderSection({
+      primaryRows: [
+        { issue: a, mrs: [flagged()] },
+        { issue: b, mrs: [flagged()] },
+        { issue: c, mrs: [makeRow()] },
+      ],
+      secondaryRows: [secondary],
+      flaggedMrCount: 2,
+      brFlaggedCount: 2,
+    });
+    fireEvent.click(screen.getByTestId('flagged-br-badge'));
+    expect(visibleKeys()).toEqual(['PROJ-10', 'PROJ-9']);
+    fireEvent.change(screen.getByLabelText('Search issues'), { target: { value: 'export' } });
+    expect(visibleKeys()).toEqual(['PROJ-9']);
+    expect(screen.getByTestId('secondary-section')).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Search issues'), { target: { value: 'nothing-here' } });
+    expect(screen.getByTestId('secondary-section')).toBeInTheDocument();
+  });
+
+  it('shows a no-match message with Clear filters and no header strip', () => {
+    renderIssues();
+    fireEvent.change(screen.getByLabelText('Search issues'), { target: { value: 'zzz' } });
+    expect(screen.getByText(/No issues match the filters/)).toBeInTheDocument();
+    expect(screen.queryByTestId('task-column-header')).toBeNull();
+    fireEvent.click(screen.getByTestId('task-filter-clear'));
+    expect(visibleKeys()).toHaveLength(3);
+    expect(screen.getByTestId('task-column-header')).toBeInTheDocument();
   });
 });

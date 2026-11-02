@@ -1,13 +1,25 @@
-import { AlertTriangle, Check, GitBranch, GitMerge, Loader2, Milestone } from 'lucide-react';
+import {
+  AlertTriangle,
+  Check,
+  GitBranch,
+  GitMerge,
+  Loader2,
+  Milestone,
+  Search,
+  X,
+} from 'lucide-react';
 import type React from 'react';
 import { Fragment, useRef, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
 import { LinkContextMenu } from '@/components/ui/link-context-menu';
+import { FilterPopover, SortableHeader } from '@/components/ui/table-filter-sort';
+import { UNASSIGNED_FILTER, UNASSIGNED_LABEL } from '@/lib/assignee-filter';
 import { openExternal } from '@/lib/openExternal';
 import { PEEKED_ROW_CLASS } from '@/lib/peek-highlight';
 import { statusPillClass } from '@/lib/statusStyles';
+import { nextSort, type SortDir } from '@/lib/table-sort';
 import { cn } from '@/lib/utils';
 import type { GitLabMR } from '@/services/gitlab';
 import type { JiraIssue } from '@/services/jira';
@@ -15,6 +27,12 @@ import { extractTicketKeys } from '@/services/linkEngine';
 import { useIsPeeked } from '@/stores/peek.store';
 import type { Channel, DriftMark, DriftRow } from './driftDetection';
 import { UNLABELED_FILTER } from './graphs/MrLabels';
+import {
+  buildTaskFilterOptions,
+  matchesTaskFilters,
+  sortTaskRows,
+  type TaskSortKey,
+} from './taskTableFilters';
 import { type MrFixAction, useMrFixMutation } from './useMrFixMutation';
 
 /**
@@ -529,22 +547,43 @@ function DriftActionCell({
  * reader users included, with no partial-ARIA hazard. Do not "finish" this
  * into ARIA table semantics later.
  */
-function ColumnHeaderStrip() {
+type TaskSort = { key: TaskSortKey | null; dir: SortDir };
+
+function ColumnHeaderStrip({
+  sort,
+  onSort,
+}: {
+  sort: TaskSort;
+  onSort: (key: TaskSortKey) => void;
+}) {
+  const headerProps = {
+    activeSortKey: sort.key,
+    activeSortDir: sort.dir,
+    onSort,
+    testIdPrefix: 'task',
+  };
   return (
     <div
       data-testid="task-column-header"
       className="sticky top-(--release-sticky-top,0px) z-20 border-b flex items-center gap-2 text-xs text-muted-foreground font-medium pl-2 py-1 density-compact:py-0.5 density-comfortable:py-2 bg-[color-mix(in_oklab,var(--color-muted)_10%,var(--color-background))]"
     >
       <span className={COL_ICON} aria-hidden="true" />
-      <span className={COL_KEY}>Key</span>
-      <span className={COL_SUMMARY}>Summary</span>
-      <span className={COL_PERSON}>
-        <span className="@max-[860px]:sr-only">Assignee</span>
-        <span aria-hidden="true" className="hidden @max-[860px]:inline">
-          Asg.
-        </span>
-      </span>
-      <span className={COL_STATE}>Status</span>
+      <SortableHeader sortKey="key" label="Key" className={COL_KEY} {...headerProps} />
+      <SortableHeader sortKey="summary" label="Summary" className={COL_SUMMARY} {...headerProps} />
+      <SortableHeader
+        sortKey="assignee"
+        label={
+          <>
+            <span className="@max-[860px]:sr-only">Assignee</span>
+            <span aria-hidden="true" className="hidden @max-[860px]:inline">
+              Asg.
+            </span>
+          </>
+        }
+        className={COL_PERSON}
+        {...headerProps}
+      />
+      <SortableHeader sortKey="status" label="Status" className={COL_STATE} {...headerProps} />
       <span className={COL_MR}>MR</span>
       <span
         className="flex-none w-[1.75rem] text-center"
@@ -1141,6 +1180,63 @@ export function UnifiedTaskTable({
   // Applied at render time (not to props) — see T-91.1-18 threat disposition.
   const [activeFilter, setActiveFilter] = useState<'br' | 'ms' | null>(null);
 
+  // 261102-h1i: issue-level search/filters + column sort (same controls as the
+  // AIO Defects tab). Local state — the page keys this component by versionId.
+  const [query, setQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<Set<string>>(new Set());
+  const [typeFilter, setTypeFilter] = useState<Set<string>>(new Set());
+  const [assigneeFilter, setAssigneeFilter] = useState<Set<string>>(new Set());
+  const [sort, setSort] = useState<TaskSort>({ key: null, dir: 'asc' });
+
+  const filterOptions = buildTaskFilterOptions(primaryRows);
+  const issueFilters = {
+    query,
+    statuses: statusFilter,
+    types: typeFilter,
+    assignees: assigneeFilter,
+  };
+  const issueFiltersActive =
+    query.trim() !== '' || statusFilter.size > 0 || typeFilter.size > 0 || assigneeFilter.size > 0;
+  const issueRows = sortTaskRows(
+    primaryRows.filter((r) => matchesTaskFilters(r.issue, issueFilters)),
+    sort.key,
+    sort.dir,
+  );
+
+  const formatAssignee = (v: string) => (v === UNASSIGNED_FILTER ? UNASSIGNED_LABEL : v);
+  const dropFrom = (setter: React.Dispatch<React.SetStateAction<Set<string>>>, v: string) => () =>
+    setter((prev) => {
+      const n = new Set(prev);
+      n.delete(v);
+      return n;
+    });
+  const activeChips: { dimension: string; value: string; label: string; remove: () => void }[] = [
+    ...[...statusFilter].map((v) => ({
+      dimension: 'Status',
+      value: v,
+      label: v,
+      remove: dropFrom(setStatusFilter, v),
+    })),
+    ...[...typeFilter].map((v) => ({
+      dimension: 'Type',
+      value: v,
+      label: v,
+      remove: dropFrom(setTypeFilter, v),
+    })),
+    ...[...assigneeFilter].map((v) => ({
+      dimension: 'Assignee',
+      value: v,
+      label: formatAssignee(v),
+      remove: dropFrom(setAssigneeFilter, v),
+    })),
+  ];
+  const clearIssueFilters = () => {
+    setQuery('');
+    setStatusFilter(new Set());
+    setTypeFilter(new Set());
+    setAssigneeFilter(new Set());
+  };
+
   const driftPredicate =
     activeFilter === 'br'
       ? (r: DriftRow) => r.br === 'flag'
@@ -1162,10 +1258,10 @@ export function UnifiedTaskTable({
   // the TASK rather than the current view — filtering it too made MRs appear
   // to vanish from a task the moment a filter was applied.
   const filteredPrimaryRows = filterPredicate
-    ? primaryRows
+    ? issueRows
         .map(({ issue, mrs }) => ({ issue, mrs: mrs.filter(filterPredicate), allMrs: mrs }))
         .filter(({ mrs }) => mrs.length > 0)
-    : primaryRows.map(({ issue, mrs }) => ({ issue, mrs, allMrs: mrs }));
+    : issueRows.map(({ issue, mrs }) => ({ issue, mrs, allMrs: mrs }));
 
   const filteredSecondaryRows = filterPredicate
     ? secondaryRows.filter(filterPredicate)
@@ -1322,11 +1418,105 @@ export function UnifiedTaskTable({
         </div>
       )}
 
+      {!isLoadingIssues && primaryRows.length > 0 && (
+        <div
+          role="toolbar"
+          aria-label="Issue filters"
+          data-testid="task-filter-toolbar"
+          className="flex flex-wrap items-center gap-2 py-2 density-compact:py-1 density-comfortable:py-3 mb-2"
+        >
+          <div className="relative w-64 max-w-full">
+            <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search issues…"
+              aria-label="Search issues"
+              className="w-full rounded-md border bg-background py-1 pl-8 pr-7 text-xs focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+            {query && (
+              <button
+                type="button"
+                aria-label="Clear search"
+                onClick={() => setQuery('')}
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                <X className="size-3.5" />
+              </button>
+            )}
+          </div>
+          <FilterPopover
+            dimension="Status"
+            testId="task-filter-status"
+            options={filterOptions.statuses}
+            selected={statusFilter}
+            setSelected={setStatusFilter}
+          />
+          <FilterPopover
+            dimension="Type"
+            testId="task-filter-type"
+            options={filterOptions.types}
+            selected={typeFilter}
+            setSelected={setTypeFilter}
+          />
+          <FilterPopover
+            dimension="Assignee"
+            testId="task-filter-assignee"
+            options={filterOptions.assignees}
+            selected={assigneeFilter}
+            setSelected={setAssigneeFilter}
+            formatOption={formatAssignee}
+          />
+
+          {activeChips.map((chip) => (
+            <span
+              key={`${chip.dimension}-${chip.value}`}
+              className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary"
+            >
+              {chip.dimension}: {chip.label}
+              <button
+                type="button"
+                className="hover:text-primary/60 shrink-0"
+                data-testid={`task-filter-chip-${chip.dimension.toLowerCase()}-${chip.value}`}
+                onClick={chip.remove}
+                aria-label={`Remove filter ${chip.dimension}: ${chip.label}`}
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </span>
+          ))}
+
+          {(issueFiltersActive || query !== '') && (
+            <button
+              type="button"
+              data-testid="task-filter-clear-all"
+              className="ml-1 text-xs text-muted-foreground hover:text-foreground"
+              onClick={clearIssueFilters}
+            >
+              Clear all
+            </button>
+          )}
+        </div>
+      )}
+
       {isLoadingIssues ? (
         <div className="flex items-center gap-2 text-sm text-muted-foreground py-4">
           <Loader2 className="size-3.5 animate-spin" />
           Loading issues...
         </div>
+      ) : issueFiltersActive && issueRows.length === 0 ? (
+        <p className="text-sm text-muted-foreground py-4">
+          No issues match the filters{' '}
+          <button
+            type="button"
+            data-testid="task-filter-clear"
+            className="text-xs font-medium underline underline-offset-2"
+            onClick={clearIssueFilters}
+          >
+            Clear filters
+          </button>
+        </p>
       ) : filteredPrimaryRows.length === 0 ? (
         <p className="text-sm text-muted-foreground py-4">
           {activeFilter || labelFilter
@@ -1335,7 +1525,7 @@ export function UnifiedTaskTable({
         </p>
       ) : (
         <>
-          <ColumnHeaderStrip />
+          <ColumnHeaderStrip sort={sort} onSort={(key) => setSort((prev) => nextSort(prev, key))} />
           <div data-testid="task-list">
             {filteredPrimaryRows.map(({ issue, mrs, allMrs }) => (
               <div key={issue.id} data-testid="task-group" className="border-b border-border/50">
