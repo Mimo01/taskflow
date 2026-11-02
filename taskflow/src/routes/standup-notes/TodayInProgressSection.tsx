@@ -147,11 +147,17 @@ function IssueRow({
         {/* Trailing cluster never shrinks; fixed-width slots keep pills/columns aligned
             between rows that do and don't have story points or an estimate. */}
         <div className="flex shrink-0 items-center gap-2">
-          <div className="flex shrink-0">
-            <span className={statusPillClass(issue.fields.status.statusCategory?.key)}>
-              {issue.fields.status.name}
-            </span>
-          </div>
+          {showProgress && (
+            <div className="hidden w-36 shrink-0 items-center @[32rem]:flex">
+              <ProgressBar issue={issue} />
+            </div>
+          )}
+          <CachedAvatar
+            url={issue.fields.assignee?.avatarUrls?.['48x48'] ?? null}
+            name={issue.fields.assignee?.displayName ?? 'Unassigned'}
+            size={20}
+            className="shrink-0"
+          />
           {showSp && (
             <div className="flex min-w-7 shrink-0 justify-end">
               <span
@@ -165,17 +171,11 @@ function IssueRow({
               </span>
             </div>
           )}
-          {showProgress && (
-            <div className="hidden w-36 shrink-0 items-center @[32rem]:flex">
-              <ProgressBar issue={issue} />
-            </div>
-          )}
-          <CachedAvatar
-            url={issue.fields.assignee?.avatarUrls?.['48x48'] ?? null}
-            name={issue.fields.assignee?.displayName ?? 'Unassigned'}
-            size={20}
-            className="shrink-0"
-          />
+          <div className="flex shrink-0">
+            <span className={statusPillClass(issue.fields.status.statusCategory?.key)}>
+              {issue.fields.status.name}
+            </span>
+          </div>
         </div>
       </div>
     </div>
