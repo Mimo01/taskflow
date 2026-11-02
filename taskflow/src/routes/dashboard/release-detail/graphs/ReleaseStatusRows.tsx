@@ -10,6 +10,8 @@ import { ASSIGNEE_ROW_HEIGHT, GraphSlot, NEW_TONE_CLASS } from './GraphSlot';
 const MAX_ROWS = 6;
 // Same row rhythm and column split as By assignee, so the two read as one family.
 const ROW_HEIGHT = ASSIGNEE_ROW_HEIGHT;
+// Compact rows sit tighter than By assignee (no avatar to fit), 261102-vpm.
+const COMPACT_ROW_HEIGHT = 20;
 const ROW_GRID = 'grid grid-cols-[minmax(92px,1fr)_minmax(60px,1.2fr)_40px] items-center gap-2';
 
 /**
@@ -25,11 +27,11 @@ export function ReleaseStatusRows({
 }: {
   rows: ReleaseStatusRow[];
   state: 'loading' | 'error' | 'empty' | 'ready';
-  /** Band mode: 24px rows and at most 5 of them. */
+  /** Band mode: 20px rows and at most 5 of them. */
   compact?: boolean;
   className?: string;
 }) {
-  const rowHeight = compact ? 24 : ROW_HEIGHT;
+  const rowHeight = compact ? COMPACT_ROW_HEIGHT : ROW_HEIGHT;
   // WR-08: on overflow, done statuses collapse first so open work stays visible.
   const { shown, hidden } = fitStatusRows(rows, compact ? 5 : MAX_ROWS);
   const total = rows.reduce((n, r) => n + r.count, 0);
