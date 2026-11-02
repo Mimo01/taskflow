@@ -657,7 +657,10 @@ export function useReleaseDetail(versionId: string | undefined) {
   const hasMatchedMilestone = matchedMilestone !== null;
 
   // Derived values from releaseSummaries.ts
-  const labelSummary = computeLabelSummary(releaseMrs);
+  // Label pills filter the task table, which runs over the three-channel union
+  // (driftRows), so count over that same set — not just milestone MRs — or the
+  // pill count undercounts what the filter then shows.
+  const labelSummary = computeLabelSummary(driftRows.map((r) => r.mr));
   const labelCoverage = computeLabelCoverage(releaseMrs);
   const mrStateCounts = computeMrStateCounts(releaseMrs);
   const issueStatusCounts = computeIssueStatusCounts(releaseIssues);
