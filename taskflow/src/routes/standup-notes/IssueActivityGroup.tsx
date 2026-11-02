@@ -60,10 +60,6 @@ export interface SubTaskSubGroup {
   issueKey: string;
   summary: string;
   issueType?: string;
-  /** Current Jira status name — drives the trailing status pill. */
-  statusName?: string;
-  /** Status category key ('new' | 'indeterminate' | 'done') — pill colour. */
-  statusCategoryKey?: string;
   subItems: SubItem[];
 }
 
@@ -72,10 +68,6 @@ export interface IssueActivityGroupProps {
   summary: string;
   /** Jira issue type name — drives the type icon (Story, Bug, Sub-task, Epic, …). */
   issueType?: string;
-  /** Current Jira status name — drives the trailing status pill. */
-  statusName?: string;
-  /** Status category key ('new' | 'indeterminate' | 'done') — pill colour. */
-  statusCategoryKey?: string;
   subItems: SubItem[];
   /** Sub-task sub-groups to render nested below the story's own sub-item list. */
   subTaskGroups?: SubTaskSubGroup[];
@@ -215,16 +207,12 @@ function ActivityGroupHeader({
   issueKey,
   summary,
   issueType,
-  statusName,
-  statusCategoryKey,
   onBodyClick,
   onKeyClick,
 }: {
   issueKey: string;
   summary: string;
   issueType?: string;
-  statusName?: string;
-  statusCategoryKey?: string;
   onBodyClick?: () => void;
   onKeyClick?: () => void;
 }) {
@@ -250,13 +238,6 @@ function ActivityGroupHeader({
       <span className="pointer-events-none relative flex-1 min-w-0 truncate text-sm">
         {summary}
       </span>
-      {/* Status pill: click-through (falls to the overlay), never shrinks; no placeholder
-          while status is unknown. statusPillClass owns geometry — flex wrapper is its parent. */}
-      {statusName && (
-        <div className="pointer-events-none relative flex shrink-0">
-          <span className={statusPillClass(statusCategoryKey)}>{statusName}</span>
-        </div>
-      )}
     </div>
   );
 }
@@ -265,8 +246,6 @@ export default function IssueActivityGroup({
   issueKey,
   summary,
   issueType,
-  statusName,
-  statusCategoryKey,
   subItems,
   subTaskGroups,
   onClick,
@@ -282,8 +261,6 @@ export default function IssueActivityGroup({
         issueKey={issueKey}
         summary={summary}
         issueType={issueType}
-        statusName={statusName}
-        statusCategoryKey={statusCategoryKey}
         onBodyClick={onClick}
         onKeyClick={onIssueKeyClick}
       />
@@ -305,8 +282,6 @@ export default function IssueActivityGroup({
                 issueKey={st.issueKey}
                 summary={st.summary}
                 issueType={st.issueType}
-                statusName={st.statusName}
-                statusCategoryKey={st.statusCategoryKey}
                 onBodyClick={() => (onOpenIssue ?? onIssueClick)?.(st.issueKey)}
                 onKeyClick={() => onIssueClick?.(st.issueKey)}
               />

@@ -454,8 +454,7 @@ export default function StandupNotesPage() {
       return fetchIssueMeta(jiraBaseUrl ?? '', token, referencedKeys);
     },
     enabled: !!jiraBaseUrl && !!jiraToken && referencedKeys.length > 0,
-    // Status is volatile now — keep it as fresh as the neighbouring standup queries.
-    staleTime: 5 * 60 * 1000,
+    staleTime: 60 * 60 * 1000,
   });
 
   // ─ Refresh-all ────────────────────────────────────────────────────────────
