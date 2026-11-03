@@ -631,7 +631,7 @@ describe('WR-06: the secondary table has its own header strip', () => {
     // Two strips now exist, so scope the primary assertions to the task table.
     const taskList = screen.getByTestId('task-list');
     const primaryStrip = taskList.previousElementSibling as HTMLElement;
-    for (const label of ['Key', 'Summary', 'Status', 'Merge requests', 'BR', 'MS', 'Assignee']) {
+    for (const label of ['Key', 'Summary', 'Merge requests', 'BR', 'MS', 'Status', 'Assignee']) {
       expect(within(primaryStrip).getByText(label)).toBeInTheDocument();
     }
   });
@@ -2879,15 +2879,15 @@ describe('task row MR status chip + popover (261103-g8m)', () => {
     expect(within(line).getByTestId('mr-popover-state')).toHaveTextContent('Open');
   });
 
-  it('orders task columns Key / Summary / Status / MRs / BR / MS / Assignee', () => {
+  it('orders task columns Key / Summary / MRs / BR / MS / Status / Assignee', () => {
     renderWithRows([makeRow()]);
     const header = screen.getByTestId('task-column-header');
     const labels = [...header.children].map((c) => c.textContent?.trim()).filter(Boolean);
     expect(labels[0]).toMatch(/^Key/);
     expect(labels[1]).toMatch(/^Summary/);
-    expect(labels[2]).toMatch(/^Status/);
-    expect(labels[3]).toMatch(/^Merge requests/);
-    expect(labels.slice(4, 6)).toEqual(['BR', 'MS']);
+    expect(labels[2]).toMatch(/^Merge requests/);
+    expect(labels.slice(3, 5)).toEqual(['BR', 'MS']);
+    expect(labels[5]).toMatch(/^Status/);
     expect(labels[6]).toMatch(/^Assignee/);
     const row = screen.getByTestId('task-row');
     expect(row.lastElementChild).toHaveTextContent(/Unassigned|.+/);

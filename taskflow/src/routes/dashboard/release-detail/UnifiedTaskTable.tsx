@@ -152,6 +152,20 @@ function mrStateBadgeClass(state: GitLabMR['state']): string {
       : 'border-gray-400 text-gray-500';
 }
 
+/**
+ * Text-only colour for the outline MR status pill (row chip + popover header):
+ * neutral border, label in the overall-state colour, dots carry per-MR state.
+ */
+const MR_TONE_TEXT: Record<ChipTone, string> = {
+  blue: 'text-blue-600 dark:text-blue-400',
+  green: 'text-green-600 dark:text-green-400',
+  red: 'text-red-600 dark:text-red-400',
+  orange: 'text-orange-600 dark:text-orange-400',
+  amber: 'text-amber-600 dark:text-amber-400',
+  purple: 'text-purple-600 dark:text-purple-400',
+  muted: 'text-muted-foreground',
+};
+
 /** Tinted tone for one MR's state — the popover's state pill and the row chip share it. */
 function mrStateTone(mr: GitLabMR): ChipTone {
   if (mr.state === 'merged') return 'green';
@@ -689,7 +703,6 @@ function ColumnHeaderStrip({
       <span className={COL_ICON} aria-hidden="true" />
       <SortableHeader sortKey="key" label="Key" className={COL_KEY} {...headerProps} />
       <SortableHeader sortKey="summary" label="Summary" className={COL_SUMMARY} {...headerProps} />
-      <SortableHeader sortKey="status" label="Status" className={COL_STATE} {...headerProps} />
       <span className={COL_MR}>
         <span className="@max-[860px]:sr-only">Merge requests</span>
         <span aria-hidden="true" className="hidden @max-[860px]:inline">
@@ -705,6 +718,7 @@ function ColumnHeaderStrip({
       <span className="flex-none w-[1.75rem] text-center" title="Release milestone assigned">
         MS
       </span>
+      <SortableHeader sortKey="status" label="Status" className={COL_STATE} {...headerProps} />
       <SortableHeader
         sortKey="assignee"
         label={
@@ -1106,9 +1120,9 @@ function TaskMrCell({
           aria-label={summary.ariaLabel}
           onClick={(e) => e.stopPropagation()}
           className={cn(
-            'pointer-events-auto relative z-10 inline-flex h-5 max-w-full min-w-0 cursor-pointer items-center gap-1.5 whitespace-nowrap rounded px-1.5 text-xs font-medium',
-            'ring-inset transition-shadow hover:ring-1 hover:ring-current/30 focus-visible:ring-2 focus-visible:ring-ring data-[popup-open]:ring-1 data-[popup-open]:ring-current/40',
-            CHIP_TONE_CLASS[summary.tone],
+            'pointer-events-auto relative z-10 inline-flex h-5 max-w-full min-w-0 cursor-pointer items-center gap-1.5 whitespace-nowrap rounded border border-border bg-background px-1.5 text-xs font-medium',
+            'transition-colors hover:border-foreground/30 hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring data-[popup-open]:border-foreground/30 data-[popup-open]:bg-muted/50',
+            MR_TONE_TEXT[summary.tone],
           )}
         >
           <MrStateDots rows={summary.dots} />
@@ -1158,8 +1172,8 @@ function TaskMrCell({
             <span className="tabular-nums text-muted-foreground">{allMrs.length}</span>
             <span
               className={cn(
-                'ml-auto inline-flex h-5 items-center gap-1.5 rounded px-1.5 text-xs font-medium',
-                CHIP_TONE_CLASS[summary.tone],
+                'ml-auto inline-flex h-5 items-center gap-1.5 rounded border border-border px-1.5 text-xs font-medium',
+                MR_TONE_TEXT[summary.tone],
               )}
             >
               <MrStateDots rows={summary.dots} />
@@ -1384,11 +1398,6 @@ function TaskRow({
       <span className={`pointer-events-none relative ${COL_SUMMARY} line-clamp-1`}>
         {issue.fields.summary}
       </span>
-      <div className={`pointer-events-none relative ${COL_STATE} flex items-center`}>
-        <span className={statusPillClass(issue.fields.status.statusCategory?.key)}>
-          {issue.fields.status.name}
-        </span>
-      </div>
       <TaskMrCell
         mrs={mrs}
         allMrs={allMrs}
@@ -1397,6 +1406,11 @@ function TaskRow({
         hasMatchedMilestone={hasMatchedMilestone}
         fix={fix}
       />
+      <div className={`pointer-events-none relative ${COL_STATE} flex items-center`}>
+        <span className={statusPillClass(issue.fields.status.statusCategory?.key)}>
+          {issue.fields.status.name}
+        </span>
+      </div>
       <span
         className={`pointer-events-none relative ${COL_ASSIGNEE} inline-flex items-center gap-1.5 text-xs`}
       >
