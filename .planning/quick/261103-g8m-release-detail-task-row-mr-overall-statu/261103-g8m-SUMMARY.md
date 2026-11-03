@@ -49,3 +49,19 @@ None.
 ## Self-Check: PASSED
 
 Commits cbfa3cfe, 8491ffd1 and 86822781 exist. Biome and tsc are clean on the touched files. The release-detail suite (714 tests) passes.
+
+## UAT polish (2026-11-03, approved)
+
+User-driven iterations after the initial build; final shipped design:
+
+- **Task columns:** Key / Summary / MRs / BR / MS / Status / Assignee (Status beside Assignee).
+- **Row MR status:** constant 5rem column. A mix of live states draws a 16px segmented ring (merged green, open blue, draft grey) with the merged/live count (`1/2`). When every MR shares one state there is no ring; the row shows that state's glyph and a word (✓ Merged, Open / Draft / Closed icons). Closed MRs never count in the ring or the number. Labels use sentence case. Slot states are a 16px glyph plus one word: spinner, Unknown, No MR, No MS.
+- **Popover:** 40rem, styled like the Notifications popover. Each MR line shows the state glyph and word, `!iid`, the title with the leading task key stripped, the author avatar and full name, and BR/MS. Lines are sorted by MR number ascending and never reorder.
+- **Uncovered-MRs table:** the MR state column uses the same glyph and word style (locked shows as Closed).
+- **Row BR/MS:**
+  - One MR: the cell fixes that MR in place.
+  - Several MRs: clicking fixes every flagged MR in the column (`useMrGroupFix`: parallel writes, rollback for the failed ones only, sticky "N of M failed — click to retry"). The hover glyph is ListChecks.
+  - A flag that can't be auto-fixed: the cell opens the popover.
+- **Bug fixed during UAT:** the row cell unmounted when the optimistic patch flipped its mark, which lost the spinner and the sticky failure. `RowDriftCell` now branches on the task's shape and fix readiness, never on the live mark. A regression test was proven to fail on the old code.
+
+Final commits: cbfa3cfe … 0c3c3c58 (see git log `quick-261103-g8m`).
