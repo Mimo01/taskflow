@@ -48,7 +48,7 @@ describe('MrLabels (full-width strip)', () => {
     expect(col.className).not.toContain('border-l');
     expect(col.className).toContain('flex-wrap');
     expect(screen.queryByTestId('mr-labels-grid')).toBeNull();
-    // no colour dots on the pills (the unlabelled count badge is the only round element)
+    // no colour dots on the pills
     for (const pill of screen.getAllByTestId('mr-label-pill')) {
       expect(pill.querySelectorAll('.rounded-full')).toHaveLength(0);
     }
@@ -67,23 +67,25 @@ describe('MrLabels (full-width strip)', () => {
     expect(screen.getAllByTestId('mr-label-pill')).toHaveLength(2);
   });
 
-  it('shows unlabelled MRs as an orange count badge on the tag icon, text in the tooltip', () => {
+  it('ends the row with a small bare orange warning icon + count, unlike a pill', () => {
     render(<MrLabels labelSummary={labels} coverage={missing(5)} onToggleLabel={vi.fn()} />);
     const el = screen.getByTestId('mr-labels-unlabeled');
-    // accessible text, visually only the count
     expect(el).toHaveAccessibleName('5 MRs without label');
     expect(el).toHaveAttribute('title', '5 MRs without label — click to filter tasks');
-    const badge = el.querySelector('.bg-orange-500');
-    expect(badge).toHaveTextContent('5');
-    // no pill-like chrome, no extra row: icon-sized and inline in the one row
-    expect(el.className).toContain('size-5');
-    expect(el.className).not.toContain('border-l-[3px]');
-    expect(el.parentElement).toBe(screen.getByTestId('mr-labels'));
-    // replaces the plain tag icon and leads the row, before every pill
+    expect(el).toHaveTextContent('5');
+    // different style from the pills: no fill, no border, orange text
+    expect(el.className).toContain('text-orange-600');
+    expect(el.className).not.toMatch(/(^|\s)bg-/);
+    expect(el.className).not.toContain('border');
+    expect(el.style.backgroundColor).toBe('');
+    // inline in the one row, after every pill
     const strip = screen.getByTestId('mr-labels');
-    expect(strip.firstElementChild).toBe(el);
-    const firstPill = screen.getAllByTestId('mr-label-pill')[0];
-    expect(el.compareDocumentPosition(firstPill) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(el.parentElement).toBe(strip);
+    expect(strip.lastElementChild).toBe(el);
+    const pills = screen.getAllByTestId('mr-label-pill');
+    expect(
+      pills[pills.length - 1].compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 
   it('uses the singular for one unlabelled MR', () => {
@@ -113,7 +115,7 @@ describe('MrLabels (full-width strip)', () => {
     expect(screen.getByTestId('mr-labels-unlabeled')).toBeInTheDocument();
   });
 
-  it('renders only the badge when no MR has a label', () => {
+  it('renders only the warning when no MR has a label', () => {
     render(<MrLabels labelSummary={[]} coverage={missing(3)} />);
     expect(screen.getByTestId('mr-labels-unlabeled')).toBeInTheDocument();
     expect(screen.queryAllByTestId('mr-label-pill')).toHaveLength(0);

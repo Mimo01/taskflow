@@ -1,4 +1,4 @@
-import { Tag as TagIcon } from 'lucide-react';
+import { Tag as TagIcon, TriangleAlert } from 'lucide-react';
 import type { CSSProperties } from 'react';
 import { cn } from '@/lib/utils';
 import type { LabelCoverage } from '../releaseSummaries';
@@ -70,11 +70,11 @@ function LabelPill({
 }
 
 /**
- * One wrapping label row between the done bar and the release graphs: the tag
- * icon (carrying an orange count badge when MRs lack a label — the text lives in
- * the tooltip and sr-only), a muted "Labels" caption, then every GitLab-style pill
- * (never collapsed). Badge and pills toggle the task table label filter when
- * onToggleLabel is set.
+ * One wrapping label row under the release graphs: tag icon, a muted "Labels"
+ * caption, every GitLab-style pill (never collapsed), then — when MRs lack a
+ * label — a small bare orange warning icon + count at the end (text in the
+ * tooltip and sr-only). Pills and the warning toggle the task table label filter
+ * when onToggleLabel is set.
  */
 export function MrLabels({
   labelSummary,
@@ -96,17 +96,27 @@ export function MrLabels({
 
   const hasMissing = missing > 0;
   const missingText = `${missing} ${missing === 1 ? 'MR' : 'MRs'} without label`;
-  const Badge = onToggleLabel ? 'button' : 'span';
+  const Warn = onToggleLabel ? 'button' : 'span';
 
   return (
     <div
       data-testid="mr-labels"
       className={cn('flex min-w-0 flex-wrap items-center gap-1.5 text-xs', className)}
     >
+      <TagIcon className="size-3.5 flex-none text-muted-foreground" aria-hidden="true" />
+      <span className="text-xs text-muted-foreground @max-[440px]/page:sr-only">Labels</span>
+      {labelSummary.map((l) => (
+        <LabelPill
+          key={l.label.name}
+          l={l}
+          active={activeLabel === l.label.name}
+          onToggle={onToggleLabel}
+        />
+      ))}
       {hasMissing ? (
-        // Unlabelled MRs: an orange count badge on the tag icon (tooltip carries the
-        // text) — no extra width or height in the row (261103-bfx UAT).
-        <Badge
+        // Unlabelled MRs: a small bare orange warning icon + count at the END of the
+        // row — no fill, no border, so it never reads as a label (261103-bfx UAT).
+        <Warn
           {...(onToggleLabel
             ? {
                 type: 'button' as const,
@@ -117,39 +127,16 @@ export function MrLabels({
           data-testid="mr-labels-unlabeled"
           title={onToggleLabel ? `${missingText} — click to filter tasks` : missingText}
           className={cn(
-            'relative inline-flex size-5 flex-none items-center justify-center rounded',
+            'ml-0.5 inline-flex h-5 flex-none items-center gap-0.5 rounded px-1 font-semibold tabular-nums text-orange-600 dark:text-orange-400',
             onToggleLabel && 'cursor-pointer hover:bg-muted',
-            activeLabel === UNLABELED_FILTER && 'bg-orange-500/15 ring-2 ring-orange-500/60',
+            activeLabel === UNLABELED_FILTER && 'ring-2 ring-orange-500/60',
           )}
         >
-          <TagIcon className="size-3.5 text-muted-foreground" aria-hidden="true" />
-          <span
-            aria-hidden="true"
-            className="absolute -top-1 -right-1.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-orange-500 px-1 text-[10px] leading-none font-semibold tabular-nums text-white dark:bg-orange-400 dark:text-orange-950"
-          >
-            {missing}
-          </span>
+          <TriangleAlert className="size-3.5 flex-none" aria-hidden="true" />
+          <span aria-hidden="true">{missing}</span>
           <span className="sr-only">{missingText}</span>
-        </Badge>
-      ) : (
-        <TagIcon className="size-3.5 flex-none text-muted-foreground" aria-hidden="true" />
-      )}
-      <span
-        className={cn(
-          'text-xs text-muted-foreground @max-[440px]/page:sr-only',
-          hasMissing && 'ml-1',
-        )}
-      >
-        Labels
-      </span>
-      {labelSummary.map((l) => (
-        <LabelPill
-          key={l.label.name}
-          l={l}
-          active={activeLabel === l.label.name}
-          onToggle={onToggleLabel}
-        />
-      ))}
+        </Warn>
+      ) : null}
     </div>
   );
 }

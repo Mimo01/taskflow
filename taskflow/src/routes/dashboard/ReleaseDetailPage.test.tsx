@@ -471,8 +471,8 @@ describe('ReleaseDetailPage', () => {
     const strip = screen.getByTestId('mr-labels');
     expect(screen.getByTestId('release-graph-mrs')).not.toContainElement(strip);
     const grid = screen.getByTestId('release-graph-grid');
-    // labels sit ABOVE the graphs (after the done bar)
-    expect(strip.compareDocumentPosition(grid) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // labels sit UNDER the graphs (261103-bfx UAT)
+    expect(grid.compareDocumentPosition(strip) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     const table = screen.queryByTestId('unified-task-table');
     if (table) {
       expect(strip.compareDocumentPosition(table) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
@@ -499,7 +499,7 @@ describe('ReleaseDetailPage', () => {
     // no hairline above the done bar (261103-bfx UAT)
     expect(stats).not.toHaveClass('border-y');
     expect(stats).not.toHaveClass('border-t');
-    const kids = ['release-done-bar', 'mr-labels', 'release-graph-grid'].map((id) =>
+    const kids = ['release-done-bar', 'release-graph-grid', 'mr-labels'].map((id) =>
       screen.getByTestId(id),
     );
     for (const k of kids) expect(stats).toContainElement(k);
@@ -509,8 +509,8 @@ describe('ReleaseDetailPage', () => {
     expect(
       kids[1].compareDocumentPosition(kids[2]) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
-    expect(kids[2].className).not.toContain('px-6');
-    expect(kids[2].className).not.toContain('pt-5');
+    expect(kids[1].className).not.toContain('px-6');
+    expect(kids[1].className).not.toContain('pt-5');
   });
 
   it('shows no label line when By status replaces the MR cell', () => {
