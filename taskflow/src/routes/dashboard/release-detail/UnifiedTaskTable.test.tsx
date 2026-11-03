@@ -37,7 +37,6 @@ import {
   mrStatusSummary,
   stripLeadingTicketKeys,
   type MrFixContext,
-  selectDisplayMr,
   UnifiedTaskTable,
   type UnifiedTaskTableProps,
 } from './UnifiedTaskTable';
@@ -200,6 +199,34 @@ function renderWithRows(
   );
 }
 
+/**
+ * Opens a task row's MR popover (chip by default). The popover portals to
+ * document.body, so callers query `screen`, not `within(row)`.
+ */
+async function openMrPopover(trigger?: HTMLElement) {
+  const el = trigger ?? screen.getAllByTestId('mr-status-chip')[0];
+  // Idempotent: a trigger that already reports expanded must not be toggled shut.
+  if (el.getAttribute('aria-expanded') !== 'true') fireEvent.click(el);
+  // Rows that were opened earlier keep their (hidden) popover mounted; return the visible one.
+  let popover: HTMLElement | undefined;
+  await waitFor(() => {
+    popover = screen
+      .queryAllByTestId('mr-popover')
+      .find((p) => p.closest('[hidden]') === null && p.getAttribute('data-open') !== null);
+    expect(popover).toBeDefined();
+  });
+  return popover as HTMLElement;
+}
+
+/** The popover line for the MR with this iid. */
+function mrLine(iid: number): HTMLElement {
+  const line = screen
+    .getAllByTestId('mr-popover-line')
+    .find((l) => new RegExp(`!${iid}(?!\\d)`).test(l.textContent ?? ''));
+  if (!line) throw new Error(`no popover line for !${iid}`);
+  return line;
+}
+
 describe('UnifiedTaskTable', () => {
   beforeEach(() => {
     usePeekStore.setState({ peekIssueKey: null });
@@ -242,26 +269,27 @@ describe('UnifiedTaskTable', () => {
     const taskRows = screen.getAllByTestId('task-row');
     expect(taskRows[0]).toHaveTextContent('PROJ-2');
     expect(taskRows[1]).toHaveTextContent('PROJ-1');
-    const links = screen.getAllByTestId('mr-cell-link');
-    expect(links[0]).toHaveTextContent('!10');
-    expect(links[1]).toHaveTextContent('!5');
+    // Each row carries its own chip; the flagged row's BR aggregate is a flag.
+    expect(screen.getAllByTestId('mr-status-chip')).toHaveLength(2);
+    expect(within(taskRows[0]).getByTestId('task-drift-br').tagName).toBe('BUTTON');
+    expect(within(taskRows[1]).getByTestId('task-drift-br').tagName).not.toBe('BUTTON');
   });
 
   it('renders the warning glyph for a flagged BR mark', () => {
     const row = makeRow({ br: 'flag', flagged: true });
     renderWithRows([row], { flaggedMrCount: 1 });
-    const brCell = screen.getByTestId('drift-br');
+    const brCell = screen.getByTestId('task-drift-br');
     expect(brCell.querySelector('svg')).toBeTruthy();
   });
 
   it('renders a check for an ok mark and an em dash for na', () => {
     const row = makeRow({ br: 'ok', ms: 'na' });
     renderWithRows([row]);
-    expect(screen.getByTestId('drift-br').querySelector('svg')).toBeTruthy();
-    expect(screen.getByTestId('drift-ms')).toHaveTextContent('—');
+    expect(screen.getByTestId('task-drift-br').querySelector('svg')).toBeTruthy();
+    expect(screen.getByTestId('task-drift-ms')).toHaveTextContent('—');
   });
 
-  it('a non-evaluated (merged) row renders an em dash in both BR/MS columns and does not show the title inline', () => {
+  it('a non-evaluated (merged) row renders an em dash in both BR/MS columns and does not show the title inline', async () => {
     const row = makeRow({
       evaluated: false,
       br: 'na',
@@ -270,15 +298,17 @@ describe('UnifiedTaskTable', () => {
       mr: makeMR({ state: 'merged', title: 'Merged thing', iid: 9 }),
     });
     renderWithRows([row]);
-    expect(screen.getByTestId('drift-br')).toHaveTextContent('—');
-    expect(screen.getByTestId('drift-ms')).toHaveTextContent('—');
+    expect(screen.getByTestId('task-drift-br')).toHaveTextContent('—');
+    expect(screen.getByTestId('task-drift-ms')).toHaveTextContent('—');
     const taskRow = screen.getByTestId('task-row');
-    expect(taskRow).toHaveTextContent('!9');
+    expect(taskRow).not.toHaveTextContent('!9');
     expect(taskRow).not.toHaveTextContent('Merged thing');
-    expect(screen.getByTestId('mr-cell-link')).toHaveAttribute(
-      'title',
-      expect.stringContaining('Merged thing'),
-    );
+    expect(screen.getByTestId('mr-status-chip')).toHaveTextContent('merged');
+    const popover = await openMrPopover();
+    expect(popover).toHaveTextContent('!9');
+    expect(popover).toHaveTextContent('Merged thing');
+    expect(within(popover).getByTestId('drift-br')).toHaveTextContent('—');
+    expect(within(popover).getByTestId('drift-ms')).toHaveTextContent('—');
   });
 
   it('261103-fqd: a merged row missing the milestone keeps BR as an em dash but MS is an actionable button', async () => {
@@ -292,6 +322,7 @@ describe('UnifiedTaskTable', () => {
       mr: makeMR({ state: 'merged', iid: 9 }),
     });
     renderWithRows([row], { flaggedMrCount: 1 });
+    await openMrPopover(screen.getByTestId('task-drift-ms'));
     expect(screen.getByTestId('drift-br')).toHaveTextContent('—');
     expect(screen.getByTestId('drift-br').tagName).not.toBe('BUTTON');
     const ms = screen.getByTestId('drift-ms');
@@ -302,7 +333,7 @@ describe('UnifiedTaskTable', () => {
     expect(body).toEqual({ milestone_id: 1 });
   });
 
-  it('renders real marks (not em dashes) for an evaluated draft MR', () => {
+  it('renders real marks (not em dashes) for an evaluated draft MR', async () => {
     const row = makeRow({
       evaluated: true,
       br: 'flag',
@@ -312,6 +343,8 @@ describe('UnifiedTaskTable', () => {
       mr: makeMR({ state: 'opened', draft: true }),
     });
     renderWithRows([row], { flaggedMrCount: 1 });
+    expect(screen.getByTestId('mr-status-chip')).toHaveTextContent('draft');
+    await openMrPopover();
     expect(screen.getByTestId('drift-br').querySelector('svg')).toBeTruthy();
     expect(screen.getByTestId('drift-br')).not.toHaveTextContent('—');
   });
@@ -328,156 +361,103 @@ describe('UnifiedTaskTable', () => {
     expect(screen.getByTestId('flagged-ms-badge')).toHaveTextContent('1');
   });
 
-  // UAT-91.1 (plan 10, task 4): the developer walked task 1/2's decluttered
-  // sub-lines, then asked for full consolidation — "I want it all
-  // consolidated into one single line for each task by the logic like it
-  // was before." The task row now carries the MR link, state badge and
-  // BR/MS cells directly; no MR sub-line renders in the primary table.
-  describe('Task row MR cell shows the consolidated MR (UAT-91.1 consolidation)', () => {
-    it('renders the !iid link and the state badge inline; no drift-row sub-line renders in the primary table', () => {
+  // UAT-91.1 consolidation, reworked by quick 261103-g8m: the primary row is
+  // one line with an overall MR status chip (state dots + progress label) and
+  // aggregate BR/MS marks; per-MR details live in a popover.
+  describe('Task row MR cell shows an overall status chip (261103-g8m)', () => {
+    it('renders a chip with a label and no !iid, title or link on the row; no drift-row sub-line', () => {
       const row = makeRow({ mr: makeMR({ iid: 7, title: 'Fix thing', state: 'opened' }) });
       renderWithRows([row]);
       const taskRow = screen.getByTestId('task-row');
-      expect(taskRow).toHaveTextContent('!7');
-      expect(taskRow).toHaveTextContent('opened');
+      expect(screen.getByTestId('mr-status-chip')).toHaveTextContent('open');
+      expect(taskRow).not.toHaveTextContent('!7');
+      expect(taskRow).not.toHaveTextContent('Fix thing');
       expect(screen.queryByTestId('drift-row')).toBeNull();
     });
 
-    it('renders no MR-author avatar/img element and does not show the author name as visible text', () => {
-      const row = makeRow({
-        mr: makeMR({ author: { id: 1, name: 'Alice', username: 'alice', avatar_url: '' } }),
-      });
-      renderWithRows([row]);
-      // Scope to the MR cell itself, not the whole task row — the task row's
-      // own Assignee column legitimately renders an "Unassigned" avatar with
-      // role="img" (unrelated to the MR author this test is about).
-      const mrCell = screen.getByTestId('mr-cell-link').closest('div') as HTMLElement;
-      expect(within(mrCell).queryByRole('img')).toBeNull();
-      expect(within(mrCell).queryByText('Alice')).toBeNull();
-    });
-
-    it('the MR link carries a title attribute with the author name and the MR title', () => {
+    it('the popover shows author and title as text, with no avatar/img', async () => {
       const row = makeRow({
         mr: makeMR({
-          author: { id: 1, name: 'Alice', username: 'alice', avatar_url: '' },
           title: 'Fix thing',
+          author: { id: 1, name: 'Alice', username: 'alice', avatar_url: '' },
         }),
       });
       renderWithRows([row]);
-      const link = screen.getByTestId('mr-cell-link');
-      expect(link).toHaveAttribute('title', expect.stringContaining('Alice'));
-      expect(link).toHaveAttribute('title', expect.stringContaining('Fix thing'));
+      const chip = screen.getByTestId('mr-status-chip');
+      expect(within(chip).queryByRole('img')).toBeNull();
+      expect(within(chip).queryByText('Alice')).toBeNull();
+      const popover = await openMrPopover();
+      expect(within(popover).getByText('Alice')).toBeInTheDocument();
+      expect(within(popover).getByText('Fix thing')).toHaveAttribute('title', 'Fix thing');
+      expect(within(popover).queryByRole('img')).toBeNull();
     });
 
-    it('drift-br and drift-ms cells still render on the consolidated row', () => {
+    it('aggregate task-drift-br / task-drift-ms render on the row; per-MR drift-br / drift-ms only after opening', async () => {
       const row = makeRow({ br: 'flag', ms: 'ok', flagged: true });
       renderWithRows([row], { flaggedMrCount: 1 });
-      expect(screen.getByTestId('drift-br')).toBeInTheDocument();
-      expect(screen.getByTestId('drift-ms')).toBeInTheDocument();
+      expect(screen.getByTestId('task-drift-br')).toBeInTheDocument();
+      expect(screen.getByTestId('task-drift-ms')).toBeInTheDocument();
+      expect(screen.queryByTestId('drift-br')).toBeNull();
+      expect(screen.queryByTestId('drift-ms')).toBeNull();
+      await openMrPopover();
+      expect(screen.getAllByTestId('drift-br')).toHaveLength(1);
+      expect(screen.getAllByTestId('drift-ms')).toHaveLength(1);
     });
 
-    it('a task with three MRs still keeps all three in the data — only the most relevant is shown, with a +2 marker', () => {
+    it('a task with three MRs shows 3 dots on the row and lists all three in the popover (no selection, no +N)', async () => {
       const rows = [
         makeRow({ mr: makeMR({ id: 1, iid: 1 }) }),
         makeRow({ mr: makeMR({ id: 2, iid: 2 }) }),
         makeRow({ mr: makeMR({ id: 3, iid: 3 }) }),
       ];
       renderWithRows(rows);
-      // No flagged MR — highest iid wins.
-      expect(screen.getByTestId('mr-cell-link')).toHaveTextContent('!3');
-      const extra = screen.getByTestId('mr-extra-count');
-      expect(extra).toHaveTextContent('+2');
-      expect(extra).toHaveAttribute('title', expect.stringContaining('!1'));
-      expect(extra).toHaveAttribute('title', expect.stringContaining('!2'));
+      const chip = screen.getByTestId('mr-status-chip');
+      expect(chip).toHaveTextContent('3 open');
+      expect(chip.querySelectorAll('.rounded-full')).toHaveLength(3);
+      const popover = await openMrPopover();
+      const lines = within(popover).getAllByTestId('mr-popover-line');
+      expect(lines.map((l) => l.textContent)).toEqual([
+        expect.stringContaining('!3'),
+        expect.stringContaining('!2'),
+        expect.stringContaining('!1'),
+      ]);
     });
 
-    it('a single MR carries no +N marker', () => {
-      renderWithRows([makeRow({ mr: makeMR({ iid: 1 }) })]);
-      expect(screen.queryByTestId('mr-extra-count')).toBeNull();
-    });
-  });
-
-  // MR selection when a task has 2+ MRs — the developer's explicit choice at
-  // the live UAT checkpoint (2026-08-12): a flagged MR wins, ties broken by
-  // highest iid; with no flag, highest iid wins.
-  describe('MR selection when a task has 2+ MRs (UAT-91.1 consolidation)', () => {
-    it('a flagged MR wins over a clean MR with a higher iid', () => {
+    it('the aggregate describes every MR: a flag on any MR flags the row, even a lower-iid one', () => {
       const clean = makeRow({ mr: makeMR({ id: 1, iid: 9 }) });
       const flagged = makeRow({ mr: makeMR({ id: 2, iid: 2 }), br: 'flag', flagged: true });
       renderWithRows([clean, flagged], { flaggedMrCount: 1 });
-      expect(screen.getByTestId('mr-cell-link')).toHaveTextContent('!2');
+      expect(screen.getByTestId('task-drift-br').tagName).toBe('BUTTON');
+      expect(screen.getByTestId('task-drift-ms').tagName).not.toBe('BUTTON');
     });
 
-    it('ties among flagged MRs are broken by highest iid', () => {
-      const flaggedLow = makeRow({ mr: makeMR({ id: 1, iid: 3 }), br: 'flag', flagged: true });
-      const flaggedHigh = makeRow({ mr: makeMR({ id: 2, iid: 8 }), ms: 'flag', flagged: true });
-      renderWithRows([flaggedLow, flaggedHigh], { flaggedMrCount: 1 });
-      expect(screen.getByTestId('mr-cell-link')).toHaveTextContent('!8');
-    });
-
-    it('with no flagged MR, the highest iid wins', () => {
-      const rows = [
-        makeRow({ mr: makeMR({ id: 1, iid: 4 }) }),
-        makeRow({ mr: makeMR({ id: 2, iid: 11 }) }),
-        makeRow({ mr: makeMR({ id: 3, iid: 7 }) }),
-      ];
-      renderWithRows(rows);
-      expect(screen.getByTestId('mr-cell-link')).toHaveTextContent('!11');
-    });
-
-    it('selectDisplayMr returns null for an empty list', () => {
-      expect(selectDisplayMr([])).toBeNull();
-    });
-
-    // WR-09: merged MRs are not evaluated and, on a release branch that has
-    // begun landing work, carry the highest iids — so highest-iid-wins
-    // surfaced a merged MR and reported "not evaluated" (— / —) for a task
-    // whose live MR was correctly targeted and milestoned.
-    it('with no flagged MR, an evaluated open MR beats a non-evaluated merged MR with a higher iid', () => {
+    it('the popover lists flagged MRs before unflagged ones, then opened, merged, closed (iid desc)', async () => {
       const merged = makeRow({
         mr: makeMR({ id: 1, iid: 42, state: 'merged' }),
         evaluated: false,
         br: 'na',
-        ms: 'na',
+        ms: 'ok',
         task: 'na',
       });
-      const open = makeRow({ mr: makeMR({ id: 2, iid: 17 }), br: 'ok', ms: 'ok' });
-
-      expect(selectDisplayMr([merged, open])?.mr.iid).toBe(17);
-
-      renderWithRows([merged, open]);
-      expect(screen.getByTestId('mr-cell-link')).toHaveTextContent('!17');
-      // The verified checks are visible again, not replaced by em dashes.
-      expect(screen.getByTestId('drift-br')).not.toHaveTextContent('—');
-      expect(screen.getByTestId('drift-br').querySelector('svg')).toBeTruthy();
-    });
-
-    it('the flagged tier still outranks the evaluated tier (a clean evaluated MR with a higher iid does not win)', () => {
-      const flaggedLowIid = makeRow({
-        mr: makeMR({ id: 1, iid: 2 }),
+      const openClean = makeRow({ mr: makeMR({ id: 2, iid: 17 }), br: 'ok', ms: 'ok' });
+      const openFlagged = makeRow({
+        mr: makeMR({ id: 3, iid: 5 }),
         br: 'flag',
         flagged: true,
       });
-      const cleanEvaluatedHighIid = makeRow({ mr: makeMR({ id: 2, iid: 30 }) });
-
-      expect(selectDisplayMr([flaggedLowIid, cleanEvaluatedHighIid])?.mr.iid).toBe(2);
+      renderWithRows([merged, openClean, openFlagged], { flaggedMrCount: 1 });
+      const popover = await openMrPopover();
+      const lines = within(popover).getAllByTestId('mr-popover-line');
+      expect(lines.map((l) => l.textContent?.match(/!\d+/)?.[0])).toEqual(['!5', '!17', '!42']);
     });
 
-    it('with nothing evaluated and nothing flagged, highest iid still wins', () => {
-      const a = makeRow({
-        mr: makeMR({ id: 1, iid: 3, state: 'merged' }),
-        evaluated: false,
-        br: 'na',
-        ms: 'na',
-      });
-      const b = makeRow({
-        mr: makeMR({ id: 2, iid: 8, state: 'closed' }),
-        evaluated: false,
-        br: 'na',
-        ms: 'na',
-      });
-
-      expect(selectDisplayMr([a, b])?.mr.iid).toBe(8);
+    it('a single MR uses the same chip + popover (no direct link)', async () => {
+      renderWithRows([makeRow({ mr: makeMR({ iid: 1, state: 'merged' }) })]);
+      const chip = screen.getByTestId('mr-status-chip');
+      expect(chip).toHaveTextContent('merged');
+      expect(chip.querySelectorAll('.rounded-full')).toHaveLength(1);
+      const popover = await openMrPopover();
+      expect(within(popover).getAllByTestId('mr-popover-line')).toHaveLength(1);
     });
   });
 
@@ -664,13 +644,14 @@ describe('per-MR corrective actions', () => {
   it('pending: clicking a flagged BR cell whose write never resolves leaves a spinner, second click does not re-fire', async () => {
     mockUpdateMergeRequest.mockReturnValueOnce(new Promise(() => {}));
     const row = makeRow({ br: 'flag', flagged: true });
-    const { container } = renderWithRows([row], { flaggedMrCount: 1 });
+    renderWithRows([row], { flaggedMrCount: 1 });
+    await openMrPopover();
 
     const brCell = screen.getByTestId('drift-br');
     fireEvent.click(brCell);
 
     await waitFor(() => {
-      expect(container.querySelector('[data-testid="drift-br"] .animate-spin')).toBeTruthy();
+      expect(screen.getByTestId('drift-br').querySelector('.animate-spin')).toBeTruthy();
     });
     expect(mockUpdateMergeRequest).toHaveBeenCalledTimes(1);
 
@@ -692,6 +673,10 @@ describe('per-MR corrective actions', () => {
     );
     const row = makeRow({ br: 'flag', flagged: true });
     renderWithRows([row], { flaggedMrCount: 1 });
+    const popover = await openMrPopover();
+    // The popup claims initial focus asynchronously; wait for that to settle so
+    // it cannot steal focus back from the cell we focus below.
+    await waitFor(() => expect(popover.contains(document.activeElement)).toBe(true));
 
     const brCell = screen.getByTestId('drift-br');
     brCell.focus();
@@ -726,6 +711,7 @@ describe('per-MR corrective actions', () => {
     mockUpdateMergeRequest.mockResolvedValueOnce({} as GitLabMR);
     const row = makeRow({ br: 'flag', flagged: true });
     const { rerender, props } = renderWithRows([row], { flaggedMrCount: 1 });
+    await openMrPopover();
 
     fireEvent.click(screen.getByTestId('drift-br'));
     await waitFor(() => expect(mockUpdateMergeRequest).toHaveBeenCalledTimes(1));
@@ -752,6 +738,7 @@ describe('per-MR corrective actions', () => {
     mockUpdateMergeRequest.mockRejectedValueOnce(new Error("target_branch can't be blank"));
     const row = makeRow({ br: 'flag', flagged: true });
     const { container } = renderWithRows([row], { flaggedMrCount: 1 }, queryClient);
+    await openMrPopover();
 
     fireEvent.click(screen.getByTestId('drift-br'));
 
@@ -786,6 +773,7 @@ describe('per-MR corrective actions', () => {
     mockUpdateMergeRequest.mockRejectedValueOnce(new Error('boom'));
     const row = makeRow({ br: 'flag', flagged: true });
     renderWithRows([row], { flaggedMrCount: 1 });
+    await openMrPopover();
 
     fireEvent.click(screen.getByTestId('drift-br'));
     await waitFor(() =>
@@ -807,6 +795,7 @@ describe('per-MR corrective actions', () => {
     mockUpdateMergeRequest.mockRejectedValueOnce(new Error('milestone rejected')); // MS fails
     const row = makeRow({ br: 'flag', ms: 'flag', flagged: true });
     renderWithRows([row], { flaggedMrCount: 1 });
+    await openMrPopover();
 
     fireEvent.click(screen.getByTestId('drift-br'));
     await waitFor(() => expect(mockUpdateMergeRequest).toHaveBeenCalledTimes(1));
@@ -834,6 +823,7 @@ describe('per-MR corrective actions', () => {
     mockUpdateMergeRequest.mockRejectedValueOnce(new Error('protected branch'));
     const row = makeRow({ br: 'flag', flagged: true });
     const { rerender, props } = renderWithRows([row], { flaggedMrCount: 1 });
+    await openMrPopover();
 
     fireEvent.click(screen.getByTestId('drift-br'));
     await waitFor(() =>
@@ -856,6 +846,7 @@ describe('per-MR corrective actions', () => {
     mockUpdateMergeRequest.mockRejectedValueOnce(new Error('protected branch'));
     const row = makeRow({ br: 'flag', flagged: true });
     const { rerender, props } = renderWithRows([row], { flaggedMrCount: 1 });
+    await openMrPopover();
 
     fireEvent.click(screen.getByTestId('drift-br'));
     await waitFor(() =>
@@ -887,12 +878,13 @@ describe('per-MR corrective actions', () => {
     expect(mockUpdateMergeRequest).toHaveBeenCalledTimes(1);
   });
 
-  it('unavailable: with no release branch, drift-br is not a button, a click calls nothing, and MS on the same row is still actionable (MRFIX-04, D-14)', () => {
+  it('unavailable: with no release branch, drift-br is not a button, a click calls nothing, and MS on the same row is still actionable (MRFIX-04, D-14)', async () => {
     const row = makeRow({ br: 'flag', ms: 'flag', flagged: true });
     renderWithRows([row], {
       flaggedMrCount: 1,
       fix: { ...DEFAULT_FIX, releaseBranchExists: false },
     });
+    await openMrPopover();
 
     const brCell = screen.getByTestId('drift-br');
     expect(brCell.tagName).not.toBe('BUTTON');
@@ -908,14 +900,15 @@ describe('per-MR corrective actions', () => {
     expect(msCell.tagName).toBe('BUTTON');
   });
 
-  it('inert cells: ok and na marks render no button (D-05, P89 D-11)', () => {
+  it('inert cells: ok and na marks render no button (D-05, P89 D-11)', async () => {
     const okRow = makeRow({ br: 'ok', ms: 'ok' });
     renderWithRows([okRow], { flaggedMrCount: 1 });
+    await openMrPopover();
     expect(screen.getByTestId('drift-br').querySelector('button')).toBeNull();
     expect(screen.getByTestId('drift-ms').querySelector('button')).toBeNull();
   });
 
-  it('inert cells: a non-evaluated (merged) row never renders a button in any column', () => {
+  it('inert cells: a non-evaluated (merged) row never renders a button in any column', async () => {
     const mutedRow = makeRow({
       evaluated: false,
       br: 'na',
@@ -924,24 +917,27 @@ describe('per-MR corrective actions', () => {
       mr: makeMR({ state: 'merged' }),
     });
     renderWithRows([mutedRow]);
+    await openMrPopover();
     expect(screen.getByTestId('drift-br').querySelector('button')).toBeNull();
     expect(screen.getByTestId('drift-ms').querySelector('button')).toBeNull();
   });
 
-  it('degraded: with no matched milestone the banner renders and neither BR nor MS is a button (D-15, D-16)', () => {
+  it('degraded: with no matched milestone the banner renders and neither BR nor MS is a button (D-15, D-16)', async () => {
     const row = makeRow({ br: 'na', ms: 'na' });
     renderWithRows([row], {
       hasMatchedMilestone: false,
       fix: { ...DEFAULT_FIX, matchedMilestone: null },
     });
+    await openMrPopover();
     expect(screen.getByTestId('drift-degraded-banner')).toBeInTheDocument();
     expect(screen.getByTestId('drift-br').tagName).not.toBe('BUTTON');
     expect(screen.getByTestId('drift-ms').tagName).not.toBe('BUTTON');
   });
 
-  it('BR and MS both carry the identical aria-label and title strings (D2)', () => {
+  it('BR and MS both carry the identical aria-label and title strings (D2)', async () => {
     const row = makeRow({ br: 'flag', ms: 'flag', flagged: true });
     renderWithRows([row], { flaggedMrCount: 1 });
+    await openMrPopover();
     const br = screen.getByTestId('drift-br');
     const ms = screen.getByTestId('drift-ms');
     expect(br.getAttribute('aria-label')).toBe(br.getAttribute('title'));
@@ -954,6 +950,7 @@ describe('per-MR corrective actions', () => {
     mockUpdateMergeRequest.mockRejectedValueOnce(new Error('nope'));
     const row = makeRow({ br: 'flag', flagged: true });
     const { container } = renderWithRows([row], { flaggedMrCount: 1 });
+    await openMrPopover();
     fireEvent.click(screen.getByTestId('drift-br'));
     await waitFor(() =>
       expect(screen.getByTestId('drift-br').querySelector('.text-red-600')).toBeTruthy(),
@@ -998,12 +995,13 @@ describe('D-17: five mutually exclusive MR-slot states', () => {
     expect(unavailable.querySelector('.text-orange-600')).toBeNull();
   });
 
-  it('isLoadingDrift: false with two MRs renders the consolidated MR cell (not a slot-state line)', () => {
+  it('isLoadingDrift: false with two MRs renders the consolidated MR cell (not a slot-state line)', async () => {
     const rowA = makeRow({ mr: makeMR({ id: 1, iid: 1 }) });
     const rowB = makeRow({ mr: makeMR({ id: 2, iid: 2 }) });
     renderWithRows([rowA, rowB], { isLoadingDrift: false });
-    expect(screen.getByTestId('mr-cell-link')).toBeInTheDocument();
-    expect(screen.getByTestId('mr-extra-count')).toHaveTextContent('+1');
+    expect(screen.getByTestId('mr-status-chip')).toHaveTextContent('2 open');
+    const popover = await openMrPopover();
+    expect(within(popover).getAllByTestId('mr-popover-line')).toHaveLength(2);
     expect(screen.queryByTestId('mr-slot-pending')).toBeNull();
     expect(screen.queryByTestId('mr-slot-none')).toBeNull();
     expect(screen.queryByTestId('mr-slot-unavailable')).toBeNull();
@@ -1138,24 +1136,35 @@ describe('D-04: task row click behaviour', () => {
     expect(onNavigateToIssueFromMR).not.toHaveBeenCalled();
   });
 
-  it('the MR cell link is a sibling of the overlay, not nested inside it (sibling overlay pattern)', () => {
-    const row = makeRow({ mr: makeMR({ iid: 4 }) });
-    renderWithRows([row]);
+  it('the MR chip and a flagged aggregate are siblings of the overlay, not nested inside it (sibling overlay pattern)', () => {
+    const row = makeRow({ mr: makeMR({ iid: 4 }), br: 'flag', flagged: true });
+    renderWithRows([row], { flaggedMrCount: 1 });
 
     const overlay = screen.getByTestId('task-row-overlay');
-    const mrLink = screen.getByTestId('mr-cell-link');
-    expect(overlay.contains(mrLink)).toBe(false);
-    expect(mrLink.contains(overlay)).toBe(false);
+    for (const testId of ['mr-status-chip', 'task-drift-br']) {
+      const trigger = screen.getByTestId(testId);
+      expect(overlay.contains(trigger)).toBe(false);
+      expect(trigger.contains(overlay)).toBe(false);
+    }
   });
 
-  it('clicking the MR cell link does not trigger the row overlay handlers', () => {
+  it('clicking the MR chip or a flagged aggregate opens the popover and does not trigger the row overlay handlers', async () => {
     const onOpenIssue = vi.fn();
+    const onOpenIssueFull = vi.fn();
     const onSeedBreadcrumb = vi.fn();
-    const row = makeRow({ mr: makeMR({ iid: 4 }) });
-    renderWithRows([row], { onOpenIssue, onSeedBreadcrumb });
+    const row = makeRow({ mr: makeMR({ iid: 4 }), br: 'flag', flagged: true });
+    renderWithRows([row], { onOpenIssue, onOpenIssueFull, onSeedBreadcrumb, flaggedMrCount: 1 });
 
-    fireEvent.click(screen.getByTestId('mr-cell-link'));
+    const chip = screen.getByTestId('mr-status-chip');
+    fireEvent.click(chip);
+    expect(await screen.findByTestId('mr-popover')).toBeInTheDocument();
+    fireEvent.click(chip);
+    await waitFor(() => expect(screen.getByTestId('mr-popover')).not.toBeVisible());
+
+    fireEvent.click(screen.getByTestId('task-drift-br'));
+    await waitFor(() => expect(screen.getByTestId('mr-popover')).toBeVisible());
     expect(onOpenIssue).not.toHaveBeenCalled();
+    expect(onOpenIssueFull).not.toHaveBeenCalled();
     expect(onSeedBreadcrumb).not.toHaveBeenCalled();
   });
 });
@@ -1170,15 +1179,15 @@ describe('CR-05: overlay click model — cells opt out of hit-testing unless gen
   it('the consolidated MR cell wrapper carries pointer-events-none so the row overlay keeps the click', () => {
     renderWithRows([makeRow({ mr: makeMR({ iid: 4 }) })]);
 
-    const wrapper = screen.getByTestId('mr-cell-link').parentElement as HTMLElement;
+    const wrapper = screen.getByTestId('mr-status-chip').parentElement as HTMLElement;
     expect(wrapper.className).toContain('pointer-events-none');
     expect(wrapper.className).toContain('relative');
   });
 
-  it('the MR link inside that wrapper opts back in with pointer-events-auto + relative z-10', () => {
+  it('the MR chip inside that wrapper opts back in with pointer-events-auto + relative z-10', () => {
     renderWithRows([makeRow({ mr: makeMR({ iid: 4 }) })]);
 
-    const link = screen.getByTestId('mr-cell-link');
+    const link = screen.getByTestId('mr-status-chip');
     expect(link.className).toContain('relative');
     expect(link.className).toContain('z-10');
     // `pointer-events` inherits, so the wrapper's `none` would otherwise make
@@ -1190,27 +1199,32 @@ describe('CR-05: overlay click model — cells opt out of hit-testing unless gen
   it('inert BR/MS cells (ok / na marks) sit in a pointer-events-none slot, not a z-10 one', () => {
     renderWithRows([makeRow({ br: 'ok', ms: 'na' })]);
 
-    for (const testId of ['drift-br', 'drift-ms']) {
+    for (const testId of ['task-drift-br', 'task-drift-ms']) {
+      expect(screen.getByTestId(testId).tagName).not.toBe('BUTTON');
       const slot = screen.getByTestId(testId).parentElement as HTMLElement;
       expect(slot.className).toContain('pointer-events-none');
       expect(slot.className).not.toContain('z-10');
     }
   });
 
-  it('a flagged, non-actionable BR cell (no release branch) is still an inert pointer-events-none slot', () => {
+  it('a flagged aggregate is a z-10 button even when no fix is possible (no release branch); the popover cell stays inert', async () => {
     renderWithRows([makeRow({ br: 'flag', ms: 'flag', flagged: true })], {
       flaggedMrCount: 1,
       fix: { ...DEFAULT_FIX, releaseBranchExists: false },
     });
 
-    const brSlot = screen.getByTestId('drift-br').parentElement as HTMLElement;
+    for (const testId of ['task-drift-br', 'task-drift-ms']) {
+      const trigger = screen.getByTestId(testId);
+      expect(trigger.tagName).toBe('BUTTON');
+      expect(trigger.className).toContain('pointer-events-auto');
+      expect(trigger.className).toContain('z-10');
+      const slot = trigger.parentElement as HTMLElement;
+      expect(slot.className).toContain('z-10');
+      expect(slot.className).not.toContain('pointer-events-none');
+    }
+    await openMrPopover(screen.getByTestId('task-drift-br'));
     expect(screen.getByTestId('drift-br').tagName).not.toBe('BUTTON');
-    expect(brSlot.className).toContain('pointer-events-none');
-    // MS on the same row IS actionable, so it must still opt above the overlay.
-    const msSlot = screen.getByTestId('drift-ms').parentElement as HTMLElement;
     expect(screen.getByTestId('drift-ms').tagName).toBe('BUTTON');
-    expect(msSlot.className).toContain('z-10');
-    expect(msSlot.className).not.toContain('pointer-events-none');
   });
 
   it('no interactive button on a task row is left inside a pointer-events-none subtree without opting back in', () => {
@@ -1233,13 +1247,10 @@ describe('CR-05: overlay click model — cells opt out of hit-testing unless gen
   });
 });
 
-// CR-08: `selectDisplayMr`'s contract is that nothing is dropped — "the rest
-// surface behind the +N marker". They only surface if the marker is
-// hit-testable: `pointer-events: none` removes it from hit-testing, so the
-// browser never fires the hover its `title` needs, and there is no other route
-// to those MRs anywhere in the UI (they are excluded from secondaryRows by
-// construction).
-describe('CR-08: the +N marker actually reveals the hidden MRs', () => {
+// CR-08 (reworked by 261103-g8m): the MRs of a task are only reachable through
+// the chip's popover, so the chip must be hit-testable above the row overlay and
+// the popover must name every MR with its state.
+describe('CR-08: the MR chip actually reveals every MR', () => {
   it('is hit-testable — it opts back into pointer events above the row overlay and never carries pointer-events-none', () => {
     renderWithRows([
       makeRow({ mr: makeMR({ id: 1, iid: 1 }) }),
@@ -1247,30 +1258,30 @@ describe('CR-08: the +N marker actually reveals the hidden MRs', () => {
       makeRow({ mr: makeMR({ id: 3, iid: 3 }) }),
     ]);
 
-    const extra = screen.getByTestId('mr-extra-count');
-    expect(extra.className).not.toContain('pointer-events-none');
-    expect(extra.className).toContain('pointer-events-auto');
-    expect(extra.className).toContain('z-10');
-    expect(extra.className).toContain('cursor-help');
+    const chip = screen.getByTestId('mr-status-chip');
+    expect(chip.tagName).toBe('BUTTON');
+    expect(chip.className).not.toContain('pointer-events-none');
+    expect(chip.className).toContain('pointer-events-auto');
+    expect(chip.className).toContain('z-10');
   });
 
-  it('names every hidden MR with its state, both in the tooltip and in text the tooltip does not gate', () => {
+  it('names every MR with its state in the popover and summarises them in the chip aria-label', async () => {
     renderWithRows([
       makeRow({ mr: makeMR({ id: 1, iid: 1, state: 'merged' }) }),
       makeRow({ mr: makeMR({ id: 2, iid: 2, state: 'opened' }) }),
-      makeRow({ mr: makeMR({ id: 3, iid: 3, state: 'opened' }) }),
     ]);
 
-    const extra = screen.getByTestId('mr-extra-count');
-    expect(extra).toHaveTextContent('+2');
-    for (const fragment of ['!1 (merged)', '!2 (opened)']) {
-      expect(extra).toHaveAttribute('title', expect.stringContaining(fragment));
-      // Not reachable only through a hover the pointer-events rules could
-      // silently disable again.
-      expect(extra.textContent).toContain(fragment);
-    }
-    // The selected MR is not listed as one of the "others".
-    expect(extra).toHaveAttribute('title', expect.not.stringContaining('!3'));
+    expect(screen.getByTestId('mr-status-chip')).toHaveAttribute(
+      'aria-label',
+      expect.stringMatching(/2 merge requests: 1 merged, 1 open/),
+    );
+    const popover = await openMrPopover();
+    const lines = within(popover).getAllByTestId('mr-popover-line');
+    expect(lines).toHaveLength(2);
+    expect(popover).toHaveTextContent('!1');
+    expect(popover).toHaveTextContent('Merged');
+    expect(popover).toHaveTextContent('!2');
+    expect(popover).toHaveTextContent('Open');
   });
 });
 
@@ -1312,15 +1323,18 @@ describe('D-05: hover-reveal scope', () => {
   });
 });
 
-describe('D-06 / criterion 4: task row carries its own drift-br/drift-ms (consolidated row)', () => {
-  it('a task row renders drift-br/drift-ms for its selected MR — no separate sub-line copy in the primary table', () => {
+describe('D-06 / criterion 4: task row carries aggregate BR/MS (consolidated row)', () => {
+  it('a task row renders aggregate task-drift-br/ms for its MRs — per-MR cells only live in the popover, never as a sub-line', async () => {
     const row = makeRow();
     renderWithRows([row]);
 
     const taskRow = screen.getByTestId('task-row');
-    expect(within(taskRow).getByTestId('drift-br')).toBeInTheDocument();
-    expect(within(taskRow).getByTestId('drift-ms')).toBeInTheDocument();
-    // Only one of each in the whole tree — no separate sub-line copy.
+    expect(within(taskRow).getByTestId('task-drift-br')).toBeInTheDocument();
+    expect(within(taskRow).getByTestId('task-drift-ms')).toBeInTheDocument();
+    expect(within(taskRow).queryByTestId('drift-br')).toBeNull();
+    await openMrPopover();
+    // Portalled out of the row: one per-MR cell in the whole tree.
+    expect(within(taskRow).queryByTestId('drift-br')).toBeNull();
     expect(screen.getAllByTestId('drift-br')).toHaveLength(1);
     expect(screen.getAllByTestId('drift-ms')).toHaveLength(1);
   });
@@ -1331,7 +1345,7 @@ describe('D-09: duplication', () => {
     mockUpdateMergeRequest.mockReset();
   });
 
-  it('the same DriftRow supplied under two primaryRows entries renders two task rows, each with its own actionable drift-br button', () => {
+  it('the same DriftRow supplied under two primaryRows entries renders two task rows, each with its own actionable drift-br button', async () => {
     const shared = makeRow({ mr: makeMR({ id: 1, iid: 1 }), br: 'flag', flagged: true });
     renderSection({
       primaryRows: [
@@ -1343,6 +1357,8 @@ describe('D-09: duplication', () => {
 
     const taskRows = screen.getAllByTestId('task-row');
     expect(taskRows).toHaveLength(2);
+    await openMrPopover(screen.getAllByTestId('mr-status-chip')[0]);
+    await openMrPopover(screen.getAllByTestId('mr-status-chip')[1]);
     const brButtons = screen.getAllByTestId('drift-br');
     expect(brButtons).toHaveLength(2);
     for (const b of brButtons) expect(b.tagName).toBe('BUTTON');
@@ -1359,12 +1375,14 @@ describe('D-09: duplication', () => {
       flaggedMrCount: 1,
     });
 
-    const [firstBr, secondBr] = screen.getAllByTestId('drift-br');
-    fireEvent.click(firstBr);
-
+    await openMrPopover(screen.getAllByTestId('mr-status-chip')[0]);
+    fireEvent.click(screen.getByTestId('drift-br'));
     await waitFor(() => {
-      expect(firstBr.querySelector('.text-red-600')).toBeTruthy();
+      expect(screen.getByTestId('drift-br').querySelector('.text-red-600')).toBeTruthy();
     });
+    await openMrPopover(screen.getAllByTestId('mr-status-chip')[1]);
+    const [firstBr, secondBr] = screen.getAllByTestId('drift-br');
+    expect(firstBr.querySelector('.text-red-600')).toBeTruthy();
     // The second copy is an independent hook instance — still the orange
     // actionable button, unaffected by the first copy's failure.
     expect(secondBr.tagName).toBe('BUTTON');
@@ -1373,20 +1391,16 @@ describe('D-09: duplication', () => {
   });
 });
 
-// CR-07: on the consolidated row the BR/MS cells render at a FIXED position
-// whose `mr` prop changes with the selection. Their write state lives in
-// component state (D-08), so without keying them to mr.id React reuses the
-// hook instance and a sticky failure — plus the retry write behind it — binds
-// to a different merge request than the one it describes.
+// CR-07: the popover's BR/MS cells hold their write state in component state
+// (D-08), so they are keyed by mr.id — a sticky failure (and the retry write
+// behind it) must stay bound to the merge request it describes, even when a
+// category filter or a cache patch reshuffles which MRs the row shows.
 describe('CR-07: per-cell write state follows MR identity, not row position', () => {
   beforeEach(() => {
     mockUpdateMergeRequest.mockReset();
   });
 
-  it("a failure on the selected MR does not survive onto a different MR when a filter changes the selection, and the retry writes the NEW MR's iid", async () => {
-    mockUpdateMergeRequest.mockRejectedValueOnce(new Error('protected branch'));
-    // !9 is selected unfiltered (highest iid among the flagged). The "no
-    // milestone" filter drops it — only !5 carries ms === 'flag'.
+  function twoFlaggedMrs() {
     const mr9 = makeRow({
       mr: makeMR({ id: 9, iid: 9 }),
       br: 'flag',
@@ -1399,67 +1413,58 @@ describe('CR-07: per-cell write state follows MR identity, not row position', ()
       ms: 'flag',
       flagged: true,
     });
-    renderWithRows([mr9, mr5], {
-      flaggedMrCount: 2,
-      brFlaggedCount: 2,
-      msFlaggedCount: 1,
-    });
+    return [mr9, mr5];
+  }
+  const counts = { flaggedMrCount: 2, brFlaggedCount: 2, msFlaggedCount: 1 };
 
-    expect(screen.getByTestId('mr-cell-link')).toHaveTextContent('!9');
-    fireEvent.click(screen.getByTestId('drift-br'));
+  it("a failure stays on its own MR when a filter toggles, and the other MR's retry writes its own iid", async () => {
+    mockUpdateMergeRequest.mockRejectedValueOnce(new Error('protected branch'));
+    renderWithRows(twoFlaggedMrs(), counts);
+
+    await openMrPopover();
+    const br9 = within(mrLine(9)).getByTestId('drift-br');
+    fireEvent.click(br9);
     await waitFor(() =>
-      expect(screen.getByTestId('drift-br').querySelector('.text-red-600')).toBeTruthy(),
+      expect(within(mrLine(9)).getByTestId('drift-br').querySelector('.text-red-600')).toBeTruthy(),
     );
     expect(mockUpdateMergeRequest.mock.calls[0][3]).toBe(9);
 
-    // Selection changes underneath the cell.
+    // The filter changes which MRs the row's `mrs` holds; the popover still
+    // lists the whole task (allMrs).
     fireEvent.click(screen.getByTestId('flagged-ms-badge'));
-    expect(screen.getByTestId('mr-cell-link')).toHaveTextContent('!5');
+    await openMrPopover();
+    expect(screen.getAllByTestId('mr-popover-line')).toHaveLength(2);
 
     // !9's failure must not describe !5.
-    const brCell = screen.getByTestId('drift-br');
-    expect(brCell.querySelector('.text-red-600')).toBeFalsy();
-    expect(brCell).not.toHaveAttribute('title', 'protected branch');
+    const br5 = within(mrLine(5)).getByTestId('drift-br');
+    expect(br5.querySelector('.text-red-600')).toBeFalsy();
+    expect(br5).not.toHaveAttribute('title', 'protected branch');
+    expect(within(mrLine(9)).getByTestId('drift-br').querySelector('.text-red-600')).toBeTruthy();
 
     mockUpdateMergeRequest.mockResolvedValueOnce({} as GitLabMR);
-    fireEvent.click(brCell);
+    fireEvent.click(br5);
     await waitFor(() => expect(mockUpdateMergeRequest).toHaveBeenCalledTimes(2));
     expect(mockUpdateMergeRequest.mock.calls[1][3]).toBe(5);
   });
 
-  it('a pending write does not migrate its spinner or its fire-lock onto the next selected MR', async () => {
+  it("a pending write does not migrate its spinner or its fire-lock onto another MR's cell", async () => {
     mockUpdateMergeRequest.mockReturnValueOnce(new Promise(() => {}));
-    const mr9 = makeRow({
-      mr: makeMR({ id: 9, iid: 9 }),
-      br: 'flag',
-      ms: 'ok',
-      flagged: true,
-    });
-    const mr5 = makeRow({
-      mr: makeMR({ id: 5, iid: 5 }),
-      br: 'flag',
-      ms: 'flag',
-      flagged: true,
-    });
-    renderWithRows([mr9, mr5], {
-      flaggedMrCount: 2,
-      brFlaggedCount: 2,
-      msFlaggedCount: 1,
-    });
+    renderWithRows(twoFlaggedMrs(), counts);
 
-    fireEvent.click(screen.getByTestId('drift-br'));
+    await openMrPopover();
+    fireEvent.click(within(mrLine(9)).getByTestId('drift-br'));
     await waitFor(() =>
-      expect(screen.getByTestId('drift-br').querySelector('.animate-spin')).toBeTruthy(),
+      expect(within(mrLine(9)).getByTestId('drift-br').querySelector('.animate-spin')).toBeTruthy(),
     );
 
     fireEvent.click(screen.getByTestId('flagged-ms-badge'));
-    expect(screen.getByTestId('mr-cell-link')).toHaveTextContent('!5');
+    await openMrPopover();
 
-    const brCell = screen.getByTestId('drift-br');
-    expect(brCell.querySelector('.animate-spin')).toBeFalsy();
+    const br5 = within(mrLine(5)).getByTestId('drift-br');
+    expect(br5.querySelector('.animate-spin')).toBeFalsy();
     // The lock belonged to !9's in-flight write, so !5 must still be firable.
     mockUpdateMergeRequest.mockReturnValueOnce(new Promise(() => {}));
-    fireEvent.click(brCell);
+    fireEvent.click(br5);
     await waitFor(() => expect(mockUpdateMergeRequest).toHaveBeenCalledTimes(2));
     expect(mockUpdateMergeRequest.mock.calls[1][3]).toBe(5);
   });
@@ -1734,7 +1739,7 @@ describe('UAT-91.1-B: filtering warning badges', () => {
     const taskRows = screen.getAllByTestId('task-row');
     expect(taskRows).toHaveLength(1);
     expect(taskRows[0]).toHaveTextContent('PROJ-1');
-    expect(screen.getByTestId('mr-cell-link')).toHaveTextContent('!1');
+    expect(within(taskRows[0]).getByTestId('mr-status-chip')).toHaveTextContent('open');
   });
 
   it('Test 5b: secondary rows are filtered by the same predicate', () => {
@@ -1804,9 +1809,9 @@ describe('UAT-91.1-B: filtering warning badges', () => {
   });
 
   // WR-08: `filteredPrimaryRows` replaces each task's `mrs` with the filtered
-  // subset before the MR cell ever sees it. Counting `+N` from that subset made
+  // subset before the MR cell ever sees it. Summarising from that subset made
   // a task's other MRs appear to vanish the moment a filter was applied.
-  it("WR-08: the +N marker counts the task's MRs, not the filtered subset", () => {
+  it("WR-08: the chip, aggregates and popover describe the task's MRs, not the filtered subset", async () => {
     const flagged = makeRow({ mr: makeMR({ id: 1, iid: 1 }), br: 'flag', flagged: true });
     const cleanA = makeRow({ mr: makeMR({ id: 2, iid: 2 }) });
     const cleanB = makeRow({ mr: makeMR({ id: 3, iid: 3 }) });
@@ -1819,17 +1824,17 @@ describe('UAT-91.1-B: filtering warning badges', () => {
       brFlaggedCount: 1,
     });
 
-    expect(screen.getByTestId('mr-extra-count')).toHaveTextContent('+3');
+    expect(screen.getByTestId('mr-status-chip')).toHaveTextContent('4 open');
+    expect(screen.getByTestId('mr-status-chip').querySelectorAll('.rounded-full')).toHaveLength(4);
 
     fireEvent.click(screen.getByTestId('flagged-br-badge'));
 
-    // The filter changes which MR is DISPLAYED, never how many the task has.
-    expect(screen.getByTestId('mr-cell-link')).toHaveTextContent('!1');
-    const extra = screen.getByTestId('mr-extra-count');
-    expect(extra).toHaveTextContent('+3');
-    for (const iid of ['!2', '!3', '!4']) {
-      expect(extra).toHaveAttribute('title', expect.stringContaining(iid));
-    }
+    // The filter changes which tasks/MRs match, never how many the task has.
+    expect(screen.getByTestId('mr-status-chip')).toHaveTextContent('4 open');
+    expect(screen.getByTestId('mr-status-chip').querySelectorAll('.rounded-full')).toHaveLength(4);
+    expect(screen.getByTestId('task-drift-br').tagName).toBe('BUTTON');
+    const popover = await openMrPopover();
+    expect(within(popover).getAllByTestId('mr-popover-line')).toHaveLength(4);
   });
 
   it('Test 8: with a filter active, filter-active-notice renders and filter-clear restores every row', () => {
@@ -1938,7 +1943,7 @@ describe('WR-10: a partial channel failure is surfaced page-wide', () => {
 
     expect(screen.getByTestId('drift-partial-banner')).toBeInTheDocument();
     // The row itself is unchanged — it has a real MR to show.
-    expect(screen.getByTestId('mr-cell-link')).toHaveTextContent('!1');
+    expect(screen.getByTestId('mr-status-chip')).toHaveTextContent('open');
     expect(screen.queryByTestId('mr-slot-failed')).toBeNull();
   });
 
@@ -2017,12 +2022,14 @@ describe('responsive container tiers', () => {
     expect(unassigned.parentElement?.className).not.toMatch(/:hidden/);
     const icon = within(taskRow).getByTestId('task-row-overlay').nextElementSibling;
     expect(icon).toHaveClass('@max-[640px]:hidden');
-    const badgeWrap = within(taskRow).getByText('opened').parentElement as HTMLElement;
-    expect(badgeWrap).toHaveClass('@max-[860px]:sr-only');
-    expect(screen.getByTestId('mr-cell-link').closest('div')).toHaveClass(
-      '@max-[860px]:w-[5.5rem]',
-      '@max-[520px]:hidden',
+    const chip = within(taskRow).getByTestId('mr-status-chip');
+    // Long label is sr-only at narrow widths; an aria-hidden short variant replaces it.
+    expect(chip.querySelector('span.truncate:not([aria-hidden])')).toHaveClass(
+      '@max-[860px]:sr-only',
     );
+    const shortLabel = chip.querySelector('span[aria-hidden="true"].hidden') as HTMLElement;
+    expect(shortLabel).toHaveClass('hidden', '@max-[860px]:inline');
+    expect(chip.parentElement).toHaveClass('@max-[860px]:w-[5.5rem]', '@max-[520px]:hidden');
     const state = within(taskRow).getByText('Status');
     expect(state.parentElement).toHaveClass('@max-[400px]:hidden');
   });

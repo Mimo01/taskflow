@@ -1,20 +1,13 @@
-import {
-  AlertTriangle,
-  Check,
-  GitBranch,
-  GitMerge,
-  Loader2,
-  Milestone,
-  Search,
-  X,
-} from 'lucide-react';
+import { AlertTriangle, Check, GitBranch, Loader2, Milestone, Search, X } from 'lucide-react';
 import type React from 'react';
 import { useRef, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
 import { LinkContextMenu } from '@/components/ui/link-context-menu';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { FilterPopover, SortableHeader } from '@/components/ui/table-filter-sort';
+import { TOOLTIP_SURFACE } from '@/components/ui/tooltip-body';
 import { UNASSIGNED_FILTER, UNASSIGNED_LABEL } from '@/lib/assignee-filter';
 import { isEpicTypeName } from '@/lib/issue-type';
 import { openExternal } from '@/lib/openExternal';
@@ -167,7 +160,7 @@ export function aggregateMark(marks: DriftMark[]): DriftMark {
 }
 
 /** State dot colour — same palette as `mrStateBadgeClass`; draft is a hollow blue ring. */
-export function mrStateDotClass(mr: GitLabMR): string {
+function mrStateDotClass(mr: GitLabMR): string {
   if (mr.state === 'merged') return 'bg-green-500';
   if (mr.state === 'opened')
     return mr.draft ? 'bg-transparent ring-1 ring-blue-500' : 'bg-blue-500';
@@ -498,9 +491,8 @@ function DriftActionCell({
   // immediately, so the cell never paints red for a row that is already ok.
   //
   // CR-07: the same guard must also fire when the CELL'S MR CHANGES. On the
-  // consolidated task row this cell renders at a fixed position whose `mr`
-  // prop is `selectDisplayMr(mrs)` — a value a filter toggle or a cache patch
-  // can swap underneath it. `mark` alone does not notice (two MRs both flagged
+  // task row's popover lists MRs whose order can change under a filter toggle
+  // or a cache patch. `mark` alone does not notice (two MRs both flagged
   // share `mark === 'flag'`), so an error/pending state — and the `fire()`
   // lock — would migrate onto a merge request whose write was never issued.
   // Callers additionally `key` this component by `mr.id`; this guard is the
@@ -908,47 +900,6 @@ function MrSubLine({
 }
 
 /**
- * Choose which MR to display on a consolidated task row when a task carries
- * 2+ merge requests (developer's explicit choice, live UAT checkpoint,
- * 2026-08-12): "99% of the time there is 1 MR for 1 task so the edge case of
- * having multiple is not worth solving. I want it all consolidated into one
- * single line for each task like it was before."
- *
- * Precedence: a flagged MR (br or ms) wins; failing that, an EVALUATED one
- * (WR-09); ties within the winning pool are broken by highest `iid`.
- *
- * "Evaluated" here means BR evaluated (`row.evaluated`, opened MRs only).
- * Merged/closed MRs keep `evaluated: false` (merged MRs get a TASK reason
- * since 261103-eu3 and an MS mark since 261103-fqd, so a merged MR missing
- * the milestone can enter the `flagged` pool above).
- *
- * The evaluated tier is not a nicety. Merged/closed MRs are not evaluated, and
- * on a release branch that has already begun landing work they carry the
- * HIGHEST iids — so a plain highest-iid rule surfaced the merged `!42` over
- * the clean open `!17` and reported the task as "not evaluated" (— / —) while
- * its actual live MR was correctly targeted and milestoned. Prefer the MR the
- * drift columns can actually say something about.
- *
- * No MR is dropped from the underlying data — the rest surface behind the
- * `+N` marker (`mr-extra-count`).
- *
- * When a category filter (UAT-91.1-B) is active, the caller
- * (`UnifiedTaskTable`'s `filteredPrimaryRows`) has already restricted `mrs`
- * to the matching subset before this function ever runs, so the displayed
- * MR automatically prefers a filter match — no separate branch needed here.
- *
- * @param mrs - the task's attached MRs (already filter-restricted by the caller, if a filter is active)
- * @returns the MR to render on the row, or null when the task has no MRs
- */
-export function selectDisplayMr(mrs: DriftRow[]): DriftRow | null {
-  if (mrs.length === 0) return null;
-  const flagged = mrs.filter((r) => r.br === 'flag' || r.ms === 'flag');
-  const evaluated = mrs.filter((r) => r.evaluated);
-  const pool = flagged.length > 0 ? flagged : evaluated.length > 0 ? evaluated : mrs;
-  return pool.reduce((best, r) => (r.mr.iid > best.mr.iid ? r : best));
-}
-
-/**
  * Wraps a BR/MS drift cell for placement directly on a `TaskRow`, which sits
  * behind an absolute inset-0 overlay button (D-04 full-row click). An
  * actionable cell (button) needs `relative z-10` to win the click above the
@@ -985,10 +936,10 @@ const naDriftCells = (
 );
 
 /**
- * The task row's MR cell plus its BR/MS drift cells, consolidated onto one
- * line (developer's explicit choice, live UAT checkpoint — see
- * `selectDisplayMr`). Replaces the old per-MR sub-line list entirely in the
- * primary table; `MrSubLine` survives unchanged for the secondary
+ * The task row's MR cell plus its BR/MS drift cells, on one line: an overall
+ * status chip (state dots + progress label) and aggregate BR/MS marks. The
+ * per-MR details and fix actions live in a popover opened by the chip or by a
+ * flagged aggregate. `MrSubLine` survives unchanged for the secondary
  * (uncovered-MRs) table.
  *
  * The four MrSlot states (pending/failed/none/unavailable) render inline in
@@ -1006,11 +957,11 @@ function TaskMrCell({
   mrs: DriftRow[];
   /**
    * WR-08: the task's UNFILTERED MR list. `mrs` is already restricted to the
-   * active filter (deliberately — the displayed MR must match the filter), so
-   * counting the `+N` others from it under-reports: a task with one flagged
-   * and three clean MRs would show `+3` unfiltered and no marker at all under
-   * the filter, as if three MRs had vanished. The marker describes the task,
-   * not the current view, so it is always computed from this list.
+   * active filter, so summarising from it under-reports: a task with one
+   * flagged and three clean MRs would look like a single-MR task under the
+   * filter, as if three MRs had vanished. The chip, the aggregate marks and
+   * the popover describe the task, not the current view, so they are always
+   * computed from this list.
    */
   allMrs: DriftRow[];
   isLoadingDrift: boolean;
@@ -1018,6 +969,8 @@ function TaskMrCell({
   hasMatchedMilestone: boolean;
   fix: MrFixContext;
 }) {
+  const [open, setOpen] = useState(false);
+  const [everOpened, setEverOpened] = useState(false);
   if (isLoadingDrift) {
     return (
       <>
@@ -1097,124 +1050,201 @@ function TaskMrCell({
     );
   }
 
-  const selected = selectDisplayMr(mrs);
-  if (!selected) return null; // unreachable — mrs.length > 0 is guaranteed by the branches above
-
-  const { mr } = selected;
-  // WR-08: from `allMrs`, never `mrs` — see the prop's docstring.
-  const others = allMrs.filter((r) => r.mr.id !== mr.id);
-
-  // Pre-milestone look (v1.13.5), restored per the developer's explicit
-  // choice at the live UAT checkpoint: GitMerge icon + state-coloured `!iid`
-  // link + outline state badge.
-  const stateLinkClass =
-    mr.state === 'merged'
-      ? 'text-green-600 dark:text-green-400'
-      : mr.state === 'opened'
-        ? 'text-blue-600 dark:text-blue-400'
-        : 'text-gray-500';
-  const stateBadgeClass = mrStateBadgeClass(mr.state);
+  // WR-08: the chip and the aggregate BR/MS marks describe the TASK (`allMrs`),
+  // never the filter-restricted `mrs` — a task with one flagged and three clean
+  // MRs must not look like a single-MR task just because a category filter is on.
+  const summary = mrStatusSummary(allMrs);
+  const brAgg = aggregateMark(allMrs.filter((r) => r.evaluated).map((r) => r.br));
+  const msAgg = aggregateMark(allMrs.map((r) => r.ms));
+  const brFlagCount = allMrs.filter((r) => r.evaluated && r.br === 'flag').length;
+  const msFlagCount = allMrs.filter((r) => r.ms === 'flag').length;
+  const sorted = sortPopoverMrs(allMrs);
 
   return (
-    <>
+    <Popover
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        if (next) setEverOpened(true);
+      }}
+    >
       {/* CR-05: the wrapper must opt OUT of hit-testing. It is a later
           positioned sibling of the row's `absolute inset-0` overlay button, so
           with `relative` alone (z-index: auto) it paints and hit-tests ABOVE
           the overlay and swallows the D-04 full-row click across the whole
-          190px column. Genuinely interactive children opt back in with
-          `relative z-10` — the established sibling-overlay convention shared
-          with the Key/Summary/Assignee/Status cells. */}
+          column. The chip opts back in with `pointer-events-auto relative
+          z-10` (pointer-events INHERITS, so without it the chip itself would
+          stop being clickable). */}
       <div className={`pointer-events-none relative ${COL_MR} flex items-center gap-1.5 text-xs`}>
-        {/* `pointer-events-auto` on the link is load-bearing, not decoration:
-            the wrapper above opts the whole cell out of hit-testing and
-            `pointer-events` INHERITS, so without it the MR link itself would
-            stop being clickable. */}
-        {/* render prop (not the default children/span wrap) — this cell relies on
-            precise pointer-events opt-in (CR-05 above), so LinkContextMenu attaches
-            directly to the <button> with no extra wrapper element. */}
-        <LinkContextMenu
-          href={mr.web_url}
-          render={
-            <button
-              type="button"
-              data-testid="mr-cell-link"
-              onClick={(e) => {
-                e.stopPropagation();
-                openExternal(mr.web_url);
-              }}
-              title={`${mr.author.name} — ${mr.title}`}
-              className={`pointer-events-auto relative z-10 inline-flex items-center gap-1 hover:underline ${stateLinkClass}`}
-            >
-              <GitMerge className="size-3.5" />!{mr.iid}
-            </button>
-          }
-        />
-        <span className="@max-[860px]:sr-only">
-          <Badge variant="outline" className={`pointer-events-none text-[10px] ${stateBadgeClass}`}>
-            {mr.state}
-          </Badge>
-        </span>
-        {others.length > 0 && (
-          /* CR-08: this marker is the ONLY route to the MRs consolidation
-             hides — non-selected MRs are attached to a covered task, so
-             `buildTaskMrAttachment` excludes them from `secondaryRows` by
-             construction. It carried `pointer-events-none`, which removes it
-             from hit-testing, so the browser never fired the hover that would
-             render its `title`: it announced N hidden MRs and offered no way
-             to see them. It must opt back INTO hit-testing (and above the row
-             overlay) for the tooltip to exist at all. The sr-only list is the
-             non-hover equivalent — a `title` is announced inconsistently and
-             not at all without a pointer. */
-          <span
-            data-testid="mr-extra-count"
-            className="pointer-events-auto relative z-10 cursor-help text-muted-foreground"
-            title={`Also: ${others.map((r) => `!${r.mr.iid} (${r.mr.state})`).join(', ')}`}
-          >
-            +{others.length}
-            <span className="sr-only">
-              {` — also on this task: ${others.map((r) => `!${r.mr.iid} (${r.mr.state})`).join(', ')}`}
-            </span>
+        <PopoverTrigger
+          render={<button type="button" />}
+          data-testid="mr-status-chip"
+          aria-label={summary.ariaLabel}
+          onClick={(e) => e.stopPropagation()}
+          className="pointer-events-auto relative z-10 inline-flex max-w-full min-w-0 items-center gap-1 whitespace-nowrap rounded focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <span aria-hidden="true" className="inline-flex flex-none items-center gap-0.5">
+            {summary.dots.map((r) => (
+              <span
+                key={r.mr.id}
+                className={`size-1.5 flex-none rounded-full ${mrStateDotClass(r.mr)}`}
+              />
+            ))}
           </span>
-        )}
+          {summary.overflow > 0 && (
+            <span aria-hidden="true" className="flex-none tabular-nums text-muted-foreground">
+              +{summary.overflow}
+            </span>
+          )}
+          <span className="min-w-0 truncate @max-[860px]:sr-only">{summary.label}</span>
+          <span aria-hidden="true" className="hidden min-w-0 truncate @max-[860px]:inline">
+            {summary.shortLabel}
+          </span>
+        </PopoverTrigger>
       </div>
+      {/* CR-05: `interactive` is DERIVED — only a flagged aggregate is a
+          button (it opens the popover, even when no fix is possible, so the
+          user can see why); ok/na stay inert and fall through to the row. */}
+      <DriftCellSlot interactive={brAgg === 'flag'}>
+        {brAgg === 'flag' ? (
+          <AggregateFlagTrigger
+            testId="task-drift-br"
+            label={`${brFlagCount} merge request${brFlagCount === 1 ? '' : 's'} with branch drift — show details`}
+          />
+        ) : (
+          <DriftMarkCell mark={brAgg} testId="task-drift-br" />
+        )}
+      </DriftCellSlot>
+      <DriftCellSlot interactive={msAgg === 'flag'}>
+        {msAgg === 'flag' ? (
+          <AggregateFlagTrigger
+            testId="task-drift-ms"
+            label={`${msFlagCount} merge request${msFlagCount === 1 ? '' : 's'} with milestone drift — show details`}
+          />
+        ) : (
+          <DriftMarkCell mark={msAgg} testId="task-drift-ms" />
+        )}
+      </DriftCellSlot>
+      {/* Lazy keepMounted: the per-MR cells hold their write state (incl. a
+          sticky red failure, D-08) in component state, so once opened the
+          content stays mounted while closed. Never-opened rows mount nothing. */}
+      <PopoverContent
+        data-testid="mr-popover"
+        keepMounted={everOpened}
+        align="end"
+        className={cn('w-[22rem] max-w-[calc(100vw-2rem)] p-1', TOOLTIP_SURFACE, 'border-0 p-1')}
+      >
+        <div
+          aria-hidden="true"
+          className="flex h-5 items-center gap-1.5 px-2 text-[10px] text-muted-foreground"
+        >
+          <span className="min-w-0 flex-1" />
+          <span className="w-[1.75rem] flex-none text-center">BR</span>
+          <span className="w-[1.75rem] flex-none text-center">MS</span>
+        </div>
+        {/* `relative`: the cells' sr-only live regions are abspos and would
+            otherwise stretch the document past this scroller. */}
+        <ul className="relative max-h-60 overflow-auto">
+          {sorted.map((r) => (
+            <MrPopoverLine key={r.mr.id} row={r} fix={fix} />
+          ))}
+        </ul>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+/** Flagged aggregate BR/MS mark: a real button that opens the row's MR popover. */
+function AggregateFlagTrigger({ testId, label }: { testId: string; label: string }) {
+  return (
+    <PopoverTrigger
+      render={<button type="button" />}
+      data-testid={testId}
+      aria-label={label}
+      onClick={(e) => e.stopPropagation()}
+      className="pointer-events-auto relative z-10 flex w-[1.75rem] flex-none items-center justify-center rounded focus-visible:ring-2 focus-visible:ring-ring"
+    >
+      <AlertTriangle className="size-3.5 text-orange-600 dark:text-orange-400" />
+    </PopoverTrigger>
+  );
+}
+
+const POPOVER_STATE_ORDER: Record<GitLabMR['state'], number> = {
+  opened: 0,
+  merged: 1,
+  closed: 2,
+  locked: 2,
+};
+
+/** Flagged first, then opened, merged, closed; iid descending within a group. */
+function sortPopoverMrs(rows: DriftRow[]): DriftRow[] {
+  const flagged = (r: DriftRow) => (r.br === 'flag' || r.ms === 'flag' ? 0 : 1);
+  return [...rows].sort(
+    (a, b) =>
+      flagged(a) - flagged(b) ||
+      POPOVER_STATE_ORDER[a.mr.state] - POPOVER_STATE_ORDER[b.mr.state] ||
+      b.mr.iid - a.mr.iid,
+  );
+}
+
+/**
+ * One MR in the task row's popover. `group/row` is required: the portalled
+ * content has no row ancestor, and `DriftActionCell` reveals its action icon
+ * via `group-hover/row`. Cells are keyed by `mr.id` (CR-07) so a sticky failure
+ * and the `fire()` lock stay on the MR whose write failed.
+ */
+function MrPopoverLine({ row, fix }: { row: DriftRow; fix: MrFixContext }) {
+  const { mr } = row;
+  return (
+    <li
+      data-testid="mr-popover-line"
+      className="group/row flex h-7 items-center gap-1.5 rounded px-2 text-xs hover:bg-muted/50"
+    >
+      <LinkContextMenu href={mr.web_url}>
+        <button
+          type="button"
+          onClick={() => openExternal(mr.web_url)}
+          title={channelsTitle(row.channels)}
+          className="flex-none font-mono text-xs hover:underline"
+        >
+          !{mr.iid}
+        </button>
+      </LinkContextMenu>
+      <Badge
+        variant="outline"
+        className={`flex-none rounded text-[10px] ${mrStateBadgeClass(mr.state)}`}
+      >
+        {mrStateLabel(mr)}
+      </Badge>
+      <span className="min-w-0 flex-1 truncate" title={mr.title}>
+        {mr.title}
+      </span>
+      <span className="max-w-[6rem] flex-none truncate text-muted-foreground">
+        {mr.author.name}
+      </span>
       {/* 261103-fqd: BR is gated on `evaluated` (opened only — a merged MR
           cannot be retargeted); MS is gated independently (opened + merged). */}
-      {/* CR-05: `interactive` is DERIVED, never hardcoded — an ok/na/
-          non-actionable-flag cell renders an inert glyph, and claiming
-          `z-10` for it would put a 28px dead zone over the row overlay. */}
-      {/* CR-07: `key` by mr.id, not by position. These cells hold their
-          write state in component state (D-08, deliberately, so a failure
-          survives background refetches), and the row's `mr` changes
-          whenever the selection input does — without the key React would
-          reuse the hook instance and a sticky failure, plus its retry
-          write, would rebind to a different merge request. */}
-      {selected.evaluated ? (
-        <DriftCellSlot interactive={isMrFixActionable(selected.br, 'retarget', fix)}>
-          <DriftActionCell
-            key={`br-${mr.id}`}
-            mr={mr}
-            action="retarget"
-            mark={selected.br}
-            testId="drift-br"
-            fix={fix}
-          />
-        </DriftCellSlot>
-      ) : (
-        <DriftCellSlot interactive={false}>
-          <DriftMarkCell mark="na" testId="drift-br" />
-        </DriftCellSlot>
-      )}
-      <DriftCellSlot interactive={isMrFixActionable(selected.ms, 'assign-milestone', fix)}>
+      {row.evaluated ? (
         <DriftActionCell
-          key={`ms-${mr.id}`}
+          key={`br-${mr.id}`}
           mr={mr}
-          action="assign-milestone"
-          mark={selected.ms}
-          testId="drift-ms"
+          action="retarget"
+          mark={row.br}
+          testId="drift-br"
           fix={fix}
         />
-      </DriftCellSlot>
-    </>
+      ) : (
+        <DriftMarkCell mark="na" testId="drift-br" />
+      )}
+      <DriftActionCell
+        key={`ms-${mr.id}`}
+        mr={mr}
+        action="assign-milestone"
+        mark={row.ms}
+        testId="drift-ms"
+        fix={fix}
+      />
+    </li>
   );
 }
 
@@ -1427,7 +1457,7 @@ export function UnifiedTaskTable({
       ? (r: DriftRow) => (driftPredicate?.(r) ?? true) && (labelPredicate?.(r) ?? true)
       : null;
 
-  // WR-08: `allMrs` rides along unfiltered so the `+N` marker keeps describing
+  // WR-08: `allMrs` rides along unfiltered so the MR chip and popover keep describing
   // the TASK rather than the current view — filtering it too made MRs appear
   // to vanish from a task the moment a filter was applied.
   const filteredPrimaryRows = filterPredicate
@@ -1539,7 +1569,7 @@ export function UnifiedTaskTable({
           When Channel C fails while Channel A succeeds, a task whose
           A-discovered MR is present renders as a fully confident row — no
           degradation signal at all — while any MR only Channel C would have
-          found is silently missing from it and from the `+N` count. The
+          found is silently missing from it and from the MR chip. The
           honest scope for a partial failure is the page, not the row, so the
           notice is rendered here regardless of any task's MR count. Suppressed
           only when the banner above is already reporting the same failure. */}
