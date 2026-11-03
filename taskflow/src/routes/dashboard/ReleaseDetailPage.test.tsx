@@ -590,12 +590,16 @@ describe('ReleaseDetailPage', () => {
       }
     });
 
-    it('label strip wraps and collapses its caption at 440', () => {
+    it('label strip wraps under a graph-style Labels heading', () => {
       withLabels();
       renderPage();
       const strip = screen.getByTestId('mr-labels');
       expect(strip.className).toContain('flex-wrap');
-      expect(screen.getByText('Labels').className).toContain('@max-[440px]/page:sr-only');
+      // heading matches the graph slot titles
+      expect(screen.getByRole('heading', { name: 'Labels' })).toHaveClass(
+        'text-sm',
+        'font-semibold',
+      );
     });
   });
 

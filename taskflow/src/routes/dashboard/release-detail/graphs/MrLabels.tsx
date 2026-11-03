@@ -70,8 +70,8 @@ function LabelPill({
 }
 
 /**
- * One wrapping label row under the release graphs: tag icon, a muted "Labels"
- * caption, every GitLab-style pill (never collapsed), then — when MRs lack a
+ * One wrapping label row under the release graphs: tag icon + "Labels"
+ * heading (GraphSlot title style), every GitLab-style pill (never collapsed), then — when MRs lack a
  * label — a small bare orange warning icon + count at the end (text in the
  * tooltip and sr-only). Pills and the warning toggle the task table label filter
  * when onToggleLabel is set.
@@ -103,8 +103,11 @@ export function MrLabels({
       data-testid="mr-labels"
       className={cn('flex min-w-0 flex-wrap items-center gap-1.5 text-xs', className)}
     >
-      <TagIcon className="size-3.5 flex-none text-muted-foreground" aria-hidden="true" />
-      <span className="text-xs text-muted-foreground @max-[440px]/page:sr-only">Labels</span>
+      {/* Heading styled like the GraphSlot titles above (icon + text-sm semibold). */}
+      <span className="mr-1.5 flex flex-none items-center gap-1.5">
+        <TagIcon className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+        <h3 className="text-sm font-semibold">Labels</h3>
+      </span>
       {labelSummary.map((l) => (
         <LabelPill
           key={l.label.name}
@@ -127,12 +130,12 @@ export function MrLabels({
           data-testid="mr-labels-unlabeled"
           title={onToggleLabel ? `${missingText} — click to filter tasks` : missingText}
           className={cn(
-            'ml-0.5 inline-flex h-5 flex-none items-center gap-0.5 rounded px-1 font-semibold tabular-nums text-orange-600 dark:text-orange-400',
+            'inline-flex h-5 flex-none items-center gap-1 rounded px-1 text-xs font-medium tabular-nums text-orange-600 dark:text-orange-400',
             onToggleLabel && 'cursor-pointer hover:bg-muted',
             activeLabel === UNLABELED_FILTER && 'ring-2 ring-orange-500/60',
           )}
         >
-          <TriangleAlert className="size-3.5 flex-none" aria-hidden="true" />
+          <TriangleAlert className="size-3 flex-none" aria-hidden="true" />
           <span aria-hidden="true">{missing}</span>
           <span className="sr-only">{missingText}</span>
         </Warn>
