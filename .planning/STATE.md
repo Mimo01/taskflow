@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-08-13)
 Phase: 94
 Plan: Not started
 Status: Milestone complete
-Last activity: 2026-11-03 - Completed quick task 261103-kn9: release detail Progress slot shows an empty state for future releases
+Last activity: 2026-11-03 - Completed quick task 261103-kvp: time-tracking bars reflect actual progress on closed issues
 
 ## Performance Metrics
 
@@ -250,6 +250,7 @@ Acknowledged and deferred at v1.14 milestone close (2026-08-13) — 111 open art
 | 261103-jqy | Release detail Progress slot, thin-history/future variant redesigned as a "release train": TODAY → ticks for releases ahead → "window opens" → RELEASE, with "N releases ahead · window X d · in Y d"; header "after <prev>" while the window is ahead; burnup untouched | 2026-11-03 | 37a4b9ff | Superseded by 261103-kbn (rejected at UAT) | [261103-jqy-release-detail-progress-variant-redesign](./quick/261103-jqy-release-detail-progress-variant-redesign/) |
 | 261103-kbn | Release detail Progress slot, future/thin-history variant: empty burnup frame (same chart in frame mode: dashed flat scope at issue count, faint ideal diagonal, RELEASE/TODAY lines, "opens in N d" caption); release train removed; real burnup unchanged | 2026-11-03 | 6b22bfd3 | Superseded by 261103-kn9 (rejected at UAT) | [261103-kbn-release-detail-progress-empty-burnup-fra](./quick/261103-kbn-release-detail-progress-empty-burnup-fra/) |
 | 261103-kn9 | Release detail Progress slot: future/thin-history releases show the shared EmptyState ("No burnup yet" + when it starts/appears); frame/track removed; real burnup unchanged | 2026-11-03 | a78fce15, 4be089b5, 6b29f494, 3064f58e, 673167a1 | Verified (UAT approved) | [261103-kn9-release-detail-progress-empty-state-for-](./quick/261103-kn9-release-detail-progress-empty-state-for-/) |
+| 261103-kvp | Time-tracking bars show actual progress: fill = spent vs original estimate (never remaining/aggregateprogress, which Jira zeroes on close); shared timeProgress helper — overrun red, at-estimate green if done / amber if not, under-estimate done green; My Tasks, standup Today, issue detail sidebar + Worklog bar | 2026-11-03 | a58560ad, b93a48ca | Pending UAT | [261103-kvp-time-tracking-progress-bars-reflect-actu](./quick/261103-kvp-time-tracking-progress-bars-reflect-actu/) |
 
 ## Session Continuity
 
