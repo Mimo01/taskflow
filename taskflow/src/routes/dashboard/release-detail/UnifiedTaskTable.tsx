@@ -792,23 +792,20 @@ function MrSubLine({
           <MrStatePill mr={mr} />
         </>
       )}
+      {/* 261103-fqd: BR is opened-only (GitLab rejects retargeting a merged
+          MR); MS is also evaluated for merged MRs, so it renders regardless. */}
       {row.evaluated ? (
-        <>
-          <DriftActionCell mr={mr} action="retarget" mark={row.br} testId="drift-br" fix={fix} />
-          <DriftActionCell
-            mr={mr}
-            action="assign-milestone"
-            mark={row.ms}
-            testId="drift-ms"
-            fix={fix}
-          />
-        </>
+        <DriftActionCell mr={mr} action="retarget" mark={row.br} testId="drift-br" fix={fix} />
       ) : (
-        <>
-          <DriftMarkCell mark="na" testId="drift-br" />
-          <DriftMarkCell mark="na" testId="drift-ms" />
-        </>
+        <DriftMarkCell mark="na" testId="drift-br" />
       )}
+      <DriftActionCell
+        mr={mr}
+        action="assign-milestone"
+        mark={row.ms}
+        testId="drift-ms"
+        fix={fix}
+      />
       {reasonCell && (
         <>
           {/* Fix sits directly before the button it describes. */}
@@ -853,9 +850,10 @@ function MrSubLine({
  * Precedence: a flagged MR (br or ms) wins; failing that, an EVALUATED one
  * (WR-09); ties within the winning pool are broken by highest `iid`.
  *
- * "Evaluated" here means BR/MS evaluated (`row.evaluated`, opened MRs only).
+ * "Evaluated" here means BR evaluated (`row.evaluated`, opened MRs only).
  * Merged/closed MRs keep `evaluated: false` (merged MRs get a TASK reason
- * since 261103-eu3, which does not affect this selection).
+ * since 261103-eu3 and an MS mark since 261103-fqd, so a merged MR missing
+ * the milestone can enter the `flagged` pool above).
  *
  * The evaluated tier is not a nicety. Merged/closed MRs are not evaluated, and
  * on a release branch that has already begun landing work they carry the
@@ -1112,41 +1110,43 @@ function TaskMrCell({
           </span>
         )}
       </div>
+      {/* 261103-fqd: BR is gated on `evaluated` (opened only — a merged MR
+          cannot be retargeted); MS is gated independently (opened + merged). */}
+      {/* CR-05: `interactive` is DERIVED, never hardcoded — an ok/na/
+          non-actionable-flag cell renders an inert glyph, and claiming
+          `z-10` for it would put a 28px dead zone over the row overlay. */}
+      {/* CR-07: `key` by mr.id, not by position. These cells hold their
+          write state in component state (D-08, deliberately, so a failure
+          survives background refetches), and the row's `mr` changes
+          whenever the selection input does — without the key React would
+          reuse the hook instance and a sticky failure, plus its retry
+          write, would rebind to a different merge request. */}
       {selected.evaluated ? (
-        <>
-          {/* CR-05: `interactive` is DERIVED, never hardcoded — an ok/na/
-              non-actionable-flag cell renders an inert glyph, and claiming
-              `z-10` for it would put a 28px dead zone over the row overlay. */}
-          {/* CR-07: `key` by mr.id, not by position. These cells hold their
-              write state in component state (D-08, deliberately, so a failure
-              survives background refetches), and the row's `mr` changes
-              whenever the selection input does — without the key React would
-              reuse the hook instance and a sticky failure, plus its retry
-              write, would rebind to a different merge request. */}
-          <DriftCellSlot interactive={isMrFixActionable(selected.br, 'retarget', fix)}>
-            <DriftActionCell
-              key={`br-${mr.id}`}
-              mr={mr}
-              action="retarget"
-              mark={selected.br}
-              testId="drift-br"
-              fix={fix}
-            />
-          </DriftCellSlot>
-          <DriftCellSlot interactive={isMrFixActionable(selected.ms, 'assign-milestone', fix)}>
-            <DriftActionCell
-              key={`ms-${mr.id}`}
-              mr={mr}
-              action="assign-milestone"
-              mark={selected.ms}
-              testId="drift-ms"
-              fix={fix}
-            />
-          </DriftCellSlot>
-        </>
+        <DriftCellSlot interactive={isMrFixActionable(selected.br, 'retarget', fix)}>
+          <DriftActionCell
+            key={`br-${mr.id}`}
+            mr={mr}
+            action="retarget"
+            mark={selected.br}
+            testId="drift-br"
+            fix={fix}
+          />
+        </DriftCellSlot>
       ) : (
-        naDriftCells
+        <DriftCellSlot interactive={false}>
+          <DriftMarkCell mark="na" testId="drift-br" />
+        </DriftCellSlot>
       )}
+      <DriftCellSlot interactive={isMrFixActionable(selected.ms, 'assign-milestone', fix)}>
+        <DriftActionCell
+          key={`ms-${mr.id}`}
+          mr={mr}
+          action="assign-milestone"
+          mark={selected.ms}
+          testId="drift-ms"
+          fix={fix}
+        />
+      </DriftCellSlot>
     </>
   );
 }

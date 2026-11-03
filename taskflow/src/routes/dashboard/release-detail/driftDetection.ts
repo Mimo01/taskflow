@@ -11,7 +11,10 @@
  * Three overrides load-bearing for this module — do not "fix" them back
  * toward the literal requirement text (see 89-CONTEXT.md):
  * - D-10 (supersedes DRIFT-08's literal reading): the BR/MS columns are
- *   evaluated for opened MRs only (`classifyMrState`). The TASK reason is
+ *   evaluated for opened MRs only (`classifyMrState`), except MS, which is
+ *   also evaluated for merged MRs (`isMilestoneEvaluated`, 261103-fqd: GitLab
+ *   rejects a retarget on a merged MR but accepts a milestone change). The
+ *   TASK reason is
  *   evaluated for opened AND merged MRs (`isTaskEvaluated`) — merged code has
  *   shipped on the release branch, so a missing/out-of-version task is a real
  *   coverage gap (user decision 261103-eu3). Closed/locked MRs are fully
@@ -53,7 +56,7 @@ export type TaskDriftReason = 'no-linked-task' | 'not-in-fix-version' | null;
 export interface DriftRow {
   mr: GitLabMR;
   channels: Set<Channel>;
-  /** true only for opened MRs — means BR/MS columns are meaningful; TASK may be evaluated even when false (merged). */
+  /** true only for opened MRs — means the BR column is meaningful; MS and TASK may be evaluated even when false (merged). */
   evaluated: boolean;
   br: DriftMark;
   ms: DriftMark;
@@ -188,15 +191,16 @@ export function evaluateTaskDrift(mr: GitLabMR, fixVersionIssueKeys: Set<string>
 }
 
 /**
- * BR/MS evaluation gate (D-10) — drives `DriftRow.evaluated`: an MR's BR/MS
- * columns are evaluated when — and only when — its GitLab `state` is
+ * BR evaluation gate (D-10) — drives `DriftRow.evaluated`: an MR's BR
+ * column (and, for opened MRs, MS) is evaluated when — and only when — its GitLab `state` is
  * `'opened'`. This single check covers BOTH open and draft MRs, since GitLab
  * never reports a separate `'draft'` state value (a draft MR's `state`
  * remains `'opened'`; `draft` is an independent boolean field). `'merged'`
  * (cannot be retargeted/re-milestoned), `'closed'` and `'locked'` (a
  * transient merge-in-progress state, grouped with muted per RESEARCH
  * Pitfall 3 — it is not actionable) render BR/MS as `na`. The TASK gate is
- * the separate, wider `isTaskEvaluated` (opened + merged, 261103-eu3).
+ * the separate, wider `isTaskEvaluated` (opened + merged, 261103-eu3); MS uses
+ * `isMilestoneEvaluated` (opened + merged, 261103-fqd).
  *
  * D-10 WARNING: do not add a guard on the `draft` field to this gate. Doing
  * so would silently revert D-10 back to DRIFT-08's literal text (draft excluded).
@@ -206,6 +210,20 @@ export function evaluateTaskDrift(mr: GitLabMR, fixVersionIssueKeys: Set<string>
  */
 export function classifyMrState(mr: GitLabMR): boolean {
   return mr.state === 'opened';
+}
+
+/**
+ * MS evaluation gate (261103-fqd): the milestone predicate runs for opened
+ * (incl. draft) AND merged MRs. GitLab rejects a target_branch change on a
+ * merged MR but accepts milestone_id, so a merged MR missing the release
+ * milestone is fixable drift. Closed/locked MRs are not evaluated. Like
+ * `classifyMrState`, this must not check `draft` (D-10).
+ *
+ * @param mr - the MR to classify
+ * @returns true when the MR's MS column should be evaluated
+ */
+export function isMilestoneEvaluated(mr: GitLabMR): boolean {
+  return mr.state === 'opened' || mr.state === 'merged';
 }
 
 /**
@@ -230,9 +248,9 @@ export function isTaskEvaluated(mr: GitLabMR): boolean {
  * - closed/locked: all three marks render `na`, `taskReason` is null,
  *   `flagged` is false, and NO predicate is called (D-10 — gate the calls,
  *   do not call-and-discard).
- * - merged (261103-eu3): `evaluated` stays false and `br`/`ms` render `na`
- *   (BR/MS are open-only; the branch/milestone predicates are not called),
- *   but the TASK predicate runs — `task`/`taskReason`/`flagged` are real.
+ * - merged (261103-eu3, 261103-fqd): `evaluated` stays false and `br` renders
+ *   `na` (a merged MR cannot be retargeted), but the MS and TASK predicates
+ *   run — `ms`/`task`/`taskReason`/`flagged` are real.
  * - opened (incl. draft, `evaluated: true`): `br`/`ms` render `na` when `releaseBranchName`/
  * `matchedMilestoneId` is null (D-18 degraded state), else `flag`/`ok` from
  * the respective predicate. `task` always evaluates (it needs no
@@ -269,7 +287,13 @@ export function buildDriftRows(input: {
     const taskKeys = extractMrTaskKeys(mr);
 
     if (!evaluated && isTaskEvaluated(mr)) {
-      // Merged (261103-eu3): TASK only; BR/MS stay open-only.
+      // Merged (261103-eu3, 261103-fqd): BR stays open-only; MS + TASK evaluated.
+      const msMerged: DriftMark =
+        !isMilestoneEvaluated(mr) || matchedMilestoneId === null
+          ? 'na'
+          : evaluateMilestoneDrift(mr, matchedMilestoneId)
+            ? 'flag'
+            : 'ok';
       const taskReason = evaluateTaskDrift(mr, fixVersionIssueKeys);
       const task: DriftMark = taskReason === null ? 'ok' : 'flag';
       rows.push({
@@ -277,11 +301,11 @@ export function buildDriftRows(input: {
         channels,
         evaluated: false,
         br: 'na',
-        ms: 'na',
+        ms: msMerged,
         task,
         taskReason,
         taskKeys,
-        flagged: task === 'flag',
+        flagged: task === 'flag' || msMerged === 'flag',
       });
       continue;
     }

@@ -279,6 +279,27 @@ describe('UnifiedTaskTable', () => {
     );
   });
 
+  it('261103-fqd: a merged row missing the milestone keeps BR as an em dash but MS is an actionable button', async () => {
+    mockUpdateMergeRequest.mockResolvedValueOnce(makeMR());
+    const row = makeRow({
+      evaluated: false,
+      br: 'na',
+      ms: 'flag',
+      task: 'ok',
+      flagged: true,
+      mr: makeMR({ state: 'merged', iid: 9 }),
+    });
+    renderWithRows([row], { flaggedMrCount: 1 });
+    expect(screen.getByTestId('drift-br')).toHaveTextContent('—');
+    expect(screen.getByTestId('drift-br').tagName).not.toBe('BUTTON');
+    const ms = screen.getByTestId('drift-ms');
+    expect(ms.tagName).toBe('BUTTON');
+    fireEvent.click(ms);
+    await waitFor(() => expect(mockUpdateMergeRequest).toHaveBeenCalledTimes(1));
+    const [body] = mockUpdateMergeRequest.mock.calls[0].slice(4);
+    expect(body).toEqual({ milestone_id: 1 });
+  });
+
   it('renders real marks (not em dashes) for an evaluated draft MR', () => {
     const row = makeRow({
       evaluated: true,

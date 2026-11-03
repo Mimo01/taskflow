@@ -13,6 +13,7 @@ import {
   evaluateMilestoneDrift,
   evaluateTaskDrift,
   extractMrTaskKeys,
+  isMilestoneEvaluated,
   isTaskEvaluated,
   selectChannelA,
   unionMRs,
@@ -229,6 +230,14 @@ describe('state classification', () => {
     expect(isTaskEvaluated(makeMR({ state: 'locked' }))).toBe(false);
   });
 
+  it('261103-fqd: isMilestoneEvaluated is true for opened (incl. draft) and merged, false for closed and locked', () => {
+    expect(isMilestoneEvaluated(makeMR({ state: 'opened', draft: false }))).toBe(true);
+    expect(isMilestoneEvaluated(makeMR({ state: 'opened', draft: true }))).toBe(true);
+    expect(isMilestoneEvaluated(makeMR({ state: 'merged' }))).toBe(true);
+    expect(isMilestoneEvaluated(makeMR({ state: 'closed' }))).toBe(false);
+    expect(isMilestoneEvaluated(makeMR({ state: 'locked' }))).toBe(false);
+  });
+
   it('D-10: a draft MR with a mismatched target branch is evaluated and flagged, not muted', () => {
     const draftMr = makeMR({
       id: 1,
@@ -262,7 +271,7 @@ describe('buildDriftRows', () => {
       fixVersionIssueKeys,
     });
 
-  it("261103-eu3: a merged MR with an out-of-version key gets taskReason 'not-in-fix-version' while BR/MS stay na", () => {
+  it("261103-eu3: a merged MR with an out-of-version key gets taskReason 'not-in-fix-version' while BR stays na and MS flags", () => {
     const merged = makeMR({
       id: 1,
       state: 'merged',
@@ -275,7 +284,7 @@ describe('buildDriftRows', () => {
     expect(rows).toHaveLength(1);
     expect(rows[0].evaluated).toBe(false);
     expect(rows[0].br).toBe('na');
-    expect(rows[0].ms).toBe('na');
+    expect(rows[0].ms).toBe('flag');
     expect(rows[0].task).toBe('flag');
     expect(rows[0].taskReason).toBe('not-in-fix-version');
     expect(rows[0].flagged).toBe(true);
@@ -293,7 +302,7 @@ describe('buildDriftRows', () => {
     const [row] = buildOne(merged);
     expect(row.evaluated).toBe(false);
     expect(row.br).toBe('na');
-    expect(row.ms).toBe('na');
+    expect(row.ms).toBe('flag');
     expect(row.task).toBe('flag');
     expect(row.taskReason).toBe('no-linked-task');
   });
@@ -305,14 +314,48 @@ describe('buildDriftRows', () => {
       title: 'PROJ-1 fix',
       source_branch: 'x',
       target_branch: 'develop',
-      milestone: null,
-    });
+      milestone: { id: 7, title: 'M' },
+    } as Partial<GitLabMR>);
     const [row] = buildOne(merged);
     expect(row.task).toBe('ok');
     expect(row.taskReason).toBe(null);
     expect(row.flagged).toBe(false);
     expect(row.br).toBe('na');
+    expect(row.ms).toBe('ok');
+  });
+
+  it('261103-fqd: a merged MR without the release milestone is ms-flagged and flagged even when task is ok', () => {
+    const merged = makeMR({ id: 1, state: 'merged', title: 'PROJ-1 fix', milestone: null });
+    const [row] = buildOne(merged);
+    expect(row.evaluated).toBe(false);
+    expect(row.br).toBe('na');
+    expect(row.ms).toBe('flag');
+    expect(row.task).toBe('ok');
+    expect(row.flagged).toBe(true);
+  });
+
+  it('261103-fqd: a merged MR on a different milestone is ms-flagged', () => {
+    const merged = makeMR({
+      id: 1,
+      state: 'merged',
+      title: 'PROJ-1 fix',
+      milestone: { id: 99, title: 'Other' },
+    } as Partial<GitLabMR>);
+    expect(buildOne(merged)[0].ms).toBe('flag');
+  });
+
+  it('261103-fqd: a merged MR with no matched release milestone gets ms na', () => {
+    const merged = makeMR({ id: 1, state: 'merged', title: 'PROJ-1 fix', milestone: null });
+    const [row] = buildDriftRows({
+      channelA: [merged],
+      channelB: [],
+      channelC: [],
+      releaseBranchName: 'release/33.5.0',
+      matchedMilestoneId: null,
+      fixVersionIssueKeys: new Set(['PROJ-1']),
+    });
     expect(row.ms).toBe('na');
+    expect(row.flagged).toBe(false);
   });
 
   it('closed and locked MRs yield br/ms/task all na, taskReason null, flagged false (no predicate flags)', () => {
@@ -335,7 +378,7 @@ describe('buildDriftRows', () => {
     }
   });
 
-  it('261103-eu3: a merged MR with mismatched branch and no milestone contributes 0 to every BR/MS count', () => {
+  it('261103-fqd: a merged MR with mismatched branch and no milestone counts only toward MS', () => {
     const merged = makeMR({
       id: 1,
       state: 'merged',
@@ -345,9 +388,9 @@ describe('buildDriftRows', () => {
       milestone: null,
     });
     const rows = buildOne(merged);
-    expect(countBrMsFlaggedMRs(rows)).toBe(0);
+    expect(countBrMsFlaggedMRs(rows)).toBe(1);
     expect(countBranchFlaggedMRs(rows)).toBe(0);
-    expect(countMilestoneFlaggedMRs(rows)).toBe(0);
+    expect(countMilestoneFlaggedMRs(rows)).toBe(1);
   });
 
   it('261103-eu3: a task-flagged merged row sorts in the flagged partition ahead of a clean open row', () => {
