@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
+import { dateKeyMs } from '@/lib/epic-progress';
 import type { JiraFixVersion, JiraIssue } from '@/services/jira';
 import {
   type BurnupAxis,
+  deriveBurnupFrame,
   deriveReleaseBurnup,
   previousVersion,
   releaseBurnupAxis,
@@ -194,5 +196,80 @@ describe('deriveReleaseBurnup', () => {
       expect(last?.done, version.id).toBe(computeIssueStatusCounts(issues).done);
       expect(last?.scope, version.id).toBe(issues.length);
     }
+  });
+});
+
+describe('deriveBurnupFrame', () => {
+  const DAY = 86_400_000;
+  const notOpen: BurnupAxis = {
+    start: '2026-11-17',
+    end: '2026-12-01',
+    seriesEnd: '2026-11-03',
+    previousName: 'R-11-17',
+    releaseDate: '2026-12-01',
+    showToday: false,
+    showRelease: true,
+  };
+  const open: BurnupAxis = {
+    ...notOpen,
+    start: '2026-10-27',
+    showToday: true,
+    seriesEnd: '2026-11-03',
+  };
+
+  it('spans the not-yet-open window with a flat scope and a 0->scope ideal', () => {
+    expect(
+      deriveBurnupFrame({ axis: notOpen, scope: 12, today: '2026-11-03', released: false }),
+    ).toEqual({
+      points: [
+        { t: dateKeyMs('2026-11-17'), scope: 12, ideal: 0 },
+        { t: dateKeyMs('2026-12-01') + DAY, scope: 12, ideal: 12 },
+      ],
+      opensInDays: 14,
+    });
+  });
+
+  it('has no opensInDays once the window is open and spans start to the end of release day', () => {
+    const f = deriveBurnupFrame({ axis: open, scope: 12, today: '2026-11-03', released: false });
+    expect(f?.opensInDays).toBeNull();
+    expect(f?.points.map((p) => p.t)).toEqual([
+      dateKeyMs('2026-10-27'),
+      dateKeyMs('2026-12-01') + DAY,
+    ]);
+  });
+
+  it('returns null where no frame applies', () => {
+    const base = { scope: 12, today: '2026-11-03', released: false };
+    expect(deriveBurnupFrame({ ...base, axis: null })).toBeNull();
+    expect(deriveBurnupFrame({ ...base, axis: open, released: true })).toBeNull();
+    expect(deriveBurnupFrame({ ...base, axis: { ...open, releaseDate: null } })).toBeNull();
+    expect(deriveBurnupFrame({ ...base, axis: { ...open, showRelease: false } })).toBeNull();
+    // Past due: the axis ends today, after the release date.
+    expect(
+      deriveBurnupFrame({
+        ...base,
+        today: '2026-12-05',
+        axis: { ...open, end: '2026-12-05', seriesEnd: '2026-12-05' },
+      }),
+    ).toBeNull();
+    expect(deriveBurnupFrame({ ...base, axis: { ...open, end: '2026-12-02' } })).toBeNull();
+  });
+
+  it('still returns a frame at scope 0', () => {
+    const f = deriveBurnupFrame({ axis: open, scope: 0, today: '2026-11-03', released: false });
+    expect(f?.points.map((p) => [p.scope, p.ideal])).toEqual([
+      [0, 0],
+      [0, 0],
+    ]);
+  });
+
+  it('counts whole days across a DST boundary', () => {
+    const f = deriveBurnupFrame({
+      axis: { ...notOpen, start: '2026-11-03', seriesEnd: '2026-10-20' },
+      scope: 5,
+      today: '2026-10-20',
+      released: false,
+    });
+    expect(f?.opensInDays).toBe(14);
   });
 });
