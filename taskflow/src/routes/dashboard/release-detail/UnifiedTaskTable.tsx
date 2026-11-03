@@ -1083,6 +1083,7 @@ function TaskMrCell({
   const brFlagCount = allMrs.filter((r) => r.evaluated && r.br === 'flag').length;
   const msFlagCount = allMrs.filter((r) => r.ms === 'flag').length;
   const sorted = sortPopoverMrs(allMrs);
+  const soleMr = allMrs.length === 1 ? allMrs[0] : null;
 
   return (
     <Popover
@@ -1116,26 +1117,57 @@ function TaskMrCell({
       {/* CR-05: `interactive` is DERIVED — only a flagged aggregate is a
           button (it opens the popover, even when no fix is possible, so the
           user can see why); ok/na stay inert and fall through to the row. */}
-      <DriftCellSlot interactive={brAgg === 'flag'}>
-        {brAgg === 'flag' ? (
-          <AggregateFlagTrigger
+      {/* One MR → the row's BR/MS cells ARE that MR's cells: a flagged,
+          actionable mark fixes it in place (Retarget / Assign milestone), no
+          popover detour. Several MRs, or a flag that can't be auto-fixed,
+          keep the popover trigger so the user sees which MR and why.
+          CR-07: keyed by mr.id so write state stays on its MR. */}
+      {soleMr?.evaluated && isMrFixActionable(soleMr.br, 'retarget', fix) ? (
+        <DriftCellSlot interactive>
+          <DriftActionCell
+            key={`row-br-${soleMr.mr.id}`}
+            mr={soleMr.mr}
+            action="retarget"
+            mark={soleMr.br}
             testId="task-drift-br"
-            label={`${brFlagCount} merge request${brFlagCount === 1 ? '' : 's'} with branch drift — show details`}
+            fix={fix}
           />
-        ) : (
-          <DriftMarkCell mark={brAgg} testId="task-drift-br" />
-        )}
-      </DriftCellSlot>
-      <DriftCellSlot interactive={msAgg === 'flag'}>
-        {msAgg === 'flag' ? (
-          <AggregateFlagTrigger
+        </DriftCellSlot>
+      ) : (
+        <DriftCellSlot interactive={brAgg === 'flag'}>
+          {brAgg === 'flag' ? (
+            <AggregateFlagTrigger
+              testId="task-drift-br"
+              label={`${brFlagCount} merge request${brFlagCount === 1 ? '' : 's'} with branch drift — show details`}
+            />
+          ) : (
+            <DriftMarkCell mark={brAgg} testId="task-drift-br" />
+          )}
+        </DriftCellSlot>
+      )}
+      {soleMr && isMrFixActionable(soleMr.ms, 'assign-milestone', fix) ? (
+        <DriftCellSlot interactive>
+          <DriftActionCell
+            key={`row-ms-${soleMr.mr.id}`}
+            mr={soleMr.mr}
+            action="assign-milestone"
+            mark={soleMr.ms}
             testId="task-drift-ms"
-            label={`${msFlagCount} merge request${msFlagCount === 1 ? '' : 's'} with milestone drift — show details`}
+            fix={fix}
           />
-        ) : (
-          <DriftMarkCell mark={msAgg} testId="task-drift-ms" />
-        )}
-      </DriftCellSlot>
+        </DriftCellSlot>
+      ) : (
+        <DriftCellSlot interactive={msAgg === 'flag'}>
+          {msAgg === 'flag' ? (
+            <AggregateFlagTrigger
+              testId="task-drift-ms"
+              label={`${msFlagCount} merge request${msFlagCount === 1 ? '' : 's'} with milestone drift — show details`}
+            />
+          ) : (
+            <DriftMarkCell mark={msAgg} testId="task-drift-ms" />
+          )}
+        </DriftCellSlot>
+      )}
       {/* Lazy keepMounted: the per-MR cells hold their write state (incl. a
           sticky red failure, D-08) in component state, so once opened the
           content stays mounted while closed. Never-opened rows mount nothing. */}

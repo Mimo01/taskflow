@@ -322,10 +322,10 @@ describe('UnifiedTaskTable', () => {
       mr: makeMR({ state: 'merged', iid: 9 }),
     });
     renderWithRows([row], { flaggedMrCount: 1 });
-    await openMrPopover(screen.getByTestId('task-drift-ms'));
-    expect(screen.getByTestId('drift-br')).toHaveTextContent('—');
-    expect(screen.getByTestId('drift-br').tagName).not.toBe('BUTTON');
-    const ms = screen.getByTestId('drift-ms');
+    // Single MR: the row's own cells fix it — no popover detour.
+    expect(screen.getByTestId('task-drift-br')).toHaveTextContent('—');
+    expect(screen.getByTestId('task-drift-br').tagName).not.toBe('BUTTON');
+    const ms = screen.getByTestId('task-drift-ms');
     expect(ms.tagName).toBe('BUTTON');
     fireEvent.click(ms);
     await waitFor(() => expect(mockUpdateMergeRequest).toHaveBeenCalledTimes(1));
@@ -714,7 +714,8 @@ describe('per-MR corrective actions', () => {
       expect(screen.getByTestId('drift-br').querySelector('.text-red-600')).toBeTruthy(),
     );
     expect(document.activeElement).toBe(screen.getByTestId('drift-br'));
-    expect(screen.getByRole('status')).toHaveTextContent('protected branch');
+    // The row's own (single-MR) cells carry a status region too — scope to the popover.
+    expect(within(popover).getByRole('status')).toHaveTextContent('protected branch');
   });
 
   it('success: with the write resolving and the cache-derived mark now ok, the cell renders the green check and is no longer a button', async () => {
@@ -1165,8 +1166,15 @@ describe('D-04: task row click behaviour', () => {
     const onOpenIssue = vi.fn();
     const onOpenIssueFull = vi.fn();
     const onSeedBreadcrumb = vi.fn();
-    const row = makeRow({ mr: makeMR({ iid: 4 }), br: 'flag', flagged: true });
-    renderWithRows([row], { onOpenIssue, onOpenIssueFull, onSeedBreadcrumb, flaggedMrCount: 1 });
+    // Two MRs: a flagged aggregate opens the popover (one MR would fix in place).
+    const row = makeRow({ mr: makeMR({ id: 4, iid: 4 }), br: 'flag', flagged: true });
+    const other = makeRow({ mr: makeMR({ id: 5, iid: 5 }) });
+    renderWithRows([row, other], {
+      onOpenIssue,
+      onOpenIssueFull,
+      onSeedBreadcrumb,
+      flaggedMrCount: 1,
+    });
 
     const chip = screen.getByTestId('mr-status-chip');
     fireEvent.click(chip);
@@ -1226,15 +1234,17 @@ describe('CR-05: overlay click model — cells opt out of hit-testing unless gen
       fix: { ...DEFAULT_FIX, releaseBranchExists: false },
     });
 
-    for (const testId of ['task-drift-br', 'task-drift-ms']) {
-      const trigger = screen.getByTestId(testId);
-      expect(trigger.tagName).toBe('BUTTON');
-      expect(trigger.className).toContain('pointer-events-auto');
-      expect(trigger.className).toContain('z-10');
-      const slot = trigger.parentElement as HTMLElement;
-      expect(slot.className).toContain('z-10');
-      expect(slot.className).not.toContain('pointer-events-none');
-    }
+    // BR can't be fixed (no release branch) → still a popover trigger, so the
+    // user can see why. MS IS fixable → the single MR's cell fixes in place.
+    const trigger = screen.getByTestId('task-drift-br');
+    expect(trigger.tagName).toBe('BUTTON');
+    expect(trigger.className).toContain('pointer-events-auto');
+    expect(trigger.className).toContain('z-10');
+    const slot = trigger.parentElement as HTMLElement;
+    expect(slot.className).toContain('z-10');
+    expect(slot.className).not.toContain('pointer-events-none');
+    expect(screen.getByTestId('task-drift-ms').tagName).toBe('BUTTON');
+    expect(screen.getByTestId('task-drift-ms').parentElement).toHaveClass('z-10');
     await openMrPopover(screen.getByTestId('task-drift-br'));
     expect(screen.getByTestId('drift-br').tagName).not.toBe('BUTTON');
     expect(screen.getByTestId('drift-ms').tagName).toBe('BUTTON');
@@ -2879,7 +2889,13 @@ describe('task row MR status chip + popover (261103-g8m)', () => {
   });
 
   it('the chip and a flagged aggregate are z-10 pointer-events-auto buttons, siblings of the overlay; an ok aggregate is inert', () => {
-    renderWithRows([makeRow({ br: 'flag', ms: 'ok', flagged: true })], { flaggedMrCount: 1 });
+    renderWithRows(
+      [
+        makeRow({ br: 'flag', ms: 'ok', flagged: true }),
+        makeRow({ mr: makeMR({ id: 2, iid: 2 }) }),
+      ],
+      { flaggedMrCount: 1 },
+    );
 
     const overlay = screen.getByTestId('task-row-overlay');
     for (const id of ['mr-status-chip', 'task-drift-br']) {
@@ -2965,6 +2981,27 @@ describe('task row MR status chip + popover (261103-g8m)', () => {
     expect(
       [...mixed.querySelectorAll('[data-mr-group]')].map((el) => el.getAttribute('data-mr-group')),
     ).toEqual(['merged', 'open']);
+  });
+
+  it('single MR: a flagged BR on the row retargets that MR in place (no popover)', async () => {
+    mockUpdateMergeRequest.mockResolvedValueOnce(makeMR());
+    renderWithRows([makeRow({ br: 'flag', flagged: true })], { flaggedMrCount: 1 });
+    const br = screen.getByTestId('task-drift-br');
+    expect(br.tagName).toBe('BUTTON');
+    expect(br.parentElement).toHaveClass('z-10');
+    fireEvent.click(br);
+    await waitFor(() => expect(mockUpdateMergeRequest).toHaveBeenCalledTimes(1));
+    expect(screen.queryByTestId('mr-popover')).toBeNull();
+  });
+
+  it('two MRs: a flagged BR on the row opens the popover instead of fixing', async () => {
+    renderWithRows(
+      [makeRow({ br: 'flag', flagged: true }), makeRow({ mr: makeMR({ id: 2, iid: 2 }) })],
+      { flaggedMrCount: 1 },
+    );
+    fireEvent.click(screen.getByTestId('task-drift-br'));
+    expect(await screen.findByTestId('mr-popover')).toBeInTheDocument();
+    expect(mockUpdateMergeRequest).not.toHaveBeenCalled();
   });
 
   it('draws the ring only for a mix of states', () => {
