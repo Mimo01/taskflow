@@ -533,7 +533,11 @@ describe('EpicProgressSection time burnup, formulas (261001-hsz)', () => {
     renderIt();
     fireEvent.click(screen.getByRole('button', { name: 'Time' }));
     await user.hover(screen.getAllByTestId('epic-stat-tile')[1]);
-    expect(await screen.findByText('Open items · Time = estimate − logged')).toBeInTheDocument();
+    expect(
+      await screen.findByText(
+        'Open items · Time = Jira remaining estimate, else estimate − logged',
+      ),
+    ).toBeInTheDocument();
     expect(document.querySelectorAll('[data-slot="tooltip-row"]')).toHaveLength(0);
   });
 
@@ -1274,7 +1278,11 @@ describe('EpicProgressSection unified tabs (261001-rtw)', () => {
     for (const tab of ['Count', 'SP', 'Time']) {
       fireEvent.click(screen.getByRole('button', { name: tab }));
       await user.hover(tile());
-      expect(await screen.findByText('Open items · Time = estimate − logged')).toBeInTheDocument();
+      expect(
+        await screen.findByText(
+          'Open items · Time = Jira remaining estimate, else estimate − logged',
+        ),
+      ).toBeInTheDocument();
       expect(rowTexts()).toHaveLength(0);
       await user.unhover(tile());
       await waitFor(() =>

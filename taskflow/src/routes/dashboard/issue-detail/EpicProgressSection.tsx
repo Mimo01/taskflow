@@ -127,7 +127,10 @@ function assigneeTip(a: AssigneeBucket, metric: Metric): ReactNode {
   );
 }
 
-/** The assignee's three status bands in the active metric's unit (time = estimate seconds). */
+/**
+ * The assignee's three status bands in the active metric's unit. Time: completed seconds
+ * (logged, or a closed story's weight) vs remaining seconds on in-progress / to-do stories.
+ */
 function assigneeBands(a: AssigneeBucket): Bands {
   return { done: a.done, inProgress: a.inProgress, todo: a.todo };
 }

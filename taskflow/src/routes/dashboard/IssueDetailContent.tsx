@@ -18,7 +18,7 @@ import { LinkContextMenu } from '@/components/ui/link-context-menu';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { TooltipBody, TooltipRow } from '@/components/ui/tooltip-body';
 import { useMentionUserMap } from '@/hooks/useMentionUserMap';
-import { catOf, estimateOf, loggedOf } from '@/lib/epic-progress';
+import { estimateOf, loggedOf, remainingOf } from '@/lib/epic-progress';
 import { openExternal } from '@/lib/openExternal';
 import { statusPillClass } from '@/lib/statusStyles';
 import { cn } from '@/lib/utils';
@@ -314,7 +314,7 @@ export function IssueDetailContent({
                 const est = estimateOf(story);
                 const logged = loggedOf(story);
                 const overrun = est > 0 && logged > est;
-                const remaining = catOf(story) === 'done' ? 0 : Math.max(est - logged, 0);
+                const remaining = remainingOf(story);
                 return (
                   <li key={story.key}>
                     <button

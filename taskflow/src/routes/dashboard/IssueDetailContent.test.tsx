@@ -228,7 +228,7 @@ describe('IssueDetailContent', () => {
     function epicStory(
       key: string,
       cat: 'new' | 'indeterminate' | 'done',
-      o: { est?: number; spent?: number },
+      o: { est?: number; spent?: number; rem?: number },
     ) {
       return {
         id: key,
@@ -241,6 +241,7 @@ describe('IssueDetailContent', () => {
           aggregatetimeoriginalestimate: o.est,
           timeoriginalestimate: o.est,
           aggregatetimespent: o.spent,
+          aggregatetimeestimate: o.rem,
         },
       };
     }
@@ -326,6 +327,24 @@ describe('IssueDetailContent', () => {
         r.children[0].getAttribute('data-marker'),
       );
       expect(markers).toEqual(['icon', 'icon', 'icon']);
+    });
+
+    it('Remaining uses Jira remaining estimate when present (261103-lcd)', async () => {
+      const user = userEvent.setup();
+      renderEpic([epicStory('S-1', 'indeterminate', { est: 7200, spent: 1800, rem: 3600 })]);
+      await user.hover(screen.getByTestId('story-time-bar'));
+      await waitFor(() => expect(rowTexts().length).toBeGreaterThan(0));
+      expect(rowTexts()).toEqual(['Estimate2h', 'Logged30m', 'Remaining1h']);
+    });
+
+    it('a Tempo-only story (remaining, no original) has estimate = remaining + logged (261103-lcd)', async () => {
+      const user = userEvent.setup();
+      renderEpic([epicStory('S-1', 'indeterminate', { spent: 3600, rem: 7200 })]);
+      const bar = screen.getByTestId('story-time-bar');
+      expect(bar).not.toHaveAttribute('data-empty');
+      await user.hover(bar);
+      await waitFor(() => expect(rowTexts().length).toBeGreaterThan(0));
+      expect(rowTexts()).toEqual(['Estimate3h', 'Logged1h', 'Remaining2h']);
     });
 
     it('done stories show zero remaining', async () => {

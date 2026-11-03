@@ -77,7 +77,8 @@ interface EpicProgressSummaryProps {
   today: string;
 }
 
-const REMAINING_NOTE = 'Open items \u00b7 Time = estimate \u2212 logged';
+const REMAINING_NOTE =
+  'Open items \u00b7 Time = Jira remaining estimate, else estimate \u2212 logged';
 
 function plural(n: number, one: string, many: string): string {
   return `${n} ${n === 1 ? one : many}`;
