@@ -2022,7 +2022,7 @@ describe('responsive container tiers', () => {
       '@max-[400px]:hidden',
     );
     // Fixed-size ring + count: one narrow width at every tier until it drops at 520.
-    expect(within(strip).getByText('MRs')).toHaveClass('w-[4.5rem]', '@max-[520px]:hidden');
+    expect(within(strip).getByText('MRs')).toHaveClass('w-[5rem]', '@max-[520px]:hidden');
     expect(strip.firstElementChild).toHaveClass('@max-[640px]:hidden');
   });
 
@@ -2042,18 +2042,30 @@ describe('responsive container tiers', () => {
     // The label goes sr-only at narrow widths; the state/count groups carry it.
     expect(within(chip).getByTestId('mr-status-label')).toHaveTextContent('0/1');
     // Fixed-width badge: fills its (constant-width) column.
-    expect(chip.parentElement).toHaveClass('w-[4.5rem]', '@max-[520px]:hidden');
+    expect(chip.parentElement).toHaveClass('w-[5rem]', '@max-[520px]:hidden');
     const state = within(taskRow).getByText('Status');
     expect(state.parentElement).toHaveClass('@max-[400px]:hidden');
   });
 
-  it('slot states keep the long text sr-only and add a short aria-hidden variant', () => {
-    renderWithRows([], { driftUnavailable: true, hasMatchedMilestone: true });
+  it('slot states show one short word (fits the narrow MR column) and keep the long text sr-only', () => {
+    const { unmount } = renderWithRows([], { driftUnavailable: true, hasMatchedMilestone: true });
     const failed = screen.getByTestId('mr-slot-failed');
-    expect(within(failed).getByText('— MR status unknown')).toHaveClass('@max-[860px]:sr-only');
-    const short = within(failed).getByText('— unknown');
+    expect(within(failed).getByText('MR status unknown')).toHaveClass('sr-only');
+    const short = within(failed).getByText('unknown');
     expect(short).toHaveAttribute('aria-hidden', 'true');
-    expect(short).toHaveClass('hidden', '@max-[860px]:inline');
+    expect(short).toHaveClass('truncate');
+    unmount();
+
+    const { unmount: u2 } = renderWithRows([], { hasMatchedMilestone: true });
+    const none = screen.getByTestId('mr-slot-none');
+    expect(within(none).getByText('No merge request')).toHaveClass('sr-only');
+    expect(within(none).getByText('No MR')).toHaveAttribute('aria-hidden', 'true');
+    u2();
+
+    renderWithRows([], { hasMatchedMilestone: false });
+    const unavailable = screen.getByTestId('mr-slot-unavailable');
+    expect(within(unavailable).getByText('No milestone, not checked')).toHaveClass('sr-only');
+    expect(within(unavailable).getByText('no MS')).toHaveAttribute('aria-hidden', 'true');
   });
 
   it('flagged badge words hide below 520 while counts and aria-labels remain', () => {

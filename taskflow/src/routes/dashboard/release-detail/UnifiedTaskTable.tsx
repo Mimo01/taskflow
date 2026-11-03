@@ -136,7 +136,7 @@ const COL_PERSON = 'flex-none w-[8.75rem] min-w-0 @max-[860px]:w-9';
 const COL_STATE = 'flex-none w-[6rem] @max-[400px]:hidden';
 // MR status: a fixed-size segmented ring + "merged/live" ("3/5"), so the column
 // is narrow and never stretches with the MR count; it drops at 520 (BR/MS stay).
-const COL_MR = 'flex-none w-[4.5rem] min-w-0 @max-[520px]:hidden';
+const COL_MR = 'flex-none w-[5rem] min-w-0 @max-[520px]:hidden';
 // Primary-row assignee sits LAST (shipped list convention: Key / Title / Status /
 // domain columns / Assignee — AIO Executions + Defects, Backlog). Wider when there
 // is room, avatar-only at 860 like every other release table.
@@ -1036,8 +1036,8 @@ function TaskMrCell({
           data-testid="mr-slot-pending"
           className={`pointer-events-none relative ${COL_MR} flex items-center gap-1.5 text-xs py-1 text-muted-foreground`}
         >
-          <Loader2 className="size-3.5 animate-spin" />
-          <span className="@max-[860px]:sr-only">loading…</span>
+          <Loader2 className="size-4 flex-none animate-spin" />
+          <span className="sr-only">loading…</span>
         </div>
         {naDriftCells}
       </>
@@ -1062,9 +1062,10 @@ function TaskMrCell({
           title="GitLab merge request lookup failed — this task's MR status is unknown"
           className={`pointer-events-none relative ${COL_MR} flex items-center gap-1.5 text-xs py-1 text-muted-foreground`}
         >
-          <span className="truncate min-w-0 @max-[860px]:sr-only">— MR status unknown</span>
-          <span aria-hidden="true" className="hidden truncate min-w-0 @max-[860px]:inline">
-            — unknown
+          <MrEmptyRing />
+          <span className="sr-only">MR status unknown</span>
+          <span aria-hidden="true" className="truncate min-w-0">
+            unknown
           </span>
         </div>
         {naDriftCells}
@@ -1079,9 +1080,9 @@ function TaskMrCell({
           data-testid="mr-slot-none"
           className={`pointer-events-none relative ${COL_MR} flex items-center gap-1.5 text-xs py-1 text-orange-600 dark:text-orange-400`}
         >
-          <AlertTriangle className="size-3.5 flex-none" />
-          <span className="truncate min-w-0 @max-[860px]:sr-only">No merge request</span>
-          <span aria-hidden="true" className="hidden truncate min-w-0 @max-[860px]:inline">
+          <AlertTriangle className="size-4 flex-none" />
+          <span className="sr-only">No merge request</span>
+          <span aria-hidden="true" className="truncate min-w-0">
             No MR
           </span>
         </div>
@@ -1098,9 +1099,10 @@ function TaskMrCell({
           title="No GitLab milestone matched — cannot check for MRs"
           className={`pointer-events-none relative ${COL_MR} flex items-center gap-1.5 text-xs py-1 text-muted-foreground`}
         >
-          <span className="truncate min-w-0 @max-[860px]:sr-only">— no milestone, not checked</span>
-          <span aria-hidden="true" className="hidden truncate min-w-0 @max-[860px]:inline">
-            — not checked
+          <MrEmptyRing />
+          <span className="sr-only">No milestone, not checked</span>
+          <span aria-hidden="true" className="truncate min-w-0">
+            no MS
           </span>
         </div>
         {naDriftCells}
@@ -1252,6 +1254,23 @@ const MR_KIND_ORDER_STROKE: Record<MrStateKind, string> = {
   draft: 'stroke-muted-foreground/60',
   closed: 'stroke-muted-foreground/30',
 };
+
+/** Dashed empty ring — the "no data" stand-in for `MrStatusRing` in the slot states. */
+function MrEmptyRing() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 16 16" className="size-4 flex-none">
+      <circle
+        cx="8"
+        cy="8"
+        r="6"
+        fill="none"
+        strokeWidth="1.5"
+        strokeDasharray="2.5 2"
+        className="stroke-muted-foreground/50"
+      />
+    </svg>
+  );
+}
 
 /**
  * Tiny segmented ring — one arc per state, sized by its count (merged, open,
