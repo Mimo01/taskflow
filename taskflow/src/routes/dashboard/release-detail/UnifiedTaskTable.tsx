@@ -235,6 +235,12 @@ export function mrStatusSummary(rows: DriftRow[]): {
   progress: number;
   /** Visible row text: merged / live ("3/5"), or "closed" when nothing is live. */
   fraction: string;
+  /**
+   * What the ring draws: the live groups only (merged / open / draft). Closed
+   * MRs are abandoned work — they stay in the popover but never in the ring or
+   * the "merged/live" count, so the two always agree.
+   */
+  ringGroups: Array<{ kind: MrStateKind; count: number }>;
 } {
   const n = rows.length;
   const counts = new Map<MrStateKind, number>();
@@ -270,11 +276,13 @@ export function mrStatusSummary(rows: DriftRow[]): {
   if (closed > 0) parts.push(`${closed} closed`);
   const fraction = live === 0 ? 'closed' : `${merged}/${live}`;
   // Starts with the visible text (WCAG 2.5.3 label-in-name).
-  const ariaLabel = `${groups.length > 1 ? `${fraction} merged` : label} — ${n} merge request${n === 1 ? '' : 's'}: ${parts.join(', ')} — show details`;
+  const ariaLabel = `${groups.filter((g) => g.kind !== 'closed').length > 1 ? `${fraction} merged` : label} — ${n} merge request${n === 1 ? '' : 's'}: ${parts.join(', ')} — show details`;
 
   const progress = live === 0 ? 0 : merged / live;
 
-  return { groups, label, ariaLabel, tone, progress, fraction };
+  const ringGroups = groups.filter((g) => g.kind !== 'closed');
+
+  return { groups, label, ariaLabel, tone, progress, fraction, ringGroups };
 }
 
 export type SecondaryReason = 'no-linked-task' | 'not-in-fix-version' | 'unevaluated';
@@ -1261,7 +1269,7 @@ const MR_KIND_GLYPH: Record<MrStateKind, LucideIcon> = {
 };
 
 /**
- * The MR status visual. A mix of states → the segmented ring + merged/live
+ * The MR status visual. A mix of live states → the segmented ring + merged/live
  * ("1/2"; `long` adds "merged"). Every MR in one state → no ring (it would be
  * a single-colour circle): just that state's glyph — a check when all merged
  * — and its word.
@@ -1273,17 +1281,17 @@ function MrStatusGlyph({
   summary: ReturnType<typeof mrStatusSummary>;
   long?: boolean;
 }) {
-  if (summary.groups.length > 1) {
+  if (summary.ringGroups.length > 1) {
     return (
       <>
-        <MrStatusRing groups={summary.groups} />
+        <MrStatusRing groups={summary.ringGroups} />
         <span data-testid="mr-status-label">
           {long ? `${summary.fraction} merged` : summary.fraction}
         </span>
       </>
     );
   }
-  const kind = summary.groups[0]?.kind ?? 'closed';
+  const kind = summary.ringGroups[0]?.kind ?? 'closed';
   const Icon = MR_KIND_GLYPH[kind];
   return (
     <>

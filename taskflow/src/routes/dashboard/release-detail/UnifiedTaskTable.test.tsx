@@ -2940,6 +2940,29 @@ describe('task row MR status chip + popover (261103-g8m)', () => {
     expect(row.lastElementChild?.querySelector('[data-testid="mr-status-chip"]')).toBeNull();
   });
 
+  it('leaves closed MRs out of the ring so it matches the merged/live count', () => {
+    const { unmount } = renderWithRows([
+      makeRow({ mr: makeMR({ id: 1, iid: 1, state: 'merged' }) }),
+      makeRow({ mr: makeMR({ id: 2, iid: 2, state: 'closed' }) }),
+    ]);
+    // merged + closed → all live MRs merged: a check, no ring.
+    const done = screen.getByTestId('mr-status-chip');
+    expect(within(done).getByTestId('mr-status-label')).toHaveTextContent('merged');
+    expect(done.querySelectorAll('[data-mr-group]')).toHaveLength(0);
+    unmount();
+
+    renderWithRows([
+      makeRow({ mr: makeMR({ id: 1, iid: 1, state: 'merged' }) }),
+      makeRow({ mr: makeMR({ id: 2, iid: 2 }) }),
+      makeRow({ mr: makeMR({ id: 3, iid: 3, state: 'closed' }) }),
+    ]);
+    const mixed = screen.getByTestId('mr-status-chip');
+    expect(within(mixed).getByTestId('mr-status-label')).toHaveTextContent('1/2');
+    expect(
+      [...mixed.querySelectorAll('[data-mr-group]')].map((el) => el.getAttribute('data-mr-group')),
+    ).toEqual(['merged', 'open']);
+  });
+
   it('draws the ring only for a mix of states', () => {
     renderWithRows([
       makeRow({ mr: makeMR({ id: 1, iid: 1, state: 'merged' }) }),
