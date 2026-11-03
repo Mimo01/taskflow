@@ -285,8 +285,8 @@ export function ReleaseBurnup({
               title="No burnup yet"
               subtitle={
                 notOpen && axis?.previousName
-                  ? `Starts ${formatDateKey(axis.start)}, after ${axis.previousName}.`
-                  : 'Appears after the first day.'
+                  ? `Starts when ${axis.previousName} ships on ${formatDateKey(axis.start)}.`
+                  : "Appears after the window's first day."
               }
             />
           </div>
