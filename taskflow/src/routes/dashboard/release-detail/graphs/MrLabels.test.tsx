@@ -42,11 +42,13 @@ describe('MrLabels (full-width strip)', () => {
     expect(pill.querySelector('.truncate')).not.toBeNull();
   });
 
-  it('is a wrapping flex strip with no dots and no column hairline', () => {
+  it('puts the pills in a wrapping flex row with no dots and no column hairline', () => {
     render(<MrLabels labelSummary={labels} coverage={missing(2)} />);
     const col = screen.getByTestId('mr-labels');
-    expect(col.className).toContain('flex-wrap');
     expect(col.className).not.toContain('border-l');
+    const row = screen.getByTestId('mr-labels-pills');
+    expect(row.className).toContain('flex-wrap');
+    expect(row).toContainElement(screen.getAllByTestId('mr-label-pill')[0]);
     expect(screen.queryByTestId('mr-labels-grid')).toBeNull();
     expect(col.querySelectorAll('.rounded-full')).toHaveLength(0);
     expect(col.querySelectorAll('.size-2')).toHaveLength(0);
@@ -64,15 +66,18 @@ describe('MrLabels (full-width strip)', () => {
     expect(screen.getAllByTestId('mr-label-pill')).toHaveLength(2);
   });
 
-  it('leads with a compact orange "N MRs without label" chip before the pills', async () => {
+  it('leads with an accent-bar "N MRs without label" callout on its own line, unlike a pill', async () => {
     const user = userEvent.setup();
     render(<MrLabels labelSummary={labels} coverage={missing(5)} />);
     const el = screen.getByTestId('mr-labels-unlabeled');
     expect(el).toHaveTextContent('5 MRs without label');
-    expect(el.className).toContain('h-5');
-    expect(el.className).toContain('bg-orange-500/10');
-    expect(el.className).not.toContain('border-l-[3px]');
-    expect(el.className).not.toContain('w-full');
+    expect(el.className).toContain('border-l-[3px]');
+    expect(el.className).toContain('border-orange-500');
+    expect(el.className).toContain('rounded-r');
+    // shrink-wraps its text rather than spanning the strip
+    expect(el.classList.contains('w-full')).toBe(false);
+    // its own line: not inside the pill row
+    expect(screen.getByTestId('mr-labels-pills')).not.toContainElement(el);
     // first interactive child of the strip, before every pill
     const strip = screen.getByTestId('mr-labels');
     expect(strip.querySelector('button, div[data-testid="mr-labels-unlabeled"]')).toBe(el);

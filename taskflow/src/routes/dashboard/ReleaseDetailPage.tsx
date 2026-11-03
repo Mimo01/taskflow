@@ -491,9 +491,18 @@ export default function ReleaseDetailPage() {
                 loading={headerBreakdownLoading}
                 error={headerBreakdownError}
               />
+              {/* MR labels sit between the done bar and the graphs (261103-bfx UAT). */}
+              {showDonut && donutState === 'ready' ? (
+                <MrLabels
+                  labelSummary={labelSummary}
+                  coverage={labelCoverage}
+                  activeLabel={labelFilter}
+                  onToggleLabel={toggleLabelFilter}
+                />
+              ) : null}
               {/* Graph section. Wide containers: ONE band like the AIO cycle stats block
                   (burnup fills the row height set by the lists, then MRs/status, type,
-                  assignee). Narrower: 2x2, then single column. Labels and package
+                  assignee). Narrower: 2x2, then single column. Package
                   mismatches fold under it. */}
               {band ? (
                 <div
@@ -526,15 +535,6 @@ export default function ReleaseDetailPage() {
                   </div>
                 </div>
               )}
-              {showDonut && donutState === 'ready' ? (
-                <MrLabels
-                  labelSummary={labelSummary}
-                  coverage={labelCoverage}
-                  activeLabel={labelFilter}
-                  onToggleLabel={toggleLabelFilter}
-                  className="border-t pt-3"
-                />
-              ) : null}
             </section>
           )}
           {/* Package mismatches as a full-width action list (renders nothing

@@ -471,7 +471,8 @@ describe('ReleaseDetailPage', () => {
     const strip = screen.getByTestId('mr-labels');
     expect(screen.getByTestId('release-graph-mrs')).not.toContainElement(strip);
     const grid = screen.getByTestId('release-graph-grid');
-    expect(grid.compareDocumentPosition(strip) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // labels sit ABOVE the graphs (after the done bar)
+    expect(strip.compareDocumentPosition(grid) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     const table = screen.queryByTestId('unified-task-table');
     if (table) {
       expect(strip.compareDocumentPosition(table) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
@@ -495,7 +496,7 @@ describe('ReleaseDetailPage', () => {
     renderPage();
     const stats = screen.getByTestId('release-stats');
     expect(stats).toHaveClass('border-y', 'px-6', 'py-4');
-    const kids = ['release-done-bar', 'release-graph-grid', 'mr-labels'].map((id) =>
+    const kids = ['release-done-bar', 'mr-labels', 'release-graph-grid'].map((id) =>
       screen.getByTestId(id),
     );
     for (const k of kids) expect(stats).toContainElement(k);
@@ -505,8 +506,8 @@ describe('ReleaseDetailPage', () => {
     expect(
       kids[1].compareDocumentPosition(kids[2]) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
-    expect(kids[1].className).not.toContain('px-6');
-    expect(kids[1].className).not.toContain('pt-5');
+    expect(kids[2].className).not.toContain('px-6');
+    expect(kids[2].className).not.toContain('pt-5');
   });
 
   it('shows no label line when By status replaces the MR cell', () => {
@@ -589,7 +590,7 @@ describe('ReleaseDetailPage', () => {
     it('label strip wraps and collapses its caption at 440', () => {
       withLabels();
       renderPage();
-      const strip = screen.getByTestId('mr-labels');
+      const strip = screen.getByTestId('mr-labels-pills');
       expect(strip.className).toContain('flex-wrap');
       expect(screen.getByText('Labels').className).toContain('@max-[440px]/page:sr-only');
     });

@@ -70,10 +70,11 @@ function LabelPill({
 }
 
 /**
- * Full-width label strip under the release graphs: a muted "Labels" caption, an
- * orange "N MRs without label" chip first (when any MR is unlabelled), then every
- * GitLab-style pill (never collapsed) in a wrapping row. Chip and pills toggle
- * the task table label filter when onToggleLabel is set.
+ * Full-width label block between the done bar and the release graphs: an
+ * "N MRs without label" accent-bar callout on its own line (3px orange left bar,
+ * faint tint — deliberately unlike a label pill), then a muted "Labels" caption and
+ * every GitLab-style pill (never collapsed) in a wrapping row. Callout and pills
+ * toggle the task table label filter when onToggleLabel is set.
  */
 export function MrLabels({
   labelSummary,
@@ -99,10 +100,8 @@ export function MrLabels({
   return (
     <div
       data-testid="mr-labels"
-      className={cn('flex min-w-0 flex-wrap items-center gap-1.5 text-xs', className)}
+      className={cn('flex min-w-0 flex-col items-start gap-2 text-xs', className)}
     >
-      <TagIcon className="size-3.5 flex-none text-muted-foreground" aria-hidden="true" />
-      <span className="text-xs text-muted-foreground @max-[440px]/page:sr-only">Labels</span>
       {hasChip ? (
         <Chip
           {...(onToggleLabel
@@ -115,7 +114,7 @@ export function MrLabels({
             : {})}
           data-testid="mr-labels-unlabeled"
           className={cn(
-            'inline-flex h-5 flex-none items-center gap-1 rounded bg-orange-500/10 px-1.5 font-medium text-orange-800 dark:bg-orange-400/10 dark:text-orange-200',
+            'inline-flex h-6 max-w-full min-w-0 items-center gap-1.5 rounded-r border-l-[3px] border-orange-500 bg-orange-500/8 px-2 text-left text-orange-800 dark:border-orange-400 dark:bg-orange-400/10 dark:text-orange-200',
             onToggleLabel && 'cursor-pointer hover:bg-orange-500/15',
             activeLabel === UNLABELED_FILTER &&
               'bg-orange-500/20 ring-2 ring-orange-500/60 dark:bg-orange-400/20 dark:ring-orange-400/60',
@@ -131,17 +130,23 @@ export function MrLabels({
           </span>
         </Chip>
       ) : null}
-      {hasChip && labelSummary.length > 0 ? (
-        <span aria-hidden="true" className="h-4 border-l" />
+      {labelSummary.length > 0 ? (
+        <div
+          data-testid="mr-labels-pills"
+          className="flex w-full min-w-0 flex-wrap items-center gap-1.5"
+        >
+          <TagIcon className="size-3.5 flex-none text-muted-foreground" aria-hidden="true" />
+          <span className="text-xs text-muted-foreground @max-[440px]/page:sr-only">Labels</span>
+          {labelSummary.map((l) => (
+            <LabelPill
+              key={l.label.name}
+              l={l}
+              active={activeLabel === l.label.name}
+              onToggle={onToggleLabel}
+            />
+          ))}
+        </div>
       ) : null}
-      {labelSummary.map((l) => (
-        <LabelPill
-          key={l.label.name}
-          l={l}
-          active={activeLabel === l.label.name}
-          onToggle={onToggleLabel}
-        />
-      ))}
     </div>
   );
 }
