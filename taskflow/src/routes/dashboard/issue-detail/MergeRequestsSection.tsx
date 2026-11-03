@@ -43,7 +43,11 @@ export function MergeRequestsSection({
               <Badge
                 className={`text-[10px] h-4 px-1.5 border-0 font-normal ${mrStateClasses(mr.state)}`}
               >
-                {mr.state === 'merged' ? 'Merged' : mr.state === 'opened' ? 'Open' : mr.state}
+                {mr.state === 'merged'
+                  ? 'Merged'
+                  : mr.state === 'opened'
+                    ? 'Open'
+                    : mr.state.charAt(0).toUpperCase() + mr.state.slice(1)}
               </Badge>
             </div>
             <p className="text-xs text-muted-foreground truncate pl-[18px]">{mr.title}</p>

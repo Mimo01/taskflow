@@ -106,7 +106,7 @@ export function IssueDetailView({
   const pushRecentItem = useRecentItemsStore((s) => s.pushItem);
 
   // MR data for single-column bottom slot — deduped with IssueDetailSidebar's call
-  // (same query key ['gitlab-project-mrs', ...]) so no extra network request.
+  // via the shared per-issue key ['gitlab-issue-linked-mrs', ..., issueKey], so no extra request.
   const mr = useLinkedMRs(issueKey);
 
   // Fetch issue detail — same query key as IssueDetailPage (cache-sharing, RESEARCH Pitfall 4)
