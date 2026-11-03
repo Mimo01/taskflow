@@ -39,6 +39,7 @@ export interface AssigneeBucket {
 export interface TimeTotals {
   estimated: number;
   logged: number;
+  /** Σ remainingOf over open stories: Jira remaining estimate, else max(estimate − logged, 0). */
   remaining: number;
   pctLogged: number | null;
 }
@@ -101,13 +102,33 @@ function secOf(s: JiraIssue, key: SecKey): number | null {
 }
 
 /**
- * Per-story estimate (seconds): the sum of its subtasks' original estimates
- * when any exist, else the story's own original estimate.
+ * Per-story original estimate (seconds): the sum of its subtasks' original
+ * estimates when any exist, else the story's own original estimate.
  */
-export function estimateOf(s: JiraIssue): number {
+function originalOf(s: JiraIssue): number {
   const own = secOf(s, 'timeoriginalestimate') ?? 0;
   const subSum = Math.max(0, (secOf(s, 'aggregatetimeoriginalestimate') ?? 0) - own);
   return subSum > 0 ? subSum : own;
+}
+
+/** Jira's remaining estimate (seconds, story + subtasks); null when Jira has none. */
+function jiraRemaining(s: JiraIssue): number | null {
+  return secOf(s, 'aggregatetimeestimate');
+}
+
+/**
+ * Per-story estimate (seconds): the original estimate (subtask sum when any,
+ * else the story's own). An open story with no original estimate but a Jira
+ * remaining estimate (Tempo-style) gets remaining + logged, so logging part of
+ * the work never shrinks its own estimate. Done stories never use the remaining
+ * fallback (Jira zeroes remaining on close).
+ */
+export function estimateOf(s: JiraIssue): number {
+  const original = originalOf(s);
+  if (original > 0) return original;
+  if (catOf(s) === 'done') return 0;
+  const rem = jiraRemaining(s);
+  return rem !== null && rem > 0 ? rem + loggedOf(s) : 0;
 }
 
 /** Per-story logged time (seconds), story + subtasks (Jira aggregate). */
@@ -115,10 +136,57 @@ export function loggedOf(s: JiraIssue): number {
   return secOf(s, 'aggregatetimespent') ?? 0;
 }
 
+/**
+ * Per-story time left (seconds): 0 once done; else Jira's remaining estimate
+ * when present (an explicit 0 is trusted); else max(estimate − logged, 0).
+ */
+export function remainingOf(s: JiraIssue): number {
+  if (catOf(s) === 'done') return 0;
+  const rem = jiraRemaining(s);
+  if (rem !== null) return rem;
+  return Math.max(estimateOf(s) - loggedOf(s), 0);
+}
+
+/**
+ * Per-story forecast total (seconds): done → logged (or the estimate when
+ * nothing was logged); open → logged + remaining.
+ */
+export function timeWeightOf(s: JiraIssue): number {
+  if (catOf(s) === 'done') {
+    const log = loggedOf(s);
+    return log > 0 ? log : estimateOf(s);
+  }
+  return loggedOf(s) + remainingOf(s);
+}
+
 export function weightOf(s: JiraIssue, metric: Metric, spKey: string): number {
   if (metric === 'count') return 1;
-  if (metric === 'time') return estimateOf(s);
+  if (metric === 'time') return timeWeightOf(s);
   return spOf(s, spKey) ?? 0;
+}
+
+/**
+ * Per-story split of its weight into status bands. Count / SP: the whole
+ * weight goes into the band of the story's category. Time: done band =
+ * completed work (a done story's weight, or time logged on an open story);
+ * an open story's remaining goes into the band of its category.
+ */
+export function bandsOf(s: JiraIssue, metric: Metric, spKey: string): Bands {
+  const c = catOf(s);
+  if (metric === 'time' && c !== 'done') {
+    const rem = remainingOf(s);
+    return {
+      done: loggedOf(s),
+      inProgress: c === 'indeterminate' ? rem : 0,
+      todo: c === 'indeterminate' ? 0 : rem,
+    };
+  }
+  const w = weightOf(s, metric, spKey);
+  return {
+    done: c === 'done' ? w : 0,
+    inProgress: c === 'indeterminate' ? w : 0,
+    todo: c === 'new' ? w : 0,
+  };
 }
 
 /** Date key a done story was completed; null when the story is not in the done category. */
@@ -191,11 +259,10 @@ export function deriveAssigneeBuckets(
     }
     b.logged += loggedOf(s);
     b.estimate += estimateOf(s);
-    const w = weightOf(s, metric, spKey);
-    const c = catOf(s);
-    if (c === 'done') b.done += w;
-    else if (c === 'indeterminate') b.inProgress += w;
-    else b.todo += w;
+    const bands = bandsOf(s, metric, spKey);
+    b.done += bands.done;
+    b.inProgress += bands.inProgress;
+    b.todo += bands.todo;
   }
   const out = [...map.values()];
   for (const b of out) b.remaining = b.inProgress + b.todo;
@@ -207,11 +274,9 @@ export function deriveTimeTotals(stories: JiraIssue[]): TimeTotals {
   let logged = 0;
   let remaining = 0;
   for (const s of stories) {
-    const est = estimateOf(s);
-    const log = loggedOf(s);
-    estimated += est;
-    logged += log;
-    if (catOf(s) !== 'done') remaining += Math.max(est - log, 0);
+    estimated += estimateOf(s);
+    logged += loggedOf(s);
+    remaining += remainingOf(s);
   }
   return {
     estimated,
@@ -223,8 +288,10 @@ export function deriveTimeTotals(stories: JiraIssue[]): TimeTotals {
 
 /**
  * Worklog-based time burnup (collapse model). Logged is cumulative worklog
- * time; Estimate is, per started story, max(estimate, logged so far) while
- * open and logged so far once done.
+ * time; Estimate is, per started story, max(current forecast total, logged so
+ * far) while open and logged so far once done. The open-story forecast total is
+ * logged + Jira remaining when Jira has a remaining estimate, else the
+ * estimate, so the final gap (estimate − logged) equals the Remaining tile.
  */
 export function deriveTimeBurnup(
   stories: JiraIssue[],
@@ -255,7 +322,10 @@ export function deriveTimeBurnup(
       entries,
       startDay,
       doneDay: doneDateKey(s, today),
-      est: estimateOf(s),
+      est:
+        catOf(s) !== 'done' && jiraRemaining(s) !== null
+          ? loggedOf(s) + remainingOf(s)
+          : estimateOf(s),
       ptr: 0,
       sum: 0,
     };
@@ -705,7 +775,10 @@ export function deriveAdaptiveForecast(
   );
 }
 
-/** Time-mode forecast: daily logged-time rate against remaining (estimate - logged). */
+/**
+ * Time-mode forecast: daily logged-time rate against remaining (Jira remaining
+ * estimate, falling back to estimate − logged).
+ */
 export function deriveTimeForecast(
   stories: JiraIssue[],
   logs: Map<string, EpicWorklogDay[]>,
@@ -783,26 +856,23 @@ export function deriveSummary(stories: JiraIssue[], metric: Metric, spKey: strin
     unassignedOpen: 0,
   };
   for (const s of stories) {
-    const w = weightOf(s, metric, spKey);
     const c = catOf(s);
-    r.total += w;
+    const b = bandsOf(s, metric, spKey);
+    r.total += weightOf(s, metric, spKey);
+    r.doneTotal += b.done;
+    r.inProgressTotal += b.inProgress;
+    r.todoTotal += b.todo;
     if (spOf(s, spKey) === null) r.unestimatedSp += 1;
     if (c === 'done') {
       r.doneCount += 1;
-      r.doneTotal += w;
       continue;
     }
     r.remainingCount += 1;
     r.remainingSp += spOf(s, spKey) ?? 0;
     if (estimateOf(s) === 0) r.unestimatedTime += 1;
     if (!s.fields.assignee) r.unassignedOpen += 1;
-    if (c === 'indeterminate') {
-      r.inProgressCount += 1;
-      r.inProgressTotal += w;
-    } else {
-      r.todoCount += 1;
-      r.todoTotal += w;
-    }
+    if (c === 'indeterminate') r.inProgressCount += 1;
+    else r.todoCount += 1;
   }
   const allDone = stories.length > 0 && r.doneCount === stories.length;
   r.pctDone = allDone ? 100 : r.total > 0 ? Math.round((r.doneTotal / r.total) * 100) : 0;

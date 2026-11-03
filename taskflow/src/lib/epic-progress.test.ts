@@ -57,6 +57,9 @@ import {
   formatMetric,
   doneDateKey,
   weightOf,
+  remainingOf,
+  timeWeightOf,
+  bandsOf,
   BANDS,
   bandPct,
   bandTotal,
@@ -256,18 +259,19 @@ describe('time metric', () => {
     expect(c[0].value).toBe(2);
   });
 
-  it('assignee buckets sum logged/estimate in every mode and weight by estimate in time mode', () => {
+  it('assignee buckets sum logged/estimate in every mode and weight by completed/remaining time in time mode', () => {
     const stories = [
       st('A', { assignee: 'Ann', cat: 'done', est: 3600, spent: 1800 }),
       st('B', { assignee: 'Ann', est: 7200, spent: 600 }),
     ];
     const t = deriveAssigneeBuckets(stories, 'time', SP);
+    // done = A's logged 1800 + B's logged 600; todo = B's remaining 7200 - 600.
     expect(t[0]).toMatchObject({
       estimate: 10800,
       logged: 2400,
-      done: 3600,
-      todo: 7200,
-      remaining: 7200,
+      done: 2400,
+      todo: 6600,
+      remaining: 6600,
     });
     const c = deriveAssigneeBuckets(stories, 'count', SP);
     expect(c[0]).toMatchObject({ estimate: 10800, logged: 2400, done: 1, todo: 1 });
@@ -326,6 +330,128 @@ describe('estimateOf / loggedOf (261001-hsz)', () => {
     ]);
     expect(r.remaining).toBe(3000);
     expect(r.estimated).toBe(10800);
+  });
+});
+
+describe('time model (261103-lcd)', () => {
+  const H = 3600;
+  it('remainingOf: done → 0, Jira remaining wins (explicit 0 trusted), else max(est − logged, 0)', () => {
+    expect(remainingOf(st('A', { cat: 'done', rem: H }))).toBe(0);
+    expect(remainingOf(st('A', { rem: 1800, est: 7200, spent: 600 }))).toBe(1800);
+    expect(remainingOf(st('A', { rem: 0, est: H }))).toBe(0);
+    expect(remainingOf(st('A', { est: H, spent: 600 }))).toBe(3000);
+    expect(remainingOf(st('A', { est: H, spent: 7200 }))).toBe(0);
+  });
+  it('estimateOf falls back to remaining + logged for open Tempo-style stories', () => {
+    expect(estimateOf(st('A', { rem: H, spent: 1800 }))).toBe(5400);
+    expect(estimateOf(st('A', { cat: 'done', rem: H }))).toBe(0);
+    expect(estimateOf(st('A', { rem: 0, spent: 600 }))).toBe(0);
+    expect(estimateOf(st('A', { est: 7200, rem: 1800 }))).toBe(7200);
+  });
+  it('timeWeightOf: done → logged (else estimate), open → logged + remaining', () => {
+    expect(timeWeightOf(st('A', { cat: 'done', est: H, spent: 5400 }))).toBe(5400);
+    expect(timeWeightOf(st('A', { cat: 'done', est: H }))).toBe(H);
+    expect(timeWeightOf(st('A', { est: 7200, spent: 1800, rem: H }))).toBe(5400);
+    expect(timeWeightOf(st('A', { est: H }))).toBe(H);
+  });
+  it('bandsOf: count/sp whole weight in its category band; time splits logged vs remaining', () => {
+    expect(bandsOf(st('A', { cat: 'done', sp: 3 }), 'sp', SP)).toEqual({
+      done: 3,
+      inProgress: 0,
+      todo: 0,
+    });
+    expect(bandsOf(st('A', { cat: 'indeterminate' }), 'count', SP)).toEqual({
+      done: 0,
+      inProgress: 1,
+      todo: 0,
+    });
+    expect(
+      bandsOf(st('A', { cat: 'indeterminate', est: 7200, spent: 1800, rem: H }), 'time', SP),
+    ).toEqual({ done: 1800, inProgress: H, todo: 0 });
+    expect(bandsOf(st('A', { cat: 'done', est: H, spent: 5400 }), 'time', SP)).toEqual({
+      done: 5400,
+      inProgress: 0,
+      todo: 0,
+    });
+  });
+  const timed = (spent: number, rem: number) => [
+    st('D', { cat: 'done', est: H, spent: 5400 }),
+    st('P', { cat: 'indeterminate', est: 7200, spent, rem }),
+    st('T', { est: H }),
+  ];
+  it('deriveSummary time: total = forecast, bands = completed / remaining', () => {
+    const r = deriveSummary(timed(1800, H), 'time', SP);
+    expect(r).toMatchObject({
+      total: 14400,
+      doneTotal: 7200,
+      inProgressTotal: H,
+      todoTotal: H,
+      pctDone: 50,
+      remainingSeconds: 7200,
+    });
+    expect(r.inProgressTotal + r.todoTotal).toBe(r.remainingSeconds);
+    expect(r.doneTotal + r.inProgressTotal + r.todoTotal).toBe(r.total);
+  });
+  it('logging time on an open story raises pctDone', () => {
+    const before = deriveSummary(timed(1800, H), 'time', SP).pctDone;
+    const after = deriveSummary(timed(1800 + 1800, H - 1800), 'time', SP).pctDone;
+    expect(after).toBeGreaterThan(before);
+  });
+  it('count / sp results ignore the time fields', () => {
+    const plain = [
+      st('D', { cat: 'done', sp: 3, assignee: 'Ann' }),
+      st('P', { cat: 'indeterminate', sp: 2, assignee: 'Ann' }),
+      st('T', { sp: 5, assignee: 'Bob' }),
+    ];
+    const withTime = [
+      st('D', { cat: 'done', sp: 3, assignee: 'Ann', est: H, spent: 5400 }),
+      st('P', { cat: 'indeterminate', sp: 2, assignee: 'Ann', est: 7200, spent: 1800, rem: H }),
+      st('T', { sp: 5, assignee: 'Bob', est: H }),
+    ];
+    for (const metric of ['count', 'sp'] as const) {
+      const a = deriveSummary(plain, metric, SP);
+      const b = deriveSummary(withTime, metric, SP);
+      for (const k of [
+        'total',
+        'doneTotal',
+        'inProgressTotal',
+        'todoTotal',
+        'pctDone',
+        'doneCount',
+        'remainingCount',
+      ] as const)
+        expect(b[k]).toBe(a[k]);
+      const strip = (bk: ReturnType<typeof deriveAssigneeBuckets>) =>
+        bk.map(({ id, done, inProgress, todo, remaining }) => ({
+          id,
+          done,
+          inProgress,
+          todo,
+          remaining,
+        }));
+      expect(strip(deriveAssigneeBuckets(withTime, metric, SP))).toEqual(
+        strip(deriveAssigneeBuckets(plain, metric, SP)),
+      );
+    }
+  });
+  it('a Tempo-only story (remaining, no original) is not unestimated', () => {
+    expect(deriveSummary([st('A', { rem: H })], 'time', SP).unestimatedTime).toBe(0);
+    expect(deriveSummary([st('A')], 'time', SP).unestimatedTime).toBe(1);
+  });
+  it('deriveTimeTotals remaining uses Jira remaining over estimate − logged', () => {
+    expect(deriveTimeTotals([st('A', { est: 4 * H, spent: H, rem: 2 * H })]).remaining).toBe(2 * H);
+  });
+  it('time burnup final gap equals the remaining with a Jira remaining estimate', () => {
+    const ss = [st('A', { est: 4 * H, spent: H, rem: 2 * H, created: '2026-09-28' })];
+    const pts = deriveTimeBurnup(
+      ss,
+      new Map([['A', [{ day: '2026-09-29', seconds: H }]]]),
+      undefined,
+      TODAY,
+    );
+    const last = pts[pts.length - 1];
+    expect(last.estimate - last.logged).toBe(deriveTimeTotals(ss).remaining);
+    expect(last.estimate - last.logged).toBe(2 * H);
   });
 });
 
@@ -1351,6 +1477,14 @@ describe('deriveRisks (261001-qvu)', () => {
     expect(u?.issues.map((i) => i.key)).toEqual(['A-4']);
   });
 
+  it('unestimated risk skips an open story with only a Jira remaining estimate (261103-lcd)', () => {
+    const tempo = [...stories, st('A-6', { rem: 3600, assignee: 'Bob' })];
+    const u = deriveRisks({ ...base, stories: tempo, finish: fin() }).find(
+      (x) => x.key === 'unestimated',
+    );
+    expect(u?.issues.map((i) => i.key)).toEqual(['A-4']);
+  });
+
   it('reports unestimated and unassigned info risks', () => {
     const r = deriveRisks({ ...base, finish: fin() });
     expect(r.map((x) => [x.key, x.text, x.severity])).toEqual([
@@ -1579,9 +1713,11 @@ describe('status bands (261001-rtw)', () => {
       expect(sum).toEqual(summaryBands(deriveSummary(stories, metric, SP)));
     }
   });
-  it('time bands are estimate sums, not logged', () => {
+  it('time bands: done = completed work (incl. logged on open stories), rest = remaining (261103-lcd)', () => {
     const b = summaryBands(deriveSummary(stories, 'time', SP));
-    expect(b.done).toBe(H);
+    // A done unlogged → its estimate H; B open, 5h logged over a 2h estimate → 5h done, 0 left.
+    expect(b.done).toBe(6 * H);
+    expect(b.inProgress).toBe(0);
     expect(b.todo).toBe(2 * H);
   });
   it('bandPct / bandTotal', () => {

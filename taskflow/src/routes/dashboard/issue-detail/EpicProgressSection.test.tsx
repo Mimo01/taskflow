@@ -240,7 +240,8 @@ describe('EpicProgressSection review fixes (261001-fmk)', () => {
   });
 });
 
-const ASSIGNEE_TIME_ROWS = ['Completed33%', 'In progress0%', 'To do67%', 'Logged1h 30m'];
+// 261103-lcd: T-1 done → logged 1h 30m; T-2 open → Jira remaining 1h. Total 2h 30m.
+const ASSIGNEE_TIME_ROWS = ['Completed60%', 'In progress0%', 'To do40%', 'Logged1h 30m'];
 
 describe('EpicProgressSection time metric, card and tooltips (261001-g5q)', () => {
   const timed = [
@@ -314,27 +315,29 @@ describe('EpicProgressSection time metric, card and tooltips (261001-g5q)', () =
     expect(screen.getByRole('button', { name: 'Time' })).toBeInTheDocument();
   });
 
-  it('Time mode hero shows the done share of the estimate; strip shows Finish / Remaining / Risks', () => {
+  it('Time mode hero shows the done share of the forecast total; strip shows Finish / Remaining / Risks', () => {
     renderTimed();
     fireEvent.click(screen.getByRole('button', { name: 'Time' }));
     const hero = screen.getByTestId('epic-hero');
-    expect(hero.textContent).toContain('33%');
-    expect(within(hero).getByTestId('epic-hero-caption').textContent).toBe('1h of 3h');
+    // 261103-lcd: completed = T-1 logged 1h 30m; total = 1h 30m + T-2 Jira remaining 1h = 2h 30m.
+    expect(hero.textContent).toContain('60%');
+    expect(within(hero).getByTestId('epic-hero-caption').textContent).toBe('1h 30m of 2h 30m');
     const tiles = screen.getAllByTestId('epic-stat-tile');
     expect(tiles).toHaveLength(3);
     expect(tiles[0].textContent).toMatch(/^Finish/);
-    // Remaining = open max(est - logged, 0) = 7200, NOT Jira's remaining (3600).
-    expect(tiles[1].textContent).toMatch(/^Remaining2h/);
+    // 261103-lcd: Remaining = Jira's remaining estimate (3600), not est - logged (7200).
+    expect(tiles[1].textContent).toMatch(/^Remaining1h/);
     expect(tiles[2].textContent).toMatch(/^Risks/);
   });
 
-  it('Time mode assignee chips show done / in progress / to do estimate', () => {
+  it('Time mode assignee chips show completed / in progress / to do time', () => {
     renderTimed();
     fireEvent.click(screen.getByRole('button', { name: 'Time' }));
     const row = screen.getByTestId('epic-assignee-row');
-    expect(within(row).getByLabelText('completed 1h')).toBeInTheDocument();
+    // 261103-lcd: completed = T-1 logged; to do = T-2 Jira remaining.
+    expect(within(row).getByLabelText('completed 1h 30m')).toBeInTheDocument();
     expect(within(row).getByLabelText('in progress 0m')).toBeInTheDocument();
-    expect(within(row).getByLabelText('to do 2h')).toBeInTheDocument();
+    expect(within(row).getByLabelText('to do 1h')).toBeInTheDocument();
     expect(within(row).queryByLabelText('logged 1h 30m')).toBeNull();
   });
 
@@ -396,7 +399,7 @@ describe('EpicProgressSection time metric, card and tooltips (261001-g5q)', () =
     await waitFor(() => expect(rowTexts()).toEqual(expected));
     await user.unhover(within(row).getByText('Amy'));
     await waitFor(() => expect(document.querySelector('[data-slot="tooltip-content"]')).toBeNull());
-    await user.hover(within(row).getByLabelText('to do 2h'));
+    await user.hover(within(row).getByLabelText('to do 1h'));
     await waitFor(() => expect(rowTexts()).toEqual(expected));
     expect(row.querySelectorAll('button')).toHaveLength(0);
     expect(row.querySelectorAll('button, [tabindex="0"]')).toHaveLength(1);
@@ -520,8 +523,9 @@ describe('EpicProgressSection time burnup, formulas (261001-hsz)', () => {
     renderIt();
     fireEvent.click(screen.getByRole('button', { name: 'Time' }));
     const hero = screen.getByTestId('epic-hero');
-    // T-1: no subtask estimates -> own 1h; T-2: subtasks 3h - 1h own... agg 3h, own 1h -> 2h. Total 3h.
-    expect(within(hero).getByTestId('epic-hero-caption').textContent).toBe('1h of 3h');
+    // 261103-lcd: T-1 done → logged 1h 30m. T-2 open, subtask-sum estimate 3h - 1h own = 2h,
+    // logged 30m, no Jira remaining → remaining 1h 30m. Completed 1h 30m + 30m = 2h of 3h 30m.
+    expect(within(hero).getByTestId('epic-hero-caption').textContent).toBe('2h of 3h 30m');
   });
 
   it('Remaining tile tooltip is a single explanatory line', async () => {
@@ -1221,18 +1225,19 @@ describe('EpicProgressSection unified tabs (261001-rtw)', () => {
       r.children[0].getAttribute('data-marker'),
     );
 
-  it('Time mode person bar segments agree with the chips (same three estimate values)', () => {
+  it('Time mode person bar segments agree with the chips (same three time values)', () => {
     renderSection(timedSection());
     fireEvent.click(screen.getByRole('button', { name: 'Time' }));
     const row = screen.getByTestId('epic-assignee-row');
     const chips = within(row).getAllByTestId('epic-assignee-chip');
-    expect(chips.map((c) => c.textContent)).toEqual(['1h', '0m', '2h']);
+    // 261103-lcd: completed = T-1 logged 1h 30m; to do = T-2 Jira remaining 1h.
+    expect(chips.map((c) => c.textContent)).toEqual(['1h 30m', '0m', '1h']);
     expect(chips.map((c) => c.getAttribute('data-cat'))).toEqual(['done', 'indeterminate', 'new']);
     const segs = [...row.querySelectorAll('[data-segment]')] as HTMLElement[];
     expect(segs.map((s) => s.getAttribute('data-segment'))).toEqual(['done', 'new']);
-    // Scale = the largest assignee total (3h): 1h -> 33.3%, 2h -> 66.7%.
-    expect(Number.parseFloat(segs[0].style.width)).toBeCloseTo(100 / 3, 3);
-    expect(Number.parseFloat(segs[1].style.width)).toBeCloseTo(200 / 3, 3);
+    // Scale = the largest assignee total (2h 30m): 1h 30m -> 60%, 1h -> 40%.
+    expect(Number.parseFloat(segs[0].style.width)).toBeCloseTo(60, 3);
+    expect(Number.parseFloat(segs[1].style.width)).toBeCloseTo(40, 3);
     expect(within(row).queryByLabelText(/^logged/)).toBeNull();
   });
 
@@ -1244,9 +1249,9 @@ describe('EpicProgressSection unified tabs (261001-rtw)', () => {
     // 261002-0xf: no Estimate row (caption shows it) and no formula note.
     await waitFor(() =>
       expect(rowTexts()).toEqual([
-        'Completed1h33%',
+        'Completed1h 30m60%',
         'In progress0m0%',
-        'To do2h67%',
+        'To do1h40%',
         'Logged1h 30m',
       ]),
     );
