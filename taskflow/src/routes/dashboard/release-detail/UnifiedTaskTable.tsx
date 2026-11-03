@@ -5,6 +5,7 @@ import {
   GitPullRequest,
   GitPullRequestClosed,
   GitPullRequestDraft,
+  ListChecks,
   Loader2,
   type LucideIcon,
   Milestone,
@@ -1224,9 +1225,13 @@ function AggregateFlagTrigger({ testId, label }: { testId: string; label: string
       data-testid={testId}
       aria-label={label}
       onClick={(e) => e.stopPropagation()}
-      className="pointer-events-auto relative z-10 flex w-[1.75rem] flex-none items-center justify-center rounded focus-visible:ring-2 focus-visible:ring-ring"
+      title={label}
+      className="group/agg pointer-events-auto relative z-10 flex w-[1.75rem] flex-none items-center justify-center rounded hover:bg-accent hover:ring-1 hover:ring-border focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
     >
-      <AlertTriangle className="size-3.5 text-orange-600 dark:text-orange-400" />
+      {/* Same hover reveal as `DriftActionCell`, but a different glyph: this
+          opens the MR list (pick which MR to fix), it doesn't fix in place. */}
+      <AlertTriangle className="size-3.5 text-orange-600 dark:text-orange-400 group-hover/row:hidden group-focus-visible/agg:hidden" />
+      <ListChecks className="hidden size-3.5 group-hover/row:block group-focus-visible/agg:block" />
     </PopoverTrigger>
   );
 }

@@ -2999,7 +2999,13 @@ describe('task row MR status chip + popover (261103-g8m)', () => {
       [makeRow({ br: 'flag', flagged: true }), makeRow({ mr: makeMR({ id: 2, iid: 2 }) })],
       { flaggedMrCount: 1 },
     );
-    fireEvent.click(screen.getByTestId('task-drift-br'));
+    const trigger = screen.getByTestId('task-drift-br');
+    // Row hover swaps the warning for a "pick an MR" glyph (≠ the fix icons).
+    const [warn, pick] = trigger.querySelectorAll('svg');
+    expect(warn).toHaveClass('group-hover/row:hidden');
+    expect(pick).toHaveClass('hidden', 'group-hover/row:block');
+    expect(pick).toHaveClass('lucide-list-checks');
+    fireEvent.click(trigger);
     expect(await screen.findByTestId('mr-popover')).toBeInTheDocument();
     expect(mockUpdateMergeRequest).not.toHaveBeenCalled();
   });
