@@ -77,24 +77,29 @@ export function TimeBar({
   const denom = scale ?? Math.max(segmentsTotal(segments), estimate);
   const pct = (n: number) => (denom > 0 ? Math.min(n / denom, 1) * 100 : 0);
   return (
-    <span
-      data-testid={testId}
-      className={cn('relative flex w-full gap-px overflow-hidden rounded bg-muted', className)}
-    >
-      {segments.map((seg) => (
-        <span
-          key={`${seg.cat}:${seg.part}`}
-          data-segment={`${seg.cat}:${seg.part}`}
-          className={cn('h-full flex-none', segmentClass(seg))}
-          style={{ width: `${pct(seg.seconds)}%`, ...(seg.part === 'remainingOver' ? HATCH : {}) }}
-        />
-      ))}
+    // Outer box sizes the bar and hosts the tick; only the inner track clips to the rounding,
+    // so a tick at either end is never cut off by the rounded corners.
+    <span data-testid={testId} className={cn('relative flex w-full rounded', className)}>
+      <span className="flex h-full w-full gap-px overflow-hidden rounded-[inherit] bg-muted">
+        {segments.map((seg) => (
+          <span
+            key={`${seg.cat}:${seg.part}`}
+            data-segment={`${seg.cat}:${seg.part}`}
+            className={cn('h-full flex-none', segmentClass(seg))}
+            style={{
+              width: `${pct(seg.seconds)}%`,
+              ...(seg.part === 'remainingOver' ? HATCH : {}),
+            }}
+          />
+        ))}
+      </span>
       {estimate > 0 && denom > 0 ? (
         <span
           data-testid="time-estimate-tick"
+          data-pct={pct(estimate)}
           aria-hidden="true"
-          className="absolute inset-y-0 w-0.5 bg-foreground"
-          style={{ left: `calc(${pct(estimate)}% - 1px)` }}
+          className="absolute -inset-y-0.5 w-0.5 rounded-full bg-foreground"
+          style={{ left: `clamp(0px, calc(${pct(estimate)}% - 1px), calc(100% - 2px))` }}
         />
       ) : null}
     </span>

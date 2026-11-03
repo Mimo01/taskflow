@@ -294,7 +294,16 @@ describe('IssueDetailContent', () => {
       const over = bar.querySelector('[data-segment="new:loggedOver"]') as HTMLElement;
       expect(over.className).toContain('bg-red-500');
       const tick = within(bar).getByTestId('time-estimate-tick');
-      expect(tick.style.left).toBe('calc(50% - 1px)');
+      expect(tick).toHaveAttribute('data-pct', '50');
+    });
+
+    it('a tick at the end of the bar sits outside the rounded clip (not cut off)', () => {
+      // 2h estimate, 1h logged, 1h left → tick at 100%.
+      renderEpic([epicStory('S-1', 'indeterminate', { est: 7200, spent: 3600, rem: 3600 })]);
+      const bar = screen.getByTestId('story-time-bar');
+      const tick = within(bar).getByTestId('time-estimate-tick');
+      expect(tick).toHaveAttribute('data-pct', '100');
+      expect(tick.closest('.overflow-hidden')).toBeNull();
     });
 
     it('overspend within 125% of the estimate is amber', () => {
@@ -334,10 +343,7 @@ describe('IssueDetailContent', () => {
       expect(fc.className).toContain('opacity-35');
       expect(fc.style.backgroundImage).toContain('repeating-linear-gradient');
       const tick = within(bar).getByTestId('time-estimate-tick');
-      expect(Number.parseFloat(tick.style.left.replace('calc(', ''))).toBeCloseTo(
-        (7200 / 12600) * 100,
-        3,
-      );
+      expect(Number(tick.getAttribute('data-pct'))).toBeCloseTo((7200 / 12600) * 100, 3);
       await user.hover(bar);
       await waitFor(() => expect(rowTexts().length).toBeGreaterThan(0));
       expect(rowTexts()).toEqual(['Estimate2h', 'Logged30m', 'Remaining3h', 'Over by1h 30m']);
