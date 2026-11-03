@@ -74,20 +74,28 @@ export function TimeBar({
   className?: string;
   testId?: string;
 }) {
-  const denom = scale ?? Math.max(segmentsTotal(segments), estimate);
+  // This bar's own extent; with a shared `scale` the track stops there, so blank space past
+  // it means "someone else has more work", never planned or remaining time.
+  const extent = Math.max(segmentsTotal(segments), estimate);
+  const denom = scale ?? extent;
   const pct = (n: number) => (denom > 0 ? Math.min(n / denom, 1) * 100 : 0);
+  const inTrack = (n: number) => (extent > 0 ? (n / extent) * 100 : 0);
   return (
     // Outer box sizes the bar and hosts the tick; only the inner track clips to the rounding,
     // so a tick at either end is never cut off by the rounded corners.
     <span data-testid={testId} className={cn('relative flex w-full rounded', className)}>
-      <span className="flex h-full w-full gap-px overflow-hidden rounded-[inherit] bg-muted">
+      <span
+        data-testid="time-track"
+        className="flex h-full gap-px overflow-hidden rounded-[inherit] bg-muted"
+        style={{ width: `${extent > 0 ? pct(extent) : 100}%` }}
+      >
         {segments.map((seg) => (
           <span
             key={`${seg.cat}:${seg.part}`}
             data-segment={`${seg.cat}:${seg.part}`}
             className={cn('h-full flex-none', segmentClass(seg))}
             style={{
-              width: `${pct(seg.seconds)}%`,
+              width: `${inTrack(seg.seconds)}%`,
               ...(seg.part === 'remainingOver' ? HATCH : {}),
             }}
           />

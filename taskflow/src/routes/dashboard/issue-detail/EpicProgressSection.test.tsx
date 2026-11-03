@@ -365,6 +365,12 @@ describe('EpicProgressSection time metric, card and tooltips (261001-g5q)', () =
     expect(within(zed).getByLabelText('estimate 0m')).toBeInTheDocument();
     const over = within(zed).getByLabelText('over 30m');
     expect(over.className).toContain('text-red-600');
+    // Shared scale = Amy's 3h estimate: Amy's track is full width, Zed's stops at his 30m, so
+    // the blank after it reads as "others have more work", not as to-do time.
+    const track = (row: HTMLElement) =>
+      Number.parseFloat(within(row).getByTestId('time-track').style.width);
+    expect(track(amy)).toBeCloseTo(100, 3);
+    expect(track(zed)).toBeCloseTo((1800 / 10800) * 100, 3);
     // Count tab stays assignee-only.
     fireEvent.click(screen.getByRole('button', { name: 'Count' }));
     expect(screen.getAllByTestId('epic-assignee-row')).toHaveLength(1);
