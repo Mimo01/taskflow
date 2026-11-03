@@ -65,6 +65,24 @@ describe('Release Management lookups', () => {
     expect(jql).not.toContain('cf[10014]');
   });
 
+  it('fetchRmWeekChildren: keeps only tasks from the WEEK parent project (drops linked issues elsewhere)', async () => {
+    const base = nextBase();
+    vi.mocked(mockFetch).mockImplementation((async (url: string) => {
+      if (url.includes('/rest/api/2/field')) return ok(FIELDS);
+      return ok({
+        total: 4,
+        issues: [
+          { key: 'RM-2', fields: { summary: 'Billing' } },
+          { key: 'APP-7', fields: { summary: 'Billing release' } },
+          { key: 'RMX-3', fields: { summary: 'Billing' } },
+          { key: 'RM-3', fields: { summary: 'Portal' } },
+        ],
+      });
+    }) as never);
+    const children = await fetchRmWeekChildren(base, TOKEN, 'RM-1');
+    expect(children.map((c) => c.key)).toEqual(['RM-2', 'RM-3']);
+  });
+
   it('fetchRmWeekList: prefix search, summary only, non-padded dates parsed', async () => {
     const base = nextBase();
     vi.mocked(mockFetch).mockResolvedValue(

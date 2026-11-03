@@ -2800,10 +2800,14 @@ export async function fetchRmWeekChildren(
     const parts = await Promise.all(clauses.map((c) => search(c).catch(() => [] as JiraIssue[])));
     issues = parts.flat();
   }
+  // Only the RM project's own tasks are packages. `linkedIssues()` also returns
+  // issues from other projects (e.g. stories linked to the week), and an extra
+  // same-named one makes the per-application match ambiguous.
+  const projectPrefix = weekKey.slice(0, weekKey.lastIndexOf('-') + 1);
   const seen = new Set<string>();
   const children: RmChild[] = [];
   for (const i of issues) {
-    if (i.key === weekKey || seen.has(i.key)) continue;
+    if (i.key === weekKey || seen.has(i.key) || !i.key.startsWith(projectPrefix)) continue;
     seen.add(i.key);
     children.push({ key: i.key, summary: i.fields.summary ?? '' });
   }
