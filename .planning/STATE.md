@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-08-13)
 Phase: 94
 Plan: Not started
 Status: Milestone complete
-Last activity: 2026-11-03 - Completed quick task 261103-cln: not-covered section callout redesign with Apply / Link task fixes (UAT approved)
+Last activity: 2026-11-03 - Completed quick task 261103-eu3: merged MRs evaluated in Not covered by tasks (real reason + fix), closed MRs hidden
 
 ## Performance Metrics
 
@@ -240,6 +240,7 @@ Acknowledged and deferred at v1.14 milestone close (2026-08-13) — 111 open art
 | 261102-vuw | Release detail By type/status/assignee rows toggle the Issues table Status/Type/Assignee filters (lifted useTaskIssueFilters, aria-pressed buttons, active bg-muted + others dimmed) | 2026-11-02 | ebf0442b | Verified (UAT approved) | [261102-vuw-release-detail-breakdown-rows-toggle-tab](./quick/261102-vuw-release-detail-breakdown-rows-toggle-tab/) |
 | 261103-bfx | Release detail header aligned with AIO cycle detail (non-wrapping title row, icon-only actions when narrow); done bar + graphs + MR label row in one release-stats block (no top rule, tight spacing); labels UNDER the graphs with a GraphSlot-style heading, every pill, unlabelled MRs as a bare orange warning icon + count at row end; donut ring-only; responsive class tests | 2026-11-03 | 1872c997 | Verified (UAT approved) | [261103-bfx-polish-release-detail-header-to-match-ai](./quick/261103-bfx-polish-release-detail-header-to-match-ai/) |
 | 261103-cln | "Not covered by tasks above" redesigned as the orange callout matching Deployment package mismatches (same position, shared calloutSection.ts consts, single count pill, 5 rows + Show all); per-row fixes: Apply adds the release fix version to linked task(s) keeping existing (update.add), Link task picks a release issue and prefixes its key to the MR title (draft prefix kept), merged/closed rows muted with no action; Fix column ("→ add to <version>" / "→ link a release task") directly before the button column, header reserves the action column | 2026-11-03 | 2c08b55a | Verified (UAT approved) | [261103-cln-redesign-not-covered-by-tasks-section-to](./quick/261103-cln-redesign-not-covered-by-tasks-section-to/) |
+| 261103-eu3 | "Not covered by tasks": merged MRs now evaluated for TASK reason (isTaskEvaluated gate; BR/MS stay open-only, evaluated:false) so they get Not in version / No task pills + Apply / Link task fixes; closed MRs excluded from secondaryRows (still attached under tasks); locked stays muted "Not evaluated" | 2026-11-03 | 6230a198 | Pending UAT | [261103-eu3-evaluate-merged-mrs-in-not-covered-by-ta](./quick/261103-eu3-evaluate-merged-mrs-in-not-covered-by-ta/) |
 
 ## Session Continuity
 
