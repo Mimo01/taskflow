@@ -2,6 +2,36 @@
 
 All notable changes to Taskflow are documented here.
 
+## [1.14.17] — 2026-11-03
+
+### Added
+
+- **Fix tasks not covered by the release** — the "Not covered by tasks" section on the release detail page is now an orange callout with a Fix column. Apply adds the release fix version to the issue, keeping its other versions. Link task adds the task key to the MR title. Epics that can't take a fix version keep the "Not in version" state, with a note in place of Apply.
+- **MR status on task rows** — each release task row shows one status for all of its MRs: a glyph and word when they share a state, or a compact ring when they are mixed. Click it for a popover listing every MR, sorted by number, with author and per-MR branch and milestone fixes. Single-MR tasks fix the branch or milestone straight from the row, and multi-MR tasks can fix all of them at once.
+- **Milestone on merged MRs** — merged MRs can be assigned the release milestone. Branch fixes stay limited to open MRs.
+- **Graph rows filter the Issues table** — clicking a By status, By type or By assignee row on the release detail page toggles the matching Issues table filter. The "+N more" popover lists the remaining rows the same way, and row tooltips appear beside the row after a short delay.
+- **Epic time by status and person** — the epic Time view shows bars grouped by status with overspend, under-budget time and an estimate tick. Person chips include everyone who logged time on the epic, and each status has a time tooltip.
+- **Exact timestamps** — hover a date on the issue detail page to see the exact date and time.
+
+### Changed
+
+- **Epic time numbers** — epic Time compares time logged against the Jira remaining estimate, so story rows and epic bars add up.
+- **Time bar colours** — time bars fill by time spent against the original estimate, so closed issues no longer show a full bar. Bars stay amber up to 125% of the estimate and turn red beyond it.
+- **Release detail header** — the header matches the AIO cycle header, with release stats in one bordered block. MR labels sit in a row under the graphs, with a small warning and count at the end for MRs without a label. The MR donut is ring only.
+- **Release Progress graph** — the burnup is larger and less cluttered, with a denser date axis, an unlabelled Today line, marker and end labels that don't overlap, and the previous release name as its start. Future releases show a short "No burnup yet" message instead of an empty chart.
+- **Release graph band** — graph slots are split by hairlines, By type and By assignee are wider, By status rows are more compact, and the Issues heading matches the graph headings.
+- **Page headers** — page titles use one consistent size: larger on pages with a subtitle, smaller elsewhere and on subpages. The Settings page header and the MR page title icon are gone.
+
+### Fixed
+
+- **Linked MRs on issues** — the issue detail page lists every linked MR (open, merged or closed), not just those among the project's 20 most recently updated.
+- **MR donut count** — the release MR donut counts each MR once across all the ways it is linked to the release.
+- **Not covered reasons** — merged MRs count when deciding why a task isn't covered, and closed MRs are hidden.
+- **Package fix with several fix versions** — the deployment package mismatch fix is offered when an issue has more than one fix version.
+- **Release page scrolling** — the release detail page can no longer scroll into blank space below its content.
+- **RM week children** — a deployment week only lists children from the RM project, not linked issues from other projects.
+- **Weekend holidays** — Tempo holidays that fall on a weekend are coloured as holidays in worklogs.
+
 ## [1.14.16] — 2026-11-02
 
 ### Added
