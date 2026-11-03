@@ -86,9 +86,9 @@ describe('ReleaseBurnup', () => {
       />,
     );
     expect(screen.getByTestId('release-graph-burnup-thin')).toBeInTheDocument();
-    expect(screen.getByText('No progress yet')).toBeInTheDocument();
+    expect(screen.getByText('No burnup yet')).toBeInTheDocument();
     expect(
-      screen.getByText('The chart appears after the first day of activity.'),
+      screen.getByText('It appears after the first day of the release window.'),
     ).toBeInTheDocument();
     expect(screen.queryByRole('img', { name: /Release burnup/ })).toBeNull();
     expect(screen.queryByText(/days left/)).toBeNull();
@@ -113,8 +113,8 @@ describe('ReleaseBurnup', () => {
         summary={{ ...summary, today: '2026-11-03', releaseDate: '2026-12-01' }}
       />,
     );
-    expect(screen.getByText('No progress yet')).toBeInTheDocument();
-    expect(screen.getByText(/^Starts after R-11-17 ships on Nov 17/)).toBeInTheDocument();
+    expect(screen.getByText('No burnup yet')).toBeInTheDocument();
+    expect(screen.getByText(/^It starts when R-11-17 ships on Nov 17/)).toBeInTheDocument();
     expect(screen.getByText(/^after/)).toBeInTheDocument();
     expect(screen.queryByText(/^since/)).toBeNull();
   });

@@ -282,11 +282,11 @@ export function ReleaseBurnup({
               compact
               className="py-0"
               icon={CalendarClock}
-              title="No progress yet"
+              title="No burnup yet"
               subtitle={
                 notOpen && axis?.previousName
-                  ? `Starts after ${axis.previousName} ships on ${formatDateKey(axis.start)}.`
-                  : 'The chart appears after the first day of activity.'
+                  ? `It starts when ${axis.previousName} ships on ${formatDateKey(axis.start)}.`
+                  : 'It appears after the first day of the release window.'
               }
             />
           </div>
