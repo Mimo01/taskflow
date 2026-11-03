@@ -1,7 +1,7 @@
 ---
 phase: quick-261103-cln
 verified: 2026-11-03T09:30:00Z
-status: human_needed
+status: passed
 score: 8/8 must-haves verified (code level)
 human_verification:
   - test: "Open a release detail page with MRs in each state and compare the callout against Deployment package mismatches. Resize narrow."
@@ -41,3 +41,11 @@ Wiring: `ReleaseDetailPage.tsx:569` passes `jiraFix={versionId ? {baseUrl, versi
 
 ## Gaps
 None found at code level. Live Jira/GitLab behavior and visual layout are routed to the human items above.
+
+## UAT (2026-11-03) — approved
+
+Two rounds of UAT feedback, both fixed before approval:
+1. Apply sat under the BR/MS headers — the secondary header had no cell over the rows' trailing action column (1e64432a). Also: no way to tell what the button does → added a "Fix" column like the package section ("→ add to <version>" / "→ link a release task").
+2. Fix column moved directly before the button column, after BR/MS (2c08b55a).
+
+Live Jira add-by-id and GitLab title writes: not exercised in this session; review warnings WR-01..WR-04 in 261103-cln-REVIEW.md remain open as advisory.
