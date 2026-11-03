@@ -166,5 +166,22 @@ describe('ReleaseTypeWaffle', () => {
       await userEvent.click(o);
       expect(onToggle).toHaveBeenCalledTimes(1);
     });
+
+    it('"+K more types" opens a list whose rows toggle the hidden types', async () => {
+      const onToggle = vi.fn();
+      const many = Array.from({ length: 7 }, (_, i) => big(2, 1, `Type${i}`));
+      render(
+        <ReleaseTypeWaffle
+          rows={many}
+          state="ready"
+          showStoryPoints={false}
+          compact
+          onToggle={onToggle}
+        />,
+      );
+      await userEvent.click(screen.getByTestId('waffle-more'));
+      await userEvent.click(await screen.findByRole('button', { name: /Type6/ }));
+      expect(onToggle).toHaveBeenLastCalledWith(['Type6']);
+    });
   });
 });

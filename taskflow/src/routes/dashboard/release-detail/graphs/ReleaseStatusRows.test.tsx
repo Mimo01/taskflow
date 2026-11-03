@@ -155,5 +155,33 @@ describe('ReleaseStatusRows', () => {
       expect(row.tagName).toBe('DIV');
       expect(row).not.toHaveAttribute('aria-pressed');
     });
+
+    it('"+N more statuses" opens a list whose rows toggle the hidden statuses', async () => {
+      const onToggle = vi.fn();
+      const many = Array.from({ length: 8 }, (_, i) => ({
+        name: `S${i}`,
+        cat: 'new' as const,
+        count: 1,
+        filterValues: [`S${i}`],
+      }));
+      render(
+        <ReleaseStatusRows
+          rows={many}
+          state="ready"
+          compact
+          activeValues={new Set(['S6'])}
+          onToggle={onToggle}
+        />,
+      );
+      const more = screen.getByTestId('status-more');
+      expect(more.tagName).toBe('BUTTON');
+      // A hidden active status keeps the trigger visibly selected.
+      expect(more.className).toContain('bg-muted');
+      await userEvent.click(more);
+      const s6 = await screen.findByRole('button', { name: /S6/ });
+      expect(s6).toHaveAttribute('aria-pressed', 'true');
+      await userEvent.click(await screen.findByRole('button', { name: /S5/ }));
+      expect(onToggle).toHaveBeenLastCalledWith(['S5']);
+    });
   });
 });

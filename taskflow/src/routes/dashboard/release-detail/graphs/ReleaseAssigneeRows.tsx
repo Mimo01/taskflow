@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils';
 import { SegmentedBar } from '../../releases-list/ReleaseAgendaParts';
 import type { ReleaseAssigneeRow } from '../releaseBuckets';
 import { ASSIGNEE_ROW_HEIGHT, ASSIGNEE_SKELETON_ROWS, GraphSlot } from './GraphSlot';
-import { rowToggleProps } from './rowToggle';
+import { MoreRowsPopover, ROW_TOOLTIP_DELAY, ROW_TOOLTIP_SIDE, rowToggleProps } from './rowToggle';
 
 const COMPACT_ROW_HEIGHT = 24;
 /** Default row cap (band); the rest go to "+K more". Narrower layouts pass a lower `maxRows`. */
@@ -79,7 +79,7 @@ export function ReleaseAssigneeRows({
           return (
             <Tooltip key={row.id}>
               <TooltipTrigger
-                delay={0}
+                delay={ROW_TOOLTIP_DELAY}
                 render={toggle.render}
                 data-testid={`assignee-row-${row.id}`}
                 className={cn(
@@ -108,7 +108,7 @@ export function ReleaseAssigneeRows({
                   {row.done}/{row.total}
                 </span>
               </TooltipTrigger>
-              <TooltipContent>
+              <TooltipContent side={ROW_TOOLTIP_SIDE}>
                 <TooltipBody title={row.name}>
                   {releaseTooltipRows(row.breakdown).map((r) => (
                     <TooltipRow key={r.label} color={r.color} label={r.label} value={r.value} />
@@ -119,7 +119,20 @@ export function ReleaseAssigneeRows({
             </Tooltip>
           );
         })}
-        {hidden.length > 0 ? (
+        {hidden.length > 0 && onToggle ? (
+          <MoreRowsPopover
+            label={`+${hidden.length} more`}
+            testId="assignee-more"
+            items={hidden.map((r) => ({
+              key: r.id,
+              label: r.name,
+              value: `${r.done}/${r.total}`,
+              filterValues: [r.unassigned ? UNASSIGNED_FILTER : r.name],
+            }))}
+            activeValues={activeValues}
+            onToggle={onToggle}
+          />
+        ) : hidden.length > 0 ? (
           <Tooltip>
             <TooltipTrigger
               delay={0}

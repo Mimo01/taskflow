@@ -154,5 +154,32 @@ describe('ReleaseAssigneeRows', () => {
       await userEvent.click(screen.getByTestId('assignee-row-unassigned'));
       expect(onToggle).toHaveBeenLastCalledWith([UNASSIGNED_FILTER]);
     });
+
+    it('"+K more" opens a list whose rows toggle the hidden assignees', async () => {
+      const onToggle = vi.fn();
+      const many: ReleaseAssigneeRow[] = Array.from({ length: 7 }, (_, i) => ({
+        id: `p${i}`,
+        name: `Person ${i}`,
+        avatarUrl: null,
+        unassigned: i === 6,
+        breakdown: { done: 1, indeterminate: 0, new: 1 },
+        total: 2,
+        done: 1,
+        sp: 0,
+      }));
+      render(
+        <ReleaseAssigneeRows
+          rows={many}
+          state="ready"
+          showStoryPoints={false}
+          onToggle={onToggle}
+        />,
+      );
+      await userEvent.click(screen.getByTestId('assignee-more'));
+      await userEvent.click(await screen.findByRole('button', { name: /Person 5/ }));
+      expect(onToggle).toHaveBeenLastCalledWith(['Person 5']);
+      await userEvent.click(await screen.findByRole('button', { name: /Person 6/ }));
+      expect(onToggle).toHaveBeenLastCalledWith([UNASSIGNED_FILTER]);
+    });
   });
 });

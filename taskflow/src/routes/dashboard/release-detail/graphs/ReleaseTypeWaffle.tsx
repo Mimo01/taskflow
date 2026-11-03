@@ -17,7 +17,7 @@ import {
   waffleColumns,
 } from '../releaseBuckets';
 import { GraphSlot, NEW_TONE_CLASS, WAFFLE_SKELETON_ROWS } from './GraphSlot';
-import { rowToggleProps } from './rowToggle';
+import { MoreRowsPopover, ROW_TOOLTIP_DELAY, ROW_TOOLTIP_SIDE, rowToggleProps } from './rowToggle';
 
 const FALLBACK_WIDTH = 640;
 const MAX_COMPACT_ROWS = 5;
@@ -101,7 +101,7 @@ export function ReleaseTypeWaffle({
           return (
             <Tooltip key={row.typeName}>
               <TooltipTrigger
-                delay={0}
+                delay={ROW_TOOLTIP_DELAY}
                 render={toggle.render}
                 data-testid={`type-row-${row.typeName}`}
                 className={cn('relative z-10 grid items-start rounded', toggle.className)}
@@ -143,7 +143,7 @@ export function ReleaseTypeWaffle({
                   {row.done}/{row.total}
                 </span>
               </TooltipTrigger>
-              <TooltipContent>
+              <TooltipContent side={ROW_TOOLTIP_SIDE}>
                 <TooltipBody title={row.typeName}>
                   {releaseTooltipRows(row.breakdown).map((r) => (
                     <TooltipRow key={r.label} color={r.color} label={r.label} value={r.value} />
@@ -154,7 +154,20 @@ export function ReleaseTypeWaffle({
             </Tooltip>
           );
         })}
-        {hiddenRows > 0 ? (
+        {hiddenRows > 0 && onToggle ? (
+          <MoreRowsPopover
+            label={`+${hiddenRows} more ${hiddenRows === 1 ? 'type' : 'types'}`}
+            testId="waffle-more"
+            items={rows.slice(shownRows.length).map((r) => ({
+              key: r.typeName,
+              label: r.typeName,
+              value: `${r.done}/${r.total}`,
+              filterValues: r.filterValue ? [r.filterValue] : [],
+            }))}
+            activeValues={activeValues}
+            onToggle={onToggle}
+          />
+        ) : hiddenRows > 0 ? (
           <div data-testid="waffle-more" className="text-xs text-muted-foreground">
             +{hiddenRows} more {hiddenRows === 1 ? 'type' : 'types'}
           </div>

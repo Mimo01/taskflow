@@ -6,7 +6,7 @@ import { RELEASE_SEGMENT_CLASS } from '@/lib/release-list';
 import { cn } from '@/lib/utils';
 import { fitStatusRows, type ReleaseStatusRow, statusBarWidth } from '../releaseBuckets';
 import { ASSIGNEE_ROW_HEIGHT, GraphSlot, NEW_TONE_CLASS } from './GraphSlot';
-import { rowToggleProps } from './rowToggle';
+import { MoreRowsPopover, ROW_TOOLTIP_DELAY, ROW_TOOLTIP_SIDE, rowToggleProps } from './rowToggle';
 
 const MAX_ROWS = 6;
 // Same row rhythm and column split as By assignee, so the two read as one family.
@@ -69,7 +69,7 @@ export function ReleaseStatusRows({
           return (
             <Tooltip key={`${row.cat}:${row.name}`}>
               <TooltipTrigger
-                delay={0}
+                delay={ROW_TOOLTIP_DELAY}
                 render={toggle.render}
                 data-testid={`status-row-${row.name}`}
                 className={cn(
@@ -94,7 +94,7 @@ export function ReleaseStatusRows({
                   {row.count}
                 </span>
               </TooltipTrigger>
-              <TooltipContent>
+              <TooltipContent side={ROW_TOOLTIP_SIDE}>
                 <TooltipBody title={row.name}>
                   <TooltipRow label="Issues" value={row.count} />
                   <TooltipRow label="Share" value={`${Math.round((row.count / total) * 100)}%`} />
@@ -106,7 +106,21 @@ export function ReleaseStatusRows({
             </Tooltip>
           );
         })}
-        {hidden.length > 0 ? (
+        {hidden.length > 0 && onToggle ? (
+          <MoreRowsPopover
+            label={`+${hidden.length} more statuses`}
+            testId="status-more"
+            className="mt-1"
+            items={hidden.map((r) => ({
+              key: `${r.cat}:${r.name}`,
+              label: r.name,
+              value: r.count,
+              filterValues: r.filterValues,
+            }))}
+            activeValues={activeValues}
+            onToggle={onToggle}
+          />
+        ) : hidden.length > 0 ? (
           <Tooltip>
             <TooltipTrigger
               delay={0}
