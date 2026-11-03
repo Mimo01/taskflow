@@ -229,6 +229,12 @@ describe('Settings sidebar nav', () => {
       'page',
     );
   });
+
+  it('renders a page-level Settings h1 header at text-3xl', () => {
+    renderWithQuery(<Settings />);
+    const h1 = screen.getByRole('heading', { level: 1, name: 'Settings' });
+    expect(h1).toHaveClass('text-3xl', 'font-semibold');
+  });
 });
 
 describe('WorkflowSection content', () => {

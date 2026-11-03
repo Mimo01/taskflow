@@ -60,7 +60,7 @@ describe('SprintBoardHeader', () => {
   it('renders the sprint name as a level-1 heading sized like a page title', () => {
     render(<SprintBoardHeader name="Sprint 42" />);
     const heading = screen.getByRole('heading', { level: 1, name: 'Sprint 42' });
-    expect(heading.className).toContain('text-lg');
+    expect(heading.className).toContain('text-3xl');
     expect(heading.className).toContain('font-semibold');
   });
 

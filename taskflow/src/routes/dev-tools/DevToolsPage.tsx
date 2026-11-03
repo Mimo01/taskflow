@@ -27,7 +27,7 @@ export default function DevToolsPage() {
       {/* Header row */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold">Developer Tools</h1>
+          <h1 className="text-3xl font-semibold">Developer Tools</h1>
           <p className="text-sm text-muted-foreground mt-1">
             API debugging, operation profiling, and performance analysis.
           </p>

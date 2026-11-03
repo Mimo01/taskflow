@@ -349,7 +349,7 @@ export default function AioProjectOverviewPage() {
   return (
     <div className="flex h-full flex-col">
       <div className="flex flex-shrink-0 items-baseline gap-3 border-b border-border px-6 py-4">
-        <h1 className="text-xl font-semibold">Test cycles</h1>
+        <h1 className="text-3xl font-semibold">Test cycles</h1>
         <span className="font-mono text-sm text-muted-foreground">{projectKey ?? ''}</span>
         <div className="ml-auto flex items-center gap-2 self-center">
           <span className="text-xs text-muted-foreground hidden sm:inline">{lastRefreshed}</span>

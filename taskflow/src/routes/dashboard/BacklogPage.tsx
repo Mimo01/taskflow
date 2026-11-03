@@ -1317,7 +1317,7 @@ export default function BacklogPage() {
     <div className="flex flex-col h-full overflow-hidden" data-testid="backlog-page">
       {/* Page header */}
       <div className="flex items-center justify-between px-4 py-3 border-b flex-shrink-0">
-        <h1 className="text-lg font-semibold">Backlog</h1>
+        <h1 className="text-3xl font-semibold">Backlog</h1>
         <div className="flex items-center gap-2">
           <span className="text-xs text-muted-foreground hidden sm:inline">{lastRefreshed}</span>
           {/* Plan 05 — D-07 inline aria-live feedback span (mirrors SprintBoardTab). */}

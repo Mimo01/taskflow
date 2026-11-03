@@ -128,7 +128,7 @@ export default function DebugLogs() {
     <div className="max-w-4xl mx-auto py-8 px-4 flex flex-col gap-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">Debug Logs</h1>
+          <h1 className="text-3xl font-semibold">Debug Logs</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Captured Jira, GitLab, and Tempo API calls. Logs are in-memory — cleared on restart.
           </p>

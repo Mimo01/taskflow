@@ -119,8 +119,8 @@ export default function MergeRequestListPage() {
       {/* Header */}
       <div className="px-6 py-4 border-b flex-shrink-0 space-y-3">
         <div className="flex items-center gap-2">
-          <GitMerge className="size-5 text-muted-foreground" />
-          <h1 className="text-lg font-semibold">Merge Requests</h1>
+          <GitMerge className="size-7 text-muted-foreground" />
+          <h1 className="text-3xl font-semibold">Merge Requests</h1>
         </div>
 
         <div className="flex items-center gap-3">
