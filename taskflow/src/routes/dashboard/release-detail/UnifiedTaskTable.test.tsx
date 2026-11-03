@@ -425,10 +425,11 @@ describe('UnifiedTaskTable', () => {
       expect(chip.querySelector('[data-mr-state="open"]')).not.toBeNull();
       const popover = await openMrPopover();
       const lines = within(popover).getAllByTestId('mr-popover-line');
+      // MR number ascending.
       expect(lines.map((l) => l.textContent)).toEqual([
-        expect.stringContaining('!3'),
-        expect.stringContaining('!2'),
         expect.stringContaining('!1'),
+        expect.stringContaining('!2'),
+        expect.stringContaining('!3'),
       ]);
     });
 
@@ -3076,6 +3077,35 @@ describe('task row MR status chip + popover (261103-g8m)', () => {
     await waitFor(() =>
       expect(screen.getByTestId('task-drift-br').querySelector('.text-red-600')).toBeTruthy(),
     );
+  });
+
+  it('popover lists MRs by number ascending, and flags / states never reorder them', async () => {
+    const mk = (iid: number, extra: Partial<DriftRow> = {}) =>
+      makeRow({ mr: makeMR({ id: iid, iid }), ...extra });
+    const { rerender, props } = renderWithRows([mk(30), mk(10), mk(20)]);
+    const order = () =>
+      within(screen.getByTestId('mr-popover'))
+        .getAllByTestId('mr-popover-line')
+        .map((l) => l.textContent?.match(/!(\d+)/)?.[1]);
+    await openMrPopover();
+    expect(order()).toEqual(['10', '20', '30']);
+    // A flag appearing on !30 and !20 turning merged must not move anything.
+    rerender(
+      <UnifiedTaskTable
+        {...props}
+        primaryRows={[
+          {
+            issue: props.primaryRows[0].issue,
+            mrs: [
+              mk(30, { br: 'flag', flagged: true }),
+              mk(10),
+              makeRow({ mr: makeMR({ id: 20, iid: 20, state: 'merged' }) }),
+            ],
+          },
+        ]}
+      />,
+    );
+    expect(order()).toEqual(['10', '20', '30']);
   });
 
   it('draws the ring only for a mix of states', () => {

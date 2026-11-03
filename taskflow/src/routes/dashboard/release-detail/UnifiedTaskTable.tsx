@@ -1526,22 +1526,13 @@ function MrStatusRing({ groups }: { groups: Array<{ kind: MrStateKind; count: nu
   );
 }
 
-const POPOVER_STATE_ORDER: Record<GitLabMR['state'], number> = {
-  opened: 0,
-  merged: 1,
-  closed: 2,
-  locked: 2,
-};
-
-/** Flagged first, then opened, merged, closed; iid descending within a group. */
+/**
+ * MR number ascending — and nothing else. A stable, state-independent order
+ * so lines never jump while the user works through them (a fix flips a
+ * flag, a merge flips a state; neither may reorder the list).
+ */
 function sortPopoverMrs(rows: DriftRow[]): DriftRow[] {
-  const flagged = (r: DriftRow) => (r.br === 'flag' || r.ms === 'flag' ? 0 : 1);
-  return [...rows].sort(
-    (a, b) =>
-      flagged(a) - flagged(b) ||
-      POPOVER_STATE_ORDER[a.mr.state] - POPOVER_STATE_ORDER[b.mr.state] ||
-      b.mr.iid - a.mr.iid,
-  );
+  return [...rows].sort((a, b) => a.mr.iid - b.mr.iid);
 }
 
 /**
