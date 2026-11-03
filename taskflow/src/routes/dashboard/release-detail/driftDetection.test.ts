@@ -13,6 +13,7 @@ import {
   evaluateMilestoneDrift,
   evaluateTaskDrift,
   extractMrTaskKeys,
+  isTaskEvaluated,
   selectChannelA,
   unionMRs,
 } from './driftDetection';
@@ -220,6 +221,14 @@ describe('state classification', () => {
     expect(classifyMrState(makeMR({ state: 'locked' }))).toBe(false);
   });
 
+  it('isTaskEvaluated is true for opened (incl. draft) and merged, false for closed and locked', () => {
+    expect(isTaskEvaluated(makeMR({ state: 'opened', draft: false }))).toBe(true);
+    expect(isTaskEvaluated(makeMR({ state: 'opened', draft: true }))).toBe(true);
+    expect(isTaskEvaluated(makeMR({ state: 'merged' }))).toBe(true);
+    expect(isTaskEvaluated(makeMR({ state: 'closed' }))).toBe(false);
+    expect(isTaskEvaluated(makeMR({ state: 'locked' }))).toBe(false);
+  });
+
   it('D-10: a draft MR with a mismatched target branch is evaluated and flagged, not muted', () => {
     const draftMr = makeMR({
       id: 1,
@@ -243,22 +252,131 @@ describe('state classification', () => {
 });
 
 describe('buildDriftRows', () => {
-  it('a merged MR yields br/ms/task all na, flagged false, and calls no predicate', () => {
-    const merged = makeMR({ id: 1, state: 'merged', target_branch: 'develop', milestone: null });
-    const rows = buildDriftRows({
-      channelA: [merged],
+  const buildOne = (mr: GitLabMR, fixVersionIssueKeys = new Set(['PROJ-1'])) =>
+    buildDriftRows({
+      channelA: [mr],
       channelB: [],
       channelC: [],
       releaseBranchName: 'release/33.5.0',
       matchedMilestoneId: 7,
-      fixVersionIssueKeys: new Set(),
+      fixVersionIssueKeys,
     });
+
+  it("261103-eu3: a merged MR with an out-of-version key gets taskReason 'not-in-fix-version' while BR/MS stay na", () => {
+    const merged = makeMR({
+      id: 1,
+      state: 'merged',
+      title: 'PROJ-9 fix',
+      source_branch: 'x',
+      target_branch: 'develop',
+      milestone: null,
+    });
+    const rows = buildOne(merged);
     expect(rows).toHaveLength(1);
     expect(rows[0].evaluated).toBe(false);
     expect(rows[0].br).toBe('na');
     expect(rows[0].ms).toBe('na');
-    expect(rows[0].task).toBe('na');
-    expect(rows[0].flagged).toBe(false);
+    expect(rows[0].task).toBe('flag');
+    expect(rows[0].taskReason).toBe('not-in-fix-version');
+    expect(rows[0].flagged).toBe(true);
+  });
+
+  it("261103-eu3: a keyless merged MR gets taskReason 'no-linked-task'", () => {
+    const merged = makeMR({
+      id: 1,
+      state: 'merged',
+      title: 'Unrelated',
+      source_branch: 'chore/x',
+      target_branch: 'develop',
+      milestone: null,
+    });
+    const [row] = buildOne(merged);
+    expect(row.evaluated).toBe(false);
+    expect(row.br).toBe('na');
+    expect(row.ms).toBe('na');
+    expect(row.task).toBe('flag');
+    expect(row.taskReason).toBe('no-linked-task');
+  });
+
+  it('261103-eu3: a merged MR whose key is in the fix version is task ok and not flagged', () => {
+    const merged = makeMR({
+      id: 1,
+      state: 'merged',
+      title: 'PROJ-1 fix',
+      source_branch: 'x',
+      target_branch: 'develop',
+      milestone: null,
+    });
+    const [row] = buildOne(merged);
+    expect(row.task).toBe('ok');
+    expect(row.taskReason).toBe(null);
+    expect(row.flagged).toBe(false);
+    expect(row.br).toBe('na');
+    expect(row.ms).toBe('na');
+  });
+
+  it('closed and locked MRs yield br/ms/task all na, taskReason null, flagged false (no predicate flags)', () => {
+    for (const state of ['closed', 'locked'] as const) {
+      const mr = makeMR({
+        id: 1,
+        state,
+        title: 'PROJ-9 fix',
+        source_branch: 'x',
+        target_branch: 'develop',
+        milestone: null,
+      });
+      const [row] = buildOne(mr);
+      expect(row.evaluated).toBe(false);
+      expect(row.br).toBe('na');
+      expect(row.ms).toBe('na');
+      expect(row.task).toBe('na');
+      expect(row.taskReason).toBe(null);
+      expect(row.flagged).toBe(false);
+    }
+  });
+
+  it('261103-eu3: a merged MR with mismatched branch and no milestone contributes 0 to every BR/MS count', () => {
+    const merged = makeMR({
+      id: 1,
+      state: 'merged',
+      title: 'PROJ-9 fix',
+      source_branch: 'x',
+      target_branch: 'develop',
+      milestone: null,
+    });
+    const rows = buildOne(merged);
+    expect(countBrMsFlaggedMRs(rows)).toBe(0);
+    expect(countBranchFlaggedMRs(rows)).toBe(0);
+    expect(countMilestoneFlaggedMRs(rows)).toBe(0);
+  });
+
+  it('261103-eu3: a task-flagged merged row sorts in the flagged partition ahead of a clean open row', () => {
+    const openClean = makeMR({
+      id: 1,
+      iid: 20,
+      state: 'opened',
+      title: 'PROJ-1 fix',
+      source_branch: 'x',
+      target_branch: 'release/33.5.0',
+      milestone: { id: 7, title: 'M' },
+    } as Partial<GitLabMR>);
+    const mergedFlagged = makeMR({
+      id: 2,
+      iid: 5,
+      state: 'merged',
+      title: 'PROJ-9 fix',
+      source_branch: 'x',
+    });
+    const rows = buildDriftRows({
+      channelA: [openClean, mergedFlagged],
+      channelB: [],
+      channelC: [],
+      releaseBranchName: 'release/33.5.0',
+      matchedMilestoneId: 7,
+      fixVersionIssueKeys: new Set(['PROJ-1']),
+    });
+    expect(rows.map((r) => r.mr.iid)).toEqual([5, 20]);
+    expect(rows[1].flagged).toBe(false);
   });
 
   it('with releaseBranchName null, every row gets br: na (D-18) while TASK still evaluates', () => {
@@ -430,16 +548,16 @@ describe('buildTaskMrAttachment', () => {
     expect(secondaryRows[0].taskKeys[0]).toBe('PROJ-9');
   });
 
-  it('regression guard: a merged (non-evaluated, taskReason null) MR with an out-of-scope key lands in secondaryRows, not nowhere', () => {
+  it('regression guard: a locked (non-evaluated, taskReason null) MR with an out-of-scope key lands in secondaryRows, not nowhere', () => {
     const issue = makeIssue({ key: 'PROJ-1' });
-    const mergedMr = makeMR({
+    const lockedMr = makeMR({
       id: 1,
-      state: 'merged',
+      state: 'locked',
       title: 'PROJ-9 fix thing',
       source_branch: 'x',
     });
     const rows = buildDriftRows({
-      channelA: [mergedMr],
+      channelA: [lockedMr],
       channelB: [],
       channelC: [],
       releaseBranchName: null,
@@ -452,6 +570,61 @@ describe('buildTaskMrAttachment', () => {
     expect(primaryRows[0].mrs).toEqual([]);
     expect(secondaryRows).toHaveLength(1);
     expect(secondaryRows[0].mr.id).toBe(1);
+  });
+
+  it("261103-eu3: a merged MR with an out-of-scope key lands in secondaryRows carrying taskReason 'not-in-fix-version'", () => {
+    const issue = makeIssue({ key: 'PROJ-1' });
+    const mergedMr = makeMR({ id: 1, state: 'merged', title: 'PROJ-9 fix', source_branch: 'x' });
+    const rows = buildDriftRows({
+      channelA: [mergedMr],
+      channelB: [],
+      channelC: [],
+      releaseBranchName: null,
+      matchedMilestoneId: null,
+      fixVersionIssueKeys: new Set(['PROJ-1']),
+    });
+    const { primaryRows, secondaryRows } = buildTaskMrAttachment([issue], rows);
+    expect(primaryRows[0].mrs).toEqual([]);
+    expect(secondaryRows).toHaveLength(1);
+    expect(secondaryRows[0].mr.id).toBe(1);
+    expect(secondaryRows[0].taskReason).toBe('not-in-fix-version');
+  });
+
+  it('261103-eu3: uncovered closed MRs are dropped from both partitions; a covered closed MR still attaches under its task', () => {
+    const issue = makeIssue({ key: 'PROJ-1' });
+    const closedOutOfScope = makeMR({
+      id: 1,
+      iid: 1,
+      state: 'closed',
+      title: 'PROJ-9 fix',
+      source_branch: 'x',
+    });
+    const closedKeyless = makeMR({
+      id: 2,
+      iid: 2,
+      state: 'closed',
+      title: 'Unrelated',
+      source_branch: 'chore/x',
+    });
+    const closedCovered = makeMR({
+      id: 3,
+      iid: 3,
+      state: 'closed',
+      title: 'PROJ-1 fix',
+      source_branch: 'x',
+    });
+    const rows = buildDriftRows({
+      channelA: [closedOutOfScope, closedKeyless, closedCovered],
+      channelB: [],
+      channelC: [],
+      releaseBranchName: null,
+      matchedMilestoneId: null,
+      fixVersionIssueKeys: new Set(['PROJ-1']),
+    });
+    expect(rows).toHaveLength(3);
+    const { primaryRows, secondaryRows } = buildTaskMrAttachment([issue], rows);
+    expect(secondaryRows).toEqual([]);
+    expect(primaryRows[0].mrs.map((r) => r.mr.id)).toEqual([3]);
   });
 
   it('partition invariant: every input mr.id appears under a task or in secondaryRows, and the two sets are disjoint', () => {

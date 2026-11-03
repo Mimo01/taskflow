@@ -157,7 +157,11 @@ function mrStateLabel(mr: GitLabMR): string {
 
 export type SecondaryReason = 'no-linked-task' | 'not-in-fix-version' | 'unevaluated';
 
-/** Why a row is uncovered. Unevaluated rows never get a drift reason (T-91.1-14). */
+/**
+ * Why a row is uncovered. Rows whose TASK reason was not evaluated (locked;
+ * closed rows never reach this list — 261103-eu3) get 'unevaluated'
+ * (T-91.1-14). Merged rows carry a real TASK reason since 261103-eu3.
+ */
 export function secondaryReason(row: DriftRow): SecondaryReason {
   if (row.taskReason === 'not-in-fix-version') return 'not-in-fix-version';
   if (row.taskReason === 'no-linked-task') return 'no-linked-task';
@@ -830,6 +834,10 @@ function MrSubLine({
  *
  * Precedence: a flagged MR (br or ms) wins; failing that, an EVALUATED one
  * (WR-09); ties within the winning pool are broken by highest `iid`.
+ *
+ * "Evaluated" here means BR/MS evaluated (`row.evaluated`, opened MRs only).
+ * Merged/closed MRs keep `evaluated: false` (merged MRs get a TASK reason
+ * since 261103-eu3, which does not affect this selection).
  *
  * The evaluated tier is not a nicety. Merged/closed MRs are not evaluated, and
  * on a release branch that has already begun landing work they carry the
@@ -1680,9 +1688,10 @@ export function UnifiedTaskTable({
                   </span>
                 );
               } else {
-                // Keys present but the row carries no evaluated out-of-scope verdict — the
-                // merged/closed/locked `task: 'na'` case. Never assert a drift the row marks
-                // as not evaluated (T-91.1-14).
+                // Keys present but the row carries no evaluated out-of-scope verdict — now only
+                // the locked `task: 'na'` case (closed rows are filtered out upstream in
+                // buildTaskMrAttachment; merged rows carry a taskReason since 261103-eu3).
+                // Never assert a drift the row marks as not evaluated (T-91.1-14).
                 keyCell = (
                   <span
                     data-testid="secondary-key-unevaluated"

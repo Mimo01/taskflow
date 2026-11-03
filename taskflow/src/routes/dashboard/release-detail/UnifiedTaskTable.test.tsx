@@ -1488,9 +1488,9 @@ describe('D-13: secondary table', () => {
     expect(flaggedKey).toHaveAttribute('title', 'PROJ-9, PROJ-8 are not in fix version 33.5.0');
   });
 
-  it('a non-evaluated (merged) MR with out-of-scope keys renders secondary-key-unevaluated, not a drift assertion (WR-04, T-91.1-14)', () => {
+  it('a non-evaluated (locked) MR with out-of-scope keys renders secondary-key-unevaluated, not a drift assertion (WR-04, T-91.1-14)', () => {
     const unevaluatedRow = makeRow({
-      mr: makeMR({ id: 1, iid: 1, state: 'merged' }),
+      mr: makeMR({ id: 1, iid: 1, state: 'locked' }),
       evaluated: false,
       taskReason: null,
       taskKeys: ['PROJ-9'],
@@ -1509,7 +1509,7 @@ describe('D-13: secondary table', () => {
     expect(unevaluatedKey.querySelector('.text-orange-600')).toBeNull();
     expect(unevaluatedKey).not.toHaveClass('text-orange-600');
     expect(unevaluatedKey.getAttribute('title')).not.toContain('is not in fix version');
-    expect(unevaluatedKey).toHaveAttribute('title', 'PROJ-9 — not evaluated (MR is merged)');
+    expect(unevaluatedKey).toHaveAttribute('title', 'PROJ-9 — not evaluated (MR is locked)');
   });
 
   it('the secondary table key is a link that opens the issue, like the primary table key (UAT test 5)', () => {
@@ -1522,7 +1522,7 @@ describe('D-13: secondary table', () => {
       flagged: true,
     });
     const unevaluatedRow = makeRow({
-      mr: makeMR({ id: 2, iid: 2, state: 'merged' }),
+      mr: makeMR({ id: 2, iid: 2, state: 'locked' }),
       evaluated: false,
       taskReason: null,
       taskKeys: ['PROJ-7'],
@@ -1571,7 +1571,7 @@ describe('D-13: secondary table', () => {
       flagged: true,
     });
     const unevaluatedRow = makeRow({
-      mr: makeMR({ id: 3, iid: 3, state: 'closed' }),
+      mr: makeMR({ id: 3, iid: 3, state: 'locked' }),
       evaluated: false,
       taskReason: null,
       taskKeys: ['PROJ-7'],
@@ -2066,7 +2066,7 @@ describe('261102-fkr: secondary row info', () => {
           taskKeys: ['PROJ-9'],
         }),
         makeRow({
-          mr: makeMR({ id: 3, iid: 3, state: 'merged' }),
+          mr: makeMR({ id: 3, iid: 3, state: 'locked' }),
           evaluated: false,
           taskReason: null,
           taskKeys: [],
@@ -2083,7 +2083,7 @@ describe('261102-fkr: secondary row info', () => {
     expect(pills[1]).toHaveTextContent('Not in version');
     expect(pills[1]).toHaveAttribute('title', 'PROJ-9 is not in fix version 33.5.0');
     expect(pills[2]).toHaveTextContent('Not evaluated');
-    expect(pills[2]).toHaveAttribute('title', 'Not evaluated (MR is merged)');
+    expect(pills[2]).toHaveAttribute('title', 'Not evaluated (MR is locked)');
     expect(pills[2].className).not.toContain('orange');
     expect(sec().getByTestId('secondary-key-flagged').querySelector('svg')).toBeNull();
   });
@@ -2159,7 +2159,7 @@ describe('261102-fkr: secondary header', () => {
       taskKeys: ['PROJ-9'],
     }),
     makeRow({
-      mr: makeMR({ id: 4, iid: 4, state: 'merged' }),
+      mr: makeMR({ id: 4, iid: 4, state: 'locked' }),
       evaluated: false,
       taskReason: null,
       taskKeys: [],
@@ -2557,11 +2557,71 @@ describe('261103-cln: not-covered section callout + fix actions', () => {
     );
   });
 
-  it('an unevaluated row has a muted pill and no action button', () => {
+  it('261103-eu3: a merged not-in-version row gets the real pill, orange key, add-to target and Apply; BR/MS stay em dashes', () => {
     renderSection({
       secondaryRows: [
         makeRow({
           mr: makeMR({ id: 1, iid: 1, state: 'merged' }),
+          evaluated: false,
+          br: 'na',
+          ms: 'na',
+          task: 'flag',
+          taskReason: 'not-in-fix-version',
+          taskKeys: ['PROJ-9'],
+          flagged: true,
+        }),
+      ],
+      jiraFix: JIRA_FIX,
+    });
+    const row = screen.getByTestId('drift-row');
+    const pill = within(row).getByTestId('secondary-reason-pill');
+    expect(pill).toHaveAttribute('data-reason', 'not-in-fix-version');
+    expect(pill.className).not.toContain('bg-muted');
+    expect(within(row).getByTestId('secondary-key-flagged')).toHaveTextContent('PROJ-9');
+    expect(within(row).getByTestId('secondary-fix-target')).toHaveTextContent('→ add to 33.5.0');
+    expect(within(row).getByRole('button', { name: 'Add PROJ-9 to 33.5.0' })).toBeInTheDocument();
+    expect(within(row).getByTestId('drift-br')).toHaveTextContent('—');
+    expect(within(row).getByTestId('drift-ms')).toHaveTextContent('—');
+    expect(within(row).getByTestId('drift-br').querySelector('button')).toBeNull();
+    expect(within(row).getByTestId('drift-ms').querySelector('button')).toBeNull();
+  });
+
+  it('261103-eu3: a merged keyless row gets No task + Link task, which retitles the merged MR', async () => {
+    mockUpdateMergeRequest.mockResolvedValue(makeMR({ id: 7, title: 'PROJ-1 Shipped thing' }));
+    renderSection({
+      secondaryRows: [
+        makeRow({
+          mr: makeMR({ id: 7, iid: 7, state: 'merged', title: 'Shipped thing' }),
+          evaluated: false,
+          br: 'na',
+          ms: 'na',
+          task: 'flag',
+          taskReason: 'no-linked-task',
+          taskKeys: [],
+          flagged: true,
+        }),
+      ],
+      primaryRows: [{ issue: makeIssue({ key: 'PROJ-1', summary: 'Alpha work' }), mrs: [] }],
+    });
+    expect(screen.getByTestId('secondary-reason-pill')).toHaveTextContent('No task');
+    fireEvent.click(screen.getByRole('button', { name: 'Link task' }));
+    fireEvent.click(await screen.findByRole('option', { name: /Alpha work/ }));
+    await waitFor(() =>
+      expect(mockUpdateMergeRequest).toHaveBeenCalledWith(
+        'https://gitlab.example.com',
+        't',
+        42,
+        7,
+        { title: 'PROJ-1 Shipped thing' },
+      ),
+    );
+  });
+
+  it('an unevaluated row has a muted pill and no action button', () => {
+    renderSection({
+      secondaryRows: [
+        makeRow({
+          mr: makeMR({ id: 1, iid: 1, state: 'locked' }),
           evaluated: false,
           taskReason: null,
           taskKeys: ['PROJ-9'],

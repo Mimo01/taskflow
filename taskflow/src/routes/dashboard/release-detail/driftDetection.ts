@@ -10,8 +10,13 @@
  *
  * Three overrides load-bearing for this module — do not "fix" them back
  * toward the literal requirement text (see 89-CONTEXT.md):
- * - D-10 (supersedes DRIFT-08's literal reading): merged/closed/locked MRs
- *   are muted — all three columns render `na` and no predicate is called.
+ * - D-10 (supersedes DRIFT-08's literal reading): the BR/MS columns are
+ *   evaluated for opened MRs only (`classifyMrState`). The TASK reason is
+ *   evaluated for opened AND merged MRs (`isTaskEvaluated`) — merged code has
+ *   shipped on the release branch, so a missing/out-of-version task is a real
+ *   coverage gap (user decision 261103-eu3). Closed/locked MRs are fully
+ *   muted (all three marks `na`, no predicate called); closed MRs are
+ *   additionally hidden from the uncovered list (`buildTaskMrAttachment`).
  *   Draft MRs ARE evaluated and counted: GitLab's `state` for a draft MR is
  *   still `'opened'`, so the single `mr.state === 'opened'` gate already
  *   covers open+draft without a separate check of the `draft` field. Adding
@@ -48,6 +53,7 @@ export type TaskDriftReason = 'no-linked-task' | 'not-in-fix-version' | null;
 export interface DriftRow {
   mr: GitLabMR;
   channels: Set<Channel>;
+  /** true only for opened MRs — means BR/MS columns are meaningful; TASK may be evaluated even when false (merged). */
   evaluated: boolean;
   br: DriftMark;
   ms: DriftMark;
@@ -182,33 +188,52 @@ export function evaluateTaskDrift(mr: GitLabMR, fixVersionIssueKeys: Set<string>
 }
 
 /**
- * State classification gate (D-10): an MR is evaluated when — and only
- * when — its GitLab `state` is `'opened'`. This single check covers BOTH
- * open and draft MRs, since GitLab never reports a separate `'draft'` state
- * value (a draft MR's `state` remains `'opened'`; `draft` is an independent
- * boolean field). `'merged'`, `'closed'` and `'locked'` (a transient
- * merge-in-progress state, grouped with muted per RESEARCH Pitfall 3 — it is
- * not actionable) all fall through as muted.
+ * BR/MS evaluation gate (D-10) — drives `DriftRow.evaluated`: an MR's BR/MS
+ * columns are evaluated when — and only when — its GitLab `state` is
+ * `'opened'`. This single check covers BOTH open and draft MRs, since GitLab
+ * never reports a separate `'draft'` state value (a draft MR's `state`
+ * remains `'opened'`; `draft` is an independent boolean field). `'merged'`
+ * (cannot be retargeted/re-milestoned), `'closed'` and `'locked'` (a
+ * transient merge-in-progress state, grouped with muted per RESEARCH
+ * Pitfall 3 — it is not actionable) render BR/MS as `na`. The TASK gate is
+ * the separate, wider `isTaskEvaluated` (opened + merged, 261103-eu3).
  *
  * D-10 WARNING: do not add a guard on the `draft` field to this gate. Doing
  * so would silently revert D-10 back to DRIFT-08's literal text (draft excluded).
  *
  * @param mr - the MR to classify
- * @returns true when the MR should be evaluated by the drift predicates
+ * @returns true when the MR's BR/MS columns should be evaluated
  */
 export function classifyMrState(mr: GitLabMR): boolean {
   return mr.state === 'opened';
 }
 
 /**
+ * TASK evaluation gate (261103-eu3): the TASK predicate runs for opened
+ * (incl. draft) AND merged MRs. A merged MR's code has shipped on the release
+ * branch, so a missing or out-of-version task is a real coverage gap the user
+ * can fix in place (Jira "add to version" / MR-title link). Closed MRs never
+ * landed and locked MRs are transient, so neither is evaluated.
+ *
+ * @param mr - the MR to classify
+ * @returns true when `evaluateTaskDrift` should run for the MR
+ */
+export function isTaskEvaluated(mr: GitLabMR): boolean {
+  return mr.state === 'opened' || mr.state === 'merged';
+}
+
+/**
  * Build the deterministically-ordered drift row list (DRIFT-04/05/06/07,
  * D-03, D-10, D-18).
  *
- * For MRs not evaluated (merged/closed/locked), all three columns render
- * `na`, `taskReason` is null, `flagged` is false, and NO predicate is
- * called (D-10 — gate the calls, do not call-and-discard).
- *
- * For evaluated MRs: `br`/`ms` render `na` when `releaseBranchName`/
+ * Three cases by state:
+ * - closed/locked: all three marks render `na`, `taskReason` is null,
+ *   `flagged` is false, and NO predicate is called (D-10 — gate the calls,
+ *   do not call-and-discard).
+ * - merged (261103-eu3): `evaluated` stays false and `br`/`ms` render `na`
+ *   (BR/MS are open-only; the branch/milestone predicates are not called),
+ *   but the TASK predicate runs — `task`/`taskReason`/`flagged` are real.
+ * - opened (incl. draft, `evaluated: true`): `br`/`ms` render `na` when `releaseBranchName`/
  * `matchedMilestoneId` is null (D-18 degraded state), else `flag`/`ok` from
  * the respective predicate. `task` always evaluates (it needs no
  * milestone/branch) and is `ok` when `taskReason` is null, else `flag`.
@@ -242,6 +267,24 @@ export function buildDriftRows(input: {
   for (const { mr, channels } of union.values()) {
     const evaluated = classifyMrState(mr);
     const taskKeys = extractMrTaskKeys(mr);
+
+    if (!evaluated && isTaskEvaluated(mr)) {
+      // Merged (261103-eu3): TASK only; BR/MS stay open-only.
+      const taskReason = evaluateTaskDrift(mr, fixVersionIssueKeys);
+      const task: DriftMark = taskReason === null ? 'ok' : 'flag';
+      rows.push({
+        mr,
+        channels,
+        evaluated: false,
+        br: 'na',
+        ms: 'na',
+        task,
+        taskReason,
+        taskKeys,
+        flagged: task === 'flag',
+      });
+      continue;
+    }
 
     if (!evaluated) {
       rows.push({
@@ -369,17 +412,22 @@ export function countMilestoneFlaggedMRs(rows: DriftRow[]): number {
  *
  * This is deliberately a `taskKeys` intersection, NOT `row.taskReason !== null`
  * — the latter is the rule sketched in RESEARCH/PATTERNS and is WRONG; do not
- * "correct" this back to it. `buildDriftRows` short-circuits every
- * non-evaluated MR (merged/closed/locked, see `classifyMrState`) with a
- * hardcoded `taskReason: null` regardless of its actual keys. Under the
- * `taskReason` rule such an MR would be excluded from `secondaryRows`, and if
+ * "correct" this back to it. `buildDriftRows` short-circuits every MR whose
+ * TASK reason is not evaluated (locked — and closed, see `isTaskEvaluated`)
+ * with a hardcoded `taskReason: null` regardless of its actual keys. Under the
+ * `taskReason` rule a locked MR would be excluded from `secondaryRows`, and if
  * none of its `taskKeys` match a release issue it would also be attached to
- * no task — it would silently disappear from the page entirely, a regression
- * against the pre-unification `MrDriftSection`, which lists every union row
- * with no exceptions.
+ * no task — it would silently disappear from the page entirely.
  *
- * Contract: the two returned partitions are TOTAL and DISJOINT over
- * `driftRows` — every row appears under at least one task's `mrs` or in
+ * Closed MRs (261103-eu3): an uncovered closed MR is dropped from
+ * `secondaryRows` — it never landed, so offering to "fix" its task coverage
+ * would wrongly add work to the release. A covered closed MR still attaches
+ * under its task(s). Dropped rows remain in `driftRows` for the donut, label
+ * and badge counts.
+ *
+ * Contract: the two returned partitions are DISJOINT, and TOTAL over
+ * `driftRows` EXCEPT uncovered closed MRs, which are intentionally dropped —
+ * every other row appears under at least one task's `mrs` or in
  * `secondaryRows`, and no row appears in both.
  *
  * `primaryRows` preserves `releaseIssues`'s incoming order (D-18 — Jira's
@@ -410,7 +458,7 @@ export function buildTaskMrAttachment(
   });
 
   const secondaryRows = driftRows.filter(
-    (row) => !row.taskKeys.some((key) => coveredKeys.has(key)),
+    (row) => row.mr.state !== 'closed' && !row.taskKeys.some((key) => coveredKeys.has(key)),
   );
 
   return { primaryRows, secondaryRows };
