@@ -2787,9 +2787,9 @@ describe('mrStatusSummary', () => {
 
   it('builds an aria label with singular/plural', () => {
     expect(mrStatusSummary([r(1, 'opened'), r(2, 'merged')]).ariaLabel).toBe(
-      '2 merge requests: 1 merged, 1 open — show details',
+      '1/2 merged — 2 merge requests: 1 merged, 1 open — show details',
     );
-    expect(mrStatusSummary([r(1, 'merged')]).ariaLabel).toMatch(/^1 merge request: /);
+    expect(mrStatusSummary([r(1, 'merged')]).ariaLabel).toMatch(/^merged — 1 merge request: /);
   });
 });
 

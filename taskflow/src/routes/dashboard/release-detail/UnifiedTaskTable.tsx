@@ -214,7 +214,8 @@ export function mrStatusSummary(rows: DriftRow[]): {
   const parts = [`${merged} merged`, `${opened} open`];
   const closed = n - merged - opened;
   if (closed > 0) parts.push(`${closed} closed`);
-  const ariaLabel = `${n} merge request${n === 1 ? '' : 's'}: ${parts.join(', ')} — show details`;
+  // Starts with the visible label (WCAG 2.5.3 label-in-name).
+  const ariaLabel = `${label} — ${n} merge request${n === 1 ? '' : 's'}: ${parts.join(', ')} — show details`;
 
   return { dots, overflow, label, shortLabel, ariaLabel };
 }
@@ -1132,7 +1133,7 @@ function TaskMrCell({
         data-testid="mr-popover"
         keepMounted={everOpened}
         align="end"
-        className={cn('w-[22rem] max-w-[calc(100vw-2rem)] p-1', TOOLTIP_SURFACE, 'border-0 p-1')}
+        className={cn('w-[22rem] max-w-[calc(100vw-2rem)]', TOOLTIP_SURFACE, 'border-0 p-1')}
       >
         <div
           aria-hidden="true"
