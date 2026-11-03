@@ -14,10 +14,27 @@ function PopoverTrigger({ className, ...props }: PopoverPrimitive.Trigger.Props)
   );
 }
 
-function PopoverContent({ className, ...props }: PopoverPrimitive.Popup.Props) {
+function PopoverContent({
+  className,
+  keepMounted,
+  side,
+  align,
+  sideOffset,
+  ...props
+}: PopoverPrimitive.Popup.Props & {
+  keepMounted?: boolean;
+  side?: PopoverPrimitive.Positioner.Props['side'];
+  align?: PopoverPrimitive.Positioner.Props['align'];
+  sideOffset?: PopoverPrimitive.Positioner.Props['sideOffset'];
+}) {
   return (
-    <PopoverPrimitive.Portal>
-      <PopoverPrimitive.Positioner className="z-50">
+    <PopoverPrimitive.Portal keepMounted={keepMounted}>
+      <PopoverPrimitive.Positioner
+        className="z-50"
+        side={side}
+        align={align}
+        sideOffset={sideOffset}
+      >
         <PopoverPrimitive.Popup
           data-slot="popover-content"
           className={cn(

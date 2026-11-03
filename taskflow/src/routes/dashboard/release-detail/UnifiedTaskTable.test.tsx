@@ -32,7 +32,9 @@ import { usePeekStore } from '@/stores/peek.store';
 import type { DriftRow } from './driftDetection';
 import { useTaskIssueFilters } from './useTaskIssueFilters';
 import {
+  aggregateMark,
   matchTicketKeyInTitle,
+  mrStatusSummary,
   stripLeadingTicketKeys,
   type MrFixContext,
   selectDisplayMr,
@@ -2732,5 +2734,54 @@ describe('261103-cln: not-covered section callout + fix actions', () => {
       renderSection({ secondaryRows: [rowWith(['PROJ-9'])], jiraFix: JIRA_FIX });
       expect(screen.getByRole('button', { name: 'Add PROJ-9 to 33.5.0' })).toBeInTheDocument();
     });
+  });
+});
+
+describe('aggregateMark', () => {
+  it('is na for empty or all-na, ok if any ok, flag beats everything', () => {
+    expect(aggregateMark([])).toBe('na');
+    expect(aggregateMark(['na', 'na'])).toBe('na');
+    expect(aggregateMark(['ok', 'na'])).toBe('ok');
+    expect(aggregateMark(['ok', 'flag'])).toBe('flag');
+    expect(aggregateMark(['flag'])).toBe('flag');
+  });
+});
+
+describe('mrStatusSummary', () => {
+  const r = (id: number, state: GitLabMR['state'], draft = false) =>
+    makeRow({ mr: makeMR({ id, iid: id, state, draft }) });
+
+  it('labels merged / mixed / open / draft / n open / closed', () => {
+    expect(mrStatusSummary([r(1, 'merged'), r(2, 'merged')]).label).toBe('merged');
+    const mixed = mrStatusSummary([r(1, 'opened'), r(2, 'merged')]);
+    expect(mixed.label).toBe('1/2 merged');
+    expect(mixed.shortLabel).toBe('1/2');
+    expect(mrStatusSummary([r(1, 'opened')]).label).toBe('open');
+    expect(mrStatusSummary([r(1, 'opened', true)]).label).toBe('draft');
+    expect(mrStatusSummary([r(1, 'opened'), r(2, 'opened')]).label).toBe('2 open');
+    expect(mrStatusSummary([r(1, 'closed'), r(2, 'locked')]).label).toBe('closed');
+  });
+
+  it('excludes closed MRs from the counts when something is live', () => {
+    expect(mrStatusSummary([r(1, 'merged'), r(2, 'closed')]).label).toBe('merged');
+  });
+
+  it('orders dots merged, opened, closed and caps at 4 slots', () => {
+    const s = mrStatusSummary([r(1, 'closed'), r(2, 'opened'), r(3, 'merged')]);
+    expect(s.dots.map((d) => d.mr.state)).toEqual(['merged', 'opened', 'closed']);
+    expect(s.overflow).toBe(0);
+    const four = mrStatusSummary([1, 2, 3, 4].map((i) => r(i, 'opened')));
+    expect(four.dots).toHaveLength(4);
+    expect(four.overflow).toBe(0);
+    const five = mrStatusSummary([1, 2, 3, 4, 5].map((i) => r(i, 'opened')));
+    expect(five.dots).toHaveLength(3);
+    expect(five.overflow).toBe(2);
+  });
+
+  it('builds an aria label with singular/plural', () => {
+    expect(mrStatusSummary([r(1, 'opened'), r(2, 'merged')]).ariaLabel).toBe(
+      '2 merge requests: 1 merged, 1 open — show details',
+    );
+    expect(mrStatusSummary([r(1, 'merged')]).ariaLabel).toMatch(/^1 merge request: /);
   });
 });

@@ -159,6 +159,73 @@ function mrStateLabel(mr: GitLabMR): string {
   return 'Locked';
 }
 
+/** Worst mark across a task's MRs: flag beats ok beats na. */
+export function aggregateMark(marks: DriftMark[]): DriftMark {
+  if (marks.includes('flag')) return 'flag';
+  if (marks.includes('ok')) return 'ok';
+  return 'na';
+}
+
+/** State dot colour — same palette as `mrStateBadgeClass`; draft is a hollow blue ring. */
+export function mrStateDotClass(mr: GitLabMR): string {
+  if (mr.state === 'merged') return 'bg-green-500';
+  if (mr.state === 'opened')
+    return mr.draft ? 'bg-transparent ring-1 ring-blue-500' : 'bg-blue-500';
+  return 'bg-gray-400';
+}
+
+const DOT_ORDER: Record<GitLabMR['state'], number> = {
+  merged: 0,
+  opened: 1,
+  closed: 2,
+  locked: 2,
+};
+
+/**
+ * Overall status of a task's MRs for the primary-row chip: ordered state dots
+ * (merged, opened, closed; capped at 4 slots), a progress label, and an
+ * accessible summary. Pure — derived inline in render (React Compiler).
+ */
+export function mrStatusSummary(rows: DriftRow[]): {
+  dots: DriftRow[];
+  overflow: number;
+  label: string;
+  shortLabel: string;
+  ariaLabel: string;
+} {
+  const ordered = [...rows].sort((a, b) => DOT_ORDER[a.mr.state] - DOT_ORDER[b.mr.state]);
+  const n = ordered.length;
+  const dots = n <= 4 ? ordered : ordered.slice(0, 3);
+  const overflow = n <= 4 ? 0 : n - 3;
+
+  const merged = ordered.filter((r) => r.mr.state === 'merged').length;
+  const opened = ordered.filter((r) => r.mr.state === 'opened').length;
+  const live = ordered.filter((r) => r.mr.state !== 'closed' && r.mr.state !== 'locked');
+
+  let label: string;
+  let shortLabel: string;
+  if (live.length === 0) {
+    label = 'closed';
+    shortLabel = label;
+  } else if (merged === live.length) {
+    label = 'merged';
+    shortLabel = label;
+  } else if (merged === 0) {
+    label = live.length === 1 ? (live[0].mr.draft ? 'draft' : 'open') : `${live.length} open`;
+    shortLabel = label;
+  } else {
+    label = `${merged}/${live.length} merged`;
+    shortLabel = `${merged}/${live.length}`;
+  }
+
+  const parts = [`${merged} merged`, `${opened} open`];
+  const closed = n - merged - opened;
+  if (closed > 0) parts.push(`${closed} closed`);
+  const ariaLabel = `${n} merge request${n === 1 ? '' : 's'}: ${parts.join(', ')} — show details`;
+
+  return { dots, overflow, label, shortLabel, ariaLabel };
+}
+
 export type SecondaryReason = 'no-linked-task' | 'not-in-fix-version' | 'unevaluated';
 
 /**
