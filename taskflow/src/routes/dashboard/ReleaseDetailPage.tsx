@@ -122,7 +122,6 @@ export default function ReleaseDetailPage() {
     fixVersionIssues,
     burnupAxis,
     burnupPoints,
-    releaseTrain,
     assigneeRows,
     typeRows,
     mrDonutCounts,
@@ -314,7 +313,6 @@ export default function ReleaseDetailPage() {
     releaseDate: version?.releaseDate ?? null,
     released: !!version?.released,
     versionName: version?.name ?? null,
-    train: releaseTrain,
   };
   const noIssues = issueGraphState === 'empty';
   // 94-REVIEW CR-03: an empty fix version still has action surfaces that do not

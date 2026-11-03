@@ -75,8 +75,8 @@ describe('ReleaseBurnup', () => {
     expect(screen.getByText('No issues')).toBeInTheDocument();
   });
 
-  it('shows the countdown timeline instead of a chart for a 1-point series', () => {
-    render(
+  it('shows the empty burnup frame for a 1-point series in an open window', () => {
+    const { container } = render(
       <ReleaseBurnup
         axis={axis}
         points={points.slice(0, 1)}
@@ -85,8 +85,77 @@ describe('ReleaseBurnup', () => {
         summary={summary}
       />,
     );
-    expect(screen.getByTestId('release-graph-burnup-thin')).toBeInTheDocument();
+    expect(screen.getByTestId('release-graph-burnup-frame')).toBeInTheDocument();
+    expect(screen.queryByTestId('release-graph-burnup-thin')).toBeNull();
+    expect(container.querySelector('[data-testid="burnup-end-dot"]')).toBeNull();
+    expect(screen.queryByText(/opens in/)).toBeNull();
+    expect(screen.getByRole('img', { name: /burnup frame/i })).toBeInTheDocument();
     expect(screen.queryByText(/days left/)).toBeNull();
+  });
+
+  it('shows the frame with an "opens in" caption before the window opens', () => {
+    render(
+      <ReleaseBurnup
+        axis={{
+          ...axis,
+          start: '2026-10-15',
+          end: '2026-10-20',
+          seriesEnd: '2026-10-10',
+          showToday: false,
+        }}
+        points={[]}
+        state="ready"
+        showStoryPoints={false}
+        summary={{ ...summary, today: '2026-10-10', total: 5 }}
+      />,
+    );
+    expect(screen.getByTestId('release-graph-burnup-frame')).toBeInTheDocument();
+    expect(screen.getByText('opens in 5 d')).toBeInTheDocument();
+    expect(screen.getByTitle('after v1.2 · Oct 15')).toHaveTextContent(/^after\s+v1\.2$/);
+  });
+
+  it('keeps the timeline for a released version', () => {
+    render(
+      <ReleaseBurnup
+        axis={axis}
+        points={points.slice(0, 1)}
+        state="ready"
+        showStoryPoints={false}
+        summary={{ ...summary, released: true }}
+      />,
+    );
+    expect(screen.getByTestId('release-graph-burnup-thin')).toBeInTheDocument();
+    expect(screen.queryByTestId('release-graph-burnup-frame')).toBeNull();
+  });
+
+  it('keeps the timeline for a past-due version', () => {
+    render(
+      <ReleaseBurnup
+        axis={{ ...axis, end: '2026-10-25', seriesEnd: '2026-10-25' }}
+        points={points.slice(0, 1)}
+        state="ready"
+        showStoryPoints={false}
+        summary={{ ...summary, today: '2026-10-25' }}
+      />,
+    );
+    expect(screen.getByTestId('release-graph-burnup-thin')).toBeInTheDocument();
+    expect(screen.queryByTestId('release-graph-burnup-frame')).toBeNull();
+  });
+
+  it('draws the real chart, not the frame, with two points', () => {
+    render(
+      <ReleaseBurnup
+        axis={axis}
+        points={points}
+        state="ready"
+        showStoryPoints={false}
+        summary={summary}
+      />,
+    );
+    expect(screen.queryByTestId('release-graph-burnup-frame')).toBeNull();
+    expect(
+      screen.getByRole('img', { name: 'Release burnup: 5 scope, 2 done' }),
+    ).toBeInTheDocument();
   });
 
   it('shows no countdown above the chart (the page header carries it)', () => {
