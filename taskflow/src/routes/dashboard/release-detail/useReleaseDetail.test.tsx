@@ -27,6 +27,7 @@ vi.mock('@/services/stronghold', () => ({
 vi.mock('@/services/jira', () => ({
   fetchFixVersions: vi.fn(),
   fetchFixVersionIssues: vi.fn(),
+  fetchIssuesByKeys: vi.fn().mockResolvedValue([]),
 }));
 
 // Mock gitlab service
@@ -687,6 +688,63 @@ describe('useReleaseDetail', () => {
     await waitFor(() => expect(result.current.secondaryRows).toHaveLength(1));
     expect(result.current.primaryRows).toHaveLength(1);
     expect(result.current.primaryRows[0].mrs).toHaveLength(0);
+  });
+
+  const outOfVersionMr = {
+    id: 9,
+    iid: 102,
+    project_id: 42,
+    title: 'EPIC-9 something',
+    source_branch: 'feature/epic-9',
+    target_branch: 'develop',
+    state: 'opened',
+    draft: false,
+    author: { id: 1, name: 'Author', username: 'author', avatar_url: '' },
+    reviewers: [],
+    updated_at: '2026-01-01T00:00:00.000Z',
+    web_url: 'https://gitlab.example.com/mr/102',
+    labels: [],
+    milestone: null,
+  };
+
+  it('secondaryKeyTypes maps each not-covered task key to its issuetype name', async () => {
+    await setupMocks();
+    const jira = await import('@/services/jira');
+    const gitlab = await import('@/services/gitlab');
+    vi.mocked(gitlab.fetchMilestoneMRs).mockResolvedValue([
+      outOfVersionMr as Awaited<ReturnType<typeof gitlab.fetchMilestoneMRs>>[number],
+    ]);
+    vi.mocked(jira.fetchIssuesByKeys).mockResolvedValue([
+      { id: '5', key: 'EPIC-9', fields: { issuetype: { name: 'Epic', subtask: false } } },
+    ] as Awaited<ReturnType<typeof jira.fetchIssuesByKeys>>);
+
+    const { result } = renderHook(() => useReleaseDetail(VERSION_ID), {
+      wrapper: makeWrapper(new QueryClient({ defaultOptions: { queries: { retry: false } } })),
+    });
+
+    await waitFor(() => expect(result.current.secondaryKeyTypes).toEqual({ 'EPIC-9': 'Epic' }));
+    expect(vi.mocked(jira.fetchIssuesByKeys).mock.calls[0][2]).toEqual(['EPIC-9']);
+  });
+
+  it('does not look up types when no secondary row has task keys', async () => {
+    await setupMocks();
+    const jira = await import('@/services/jira');
+    const gitlab = await import('@/services/gitlab');
+    vi.mocked(gitlab.fetchMilestoneMRs).mockResolvedValue([
+      {
+        ...outOfVersionMr,
+        title: 'chore: bump deps',
+        source_branch: 'chore/bump-deps',
+      } as Awaited<ReturnType<typeof gitlab.fetchMilestoneMRs>>[number],
+    ]);
+
+    const { result } = renderHook(() => useReleaseDetail(VERSION_ID), {
+      wrapper: makeWrapper(new QueryClient({ defaultOptions: { queries: { retry: false } } })),
+    });
+
+    await waitFor(() => expect(result.current.secondaryRows).toHaveLength(1));
+    expect(result.current.secondaryKeyTypes).toEqual({});
+    expect(jira.fetchIssuesByKeys).not.toHaveBeenCalled();
   });
 });
 

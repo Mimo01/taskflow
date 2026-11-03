@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
 import { releaseBreakdownSeedKey } from '@/hooks/useReleaseBreakdowns';
 import { useReleasePackages } from '@/hooks/useReleasePackages';
@@ -18,7 +18,7 @@ import {
   filterMilestonesToRange,
   searchProjectTags,
 } from '@/services/gitlab';
-import { fetchFixVersionIssues, fetchFixVersions } from '@/services/jira';
+import { fetchFixVersionIssues, fetchFixVersions, fetchIssuesByKeys } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useSettingsStore } from '@/stores/settings.store';
@@ -631,6 +631,30 @@ export function useReleaseDetail(versionId: string | undefined) {
   // across both tables, counted once".
   const { primaryRows, secondaryRows } = buildTaskMrAttachment(releaseIssues, driftRows);
   const flaggedMrCount = countBrMsFlaggedMRs(driftRows);
+
+  // Issue types for the "Not covered" rows' linked keys. These keys are by
+  // definition NOT release issues, so their types must be fetched. Non-fatal:
+  // on failure the map stays empty and rows behave as with unknown types.
+  const secondaryTaskKeys = useMemo(
+    () => [...new Set(secondaryRows.flatMap((r) => r.taskKeys))].sort(),
+    [secondaryRows],
+  );
+  const { data: secondaryTypeIssues } = useQuery({
+    queryKey: ['jira-issue-types-by-key', jiraBaseUrl, secondaryTaskKeys],
+    queryFn: async () => {
+      const token = await readSecret('jira-pat').catch(() => null);
+      if (!token || !jiraBaseUrl) throw new Error('No credentials');
+      return fetchIssuesByKeys(jiraBaseUrl, token, secondaryTaskKeys);
+    },
+    enabled: !!jiraBaseUrl && secondaryTaskKeys.length > 0,
+    staleTime: 5 * 60_000,
+    placeholderData: keepPreviousData,
+  });
+  const secondaryKeyTypes: Record<string, string> = {};
+  for (const issue of secondaryTypeIssues ?? []) {
+    const name = issue.fields.issuetype?.name;
+    if (name) secondaryKeyTypes[issue.key] = name;
+  }
   // UAT-91.1-B: per-category counts for the two work-queue badges; flaggedMrCount
   // is retained as their aggregate tooltip value (see driftDetection.ts docstring).
   const brFlaggedCount = countBranchFlaggedMRs(driftRows);
@@ -717,6 +741,7 @@ export function useReleaseDetail(versionId: string | undefined) {
     releaseMrs,
     primaryRows,
     secondaryRows,
+    secondaryKeyTypes,
     flaggedMrCount,
     brFlaggedCount,
     msFlaggedCount,

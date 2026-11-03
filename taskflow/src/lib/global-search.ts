@@ -17,6 +17,7 @@ import type {
   GhBacklogResponse,
   GhIssue,
 } from '@/services/jira/greenhopper/types';
+import { isEpicTypeName } from './issue-type';
 import {
   buildSnippet,
   compareTextMatch,
@@ -89,10 +90,6 @@ const CLOSED_ID = 'closed';
 const EPICS_ID = 'epics';
 
 type EpicInfo = { key: string; name: string; color: string };
-
-function isEpicType(typeName: string | undefined): boolean {
-  return (typeName ?? '').toLowerCase() === 'epic';
-}
 
 function upperKey(key: string): string {
   return key.toUpperCase();
@@ -167,7 +164,7 @@ export function buildSearchIndex(
       summary: gh.summary,
       typeName: type.name,
       isSubtask: !!gh.parentKey,
-      isEpic: isEpicType(type.name),
+      isEpic: isEpicTypeName(type.name),
       statusName: status.name,
       statusCategoryKey: gh.done ? 'done' : status.statusCategory.key,
       done: gh.done,
@@ -190,7 +187,7 @@ export function buildSearchIndex(
     if (gh.parentKey) continue;
     let tierId = issueIdToTier.get(gh.id)?.id ?? BACKLOG_ID;
     if (gh.done && tierId !== CURRENT_ID) tierId = CLOSED_ID;
-    else if (tierId === BACKLOG_ID && isEpicType(resolveType(gh.typeId, maps).name)) {
+    else if (tierId === BACKLOG_ID && isEpicTypeName(resolveType(gh.typeId, maps).name)) {
       tierId = EPICS_ID;
     }
     add(build(gh, tierId));
@@ -281,7 +278,7 @@ export function entryFromJiraIssue(
   else if (parentKey && findIndexEntry(index, parentKey)) {
     tierId = findIndexEntry(index, parentKey)?.tierId ?? BACKLOG_ID;
   } else if (scope === 'closed') tierId = CLOSED_ID;
-  else tierId = isEpicType(f.issuetype?.name) ? EPICS_ID : BACKLOG_ID;
+  else tierId = isEpicTypeName(f.issuetype?.name) ? EPICS_ID : BACKLOG_ID;
   // Same rule as the index paths: done outside the current sprint -> Closed (D-15).
   if (catKey === 'done' && tierId !== CURRENT_ID) tierId = CLOSED_ID;
   return {
@@ -289,7 +286,7 @@ export function entryFromJiraIssue(
     summary: f.summary ?? existing?.summary ?? '',
     typeName: f.issuetype?.name ?? existing?.typeName ?? '',
     isSubtask,
-    isEpic: isEpicType(f.issuetype?.name),
+    isEpic: isEpicTypeName(f.issuetype?.name),
     statusName: f.status?.name ?? existing?.statusName ?? '',
     statusCategoryKey: catKey,
     done: catKey === 'done',
