@@ -340,7 +340,7 @@ export function TimeChips({
           data-part={c.key}
           aria-label={`${c.label} ${formatChip(c.value, 'time')}`}
           className={cn(
-            'w-12 truncate rounded bg-muted px-1 text-center tabular-nums whitespace-nowrap',
+            'w-15 truncate rounded bg-muted px-1 text-center tabular-nums whitespace-nowrap',
             SMALL_TEXT,
             c.tone,
             c.value === 0 && 'opacity-40',
@@ -361,7 +361,7 @@ export function TimeChips({
               : `on estimate ${formatChip(0, 'time')}`
         }
         className={cn(
-          'w-12 truncate rounded px-1 text-center tabular-nums whitespace-nowrap',
+          'w-15 truncate rounded px-1 text-center tabular-nums whitespace-nowrap',
           SMALL_TEXT,
           tone ?? 'bg-muted text-muted-foreground opacity-40',
         )}
