@@ -5,7 +5,6 @@ import {
   Package,
   Pencil,
   Pin,
-  PinOff,
   RefreshCw,
 } from 'lucide-react';
 import { ReleaseIssueGraph } from '@/components/release/ReleaseIssueGraph';
@@ -109,7 +108,12 @@ export function ReleaseDetailHeader({
   onRefresh,
 }: ReleaseDetailHeaderProps) {
   const openInJira = (
-    <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={onOpenInJira}>
+    <Button
+      variant="outline"
+      size="sm"
+      className="flex-none gap-1.5 text-xs"
+      onClick={onOpenInJira}
+    >
       <ExternalLink className="size-3.5" />
       <span className={LABEL}>Open in Jira</span>
     </Button>
@@ -157,10 +161,10 @@ export function ReleaseDetailHeader({
   return (
     <div
       data-testid="release-detail-header"
-      className="flex flex-none flex-col gap-1 px-6 pt-3 pb-3"
+      className="flex flex-none flex-col gap-1 px-6 pt-3 pb-2"
     >
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-        <div className="flex min-w-0 items-center gap-2">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
           <h1 className="min-w-0 truncate text-lg font-semibold" title={name}>
             {name}
           </h1>
@@ -168,9 +172,9 @@ export function ReleaseDetailHeader({
             <ReleaseStatusPill pill={pill} />
           </div>
         </div>
-        <div className="ml-auto flex flex-none items-center gap-1.5">
+        <div className="flex flex-none items-center gap-2">
           {lastRefreshed && (
-            <span className="hidden text-xs text-muted-foreground sm:inline @max-[640px]/page:hidden">
+            <span className="text-xs text-muted-foreground @max-[640px]/page:hidden">
               Refreshed: {lastRefreshed}
             </span>
           )}
@@ -187,15 +191,20 @@ export function ReleaseDetailHeader({
           <Button
             variant="outline"
             size="sm"
-            className="gap-1.5 text-xs"
+            className="flex-none gap-1.5 text-xs"
             aria-label={pinLabel}
             title={pinLabel}
             onClick={onTogglePin}
           >
-            {pinned ? <PinOff className="size-3.5" /> : <Pin className="size-3.5" />}
+            <Pin className={cn('size-3.5', pinned && 'fill-current text-primary')} />
             <span className={LABEL}>{pinLabel}</span>
           </Button>
-          <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={onEdit}>
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex-none gap-1.5 text-xs"
+            onClick={onEdit}
+          >
             <Pencil className="size-3.5" />
             <span className={LABEL}>Edit release</span>
           </Button>
@@ -211,7 +220,7 @@ export function ReleaseDetailHeader({
         jiraDescription={jiraDescription}
         milestoneDescription={milestoneDescription}
       />
-      <PropertyStrip items={factItems} className="mt-2" />
+      <PropertyStrip items={factItems} className="mt-1" />
     </div>
   );
 }
@@ -227,7 +236,7 @@ export function ReleaseDoneBar({
   error: boolean;
 }) {
   return (
-    <div data-testid="release-done-bar" className="border-t px-6 pt-4">
+    <div data-testid="release-done-bar">
       <ReleaseIssueGraph breakdown={breakdown} loading={loading} error={error} fullWidth />
     </div>
   );

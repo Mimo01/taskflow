@@ -466,14 +466,6 @@ export default function ReleaseDetailPage() {
             jiraVersionUrl={jiraVersionUrl}
             onOpenInJira={handleOpenInJira}
           />
-          {noIssues ? null : (
-            <ReleaseDoneBar
-              breakdown={headerBreakdown}
-              loading={headerBreakdownLoading}
-              error={headerBreakdownError}
-            />
-          )}
-
           {showNoIssuesNotice ? (
             <div
               data-testid="release-no-issues"
@@ -489,7 +481,16 @@ export default function ReleaseDetailPage() {
             </div>
           ) : null}
           {noIssues ? null : (
-            <>
+            <section
+              data-testid="release-stats"
+              aria-label="Release progress"
+              className="flex flex-col gap-5 border-y px-6 py-4"
+            >
+              <ReleaseDoneBar
+                breakdown={headerBreakdown}
+                loading={headerBreakdownLoading}
+                error={headerBreakdownError}
+              />
               {/* Graph section. Wide containers: ONE band like the AIO cycle stats block
                   (burnup fills the row height set by the lists, then MRs/status, type,
                   assignee). Narrower: 2x2, then single column. Labels and package
@@ -497,7 +498,7 @@ export default function ReleaseDetailPage() {
               {band ? (
                 <div
                   data-testid="release-graph-grid"
-                  className="grid grid-cols-[minmax(220px,1.1fr)_auto_minmax(250px,1.1fr)_minmax(260px,1.1fr)] items-stretch gap-x-4 px-6 pt-5"
+                  className="grid grid-cols-[minmax(220px,1.1fr)_auto_minmax(250px,1.1fr)_minmax(260px,1.1fr)] items-stretch gap-x-4"
                 >
                   {burnupEl}
                   <div className={`${SLOT_COL} ${DIVIDER}`}>{mrSlotEl}</div>
@@ -507,7 +508,7 @@ export default function ReleaseDetailPage() {
               ) : (
                 <div
                   data-testid="release-graph-grid"
-                  className="grid grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] gap-x-4 gap-y-5 px-6 pt-5 @max-[640px]/page:grid-cols-2 @max-[640px]/page:gap-x-4 @max-[640px]/page:gap-y-5 @max-[440px]/page:grid-cols-1"
+                  className="grid grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] gap-x-4 gap-y-5 @max-[640px]/page:grid-cols-2 @max-[640px]/page:gap-x-4 @max-[640px]/page:gap-y-5 @max-[440px]/page:grid-cols-1"
                 >
                   {burnupEl}
                   {/* Right column: MRs beside the burnup (which spans the row below 640),
@@ -531,10 +532,10 @@ export default function ReleaseDetailPage() {
                   coverage={labelCoverage}
                   activeLabel={labelFilter}
                   onToggleLabel={toggleLabelFilter}
-                  className="mx-6 mt-4 border-t pt-3"
+                  className="border-t pt-3"
                 />
               ) : null}
-            </>
+            </section>
           )}
           {/* Package mismatches as a full-width action list (renders nothing
               when empty). */}

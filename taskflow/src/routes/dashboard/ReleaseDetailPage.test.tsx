@@ -276,6 +276,7 @@ describe('ReleaseDetailPage', () => {
       'No issues in this fix version yet',
     );
     expect(screen.queryByTestId('release-done-bar')).toBeNull();
+    expect(screen.queryByTestId('release-stats')).toBeNull();
     expect(screen.queryByTestId('release-graph-grid')).toBeNull();
     expect(screen.queryByTestId('task-column-header')).toBeNull();
   });
@@ -478,6 +479,34 @@ describe('ReleaseDetailPage', () => {
     const pill = screen.getByTestId('mr-label-pill');
     fireEvent.click(pill);
     expect(pill).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('wraps done bar, graphs and label strip in one bordered release-stats block, in order', () => {
+    const mr = { id: 1, iid: 1, title: 't', state: 'merged', draft: false, labels: [] };
+    mockHook.mockReturnValue({
+      ...gitlabFixture(),
+      milestoneMRs: [mr],
+      releaseMrs: [mr],
+      labelSummary: [
+        { label: { name: 'backend', color: '#428BCA', text_color: '#fff' }, count: 1 },
+      ],
+      labelCoverage: { total: 1, labeled: 1, unlabeled: [], allLabeled: true },
+    } as never);
+    renderPage();
+    const stats = screen.getByTestId('release-stats');
+    expect(stats).toHaveClass('border-y', 'px-6', 'py-4');
+    const kids = ['release-done-bar', 'release-graph-grid', 'mr-labels'].map((id) =>
+      screen.getByTestId(id),
+    );
+    for (const k of kids) expect(stats).toContainElement(k);
+    expect(
+      kids[0].compareDocumentPosition(kids[1]) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      kids[1].compareDocumentPosition(kids[2]) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(kids[1].className).not.toContain('px-6');
+    expect(kids[1].className).not.toContain('pt-5');
   });
 
   it('shows no label line when By status replaces the MR cell', () => {

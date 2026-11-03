@@ -87,6 +87,21 @@ describe('ReleaseDetailHeader', () => {
     expect(screen.getByTestId('release-detail-header')).not.toHaveClass('border-b');
   });
 
+  it('matches the CycleHeader geometry: pb-2, non-wrapping title row, flex-none actions', () => {
+    renderHeader({ lastRefreshed: '10:00' });
+    expect(screen.getByTestId('release-detail-header')).toHaveClass('pt-3', 'pb-2');
+    const row = screen.getByRole('heading', { level: 1 }).parentElement?.parentElement;
+    expect(row).toHaveClass('justify-between', 'gap-3');
+    expect(row).not.toHaveClass('flex-wrap');
+    expect(screen.getByRole('heading', { level: 1 }).parentElement).toHaveClass('gap-3');
+    for (const name of ['Pin release', 'Edit release', 'Open in Jira']) {
+      expect(screen.getByRole('button', { name })).toHaveClass('flex-none');
+    }
+    const refreshed = screen.getByText(/Refreshed:/);
+    expect(refreshed.className).toContain('@max-[640px]/page:hidden');
+    expect(refreshed.className).not.toContain('sm:');
+  });
+
   it('overdue date is red', () => {
     renderHeader({ pill: { tone: 'red', label: 'Overdue' } });
     expect(screen.getByTestId('release-header-date').className).toContain('text-red-600');
@@ -182,7 +197,7 @@ describe('ReleaseDetailHeader', () => {
 });
 
 describe('ReleaseDoneBar', () => {
-  it('shows the done figure and graph label in a border-t wrapper', () => {
+  it('shows the done figure and graph label without its own block chrome', () => {
     render(
       <ReleaseDoneBar
         breakdown={{ done: 4, indeterminate: 1, new: 1 }}
@@ -190,7 +205,9 @@ describe('ReleaseDoneBar', () => {
         error={false}
       />,
     );
-    expect(screen.getByTestId('release-done-bar')).toHaveClass('border-t', 'px-6', 'pt-4');
+    expect(screen.getByTestId('release-done-bar')).not.toHaveClass('border-t');
+    expect(screen.getByTestId('release-done-bar')).not.toHaveClass('px-6');
+    expect(screen.getByTestId('release-done-bar')).not.toHaveClass('pt-4');
     expect(screen.getByTestId('release-done-figure')).toHaveTextContent('4 / 6 done');
     expect(screen.getByRole('img', { name: '4 of 6 issues done' })).toBeInTheDocument();
   });

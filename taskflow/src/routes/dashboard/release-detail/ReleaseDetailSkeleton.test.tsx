@@ -7,7 +7,8 @@ describe('ReleaseDetailSkeleton', () => {
   it('keeps its root testid and mirrors header, done bar, graphs and table', () => {
     const { container } = render(<ReleaseDetailSkeleton />);
     expect(screen.getByTestId('release-detail-skeleton')).toBeInTheDocument();
-    expect(container.querySelector('.border-t.px-6.pt-4')).not.toBeNull();
+    expect(container.querySelector('.border-y.px-6.py-4')).not.toBeNull();
+    expect(container.querySelector('.border-t.px-6.pt-4')).toBeNull();
     expect(screen.getByTestId('skeleton-graphs')).toBeInTheDocument();
     expect(screen.getAllByTestId('skeleton-table-row').length).toBeGreaterThan(0);
   });
@@ -19,6 +20,12 @@ describe('ReleaseDetailSkeleton', () => {
     expect(within(graphs).getByTestId('skeleton-donut')).toBeInTheDocument();
     expect(graphs.children[2].children).toHaveLength(ASSIGNEE_SKELETON_ROWS);
     expect(graphs.children[3].children).toHaveLength(WAFFLE_SKELETON_ROWS);
+  });
+
+  it('MR slot is ring-only: no legend bars beside the donut skeleton', () => {
+    render(<ReleaseDetailSkeleton />);
+    const donutCell = screen.getByTestId('skeleton-donut').parentElement;
+    expect(donutCell?.children).toHaveLength(1);
   });
 
   it('has no fixed sidebar width and no resizer', () => {
