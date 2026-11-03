@@ -16,3 +16,9 @@ All time-tracking progress bars now fill by spent / ORIGINAL estimate through on
 None. Verification: full vitest suite (pre-commit), tsc, and biome on touched files pass.
 
 ## Self-Check: PASSED
+
+## UAT follow-up (2026-11-03)
+
+- 9d5578bb: overrun tolerance — amber up to 125% of original estimate (any status), red only beyond (`OVERRUN_RED_RATIO`).
+- Other bars audited (epic, release, AIO, sprint/My Issues): item-count or original-estimate based, no close-to-full bug. Epic Stories-list mini time bar left as-is; user will address it in a separate issue.
+- UAT approved.
