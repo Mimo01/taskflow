@@ -132,6 +132,8 @@ const COL_MR = 'flex-none w-[11.875rem] min-w-0 @max-[860px]:w-[5.5rem] @max-[52
 const COL_SECONDARY_STATE = 'w-[84px] flex-none @max-[520px]:w-7';
 const COL_SECONDARY_KEY = '@max-[520px]:hidden';
 const COL_SECONDARY_SUMMARY = 'flex-[2_1_0%] min-w-[6rem]';
+/** What the row's fix button will do — same sizing as the package section's Fix column. */
+const COL_SECONDARY_FIX_TARGET = 'flex-[1_1_0%] min-w-[7rem] max-w-[280px] @max-[600px]:hidden';
 const MUTED_STATE_PILL_CLASS =
   'inline-flex items-center justify-center gap-1 rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground';
 const COL_REVIEWERS =
@@ -636,6 +638,7 @@ function SecondaryHeaderStrip() {
       <span className={COL_PERSON}>Author</span>
       <span className={COL_REVIEWERS}>Reviewers</span>
       <span className={COL_MR_STATE}>MR state</span>
+      <span className={COL_SECONDARY_FIX_TARGET}>Fix</span>
       <span
         className="flex-none w-[1.75rem] text-center"
         title="Target branch matches release branch"
@@ -645,6 +648,13 @@ function SecondaryHeaderStrip() {
       <span className="flex-none w-[1.75rem] text-center" title="Release milestone assigned">
         MS
       </span>
+      {/* Spacer over the rows' trailing Apply / Link task cell — without it every
+          header label shifts right and BR/MS sit over the action buttons. */}
+      <span
+        data-testid="secondary-header-fix-action"
+        className={CALLOUT_FIX_ACTION_COL}
+        aria-hidden="true"
+      />
     </div>
   );
 }
@@ -662,6 +672,7 @@ function MrSubLine({
   keyCell,
   reasonCell,
   actionCell,
+  fixTarget,
   error,
 }: {
   row: DriftRow;
@@ -672,6 +683,8 @@ function MrSubLine({
   reasonCell?: React.ReactNode;
   /** Secondary rows only: trailing fix action (Apply / Link task); the column is always reserved. */
   actionCell?: React.ReactNode;
+  /** Secondary rows only: what `actionCell` will do ("→ 1.2.0"), shown in the Fix column. */
+  fixTarget?: { text: string; title: string };
   /** Secondary rows only: inline fix error rendered under the row. */
   error?: string;
 }) {
@@ -755,6 +768,18 @@ function MrSubLine({
           <MrAuthorCell mr={mr} />
           <MrReviewersCell mr={mr} />
           <MrStatePill mr={mr} />
+          <span
+            data-testid="secondary-fix-target"
+            className={`${COL_SECONDARY_FIX_TARGET} truncate text-xs text-muted-foreground`}
+            title={fixTarget?.title}
+          >
+            {fixTarget ? (
+              <>
+                <span aria-hidden="true">→ </span>
+                {fixTarget.text}
+              </>
+            ) : null}
+          </span>
         </>
       )}
       {row.evaluated ? (
@@ -1666,7 +1691,12 @@ export function UnifiedTaskTable({
               }
               const reason = secondaryReason(row);
               let actionCell: React.ReactNode = null;
+              let fixTarget: { text: string; title: string } | undefined;
               if (reason === 'not-in-fix-version' && jiraFix) {
+                fixTarget = {
+                  text: `add to ${versionName}`,
+                  title: `Add fix version ${versionName} to ${keys.join(', ')} (other fix versions are kept)`,
+                };
                 actionCell = (
                   <ApplyFixVersionAction
                     keys={keys}
@@ -1676,6 +1706,10 @@ export function UnifiedTaskTable({
                   />
                 );
               } else if (reason === 'no-linked-task') {
+                fixTarget = {
+                  text: 'link a release task',
+                  title: 'Pick a task from this release; its key is prefixed to the MR title',
+                };
                 actionCell = (
                   <LinkTaskAction
                     issues={releaseIssues}
@@ -1693,6 +1727,7 @@ export function UnifiedTaskTable({
                   keyCell={keyCell}
                   reasonCell={<SecondaryReasonPill row={row} versionName={versionName} />}
                   actionCell={actionCell}
+                  fixTarget={fixTarget}
                   error={notCovered.errors[row.mr.id]}
                 />
               );

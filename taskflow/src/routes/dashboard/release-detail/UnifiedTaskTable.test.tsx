@@ -511,13 +511,10 @@ describe('UnifiedTaskTable', () => {
           ],
         });
         // Text is split across button/text nodes, so compare normalised row text.
-        // Scoped to the secondary section — the primary table's own empty-state
-        // copy ("No issues in this fix version") also contains "fix".
-        const secondarySection = screen.getByTestId('secondary-section');
-        const row = within(secondarySection)
-          .getByText(/fix|hotfix/i)
-          .closest('div');
-        expect(row?.textContent).toContain(title);
+        // Scoped to the secondary row — the primary table's empty-state copy and
+        // the secondary header's "Fix" column label also match /fix/.
+        const row = within(screen.getByTestId('secondary-section')).getByTestId('drift-row');
+        expect(row.textContent).toContain(title);
       });
     }
 
@@ -575,7 +572,7 @@ describe('WR-06: the secondary table has its own header strip', () => {
     });
   }
 
-  it('labels the eight columns a secondary row actually renders', () => {
+  it('labels the nine columns a secondary row actually renders', () => {
     renderSecondary();
     const secondary = within(screen.getByTestId('secondary-section'));
 
@@ -586,6 +583,7 @@ describe('WR-06: the secondary table has its own header strip', () => {
       'Author',
       'Reviewers',
       'MR state',
+      'Fix',
       'BR',
       'MS',
     ]) {
@@ -2467,6 +2465,31 @@ describe('261103-cln: not-covered section callout + fix actions', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Choose a task' }));
     expect(await screen.findByText('Add PROJ-9 to 33.5.0')).toBeInTheDocument();
     expect(screen.getByText('Add PROJ-10 to 33.5.0')).toBeInTheDocument();
+  });
+
+  it("the Fix column says what each row's button will do", () => {
+    renderSection({
+      secondaryRows: [notInVersion(1), noTask(2)],
+      jiraFix: JIRA_FIX,
+    });
+    const targets = screen.getAllByTestId('secondary-fix-target');
+    expect(targets[0]).toHaveTextContent('→ add to 33.5.0');
+    expect(targets[0]).toHaveAttribute('title', expect.stringContaining('PROJ-9'));
+    expect(targets[1]).toHaveTextContent('→ link a release task');
+  });
+
+  it('the Fix column is empty when the row has no action', () => {
+    renderSection({ secondaryRows: [notInVersion(1)] });
+    expect(screen.getByTestId('secondary-fix-target')).toBeEmptyDOMElement();
+  });
+
+  it('the header reserves the trailing action column so labels line up with row cells', () => {
+    renderSection({ secondaryRows: [noTask(1)] });
+    const header = screen.getByTestId('secondary-header');
+    const spacer = within(header).getByTestId('secondary-header-fix-action');
+    expect(header.lastElementChild).toBe(spacer);
+    const row = screen.getByTestId('drift-row');
+    expect(spacer.className).toBe((row.lastElementChild as HTMLElement).className);
   });
 
   it('no Apply button when jiraFix is absent', () => {
