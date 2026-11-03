@@ -1,4 +1,6 @@
+import type React from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { TOOLTIP_SURFACE } from '@/components/ui/tooltip-body';
 import { cn } from '@/lib/utils';
 import { isFilterGroupActive } from '../taskTableFilters';
 
@@ -42,6 +44,12 @@ export interface MoreRowItem {
   key: string;
   label: string;
   value: string | number;
+  /** Avatar / type icon slot, same as the graph row. */
+  leading?: React.ReactNode;
+  /** The row's mini bar, same as the graph row. */
+  bar?: React.ReactNode;
+  /** Muted italic name (Unassigned). */
+  muted?: boolean;
   /** Table filter values this row stands for; empty = not toggleable. */
   filterValues: string[];
 }
@@ -67,6 +75,7 @@ export function MoreRowsPopover({
   className?: string;
 }) {
   const active = activeValues ?? new Set<string>();
+  const hasLeading = items.some((it) => it.leading != null);
   const anyActive = items.some((it) => isFilterGroupActive(active, it.filterValues));
   return (
     <Popover>
@@ -81,10 +90,11 @@ export function MoreRowsPopover({
       >
         {label}
       </PopoverTrigger>
-      <PopoverContent className="w-56 p-1">
-        <ul data-testid={`${testId}-list`} className="max-h-60 space-y-0.5 overflow-auto">
+      <PopoverContent className={cn('w-72 p-1', TOOLTIP_SURFACE, 'border-0 p-1')}>
+        <ul data-testid={`${testId}-list`} className="max-h-60 overflow-auto">
           {items.map((it) => {
             const pressed = isFilterGroupActive(active, it.filterValues);
+            const dimmed = !pressed && active.size > 0;
             const disabled = it.filterValues.length === 0;
             return (
               <li key={it.key}>
@@ -94,12 +104,24 @@ export function MoreRowsPopover({
                   aria-pressed={pressed}
                   onClick={() => onToggle(it.filterValues)}
                   className={cn(
-                    'flex w-full items-center gap-2 rounded px-2 py-1 text-left text-xs hover:bg-muted disabled:cursor-default disabled:hover:bg-transparent',
-                    pressed && 'bg-muted font-medium',
+                    'grid h-7 w-full items-center gap-2 rounded px-2 text-left text-xs transition-opacity hover:bg-muted/50 disabled:cursor-default disabled:hover:bg-transparent',
+                    hasLeading
+                      ? 'grid-cols-[20px_minmax(96px,1.6fr)_minmax(36px,1fr)_30px]'
+                      : 'grid-cols-[minmax(96px,1.6fr)_minmax(36px,1fr)_30px]',
+                    pressed && 'bg-muted hover:bg-muted',
+                    dimmed && 'opacity-50',
                   )}
                 >
-                  <span className="min-w-0 flex-1 truncate">{it.label}</span>
-                  <span className="shrink-0 tabular-nums text-muted-foreground">{it.value}</span>
+                  {hasLeading ? (
+                    <span className="flex items-center justify-center">{it.leading}</span>
+                  ) : null}
+                  <span
+                    className={cn('truncate', it.muted && 'pr-0.5 italic text-muted-foreground')}
+                  >
+                    {it.label}
+                  </span>
+                  <span className="flex items-center">{it.bar}</span>
+                  <span className="text-right tabular-nums text-muted-foreground">{it.value}</span>
                 </button>
               </li>
             );

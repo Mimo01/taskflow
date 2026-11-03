@@ -10,6 +10,7 @@ import {
   releaseTooltipRows,
 } from '@/lib/release-list';
 import { cn } from '@/lib/utils';
+import { SegmentedBar } from '../../releases-list/ReleaseAgendaParts';
 import {
   type ReleaseTypeRow,
   WAFFLE_LAYOUT,
@@ -20,6 +21,7 @@ import { GraphSlot, NEW_TONE_CLASS, WAFFLE_SKELETON_ROWS } from './GraphSlot';
 import { MoreRowsPopover, ROW_TOOLTIP_DELAY, ROW_TOOLTIP_SIDE, rowToggleProps } from './rowToggle';
 
 const FALLBACK_WIDTH = 640;
+const ROW_PAD_X = 12;
 const MAX_COMPACT_ROWS = 5;
 
 /**
@@ -68,7 +70,12 @@ export function ReleaseTypeWaffle({
     return () => ro.disconnect();
   }, [el]);
   const maxTotal = rows.reduce((m, r) => Math.max(m, r.total), 1);
-  const cols = waffleColumns(maxTotal, measured > 0 ? measured : FALLBACK_WIDTH, layout);
+  // Rows carry px-1.5 (selection padding), so the waffle gets the width minus 12px.
+  const cols = waffleColumns(
+    maxTotal,
+    (measured > 0 ? measured : FALLBACK_WIDTH) - ROW_PAD_X,
+    layout,
+  );
   return (
     <GraphSlot
       title="By type"
@@ -91,7 +98,7 @@ export function ReleaseTypeWaffle({
         </div>
       }
     >
-      <div ref={setEl} className="flex min-w-0 flex-col gap-2">
+      <div ref={setEl} className="flex min-w-0 flex-col">
         {shownRows.map((row) => {
           const toggle = rowToggleProps(
             row.filterValue ? [row.filterValue] : [],
@@ -104,7 +111,10 @@ export function ReleaseTypeWaffle({
                 delay={ROW_TOOLTIP_DELAY}
                 render={toggle.render}
                 data-testid={`type-row-${row.typeName}`}
-                className={cn('relative z-10 grid items-start rounded', toggle.className)}
+                className={cn(
+                  'relative z-10 grid items-start rounded px-1.5 py-1',
+                  toggle.className,
+                )}
                 {...toggle.extra}
                 style={{
                   columnGap: ROW_GAP,
@@ -163,6 +173,8 @@ export function ReleaseTypeWaffle({
               label: r.typeName,
               value: `${r.done}/${r.total}`,
               filterValues: r.filterValue ? [r.filterValue] : [],
+              leading: <IssueTypeIcon typeName={r.typeName} muted className="size-3.5 shrink-0" />,
+              bar: <SegmentedBar breakdown={r.breakdown} className="h-1.5 w-full" />,
             }))}
             activeValues={activeValues}
             onToggle={onToggle}

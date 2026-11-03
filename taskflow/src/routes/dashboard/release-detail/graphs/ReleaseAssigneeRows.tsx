@@ -84,7 +84,7 @@ export function ReleaseAssigneeRows({
                 data-testid={`assignee-row-${row.id}`}
                 className={cn(
                   compact ? ROW_GRID_COMPACT : ROW_GRID,
-                  'relative z-10 rounded px-1 hover:bg-muted/50',
+                  'relative z-10 rounded px-1.5 hover:bg-muted/50',
                   toggle.className,
                 )}
                 style={{ height: rowHeight }}
@@ -128,6 +128,13 @@ export function ReleaseAssigneeRows({
               label: r.name,
               value: `${r.done}/${r.total}`,
               filterValues: [r.unassigned ? UNASSIGNED_FILTER : r.name],
+              muted: r.unassigned,
+              leading: r.unassigned ? (
+                <span className="size-5 rounded-full border border-dashed border-muted-foreground/50" />
+              ) : (
+                <CachedAvatar url={r.avatarUrl} name={r.name} size={20} />
+              ),
+              bar: <SegmentedBar breakdown={r.breakdown} className="h-1.5 w-full" />,
             }))}
             activeValues={activeValues}
             onToggle={onToggle}

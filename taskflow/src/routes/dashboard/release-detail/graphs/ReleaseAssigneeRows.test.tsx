@@ -176,6 +176,11 @@ describe('ReleaseAssigneeRows', () => {
         />,
       );
       await userEvent.click(screen.getByTestId('assignee-more'));
+      const list = await screen.findByTestId('assignee-more-list');
+      // Same row look as the graph: named people get their avatar.
+      expect(
+        list.querySelector('[data-testid="cached-avatar"][data-name="Person 5"]'),
+      ).not.toBeNull();
       await userEvent.click(await screen.findByRole('button', { name: /Person 5/ }));
       expect(onToggle).toHaveBeenLastCalledWith(['Person 5']);
       await userEvent.click(await screen.findByRole('button', { name: /Person 6/ }));

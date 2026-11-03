@@ -74,7 +74,7 @@ export function ReleaseStatusRows({
                 data-testid={`status-row-${row.name}`}
                 className={cn(
                   ROW_GRID,
-                  'relative z-10 rounded px-1 hover:bg-muted/50',
+                  'relative z-10 rounded px-1.5 hover:bg-muted/50',
                   toggle.className,
                 )}
                 style={{ height: rowHeight }}
@@ -116,6 +116,17 @@ export function ReleaseStatusRows({
               label: r.name,
               value: r.count,
               filterValues: r.filterValues,
+              bar: (
+                <div className="h-1.5 w-full rounded-full bg-muted">
+                  <div
+                    className={cn(
+                      'h-full rounded-full',
+                      r.cat === 'new' ? NEW_TONE_CLASS : RELEASE_SEGMENT_CLASS[r.cat],
+                    )}
+                    style={{ width: `${statusBarWidth(r.count, total)}%` }}
+                  />
+                </div>
+              ),
             }))}
             activeValues={activeValues}
             onToggle={onToggle}
