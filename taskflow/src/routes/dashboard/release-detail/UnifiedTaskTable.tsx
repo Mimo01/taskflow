@@ -6,6 +6,7 @@ import {
   GitPullRequestClosed,
   GitPullRequestDraft,
   ListChecks,
+  ListTodo,
   Loader2,
   type LucideIcon,
   Milestone,
@@ -1836,8 +1837,18 @@ export function UnifiedTaskTable({
 
   return (
     <section className="@container">
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mb-2">
+      <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 mb-2">
+        {/* GraphSlot-style heading: muted icon + title, like the graphs above. */}
+        <ListTodo aria-hidden="true" className="size-3.5 shrink-0 text-muted-foreground" />
         <h3 className="text-sm font-semibold">Issues</h3>
+        {!isLoadingIssues && primaryRows.length > 0 && (
+          <span
+            data-testid="issues-count"
+            className="text-xs font-normal tabular-nums text-muted-foreground"
+          >
+            {primaryRows.length}
+          </span>
+        )}
         {!isLoadingDrift && !isLoadingIssues && (brFlaggedCount > 0 || msFlaggedCount > 0) && (
           <div
             className="ml-1.5 flex items-center gap-1.5"
