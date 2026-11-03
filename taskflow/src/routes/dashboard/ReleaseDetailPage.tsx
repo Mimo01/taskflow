@@ -566,6 +566,7 @@ export default function ReleaseDetailPage() {
             <div className="px-6 pt-6 pb-6">
               <UnifiedTaskTable
                 key={versionId}
+                jiraFix={versionId ? { baseUrl: jiraBaseUrl ?? null, versionId } : undefined}
                 issueFilterState={issueFilters}
                 versionName={version.name}
                 hasReleaseDate={!!version.releaseDate}

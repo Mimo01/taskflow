@@ -26,6 +26,22 @@ import type { JiraIssue } from '@/services/jira';
 import { fetchFixVersions, fetchStoriesWithPackageNoFixVersion } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
 import { packageFixTarget } from '../PackageFixAction';
+import {
+  CALLOUT_APPLY_CLASS,
+  CALLOUT_COUNT_CLASS,
+  CALLOUT_ERROR_CLASS,
+  CALLOUT_FIX_ACTION_COL,
+  CALLOUT_HEADER_CLASS,
+  CALLOUT_HINT_CLASS,
+  CALLOUT_ICON_CLASS,
+  CALLOUT_LIST_CLASS,
+  CALLOUT_ROW_CLASS,
+  CALLOUT_SECTION_CLASS,
+  CALLOUT_SHOW_ALL_CLASS,
+  CALLOUT_STATE_PILL_CLASS,
+  CALLOUT_TITLE_CLASS,
+  CALLOUT_VISIBLE_ROWS,
+} from './calloutSection';
 import { useDeploymentPackageSync } from './useDeploymentPackageSync';
 
 interface DeploymentPackageSectionProps {
@@ -104,12 +120,9 @@ const COL_ASSIGNEE = 'w-[6.75rem] flex-none min-w-0 @max-[860px]:w-9';
 const COL_REPORTER = 'w-[6.75rem] flex-none min-w-0 @max-[860px]:w-9';
 const COL_FIX_TARGET = 'flex-[1_1_0%] min-w-[7rem] max-w-[280px] @max-[600px]:hidden';
 const COL_SUMMARY = 'flex-[2_1_0%] min-w-[6rem] @max-[600px]:min-w-[3rem]';
-/** Warning-tone outline shared by Apply and "Apply ▾": same width, one clean edge. */
-const APPLY_CLASS =
-  'w-full justify-center border-orange-300 bg-background text-orange-700 hover:bg-orange-100 hover:text-orange-800 dark:border-orange-500/40 dark:bg-transparent dark:text-orange-300 dark:hover:bg-orange-500/15 dark:hover:text-orange-200';
-const COL_FIX_ACTION = 'flex w-[4.75rem] flex-none justify-end';
-const HEADER_CLASS =
-  'flex items-center gap-3 border-b border-orange-200/70 px-2 py-1 text-xs font-medium text-muted-foreground @max-[860px]:gap-2 dark:border-orange-500/20';
+const APPLY_CLASS = CALLOUT_APPLY_CLASS;
+const COL_FIX_ACTION = CALLOUT_FIX_ACTION_COL;
+const HEADER_CLASS = CALLOUT_HEADER_CLASS;
 
 function fixKey(fix: PackageFix): string {
   return fix.kind === 'set-fix-version' ? `fv-${fix.versionId}` : `pkg-${fix.childKey}`;
@@ -126,7 +139,7 @@ function shortFixTarget(fix: PackageFix): string {
 }
 
 /** Rows shown before the "Show all N" toggle. */
-const VISIBLE_ROWS = 5;
+const VISIBLE_ROWS = CALLOUT_VISIBLE_ROWS;
 
 const STATE_LABEL: Record<PackageSyncState, string> = {
   none: '',
@@ -328,20 +341,14 @@ export function DeploymentPackageSection({
   const hiddenCount = rows.length - VISIBLE_ROWS;
 
   return (
-    <section
-      data-testid="deployment-package-section"
-      className="@container mt-6 border-l-[3px] border-orange-400 bg-orange-50/60 px-6 py-4 dark:border-orange-500/70 dark:bg-orange-500/[0.06]"
-    >
-      <h3 className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm font-semibold">
-        <AlertTriangle className="size-3.5 text-orange-600 dark:text-orange-400" />
+    <section data-testid="deployment-package-section" className={`mt-6 ${CALLOUT_SECTION_CLASS}`}>
+      <h3 className={CALLOUT_TITLE_CLASS}>
+        <AlertTriangle className={CALLOUT_ICON_CLASS} />
         Deployment package mismatches
-        <span
-          className="rounded-full bg-orange-500/15 px-1.5 text-xs font-medium tabular-nums text-orange-700 dark:text-orange-300"
-          data-testid="deployment-package-count"
-        >
+        <span className={CALLOUT_COUNT_CLASS} data-testid="deployment-package-count">
           {rows.length}
         </span>
-        <span className="text-xs font-normal text-muted-foreground @max-[760px]:hidden">
+        <span className={CALLOUT_HINT_CLASS}>
           Issues whose fix version and deployment package disagree. Apply to fix.
         </span>
       </h3>
@@ -367,10 +374,10 @@ export function DeploymentPackageSection({
         <span className={COL_FIX_TARGET}>Fix</span>
         <span className={COL_FIX_ACTION} aria-hidden="true" />
       </div>
-      <div className="flex flex-col divide-y divide-orange-200/60 dark:divide-orange-500/15">
+      <div className={CALLOUT_LIST_CLASS}>
         {shown.map(({ issue, result }) => (
           <div key={issue.key} data-testid={`package-row-${issue.key}`} className="min-w-0">
-            <div className="flex min-h-8 min-w-0 items-center gap-3 px-2 @max-[860px]:gap-2 py-1 text-sm transition-colors hover:bg-orange-100/50 dark:hover:bg-orange-500/10">
+            <div className={CALLOUT_ROW_CLASS}>
               <IssueTypeIcon
                 typeName={issue.fields.issuetype?.name ?? 'Story'}
                 className={COL_ICON}
@@ -383,7 +390,7 @@ export function DeploymentPackageSection({
                 {issue.key}
               </button>
               <span
-                className={`inline-flex items-center justify-center gap-1 rounded bg-amber-500/10 px-1.5 py-0.5 text-xs text-amber-700 dark:text-amber-400 ${COL_STATE}`}
+                className={`${CALLOUT_STATE_PILL_CLASS} ${COL_STATE}`}
                 title={`${result.hint}${result.detail ? ` ${result.detail}` : ''}`}
                 data-testid="package-state"
               >
@@ -468,7 +475,7 @@ export function DeploymentPackageSection({
               </span>
             </div>
             {errors[issue.key] && (
-              <p className="break-words px-2 pb-1.5 text-xs text-destructive" role="alert">
+              <p className={CALLOUT_ERROR_CLASS} role="alert">
                 {errors[issue.key]}
               </p>
             )}
@@ -481,7 +488,7 @@ export function DeploymentPackageSection({
           data-testid="package-show-all"
           aria-expanded={expanded}
           onClick={() => setExpanded((v) => !v)}
-          className="mt-2 text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+          className={CALLOUT_SHOW_ALL_CLASS}
         >
           {expanded ? 'Show less' : `Show all ${rows.length}`}
         </button>

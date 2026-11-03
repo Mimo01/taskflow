@@ -27,6 +27,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { updateMergeRequest } from '@/services/gitlab';
 import type { GitLabMR } from '@/services/gitlab';
 import type { JiraIssue } from '@/services/jira';
+import { addIssueFixVersion } from '@/services/jira';
 import { usePeekStore } from '@/stores/peek.store';
 import type { DriftRow } from './driftDetection';
 import { useTaskIssueFilters } from './useTaskIssueFilters';
@@ -46,6 +47,12 @@ vi.mock('@tauri-apps/plugin-opener', () => ({
 vi.mock('@/services/gitlab', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/services/gitlab')>()),
   updateMergeRequest: vi.fn(),
+}));
+
+vi.mock('@/services/stronghold', () => ({ readSecret: vi.fn().mockResolvedValue('jira-tok') }));
+vi.mock('@/services/jira', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/services/jira')>()),
+  addIssueFixVersion: vi.fn(),
 }));
 
 const mockUpdateMergeRequest = vi.mocked(updateMergeRequest);
@@ -573,12 +580,12 @@ describe('WR-06: the secondary table has its own header strip', () => {
     const secondary = within(screen.getByTestId('secondary-section'));
 
     for (const label of [
-      'Reason',
+      'State',
       'Key',
       'Merge request',
       'Author',
       'Reviewers',
-      'State',
+      'MR state',
       'BR',
       'MS',
     ]) {
@@ -2161,34 +2168,18 @@ describe('261102-fkr: secondary header', () => {
     }),
   ];
 
-  it('shows per-reason chips (no separate total)', () => {
+  it('shows one total count pill and no per-reason chips', () => {
     renderSection({ secondaryRows: rows() });
     expect(screen.getByText('Not covered by tasks above')).toBeInTheDocument();
-    expect(screen.queryByTestId('secondary-count')).toBeNull();
-    expect(screen.getByTestId('secondary-reason-chip-no-linked-task')).toHaveTextContent(
-      '2 no linked task',
-    );
-    expect(screen.getByTestId('secondary-reason-chip-not-in-fix-version')).toHaveTextContent(
-      '1 not in fix version',
-    );
-    expect(screen.getByTestId('secondary-reason-chip-unevaluated')).toHaveTextContent(
-      '1 not evaluated',
-    );
-  });
-
-  it('omits zero-count chips', () => {
-    renderSection({ secondaryRows: rows().slice(0, 2) });
+    expect(screen.getByTestId('secondary-count')).toHaveTextContent('4');
+    expect(screen.queryByTestId('secondary-reason-chip-no-linked-task')).toBeNull();
     expect(screen.queryByTestId('secondary-reason-chip-not-in-fix-version')).toBeNull();
     expect(screen.queryByTestId('secondary-reason-chip-unevaluated')).toBeNull();
   });
 
-  it('counts follow the active label filter', () => {
+  it('count follows the active label filter', () => {
     renderSection({ secondaryRows: rows(), labelFilter: 'a' });
-    expect(screen.queryByTestId('secondary-count')).toBeNull();
-    expect(screen.getByTestId('secondary-reason-chip-no-linked-task')).toHaveTextContent(
-      '1 no linked task',
-    );
-    expect(screen.queryByTestId('secondary-reason-chip-unevaluated')).toBeNull();
+    expect(screen.getByTestId('secondary-count')).toHaveTextContent('1');
   });
 });
 
@@ -2392,5 +2383,161 @@ describe('261102-h1i: issue filter + sort', () => {
     renderIssues({ issueFilterState: result.current });
     expect(visibleKeys()).toEqual(['PROJ-9']);
     expect(screen.getByTestId('task-filter-chip-status-In Progress')).toBeInTheDocument();
+  });
+});
+
+describe('261103-cln: not-covered section callout + fix actions', () => {
+  const JIRA_FIX = { baseUrl: 'https://jira.example.com', versionId: '10100' };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    Element.prototype.scrollIntoView = vi.fn();
+  });
+
+  const notInVersion = (id: number, keys = ['PROJ-9']) =>
+    makeRow({
+      mr: makeMR({ id, iid: id }),
+      taskReason: 'not-in-fix-version',
+      taskKeys: keys,
+    });
+  const noTask = (id: number, title = 'Fix thing') =>
+    makeRow({
+      mr: makeMR({ id, iid: id, title }),
+      taskReason: 'no-linked-task',
+      taskKeys: [],
+    });
+
+  it('renders as an orange callout div with an h3', () => {
+    renderSection({ secondaryRows: [noTask(1)] });
+    const section = screen.getByTestId('secondary-section');
+    expect(section.tagName).toBe('DIV');
+    expect(section.className).toContain('border-orange-400');
+    expect(within(section).getByRole('heading', { level: 3 })).toHaveTextContent(
+      'Not covered by tasks above',
+    );
+  });
+
+  it('shows 5 rows plus Show all N, and expands on click', () => {
+    renderSection({ secondaryRows: [1, 2, 3, 4, 5, 6, 7].map((i) => noTask(i)) });
+    expect(screen.getAllByTestId('drift-row')).toHaveLength(5);
+    fireEvent.click(screen.getByTestId('secondary-show-all'));
+    expect(screen.getAllByTestId('drift-row')).toHaveLength(7);
+    expect(screen.getByTestId('secondary-count')).toHaveTextContent('7');
+  });
+
+  it('Apply adds the fix version for the single linked key and shows pending', async () => {
+    let resolve: () => void = () => {};
+    vi.mocked(addIssueFixVersion).mockImplementation(
+      () =>
+        new Promise<void>((r) => {
+          resolve = r;
+        }),
+    );
+    renderSection({ secondaryRows: [notInVersion(1)], jiraFix: JIRA_FIX });
+
+    const btn = screen.getByRole('button', { name: 'Add PROJ-9 to 33.5.0' });
+    fireEvent.click(btn);
+    await waitFor(() =>
+      expect(addIssueFixVersion).toHaveBeenCalledWith(
+        'https://jira.example.com',
+        'jira-tok',
+        'PROJ-9',
+        '10100',
+      ),
+    );
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Add PROJ-9 to 33.5.0' })).toBeDisabled(),
+    );
+    await act(async () => resolve());
+  });
+
+  it('Apply failure renders an inline role=alert error', async () => {
+    vi.mocked(addIssueFixVersion).mockRejectedValue(new Error('Version is not valid'));
+    renderSection({ secondaryRows: [notInVersion(1)], jiraFix: JIRA_FIX });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add PROJ-9 to 33.5.0' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Version is not valid');
+  });
+
+  it('a row with several keys offers one Add entry per key', async () => {
+    renderSection({
+      secondaryRows: [notInVersion(1, ['PROJ-9', 'PROJ-10'])],
+      jiraFix: JIRA_FIX,
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Choose a task' }));
+    expect(await screen.findByText('Add PROJ-9 to 33.5.0')).toBeInTheDocument();
+    expect(screen.getByText('Add PROJ-10 to 33.5.0')).toBeInTheDocument();
+  });
+
+  it('no Apply button when jiraFix is absent', () => {
+    renderSection({ secondaryRows: [notInVersion(1)] });
+    expect(screen.queryByRole('button', { name: /Add PROJ-9/ })).toBeNull();
+  });
+
+  it('Link task lists release issues, filters, and prepends the picked key to the MR title', async () => {
+    mockUpdateMergeRequest.mockResolvedValue(makeMR({ id: 1, title: 'PROJ-1 Fix thing' }));
+    renderSection({
+      secondaryRows: [noTask(1)],
+      primaryRows: [
+        { issue: makeIssue({ key: 'PROJ-1', summary: 'Alpha work' }), mrs: [] },
+        { issue: makeIssue({ key: 'PROJ-2', summary: 'Beta work' }), mrs: [] },
+      ],
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Link task' }));
+    expect(await screen.findByRole('option', { name: /Alpha work/ })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: /Beta work/ })).toBeInTheDocument();
+
+    fireEvent.change(screen.getByPlaceholderText('Search release issues…'), {
+      target: { value: 'Alpha' },
+    });
+    await waitFor(() => expect(screen.queryByRole('option', { name: /Beta work/ })).toBeNull());
+
+    fireEvent.click(screen.getByRole('option', { name: /Alpha work/ }));
+    await waitFor(() =>
+      expect(mockUpdateMergeRequest).toHaveBeenCalledWith(
+        'https://gitlab.example.com',
+        't',
+        42,
+        1,
+        { title: 'PROJ-1 Fix thing' },
+      ),
+    );
+  });
+
+  it('Link task keeps a Draft prefix first', async () => {
+    mockUpdateMergeRequest.mockResolvedValue(makeMR({ id: 1 }));
+    renderSection({
+      secondaryRows: [noTask(1, 'Draft: Fix thing')],
+      primaryRows: [{ issue: makeIssue({ key: 'PROJ-1', summary: 'Alpha work' }), mrs: [] }],
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Link task' }));
+    fireEvent.click(await screen.findByRole('option', { name: /Alpha work/ }));
+    await waitFor(() =>
+      expect(mockUpdateMergeRequest).toHaveBeenCalledWith(
+        'https://gitlab.example.com',
+        't',
+        42,
+        1,
+        { title: 'Draft: PROJ-1 Fix thing' },
+      ),
+    );
+  });
+
+  it('an unevaluated row has a muted pill and no action button', () => {
+    renderSection({
+      secondaryRows: [
+        makeRow({
+          mr: makeMR({ id: 1, iid: 1, state: 'merged' }),
+          evaluated: false,
+          taskReason: null,
+          taskKeys: ['PROJ-9'],
+        }),
+      ],
+      jiraFix: JIRA_FIX,
+    });
+    const row = screen.getByTestId('drift-row');
+    expect(within(row).getByTestId('secondary-reason-pill').className).toContain('bg-muted');
+    expect(within(row).queryByRole('button', { name: /Link task|Add PROJ-9/ })).toBeNull();
   });
 });

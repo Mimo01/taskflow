@@ -9,7 +9,7 @@ import {
   X,
 } from 'lucide-react';
 import type React from 'react';
-import { Fragment, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
@@ -25,8 +25,25 @@ import type { GitLabMR } from '@/services/gitlab';
 import type { JiraIssue } from '@/services/jira';
 import { extractTicketKeys } from '@/services/linkEngine';
 import { useIsPeeked } from '@/stores/peek.store';
+import {
+  CALLOUT_COUNT_CLASS,
+  CALLOUT_ERROR_CLASS,
+  CALLOUT_FIX_ACTION_COL,
+  CALLOUT_HEADER_CLASS,
+  CALLOUT_HINT_CLASS,
+  CALLOUT_ICON_CLASS,
+  CALLOUT_LIST_CLASS,
+  CALLOUT_ROW_CLASS,
+  CALLOUT_SECTION_CLASS,
+  CALLOUT_SHOW_ALL_CLASS,
+  CALLOUT_STATE_PILL_CLASS,
+  CALLOUT_TITLE_CLASS,
+  CALLOUT_VISIBLE_ROWS,
+} from './calloutSection';
 import type { Channel, DriftMark, DriftRow } from './driftDetection';
 import { UNLABELED_FILTER } from './graphs/MrLabels';
+import { ApplyFixVersionAction, LinkTaskAction } from './NotCoveredFixActions';
+import { useNotCoveredFixes } from './notCoveredFixes';
 import {
   buildTaskFilterOptions,
   matchesTaskFilters,
@@ -78,6 +95,12 @@ export interface UnifiedTaskTableProps {
   onSeedBreadcrumb: () => void;
   onNavigateToIssueFromMR: (key: string) => void;
   fix: MrFixContext;
+  /**
+   * Jira write context for the "Not in version" Apply action. Optional (and
+   * separate from `fix`) so existing fixtures need no change; without it no
+   * Apply button renders.
+   */
+  jiraFix?: { baseUrl: string | null; versionId: string };
   /** MR label name filtering the table (set by clicking a label pill in the MR graph). */
   labelFilter?: string | null;
   onClearLabelFilter?: () => void;
@@ -103,9 +126,14 @@ const COL_SUMMARY = 'flex-1 min-w-0';
 const COL_PERSON = 'flex-none w-[8.75rem] min-w-0 @max-[860px]:w-9';
 const COL_STATE = 'flex-none w-[6rem] @max-[400px]:hidden';
 const COL_MR = 'flex-none w-[11.875rem] min-w-0 @max-[860px]:w-[5.5rem] @max-[520px]:hidden';
-// Secondary (uncovered MR) row columns, explicit widths. The reason and state
-// cells are flex parents so their pills keep their own geometry.
-const COL_REASON = 'flex-none w-[6.5rem] flex items-center @max-[520px]:hidden';
+// Secondary (uncovered MR) row columns, explicit widths. The state pill and
+// MR-state cells are flex parents so their pills keep their own geometry. The
+// state pill collapses to an icon at 520 (same geometry as the package callout).
+const COL_SECONDARY_STATE = 'w-[84px] flex-none @max-[520px]:w-7';
+const COL_SECONDARY_KEY = '@max-[520px]:hidden';
+const COL_SECONDARY_SUMMARY = 'flex-[2_1_0%] min-w-[6rem]';
+const MUTED_STATE_PILL_CLASS =
+  'inline-flex items-center justify-center gap-1 rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground';
 const COL_REVIEWERS =
   'flex-none w-[4.5rem] min-w-0 flex items-center overflow-hidden @max-[640px]:hidden';
 const COL_MR_STATE = 'flex-none w-[4rem] flex items-center @max-[400px]:hidden';
@@ -134,23 +162,11 @@ export function secondaryReason(row: DriftRow): SecondaryReason {
   return 'unevaluated';
 }
 
-const REASON_CLASS: Record<SecondaryReason, string> = {
-  'no-linked-task': 'border-amber-400 text-amber-700 dark:border-amber-600 dark:text-amber-400',
-  'not-in-fix-version':
-    'border-orange-300 text-orange-600 dark:border-orange-700 dark:text-orange-400',
-  unevaluated: 'border-border text-muted-foreground',
-};
 const REASON_PILL_LABEL: Record<SecondaryReason, string> = {
   'no-linked-task': 'No task',
   'not-in-fix-version': 'Not in version',
   unevaluated: 'Not evaluated',
 };
-const REASON_CHIP_LABEL: Record<SecondaryReason, string> = {
-  'no-linked-task': 'no linked task',
-  'not-in-fix-version': 'not in fix version',
-  unevaluated: 'not evaluated',
-};
-const REASON_ORDER: SecondaryReason[] = ['no-linked-task', 'not-in-fix-version', 'unevaluated'];
 
 function SecondaryReasonPill({ row, versionName }: { row: DriftRow; versionName: string }) {
   const reason = secondaryReason(row);
@@ -166,16 +182,14 @@ function SecondaryReasonPill({ row, versionName }: { row: DriftRow; versionName:
     title = `Not evaluated (MR is ${row.mr.state})`;
   }
   return (
-    <span className={COL_REASON}>
-      <Badge
-        variant="outline"
-        data-testid="secondary-reason-pill"
-        data-reason={reason}
-        title={title}
-        className={`pointer-events-none text-[10px] whitespace-nowrap ${REASON_CLASS[reason]}`}
-      >
-        {REASON_PILL_LABEL[reason]}
-      </Badge>
+    <span
+      data-testid="secondary-reason-pill"
+      data-reason={reason}
+      title={title}
+      className={`${reason === 'unevaluated' ? MUTED_STATE_PILL_CLASS : CALLOUT_STATE_PILL_CLASS} pointer-events-none whitespace-nowrap ${COL_SECONDARY_STATE}`}
+    >
+      <AlertTriangle aria-hidden className="hidden size-3 @max-[520px]:block" />
+      <span className="@max-[520px]:sr-only">{REASON_PILL_LABEL[reason]}</span>
     </span>
   );
 }
@@ -597,6 +611,7 @@ function ColumnHeaderStrip({
       <span className="flex-none w-[1.75rem] text-center" title="Release milestone assigned">
         MS
       </span>
+      <span className={CALLOUT_FIX_ACTION_COL} aria-hidden="true" />
     </div>
   );
 }
@@ -612,13 +627,15 @@ function ColumnHeaderStrip({
  */
 function SecondaryHeaderStrip() {
   return (
-    <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium py-1 density-compact:py-0.5 density-comfortable:py-2 pl-6 bg-muted/30">
-      <span className={COL_REASON}>Reason</span>
-      <span className={COL_KEY}>Key</span>
-      <span className={COL_SUMMARY}>Merge request</span>
+    <div data-testid="secondary-header" className={CALLOUT_HEADER_CLASS}>
+      <span className={COL_SECONDARY_STATE}>
+        <span className="@max-[520px]:sr-only">State</span>
+      </span>
+      <span className={`${COL_KEY} ${COL_SECONDARY_KEY}`}>Key</span>
+      <span className={COL_SECONDARY_SUMMARY}>Merge request</span>
       <span className={COL_PERSON}>Author</span>
       <span className={COL_REVIEWERS}>Reviewers</span>
-      <span className={COL_MR_STATE}>State</span>
+      <span className={COL_MR_STATE}>MR state</span>
       <span
         className="flex-none w-[1.75rem] text-center"
         title="Target branch matches release branch"
@@ -644,6 +661,8 @@ function MrSubLine({
   fix,
   keyCell,
   reasonCell,
+  actionCell,
+  error,
 }: {
   row: DriftRow;
   onNavigateToIssueFromMR: (key: string) => void;
@@ -651,6 +670,10 @@ function MrSubLine({
   keyCell?: React.ReactNode;
   /** Secondary rows only: reason pill, which also switches on the author/reviewers/state cells. */
   reasonCell?: React.ReactNode;
+  /** Secondary rows only: trailing fix action (Apply / Link task); the column is always reserved. */
+  actionCell?: React.ReactNode;
+  /** Secondary rows only: inline fix error rendered under the row. */
+  error?: string;
 }) {
   const { mr } = row;
   const isFlagged = row.br === 'flag' || row.ms === 'flag';
@@ -706,14 +729,18 @@ function MrSubLine({
     return parts;
   })();
 
-  return (
+  const rowEl = (
     <div
       data-testid="drift-row"
-      className={`group/row pl-6 flex items-center gap-2 text-xs py-1 density-compact:py-0.5 density-comfortable:py-2 ${isFlagged ? 'text-foreground' : 'text-muted-foreground'}`}
+      className={
+        reasonCell
+          ? `group/row ${CALLOUT_ROW_CLASS} ${isFlagged ? 'text-foreground' : 'text-muted-foreground'}`
+          : `group/row pl-6 flex items-center gap-2 text-xs py-1 density-compact:py-0.5 density-comfortable:py-2 ${isFlagged ? 'text-foreground' : 'text-muted-foreground'}`
+      }
     >
       {reasonCell}
       {keyCell ?? <span className={COL_KEY}>{iidButton}</span>}
-      <span className={`${COL_SUMMARY} truncate`}>
+      <span className={`${reasonCell ? COL_SECONDARY_SUMMARY : COL_SUMMARY} truncate`}>
         {keyCell ? (
           <span className="inline-flex items-center gap-2">
             {iidButton}
@@ -746,6 +773,19 @@ function MrSubLine({
           <DriftMarkCell mark="na" testId="drift-br" />
           <DriftMarkCell mark="na" testId="drift-ms" />
         </>
+      )}
+      {reasonCell && <span className={CALLOUT_FIX_ACTION_COL}>{actionCell}</span>}
+    </div>
+  );
+
+  if (!reasonCell) return rowEl;
+  return (
+    <div className="min-w-0">
+      {rowEl}
+      {error && (
+        <p className={CALLOUT_ERROR_CLASS} role="alert">
+          {error}
+        </p>
       )}
     </div>
   );
@@ -1176,10 +1216,13 @@ export function UnifiedTaskTable({
   onSeedBreadcrumb,
   onNavigateToIssueFromMR,
   fix,
+  jiraFix,
   labelFilter = null,
   onClearLabelFilter,
   issueFilterState,
 }: UnifiedTaskTableProps) {
+  const notCovered = useNotCoveredFixes({ fix, jiraFix });
+  const [secondaryExpanded, setSecondaryExpanded] = useState(false);
   // UAT-91.1-B: local category filter driven by the two work-queue badges.
   // Applied at render time (not to props) — see T-91.1-18 threat disposition.
   const [activeFilter, setActiveFilter] = useState<'br' | 'ms' | null>(null);
@@ -1273,13 +1316,13 @@ export function UnifiedTaskTable({
     ? secondaryRows.filter(filterPredicate)
     : secondaryRows;
 
-  // Header counts come from the same filtered array the rows render from.
-  const secondaryReasonCounts: Record<SecondaryReason, number> = {
-    'no-linked-task': 0,
-    'not-in-fix-version': 0,
-    unevaluated: 0,
-  };
-  for (const r of filteredSecondaryRows) secondaryReasonCounts[secondaryReason(r)]++;
+  // The count pill and the slice both come from the filtered array.
+  const shownSecondaryRows = secondaryExpanded
+    ? filteredSecondaryRows
+    : filteredSecondaryRows.slice(0, CALLOUT_VISIBLE_ROWS);
+  const hiddenSecondaryCount = filteredSecondaryRows.length - CALLOUT_VISIBLE_ROWS;
+  // The Link-task picker always offers every release issue, regardless of table filters.
+  const releaseIssues = primaryRows.map((r) => r.issue);
 
   const clearFilter = () => {
     setActiveFilter(null);
@@ -1554,92 +1597,118 @@ export function UnifiedTaskTable({
       )}
 
       {!isLoadingIssues && filteredSecondaryRows.length > 0 && (
-        <div data-testid="secondary-section" className="mt-4 pt-4 border-t border-border/50">
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mb-1">
-            <h4 className="text-sm font-medium">Not covered by tasks above</h4>
-            {REASON_ORDER.filter((r) => secondaryReasonCounts[r] > 0).map((r, i) => (
-              <Fragment key={r}>
-                {i > 0 && (
-                  <span aria-hidden="true" className="text-muted-foreground">
-                    ·
-                  </span>
-                )}
-                <Badge
-                  variant="outline"
-                  data-testid={`secondary-reason-chip-${r}`}
-                  className={`pointer-events-none text-xs tabular-nums ${REASON_CLASS[r]}`}
-                >
-                  {secondaryReasonCounts[r]} {REASON_CHIP_LABEL[r]}
-                </Badge>
-              </Fragment>
-            ))}
-          </div>
+        <div data-testid="secondary-section" className={`mt-4 ${CALLOUT_SECTION_CLASS}`}>
+          <h3 className={CALLOUT_TITLE_CLASS}>
+            <AlertTriangle className={CALLOUT_ICON_CLASS} />
+            Not covered by tasks above
+            <span className={CALLOUT_COUNT_CLASS} data-testid="secondary-count">
+              {filteredSecondaryRows.length}
+            </span>
+            <span className={CALLOUT_HINT_CLASS}>
+              Merge requests whose task isn&apos;t in this version, or that have no task.
+            </span>
+          </h3>
           <SecondaryHeaderStrip />
-          {filteredSecondaryRows.map((row) => {
-            const keys = row.taskKeys;
-            let keyCell: React.ReactNode;
-            // The leading key is a link, matching the primary table's key cell:
-            // both open the issue full-page via the breadcrumb-seeding handler.
-            // The `+N` suffix stays inert — it is a count, not a single target.
-            const keyLink = (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onNavigateToIssueFromMR(keys[0]);
-                }}
-                className="hover:underline"
-              >
-                {keys[0]}
-              </button>
-            );
-            if (row.taskReason === 'not-in-fix-version') {
-              const suffix = keys.length > 1 ? 'are' : 'is';
-              keyCell = (
-                <span
-                  data-testid="secondary-key-flagged"
-                  className={`${COL_KEY} font-mono text-xs text-orange-600 dark:text-orange-400 inline-flex items-center gap-1 overflow-hidden`}
-                  title={`${keys.join(', ')} ${suffix} not in fix version ${versionName}`}
+          <div className={CALLOUT_LIST_CLASS}>
+            {shownSecondaryRows.map((row) => {
+              const keys = row.taskKeys;
+              let keyCell: React.ReactNode;
+              // The leading key is a link, matching the primary table's key cell:
+              // both open the issue full-page via the breadcrumb-seeding handler.
+              // The `+N` suffix stays inert — it is a count, not a single target.
+              const keyLink = (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onNavigateToIssueFromMR(keys[0]);
+                  }}
+                  className="hover:underline"
                 >
-                  {keyLink}
-                  {keys.length > 1 ? ` +${keys.length - 1}` : ''}
-                </span>
+                  {keys[0]}
+                </button>
               );
-            } else if (keys.length === 0) {
-              keyCell = (
-                <span
-                  data-testid="secondary-key-none"
-                  className={`${COL_KEY} font-mono text-xs text-muted-foreground`}
-                >
-                  &mdash;
-                </span>
+              if (row.taskReason === 'not-in-fix-version') {
+                const suffix = keys.length > 1 ? 'are' : 'is';
+                keyCell = (
+                  <span
+                    data-testid="secondary-key-flagged"
+                    className={`${COL_KEY} ${COL_SECONDARY_KEY} font-mono text-xs text-orange-600 dark:text-orange-400 inline-flex items-center gap-1 overflow-hidden`}
+                    title={`${keys.join(', ')} ${suffix} not in fix version ${versionName}`}
+                  >
+                    {keyLink}
+                    {keys.length > 1 ? ` +${keys.length - 1}` : ''}
+                  </span>
+                );
+              } else if (keys.length === 0) {
+                keyCell = (
+                  <span
+                    data-testid="secondary-key-none"
+                    className={`${COL_KEY} ${COL_SECONDARY_KEY} font-mono text-xs text-muted-foreground`}
+                  >
+                    &mdash;
+                  </span>
+                );
+              } else {
+                // Keys present but the row carries no evaluated out-of-scope verdict — the
+                // merged/closed/locked `task: 'na'` case. Never assert a drift the row marks
+                // as not evaluated (T-91.1-14).
+                keyCell = (
+                  <span
+                    data-testid="secondary-key-unevaluated"
+                    className={`${COL_KEY} ${COL_SECONDARY_KEY} font-mono text-xs text-muted-foreground inline-flex items-center gap-1 overflow-hidden`}
+                    title={`${keys.join(', ')} — not evaluated (MR is ${row.mr.state})`}
+                  >
+                    {keyLink}
+                    {keys.length > 1 ? ` +${keys.length - 1}` : ''}
+                  </span>
+                );
+              }
+              const reason = secondaryReason(row);
+              let actionCell: React.ReactNode = null;
+              if (reason === 'not-in-fix-version' && jiraFix) {
+                actionCell = (
+                  <ApplyFixVersionAction
+                    keys={keys}
+                    versionName={versionName}
+                    pendingKey={notCovered.pending[row.mr.id]}
+                    onApply={(k) => notCovered.applyFixVersion(row.mr.id, k)}
+                  />
+                );
+              } else if (reason === 'no-linked-task') {
+                actionCell = (
+                  <LinkTaskAction
+                    issues={releaseIssues}
+                    pending={notCovered.pending[row.mr.id] !== undefined}
+                    onPick={(k) => notCovered.linkTask(row, k)}
+                  />
+                );
+              }
+              return (
+                <MrSubLine
+                  key={row.mr.id}
+                  row={row}
+                  onNavigateToIssueFromMR={onNavigateToIssueFromMR}
+                  fix={fix}
+                  keyCell={keyCell}
+                  reasonCell={<SecondaryReasonPill row={row} versionName={versionName} />}
+                  actionCell={actionCell}
+                  error={notCovered.errors[row.mr.id]}
+                />
               );
-            } else {
-              // Keys present but the row carries no evaluated out-of-scope verdict — the
-              // merged/closed/locked `task: 'na'` case. Never assert a drift the row marks
-              // as not evaluated (T-91.1-14).
-              keyCell = (
-                <span
-                  data-testid="secondary-key-unevaluated"
-                  className={`${COL_KEY} font-mono text-xs text-muted-foreground inline-flex items-center gap-1 overflow-hidden`}
-                  title={`${keys.join(', ')} — not evaluated (MR is ${row.mr.state})`}
-                >
-                  {keyLink}
-                  {keys.length > 1 ? ` +${keys.length - 1}` : ''}
-                </span>
-              );
-            }
-            return (
-              <MrSubLine
-                key={row.mr.id}
-                row={row}
-                onNavigateToIssueFromMR={onNavigateToIssueFromMR}
-                fix={fix}
-                keyCell={keyCell}
-                reasonCell={<SecondaryReasonPill row={row} versionName={versionName} />}
-              />
-            );
-          })}
+            })}
+          </div>
+          {hiddenSecondaryCount > 0 && (
+            <button
+              type="button"
+              data-testid="secondary-show-all"
+              aria-expanded={secondaryExpanded}
+              onClick={() => setSecondaryExpanded((v) => !v)}
+              className={CALLOUT_SHOW_ALL_CLASS}
+            >
+              {secondaryExpanded ? 'Show less' : `Show all ${filteredSecondaryRows.length}`}
+            </button>
+          )}
         </div>
       )}
     </section>
