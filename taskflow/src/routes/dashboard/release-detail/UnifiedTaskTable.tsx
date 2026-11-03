@@ -16,6 +16,7 @@ import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
 import { LinkContextMenu } from '@/components/ui/link-context-menu';
 import { FilterPopover, SortableHeader } from '@/components/ui/table-filter-sort';
 import { UNASSIGNED_FILTER, UNASSIGNED_LABEL } from '@/lib/assignee-filter';
+import { isEpicTypeName } from '@/lib/issue-type';
 import { openExternal } from '@/lib/openExternal';
 import { PEEKED_ROW_CLASS } from '@/lib/peek-highlight';
 import { statusPillClass } from '@/lib/statusStyles';
@@ -87,6 +88,8 @@ export interface UnifiedTaskTableProps {
   milestoneLookupFailed: boolean;
   primaryRows: Array<{ issue: JiraIssue; mrs: DriftRow[] }>;
   secondaryRows: DriftRow[];
+  /** Task key -> Jira issue type name for the not-covered rows' linked keys. */
+  secondaryKeyTypes?: Record<string, string>;
   flaggedMrCount: number;
   brFlaggedCount: number;
   msFlaggedCount: number;
@@ -120,6 +123,7 @@ export interface UnifiedTaskTableProps {
 // Keys must never wrap — a Jira key broken at its dash reads as two keys. Fixed
 // width + nowrap; widened from 72px so the common PROJ-1234 shape fits without
 // spilling into the summary column.
+const EMPTY_KEY_TYPES: Record<string, string> = {};
 const COL_ICON = 'flex-none w-[1.125rem] @max-[640px]:hidden';
 const COL_KEY = 'flex-none w-[5.5rem] whitespace-nowrap';
 const COL_SUMMARY = 'flex-1 min-w-0';
@@ -155,14 +159,26 @@ function mrStateLabel(mr: GitLabMR): string {
   return 'Locked';
 }
 
-export type SecondaryReason = 'no-linked-task' | 'not-in-fix-version' | 'unevaluated';
+export type SecondaryReason = 'no-linked-task' | 'not-in-fix-version' | 'epic' | 'unevaluated';
 
 /**
  * Why a row is uncovered. Rows whose TASK reason was not evaluated (locked;
  * closed rows never reach this list — 261103-eu3) get 'unevaluated'
  * (T-91.1-14). Merged rows carry a real TASK reason since 261103-eu3.
  */
-export function secondaryReason(row: DriftRow): SecondaryReason {
+export function secondaryReason(
+  row: DriftRow,
+  keyTypes: Record<string, string> = {},
+): SecondaryReason {
+  // Epics can't carry a fix version: a row whose every linked key is an Epic
+  // is not actionable, so it gets its own non-callout reason.
+  if (
+    row.taskReason === 'not-in-fix-version' &&
+    row.taskKeys.length > 0 &&
+    row.taskKeys.every((k) => isEpicTypeName(keyTypes[k]))
+  ) {
+    return 'epic';
+  }
   if (row.taskReason === 'not-in-fix-version') return 'not-in-fix-version';
   if (row.taskReason === 'no-linked-task') return 'no-linked-task';
   return 'unevaluated';
@@ -171,13 +187,28 @@ export function secondaryReason(row: DriftRow): SecondaryReason {
 const REASON_PILL_LABEL: Record<SecondaryReason, string> = {
   'no-linked-task': 'No task',
   'not-in-fix-version': 'Not in version',
+  epic: 'Epic',
   unevaluated: 'Not evaluated',
 };
 
-function SecondaryReasonPill({ row, versionName }: { row: DriftRow; versionName: string }) {
-  const reason = secondaryReason(row);
+function epicOnlyTitle(keys: string[]): string {
+  return `${keys.join(', ')} ${keys.length > 1 ? 'are' : 'is'} an Epic — epics can't carry a fix version; link the MR to a task instead`;
+}
+
+function SecondaryReasonPill({
+  row,
+  versionName,
+  keyTypes,
+}: {
+  row: DriftRow;
+  versionName: string;
+  keyTypes: Record<string, string>;
+}) {
+  const reason = secondaryReason(row, keyTypes);
   let title: string;
-  if (reason === 'not-in-fix-version') {
+  if (reason === 'epic') {
+    title = epicOnlyTitle(row.taskKeys);
+  } else if (reason === 'not-in-fix-version') {
     const keys = row.taskKeys.join(', ');
     title = keys
       ? `${keys} ${row.taskKeys.length > 1 ? 'are' : 'is'} not in fix version ${versionName}`
@@ -192,7 +223,7 @@ function SecondaryReasonPill({ row, versionName }: { row: DriftRow; versionName:
       data-testid="secondary-reason-pill"
       data-reason={reason}
       title={title}
-      className={`${reason === 'unevaluated' ? MUTED_STATE_PILL_CLASS : CALLOUT_STATE_PILL_CLASS} pointer-events-none whitespace-nowrap ${COL_SECONDARY_STATE}`}
+      className={`${reason === 'unevaluated' || reason === 'epic' ? MUTED_STATE_PILL_CLASS : CALLOUT_STATE_PILL_CLASS} pointer-events-none whitespace-nowrap ${COL_SECONDARY_STATE}`}
     >
       <AlertTriangle aria-hidden className="hidden size-3 @max-[520px]:block" />
       <span className="@max-[520px]:sr-only">{REASON_PILL_LABEL[reason]}</span>
@@ -637,6 +668,7 @@ function SecondaryHeaderStrip() {
       <span className={COL_SECONDARY_STATE}>
         <span className="@max-[520px]:sr-only">State</span>
       </span>
+      <span className={`${COL_ICON} ${COL_SECONDARY_KEY}`} aria-hidden="true" />
       <span className={`${COL_KEY} ${COL_SECONDARY_KEY}`}>Key</span>
       <span className={COL_SECONDARY_SUMMARY}>Merge request</span>
       <span className={COL_PERSON}>Author</span>
@@ -688,7 +720,7 @@ function MrSubLine({
   /** Secondary rows only: trailing fix action (Apply / Link task); the column is always reserved. */
   actionCell?: React.ReactNode;
   /** Secondary rows only: what `actionCell` will do ("→ 1.2.0"), shown in the Fix column. */
-  fixTarget?: { text: string; title: string };
+  fixTarget?: { text: string; title: string; note?: boolean };
   /** Secondary rows only: inline fix error rendered under the row. */
   error?: string;
 }) {
@@ -801,7 +833,7 @@ function MrSubLine({
           >
             {fixTarget ? (
               <>
-                <span aria-hidden="true">→ </span>
+                {!fixTarget.note && <span aria-hidden="true">→ </span>}
                 {fixTarget.text}
               </>
             ) : null}
@@ -1246,6 +1278,7 @@ export function UnifiedTaskTable({
   milestoneLookupFailed,
   primaryRows,
   secondaryRows,
+  secondaryKeyTypes = EMPTY_KEY_TYPES,
   flaggedMrCount,
   brFlaggedCount,
   msFlaggedCount,
@@ -1650,6 +1683,17 @@ export function UnifiedTaskTable({
           <div className={CALLOUT_LIST_CLASS}>
             {shownSecondaryRows.map((row) => {
               const keys = row.taskKeys;
+              const leadType = keys.length > 0 ? secondaryKeyTypes[keys[0]] : undefined;
+              const iconCell = (
+                <span
+                  data-testid="secondary-type-icon"
+                  className={`${COL_ICON} ${COL_SECONDARY_KEY} flex items-center justify-center`}
+                  style={{ width: 18, height: 18 }}
+                  aria-hidden="true"
+                >
+                  {leadType && <IssueTypeIcon typeName={leadType} />}
+                </span>
+              );
               let keyCell: React.ReactNode;
               // The leading key is a link, matching the primary table's key cell:
               // both open the issue full-page via the breadcrumb-seeding handler.
@@ -1703,17 +1747,31 @@ export function UnifiedTaskTable({
                   </span>
                 );
               }
-              const reason = secondaryReason(row);
+              keyCell = (
+                <>
+                  {iconCell}
+                  {keyCell}
+                </>
+              );
+              const reason = secondaryReason(row, secondaryKeyTypes);
+              // Epics can't carry a fix version, so they are never offered to Apply.
+              const applicableKeys = keys.filter((k) => !isEpicTypeName(secondaryKeyTypes[k]));
               let actionCell: React.ReactNode = null;
-              let fixTarget: { text: string; title: string } | undefined;
-              if (reason === 'not-in-fix-version' && jiraFix) {
+              let fixTarget: { text: string; title: string; note?: boolean } | undefined;
+              if (reason === 'epic') {
+                fixTarget = {
+                  text: "Epics can't have a fix version",
+                  title: epicOnlyTitle(keys),
+                  note: true,
+                };
+              } else if (reason === 'not-in-fix-version' && jiraFix) {
                 fixTarget = {
                   text: `add to ${versionName}`,
-                  title: `Add fix version ${versionName} to ${keys.join(', ')} (other fix versions are kept)`,
+                  title: `Add fix version ${versionName} to ${applicableKeys.join(', ')} (other fix versions are kept)`,
                 };
                 actionCell = (
                   <ApplyFixVersionAction
-                    keys={keys}
+                    keys={applicableKeys}
                     versionName={versionName}
                     pendingKey={notCovered.pending[row.mr.id]}
                     onApply={(k) => notCovered.applyFixVersion(row.mr.id, k)}
@@ -1739,7 +1797,13 @@ export function UnifiedTaskTable({
                   onNavigateToIssueFromMR={onNavigateToIssueFromMR}
                   fix={fix}
                   keyCell={keyCell}
-                  reasonCell={<SecondaryReasonPill row={row} versionName={versionName} />}
+                  reasonCell={
+                    <SecondaryReasonPill
+                      row={row}
+                      versionName={versionName}
+                      keyTypes={secondaryKeyTypes}
+                    />
+                  }
                   actionCell={actionCell}
                   fixTarget={fixTarget}
                   error={notCovered.errors[row.mr.id]}

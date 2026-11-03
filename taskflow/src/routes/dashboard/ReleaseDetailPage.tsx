@@ -94,6 +94,7 @@ export default function ReleaseDetailPage() {
     releaseMrs,
     primaryRows,
     secondaryRows,
+    secondaryKeyTypes,
     flaggedMrCount,
     brFlaggedCount,
     msFlaggedCount,
@@ -583,6 +584,7 @@ export default function ReleaseDetailPage() {
                 milestoneLookupFailed={milestonesFailed}
                 primaryRows={primaryRows}
                 secondaryRows={secondaryRows}
+                secondaryKeyTypes={secondaryKeyTypes}
                 flaggedMrCount={flaggedMrCount}
                 brFlaggedCount={brFlaggedCount}
                 msFlaggedCount={msFlaggedCount}

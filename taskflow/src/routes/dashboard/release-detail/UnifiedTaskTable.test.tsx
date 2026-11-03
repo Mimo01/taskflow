@@ -2633,4 +2633,68 @@ describe('261103-cln: not-covered section callout + fix actions', () => {
     expect(within(row).getByTestId('secondary-reason-pill').className).toContain('bg-muted');
     expect(within(row).queryByRole('button', { name: /Link task|Add PROJ-9/ })).toBeNull();
   });
+
+  describe('261103-f27: type icon + epic suppression', () => {
+    const rowWith = (keys: string[]) =>
+      makeRow({
+        mr: makeMR({ id: 1, iid: 1 }),
+        taskReason: 'not-in-fix-version',
+        taskKeys: keys,
+      });
+
+    it('renders the issue type icon before the key, empty when the type is unknown', () => {
+      renderSection({
+        secondaryRows: [rowWith(['PROJ-9']), rowWith(['PROJ-8'])],
+        secondaryKeyTypes: { 'PROJ-9': 'Bug' },
+      });
+      const icons = screen.getAllByTestId('secondary-type-icon');
+      expect(icons).toHaveLength(2);
+      expect(icons[0].querySelector('svg, img')).not.toBeNull();
+      expect(icons[1]).toBeEmptyDOMElement();
+      const key = screen.getAllByTestId('secondary-key-flagged')[0];
+      expect(icons[0].nextElementSibling).toBe(key);
+    });
+
+    it('the header has an icon spacer before Key', () => {
+      renderSection({ secondaryRows: [rowWith(['PROJ-9'])] });
+      const header = screen.getByTestId('secondary-header');
+      const keyLabel = within(header).getByText('Key');
+      expect(keyLabel.previousElementSibling).toHaveAttribute('aria-hidden', 'true');
+    });
+
+    it('an epic-only row has no Apply button and explains why', () => {
+      renderSection({
+        secondaryRows: [rowWith(['EPIC-1'])],
+        secondaryKeyTypes: { 'EPIC-1': 'Epic' },
+        jiraFix: JIRA_FIX,
+      });
+      expect(screen.queryByRole('button', { name: /Add EPIC-1/ })).toBeNull();
+      expect(screen.queryByText('Apply')).toBeNull();
+      const pill = screen.getByTestId('secondary-reason-pill');
+      expect(pill).toHaveAttribute('data-reason', 'epic');
+      expect(pill).toHaveTextContent('Epic');
+      const target = screen.getByTestId('secondary-fix-target');
+      expect(target).toHaveTextContent("Epics can't have a fix version");
+      expect(target.textContent).not.toContain('→');
+    });
+
+    it('a mixed row offers Apply only for the non-epic key', () => {
+      renderSection({
+        secondaryRows: [rowWith(['EPIC-1', 'TASK-2'])],
+        secondaryKeyTypes: { 'EPIC-1': 'Epic', 'TASK-2': 'Task' },
+        jiraFix: JIRA_FIX,
+      });
+      expect(screen.getByRole('button', { name: 'Add TASK-2 to 33.5.0' })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /EPIC-1 to/ })).toBeNull();
+      expect(screen.getByTestId('secondary-reason-pill')).toHaveAttribute(
+        'data-reason',
+        'not-in-fix-version',
+      );
+    });
+
+    it('unknown types keep offering Apply', () => {
+      renderSection({ secondaryRows: [rowWith(['PROJ-9'])], jiraFix: JIRA_FIX });
+      expect(screen.getByRole('button', { name: 'Add PROJ-9 to 33.5.0' })).toBeInTheDocument();
+    });
+  });
 });
