@@ -30,3 +30,18 @@ Observed: title truncates on one line with actions icon-only on the same row at 
 - Visual check used Chrome headless `--screenshot` (no playwright package available); harness put temporarily in worktree `taskflow/shot-tmp/` (vite needs module resolution) and deleted before commit.
 - The existing page test asserting `queryByText('Labels')` is null was replaced (the new caption is "Labels").
 - Biome `--write` was run on touched files only.
+
+## UAT follow-ups (2026-11-03, approved)
+
+Applied inline by the orchestrator after user review:
+
+| Commit | Change |
+|--------|--------|
+| 5bed1585 | Labels moved above the graphs; warning restyled as an accent-bar callout on its own line |
+| 32bd3f42 | Warning → orange count badge on the tag icon; removed the rule above the done bar (`release-stats` now `border-b pt-1 pb-4 gap-3`); GraphSlot title→body `mt-2`; graph grid `gap-y-4`; skeleton mirrors |
+| 2f882b37 | Labels back UNDER the graphs; warning → small bare orange ⚠ + count at the END of the label row (no fill/border, text in tooltip + sr-only, still toggles UNLABELED_FILTER) |
+| 1872c997 | Label row heading styled like the GraphSlot titles (size-3.5 muted icon + h3 text-sm font-semibold); warning at pill text size |
+
+Rejected warning styles (do not reintroduce): tinted chip (read as a label), accent-bar line (too much vertical space), inline accent bar, count badge on the tag icon.
+
+Verification of follow-ups: release-detail tests (689) + full pre-commit suite green on each commit; visual checks via a throwaway vite harness + cached headless Chromium (not committed).
