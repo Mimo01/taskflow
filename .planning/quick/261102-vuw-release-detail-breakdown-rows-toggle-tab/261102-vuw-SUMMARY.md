@@ -42,3 +42,8 @@ By status / By type / By assignee rows on the release detail page are now native
 - Assignee filter is displayName-substring (shared semantics), so a name that is a substring of another person's name also matches that person.
 - Scroll-to-table not added (optional follow-up).
 - Manual human-check (click rows in the running app) not performed.
+
+## UAT follow-up (ed65c161)
+
+- Row tooltips covered neighbouring rows → now open after 600ms on the right of the row (`TooltipContent` gained a `side` prop).
+- "+N more" lines were inert → now a button opening a popover listing every hidden row as an aria-pressed toggle; the trigger shows `bg-muted` when a hidden value is filtered.
