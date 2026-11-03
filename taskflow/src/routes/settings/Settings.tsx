@@ -69,49 +69,44 @@ export default function Settings() {
   const [activeSection, setActiveSection] = useState<SettingsSection>('connections');
 
   return (
-    <div className="flex flex-col h-full min-h-0">
-      <div className="shrink-0 px-6 py-4 border-b border-border">
-        <h1 className="text-3xl font-semibold">Settings</h1>
-      </div>
-      <div className="flex flex-1 min-h-0">
-        <nav
-          aria-label="Settings navigation"
-          className="w-52 shrink-0 border-r border-border flex flex-col gap-0.5 px-2 py-6 overflow-y-auto"
-        >
-          {SECTIONS.map(({ id, label, icon }) => (
-            <button
-              key={id}
-              type="button"
-              onClick={() => setActiveSection(id)}
-              aria-current={activeSection === id ? 'page' : undefined}
-              className={cn(
-                'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium w-full text-left',
-                activeSection === id
-                  ? 'bg-accent text-accent-foreground font-semibold'
-                  : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
-              )}
-            >
-              {icon}
-              {label}
-            </button>
-          ))}
-        </nav>
-        <div className="flex-1 overflow-auto py-8 px-6 max-w-2xl">
-          {activeSection === 'connections' && (
-            <div data-testid="section-connections">
-              <ConnectionsSection />
-            </div>
-          )}
-          {activeSection === 'appearance' && <AppearanceSection />}
-          {activeSection === 'links' && <LinksSection />}
-          {activeSection === 'sidebar' && <SidebarSection />}
-          {activeSection === 'notifications' && <NotificationsSection />}
-          {activeSection === 'workflow' && <WorkflowSection />}
-          {activeSection === 'subtask-templates' && <SubtaskTemplatesSection />}
-          {activeSection === 'integrations' && <IntegrationsSection />}
-          {activeSection === 'updates' && <UpdatesSection />}
-          {activeSection === 'advanced' && <DebugModeSection />}
-        </div>
+    <div className="flex h-full min-h-0">
+      <nav
+        aria-label="Settings navigation"
+        className="w-52 shrink-0 border-r border-border flex flex-col gap-0.5 px-2 py-6 overflow-y-auto"
+      >
+        {SECTIONS.map(({ id, label, icon }) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => setActiveSection(id)}
+            aria-current={activeSection === id ? 'page' : undefined}
+            className={cn(
+              'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium w-full text-left',
+              activeSection === id
+                ? 'bg-accent text-accent-foreground font-semibold'
+                : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
+            )}
+          >
+            {icon}
+            {label}
+          </button>
+        ))}
+      </nav>
+      <div className="flex-1 overflow-auto py-8 px-6 max-w-2xl">
+        {activeSection === 'connections' && (
+          <div data-testid="section-connections">
+            <ConnectionsSection />
+          </div>
+        )}
+        {activeSection === 'appearance' && <AppearanceSection />}
+        {activeSection === 'links' && <LinksSection />}
+        {activeSection === 'sidebar' && <SidebarSection />}
+        {activeSection === 'notifications' && <NotificationsSection />}
+        {activeSection === 'workflow' && <WorkflowSection />}
+        {activeSection === 'subtask-templates' && <SubtaskTemplatesSection />}
+        {activeSection === 'integrations' && <IntegrationsSection />}
+        {activeSection === 'updates' && <UpdatesSection />}
+        {activeSection === 'advanced' && <DebugModeSection />}
       </div>
     </div>
   );

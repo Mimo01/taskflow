@@ -32,7 +32,7 @@ export function SprintBoardHeader({ name, goal, state }: SprintBoardHeaderProps)
     >
       <div className="flex items-center gap-2 min-w-0">
         {trimmedName && (
-          <h1 className="min-w-0 max-w-[60%] truncate text-3xl font-semibold text-foreground">
+          <h1 className="min-w-0 max-w-[60%] truncate text-2xl font-semibold text-foreground">
             {trimmedName}
           </h1>
         )}

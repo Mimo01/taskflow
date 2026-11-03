@@ -698,7 +698,7 @@ export default function WorklogsPage() {
     <div className="flex flex-col h-full">
       {/* Page header */}
       <header className="px-6 py-4 border-b border-border">
-        <h1 className="text-3xl font-semibold">Worklogs</h1>
+        <h1 className="text-2xl font-semibold">Worklogs</h1>
       </header>
 
       {/* Saved filters row — D-03: separate row above filter bar, hidden when empty */}
