@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-08-13)
 Phase: 94
 Plan: Not started
 Status: Milestone complete
-Last activity: 2026-11-03 - Completed quick task 261103-fg2: release detail main table headers realigned with columns
+Last activity: 2026-11-03 - Completed quick task 261103-fg2: release detail main table headers realigned with columns (UAT approved)
 
 ## Performance Metrics
 
@@ -242,7 +242,7 @@ Acknowledged and deferred at v1.14 milestone close (2026-08-13) — 111 open art
 | 261103-cln | "Not covered by tasks above" redesigned as the orange callout matching Deployment package mismatches (same position, shared calloutSection.ts consts, single count pill, 5 rows + Show all); per-row fixes: Apply adds the release fix version to linked task(s) keeping existing (update.add), Link task picks a release issue and prefixes its key to the MR title (draft prefix kept), merged/closed rows muted with no action; Fix column ("→ add to <version>" / "→ link a release task") directly before the button column, header reserves the action column | 2026-11-03 | 2c08b55a | Verified (UAT approved) | [261103-cln-redesign-not-covered-by-tasks-section-to](./quick/261103-cln-redesign-not-covered-by-tasks-section-to/) |
 | 261103-eu3 | "Not covered by tasks": merged MRs now evaluated for TASK reason (isTaskEvaluated gate; BR/MS stay open-only, evaluated:false) so they get Not in version / No task pills + Apply / Link task fixes; closed MRs excluded from secondaryRows (still attached under tasks); locked stays muted "Not evaluated" | 2026-11-03 | 6230a198 | Verified (UAT approved) | [261103-eu3-evaluate-merged-mrs-in-not-covered-by-ta](./quick/261103-eu3-evaluate-merged-mrs-in-not-covered-by-ta/) |
 | 261103-f27 | "Not covered by tasks": issue type icon column before key (types fetched via fetchIssuesByKeys → secondaryKeyTypes); epic-only rows keep "Not in version" pill + "Epics can't have a fix version" note, no Apply; mixed rows Apply non-epic keys only; shared isEpicTypeName (lib/issue-type.ts) | 2026-11-03 | c31f252e | Verified (UAT approved) | [261103-f27-release-detail-not-covered-issue-type-ic](./quick/261103-f27-release-detail-not-covered-issue-type-ic/) |
-| 261103-fg2 | Release detail main task table headers misaligned: header strip carried the not-covered callout action-column spacer (72460870) that task rows never render; removed + cell-count regression test | 2026-11-03 | c503d80f | Needs Review | [261103-fg2-release-detail-table-headers-misaligned-](./quick/261103-fg2-release-detail-table-headers-misaligned-/) |
+| 261103-fg2 | Release detail main task table headers misaligned: header strip carried the not-covered callout action-column spacer (72460870) that task rows never render; removed + cell-count regression test | 2026-11-03 | c503d80f | Verified (UAT approved) | [261103-fg2-release-detail-table-headers-misaligned-](./quick/261103-fg2-release-detail-table-headers-misaligned-/) |
 
 ## Session Continuity
 
