@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-08-13)
 Phase: 94
 Plan: Not started
 Status: Milestone complete
-Last activity: 2026-11-03 - Completed quick task 261103-fqd: assign release milestone to merged MRs in release detail (UAT approved)
+Last activity: 2026-11-03 - Completed quick task 261103-fxn: issue detail links MRs of every state via per-issue server-side search
 
 ## Performance Metrics
 
@@ -244,6 +244,7 @@ Acknowledged and deferred at v1.14 milestone close (2026-08-13) — 111 open art
 | 261103-f27 | "Not covered by tasks": issue type icon column before key (types fetched via fetchIssuesByKeys → secondaryKeyTypes); epic-only rows keep "Not in version" pill + "Epics can't have a fix version" note, no Apply; mixed rows Apply non-epic keys only; shared isEpicTypeName (lib/issue-type.ts) | 2026-11-03 | c31f252e | Verified (UAT approved) | [261103-f27-release-detail-not-covered-issue-type-ic](./quick/261103-f27-release-detail-not-covered-issue-type-ic/) |
 | 261103-fg2 | Release detail main task table headers misaligned: header strip carried the not-covered callout action-column spacer (72460870) that task rows never render; removed + cell-count regression test | 2026-11-03 | c503d80f | Verified (UAT approved) | [261103-fg2-release-detail-table-headers-misaligned-](./quick/261103-fg2-release-detail-table-headers-misaligned-/) |
 | 261103-fqd | Release detail: merged MRs get an MS (milestone) verdict + Assign milestone action (new isMilestoneEvaluated, opened+merged); BR stays opened-only since GitLab can't retarget merged MRs | 2026-11-03 | b15034bb | Verified (UAT approved) | [261103-fqd-allow-assigning-milestone-to-merged-mrs-](./quick/261103-fqd-allow-assigning-milestone-to-merged-mrs-/) |
+| 261103-fxn | Issue detail Merge Requests: replace capped 20-most-recent project fetch + client filter with per-issue search (state=all, in=title,description); merged/closed/opened all shown, "Closed" badge; branch-only key matches not covered | 2026-11-03 | 3d68adec | Needs Review (UAT pending) | [261103-fxn-merged-vs-closed-mr-linking-in-jira-issu](./quick/261103-fxn-merged-vs-closed-mr-linking-in-jira-issu/) |
 
 ## Session Continuity
 
