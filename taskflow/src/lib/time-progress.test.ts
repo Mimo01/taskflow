@@ -37,9 +37,19 @@ describe('timeProgress', () => {
     expect(tp(3.5, 4, true).indicatorClass).toBe('bg-green-500');
     expect(tp(4, 4, true)).toMatchObject({ fillPct: 100, indicatorClass: 'bg-green-500' });
   });
-  it('over estimate is red regardless of status, capped at 100', () => {
+  it('over estimate up to 125% is amber regardless of status, capped at 100', () => {
     for (const d of [true, false]) {
-      expect(tp(5, 4, d)).toEqual({ fillPct: 100, indicatorClass: 'bg-red-500', overrun: true });
+      expect(tp(4.4, 4, d)).toEqual({
+        fillPct: 100,
+        indicatorClass: 'bg-amber-500',
+        overrun: true,
+      });
+      expect(tp(5, 4, d)).toEqual({ fillPct: 100, indicatorClass: 'bg-amber-500', overrun: true });
+    }
+  });
+  it('over 125% of estimate is red regardless of status', () => {
+    for (const d of [true, false]) {
+      expect(tp(5.1, 4, d)).toEqual({ fillPct: 100, indicatorClass: 'bg-red-500', overrun: true });
     }
   });
   it('zero spent is green and empty', () => {

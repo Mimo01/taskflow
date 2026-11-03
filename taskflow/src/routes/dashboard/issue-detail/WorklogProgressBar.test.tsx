@@ -71,8 +71,8 @@ describe('WorklogProgressBar', () => {
     expect(screen.getByText('2h / 3h')).toBeTruthy();
   });
 
-  it('uses red indicator when spent > estimate', () => {
-    const issue = makeIssue({ timeSpentSeconds: 9000, originalEstimateSeconds: 7200 });
+  it('uses red indicator when spent > 125% of estimate', () => {
+    const issue = makeIssue({ timeSpentSeconds: 10800, originalEstimateSeconds: 7200 });
     const { container } = render(<WorklogProgressBar issue={issue} subtasks={undefined} />);
     expect(container.querySelector('.bg-red-500')).toBeTruthy();
   });

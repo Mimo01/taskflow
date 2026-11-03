@@ -6,11 +6,15 @@
  * issues show a full bar).
  *
  * Colour matrix:
- *  - spent > estimate            -> red (any status), fill capped at 100
+ *  - spent > 125% of estimate    -> red (any status), fill capped at 100
+ *  - spent > estimate, <= 125%   -> amber (any status): over, but within tolerance
  *  - spent == estimate           -> green if done, amber if not done
  *  - under estimate, done        -> green
  *  - under estimate, not done    -> green below 75%, amber from 75%
  */
+/** Spent above this multiple of the estimate turns the bar red; up to it stays amber. */
+export const OVERRUN_RED_RATIO = 1.25;
+
 export interface TimeProgress {
   fillPct: number;
   indicatorClass: string | undefined;
@@ -33,7 +37,8 @@ export function timeProgress({
   const fillPct = Math.min(100, Math.round((spent / estimateSeconds) * 100));
   const overrun = spent > estimateSeconds;
   let indicatorClass: string;
-  if (overrun) indicatorClass = 'bg-red-500';
+  if (spent > estimateSeconds * OVERRUN_RED_RATIO) indicatorClass = 'bg-red-500';
+  else if (overrun) indicatorClass = 'bg-amber-500';
   else if (fillPct >= 100) indicatorClass = isDone ? 'bg-green-500' : 'bg-amber-500';
   else if (isDone) indicatorClass = 'bg-green-500';
   else indicatorClass = fillPct >= 75 ? 'bg-amber-500' : 'bg-green-500';

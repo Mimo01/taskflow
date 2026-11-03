@@ -40,9 +40,16 @@ describe('StackedTimeBar', () => {
     expect(indicator(container)).toHaveClass('bg-amber-500');
   });
 
-  it('spent > total is red', () => {
+  it('spent up to 125% of total is amber', () => {
     const { container } = render(
       <StackedTimeBar spentSeconds={9000} totalSeconds={7200} testId="bar" />,
+    );
+    expect(indicator(container)).toHaveClass('bg-amber-500');
+  });
+
+  it('spent > 125% of total is red', () => {
+    const { container } = render(
+      <StackedTimeBar spentSeconds={10800} totalSeconds={7200} testId="bar" />,
     );
     expect(indicator(container)).toHaveClass('bg-red-500');
   });
