@@ -8,6 +8,7 @@ interface EmptyStateProps {
   subtitle?: string;
   action?: ReactNode;
   compact?: boolean;
+  className?: string;
 }
 
 export function EmptyState({
@@ -16,12 +17,14 @@ export function EmptyState({
   subtitle,
   action,
   compact = false,
+  className,
 }: EmptyStateProps) {
   return (
     <div
       className={cn(
         'flex flex-col items-center justify-center text-center',
         compact ? 'py-6' : 'py-8',
+        className,
       )}
     >
       <Icon className={cn('text-muted-foreground', compact ? 'size-8 mb-3' : 'size-12 mb-4')} />

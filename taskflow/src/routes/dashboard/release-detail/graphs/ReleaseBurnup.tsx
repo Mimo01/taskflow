@@ -1,18 +1,14 @@
 'use no memo';
 
-import { TrendingUp } from 'lucide-react';
+import { CalendarClock, TrendingUp } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Area, ComposedChart, Line, ReferenceArea, ReferenceLine, XAxis, YAxis } from 'recharts';
 import { ChartContainer, ChartTooltip } from '@/components/ui/chart';
+import { EmptyState } from '@/components/ui/empty-state';
 import { TOOLTIP_SURFACE, TooltipBody, TooltipRow } from '@/components/ui/tooltip-body';
 import { dateKeyMs, formatDateKey, timeTicks } from '@/lib/epic-progress';
 import { Y_AXIS_WIDTH } from '../../issue-detail/EpicChartZoom';
-import {
-  type BurnupAxis,
-  type BurnupFramePoint,
-  type BurnupPoint,
-  deriveBurnupFrame,
-} from '../releaseBurnup';
+import type { BurnupAxis, BurnupPoint } from '../releaseBurnup';
 import {
   burnupMargin,
   burnupPlotBox,
@@ -23,7 +19,16 @@ import {
   X_AXIS_HEIGHT,
 } from './burnupLabelLayout';
 import { BURNUP_HEIGHT, COMPACT_DONUT_SIZE, GraphSlot } from './GraphSlot';
-import { ReleaseTimeline, type TimelineSummary } from './ReleaseTimeline';
+
+export interface TimelineSummary {
+  done: number;
+  total: number;
+  today: string;
+  releaseDate: string | null;
+  released: boolean;
+  /** This release's version name. */
+  versionName?: string | null;
+}
 
 const TICK = { fontSize: 11, fill: 'var(--color-muted-foreground)' };
 const CURSOR = { stroke: 'var(--color-muted-foreground)', strokeDasharray: '3 3' };
@@ -159,7 +164,7 @@ export function ReleaseBurnup({
   points: BurnupPoint[];
   state: 'loading' | 'error' | 'empty' | 'ready';
   showStoryPoints: boolean;
-  /** Drives the start -> today -> release track shown instead of the chart on a thin history. */
+  /** `today` decides the empty-state wording (window not open yet) and the header lead. */
   summary: TimelineSummary;
   /**
    * Band mode: a fixed COMPACT_BODY_H body (header + plot) at every width, so the
@@ -193,8 +198,10 @@ export function ReleaseBurnup({
   // One line, never wraps. With a previous release only its name shows (version
   // names usually carry the date already); the start date stays in the hover title.
   const sinceDate = axis ? withYearLabel(axis.start) : '';
-  // Window still ahead: the release starts "after" the previous one, not "since" it.
-  const lead = axis?.previousName && summary.today < axis.start ? 'after' : 'since';
+  // Window not open yet (the previous release is still ahead): the release starts
+  // "after" it, not "since" it.
+  const notOpen = !!axis?.previousName && summary.today < axis.start;
+  const lead = notOpen ? 'after' : 'since';
   const aside = axis ? (
     <span
       className="flex min-w-0 items-baseline whitespace-nowrap"
@@ -214,24 +221,11 @@ export function ReleaseBurnup({
   ) : undefined;
   const last = points[points.length - 1];
   const enough = state === 'ready' && !!axis && points.length >= 2 && !!last;
-  // Upcoming release without two days of history: the same chart drawn empty
-  // (flat scope + faint ideal), so the slot fills in continuously once history
-  // arrives (261103-kbn). Released / past-due / undated keep the timeline.
-  const frame = deriveBurnupFrame({
-    axis,
-    scope: summary.total,
-    today: summary.today,
-    released: summary.released,
-  });
-  const showFrame = state === 'ready' && !enough && !!frame && !!axis;
-  const opensInDays = showFrame ? (frame?.opensInDays ?? null) : null;
   // Each day is a day-wide step, so the last day needs a closing point one day on:
   // without it, issues done on release day (or today) were a zero-width sliver on
   // the marker line. Markers sit at the end of their day, where the series ends.
   const plotted = closeLastDay(points);
   const lastIdx = plotted.length - 1;
-  const chartData: readonly (BurnupPoint | BurnupFramePoint)[] =
-    showFrame && frame ? frame.points : plotted;
   const dayEnd = (key: string) => dateKeyMs(key) + DAY_MS;
   // Marker x positions depend only on the plot's left/right, so the label rows
   // (which move the plot top) are laid out on the one-row box first.
@@ -244,9 +238,9 @@ export function ReleaseBurnup({
       )
     : [];
   const maxScope = points.reduce((m, p) => Math.max(m, p.scope), 0);
-  const y = burnupYScale(showFrame && frame ? (frame.points[0]?.scope ?? 0) : maxScope);
+  const y = burnupYScale(maxScope);
   const labels = (() => {
-    if (!axis || (!last && !showFrame)) return null;
+    if (!axis || !last) return null;
     const t0 = dateKeyMs(axis.start);
     const span = Math.max(1, dayEnd(axis.end) - t0);
     const xOf = (t: number) => plotX.left + ((t - t0) / span) * (plotX.right - plotX.left);
@@ -280,153 +274,133 @@ export function ReleaseBurnup({
         className={compact ? 'flex flex-none flex-col' : 'flex min-h-0 flex-1 flex-col'}
         style={compact ? { height: COMPACT_BODY_H } : undefined}
       >
-        {(!enough && !showFrame) || !axis ? (
-          <ReleaseTimeline axis={axis} summary={summary} className="my-auto" />
-        ) : (
-          <>
-            <div
-              ref={setPlotEl}
-              data-testid={showFrame ? 'release-graph-burnup-frame' : undefined}
-              className={compact ? 'relative min-h-0 flex-1' : PLOT_CLASS}
-              role="img"
-              aria-label={
-                showFrame
-                  ? `Release burnup frame: ${summary.total} scope${opensInDays !== null ? `, opens in ${opensInDays} d` : ''}`
-                  : `Release burnup: ${last.scope} scope, ${last.done} done`
+        {!enough || !axis ? (
+          // Too little history for a chart (a future release, or one whose window
+          // opened today): the app's standard empty state, tightened to fit the slot.
+          <div data-testid="release-graph-burnup-thin" className="my-auto">
+            <EmptyState
+              compact
+              className="py-0"
+              icon={CalendarClock}
+              title="No progress yet"
+              subtitle={
+                notOpen && axis?.previousName
+                  ? `Starts after ${axis.previousName} ships on ${formatDateKey(axis.start)}.`
+                  : 'The chart appears after the first day of activity.'
               }
+            />
+          </div>
+        ) : (
+          <div
+            ref={setPlotEl}
+            className={compact ? 'relative min-h-0 flex-1' : PLOT_CLASS}
+            role="img"
+            aria-label={`Release burnup: ${last.scope} scope, ${last.done} done`}
+          >
+            <ChartContainer
+              config={{}}
+              className={compact ? 'absolute inset-0 aspect-auto' : 'aspect-auto h-full w-full'}
             >
-              <ChartContainer
-                config={{}}
-                className={compact ? 'absolute inset-0 aspect-auto' : 'aspect-auto h-full w-full'}
-              >
-                <ComposedChart data={chartData} responsive margin={margin}>
-                  <XAxis
-                    type="number"
-                    dataKey="t"
-                    scale="time"
-                    domain={[dateKeyMs(axis.start), dayEnd(axis.end)]}
-                    allowDataOverflow
-                    ticks={ticks.map((x) => x.t)}
-                    interval={0}
-                    tick={TICK}
-                    tickFormatter={(v) =>
-                      ticks.find((x) => x.t === Number(v))?.label ??
-                      formatDateKey(new Date(Number(v)).toISOString().slice(0, 10))
-                    }
-                    tickLine={false}
-                    axisLine={false}
-                    height={X_AXIS_HEIGHT}
-                  />
-                  <YAxis
-                    domain={[0, y.top]}
-                    ticks={y.ticks}
-                    interval={0}
-                    allowDecimals={false}
-                    tick={TICK}
-                    tickLine={false}
-                    axisLine={false}
-                    width={Y_AXIS_WIDTH}
-                  />
-                  {showFrame ? null : (
-                    <ChartTooltip
-                      cursor={CURSOR}
-                      wrapperStyle={TOOLTIP_WRAPPER}
-                      content={(p) => (
-                        <BurnupTooltip
-                          active={p.active}
-                          payload={p.payload as readonly { payload?: BurnupPoint }[] | undefined}
-                          showStoryPoints={showStoryPoints}
-                        />
-                      )}
+              <ComposedChart data={plotted} responsive margin={margin}>
+                <XAxis
+                  type="number"
+                  dataKey="t"
+                  scale="time"
+                  domain={[dateKeyMs(axis.start), dayEnd(axis.end)]}
+                  allowDataOverflow
+                  ticks={ticks.map((x) => x.t)}
+                  interval={0}
+                  tick={TICK}
+                  tickFormatter={(v) =>
+                    ticks.find((x) => x.t === Number(v))?.label ??
+                    formatDateKey(new Date(Number(v)).toISOString().slice(0, 10))
+                  }
+                  tickLine={false}
+                  axisLine={false}
+                  height={X_AXIS_HEIGHT}
+                />
+                <YAxis
+                  domain={[0, y.top]}
+                  ticks={y.ticks}
+                  interval={0}
+                  allowDecimals={false}
+                  tick={TICK}
+                  tickLine={false}
+                  axisLine={false}
+                  width={Y_AXIS_WIDTH}
+                />
+                <ChartTooltip
+                  cursor={CURSOR}
+                  wrapperStyle={TOOLTIP_WRAPPER}
+                  content={(p) => (
+                    <BurnupTooltip
+                      active={p.active}
+                      payload={p.payload as readonly { payload?: BurnupPoint }[] | undefined}
+                      showStoryPoints={showStoryPoints}
                     />
                   )}
-                  {axis.showToday &&
-                  axis.showRelease &&
-                  axis.releaseDate &&
-                  axis.releaseDate > axis.seriesEnd ? (
-                    // Time left until release: a faint band so TODAY and RELEASE read as two
-                    // lines even one day apart.
-                    <ReferenceArea
-                      x1={dayEnd(axis.seriesEnd)}
-                      x2={dayEnd(axis.releaseDate)}
-                      fill={MUTED}
-                      fillOpacity={0.08}
-                      stroke="none"
-                      ifOverflow="hidden"
-                    />
-                  ) : null}
-                  {axis.showToday ? (
-                    <ReferenceLine
-                      x={dayEnd(axis.seriesEnd)}
-                      stroke="var(--color-foreground)"
-                      strokeOpacity={0.5}
-                      zIndex={MARKER_Z}
-                    />
-                  ) : null}
-                  {axis.showRelease && axis.releaseDate ? (
-                    <ReferenceLine
-                      x={dayEnd(axis.releaseDate)}
-                      stroke={MUTED}
-                      strokeDasharray="4 3"
-                      label={markerLabel(releaseLabel)}
-                      zIndex={MARKER_Z}
-                    />
-                  ) : null}
-                  {showFrame ? (
-                    // The frame (only) carries a faint ideal diagonal: user decision
-                    // 261103-kbn, overriding P94 D-04 for the frame. The real chart has none.
-                    <Line
-                      dataKey="ideal"
-                      type="linear"
-                      stroke={MUTED}
-                      strokeOpacity={0.35}
-                      strokeWidth={1}
-                      dot={false}
-                      activeDot={false}
-                      isAnimationActive={false}
-                    />
-                  ) : (
-                    <Area
-                      dataKey="done"
-                      type="stepAfter"
-                      stroke="none"
-                      fill={GREEN}
-                      fillOpacity={0.12}
-                      activeDot={false}
-                      isAnimationActive={false}
-                    />
-                  )}
-                  <Line
-                    dataKey="scope"
-                    type="stepAfter"
+                />
+                {axis.showToday &&
+                axis.showRelease &&
+                axis.releaseDate &&
+                axis.releaseDate > axis.seriesEnd ? (
+                  // Time left until release: a faint band so TODAY and RELEASE read as two
+                  // lines even one day apart.
+                  <ReferenceArea
+                    x1={dayEnd(axis.seriesEnd)}
+                    x2={dayEnd(axis.releaseDate)}
+                    fill={MUTED}
+                    fillOpacity={0.08}
+                    stroke="none"
+                    ifOverflow="hidden"
+                  />
+                ) : null}
+                {axis.showToday ? (
+                  <ReferenceLine
+                    x={dayEnd(axis.seriesEnd)}
+                    stroke="var(--color-foreground)"
+                    strokeOpacity={0.5}
+                    zIndex={MARKER_Z}
+                  />
+                ) : null}
+                {axis.showRelease && axis.releaseDate ? (
+                  <ReferenceLine
+                    x={dayEnd(axis.releaseDate)}
                     stroke={MUTED}
-                    strokeWidth={1.5}
                     strokeDasharray="4 3"
-                    dot={showFrame || last.scope === last.done ? false : endDot(lastIdx, MUTED)}
-                    isAnimationActive={false}
+                    label={markerLabel(releaseLabel)}
+                    zIndex={MARKER_Z}
                   />
-                  {showFrame ? null : (
-                    <Line
-                      dataKey="done"
-                      type="stepAfter"
-                      stroke={GREEN}
-                      strokeWidth={2}
-                      dot={endDot(lastIdx, GREEN)}
-                      isAnimationActive={false}
-                    />
-                  )}
-                </ComposedChart>
-              </ChartContainer>
-            </div>
-            {opensInDays !== null ? (
-              <p
-                data-testid="release-burnup-opens"
-                className="flex-none truncate text-xs leading-4 text-muted-foreground"
-              >
-                opens in {opensInDays} d
-              </p>
-            ) : null}
-          </>
+                ) : null}
+                <Area
+                  dataKey="done"
+                  type="stepAfter"
+                  stroke="none"
+                  fill={GREEN}
+                  fillOpacity={0.12}
+                  activeDot={false}
+                  isAnimationActive={false}
+                />
+                <Line
+                  dataKey="scope"
+                  type="stepAfter"
+                  stroke={MUTED}
+                  strokeWidth={1.5}
+                  strokeDasharray="4 3"
+                  dot={last.scope === last.done ? false : endDot(lastIdx, MUTED)}
+                  isAnimationActive={false}
+                />
+                <Line
+                  dataKey="done"
+                  type="stepAfter"
+                  stroke={GREEN}
+                  strokeWidth={2}
+                  dot={endDot(lastIdx, GREEN)}
+                  isAnimationActive={false}
+                />
+              </ComposedChart>
+            </ChartContainer>
+          </div>
         )}
       </div>
     </GraphSlot>

@@ -75,8 +75,8 @@ describe('ReleaseBurnup', () => {
     expect(screen.getByText('No issues')).toBeInTheDocument();
   });
 
-  it('shows the empty burnup frame for a 1-point series in an open window', () => {
-    const { container } = render(
+  it('shows the countdown timeline instead of a chart for a 1-point series', () => {
+    render(
       <ReleaseBurnup
         axis={axis}
         points={points.slice(0, 1)}
@@ -85,77 +85,38 @@ describe('ReleaseBurnup', () => {
         summary={summary}
       />,
     );
-    expect(screen.getByTestId('release-graph-burnup-frame')).toBeInTheDocument();
-    expect(screen.queryByTestId('release-graph-burnup-thin')).toBeNull();
-    expect(container.querySelector('[data-testid="burnup-end-dot"]')).toBeNull();
-    expect(screen.queryByText(/opens in/)).toBeNull();
-    expect(screen.getByRole('img', { name: /burnup frame/i })).toBeInTheDocument();
+    expect(screen.getByTestId('release-graph-burnup-thin')).toBeInTheDocument();
+    expect(screen.getByText('No progress yet')).toBeInTheDocument();
+    expect(
+      screen.getByText('The chart appears after the first day of activity.'),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('img', { name: /Release burnup/ })).toBeNull();
     expect(screen.queryByText(/days left/)).toBeNull();
   });
 
-  it('shows the frame with an "opens in" caption before the window opens', () => {
+  it('says when a future release starts and reads "after" while its window is ahead', () => {
+    const future = {
+      ...axis,
+      start: '2026-11-17',
+      end: '2026-12-01',
+      seriesEnd: '2026-11-03',
+      previousName: 'R-11-17',
+      releaseDate: '2026-12-01',
+      showToday: false,
+    };
     render(
       <ReleaseBurnup
-        axis={{
-          ...axis,
-          start: '2026-10-15',
-          end: '2026-10-20',
-          seriesEnd: '2026-10-10',
-          showToday: false,
-        }}
+        axis={future}
         points={[]}
         state="ready"
         showStoryPoints={false}
-        summary={{ ...summary, today: '2026-10-10', total: 5 }}
+        summary={{ ...summary, today: '2026-11-03', releaseDate: '2026-12-01' }}
       />,
     );
-    expect(screen.getByTestId('release-graph-burnup-frame')).toBeInTheDocument();
-    expect(screen.getByText('opens in 5 d')).toBeInTheDocument();
-    expect(screen.getByTitle('after v1.2 · Oct 15')).toHaveTextContent(/^after\s+v1\.2$/);
-  });
-
-  it('keeps the timeline for a released version', () => {
-    render(
-      <ReleaseBurnup
-        axis={axis}
-        points={points.slice(0, 1)}
-        state="ready"
-        showStoryPoints={false}
-        summary={{ ...summary, released: true }}
-      />,
-    );
-    expect(screen.getByTestId('release-graph-burnup-thin')).toBeInTheDocument();
-    expect(screen.queryByTestId('release-graph-burnup-frame')).toBeNull();
-  });
-
-  it('keeps the timeline for a past-due version', () => {
-    render(
-      <ReleaseBurnup
-        axis={{ ...axis, end: '2026-10-25', seriesEnd: '2026-10-25' }}
-        points={points.slice(0, 1)}
-        state="ready"
-        showStoryPoints={false}
-        summary={{ ...summary, today: '2026-10-25' }}
-      />,
-    );
-    expect(screen.getByTestId('release-graph-burnup-thin')).toBeInTheDocument();
-    expect(screen.queryByTestId('release-graph-burnup-frame')).toBeNull();
-  });
-
-  it('draws the real chart, not the frame, with two points', () => {
-    render(
-      <ReleaseBurnup
-        axis={axis}
-        points={points}
-        state="ready"
-        showStoryPoints={false}
-        summary={summary}
-      />,
-    );
-    expect(screen.queryByTestId('release-graph-burnup-frame')).toBeNull();
-    expect(
-      screen.getByRole('img', { name: 'Release burnup: 5 scope, 2 done' }),
-    ).toBeInTheDocument();
+    expect(screen.getByText('No progress yet')).toBeInTheDocument();
+    expect(screen.getByText(/^Starts after R-11-17 ships on Nov 17/)).toBeInTheDocument();
+    expect(screen.getByText(/^after/)).toBeInTheDocument();
+    expect(screen.queryByText(/^since/)).toBeNull();
   });
 
   it('shows no countdown above the chart (the page header carries it)', () => {
