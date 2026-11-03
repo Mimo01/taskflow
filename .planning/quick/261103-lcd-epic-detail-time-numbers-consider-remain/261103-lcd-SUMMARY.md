@@ -71,3 +71,16 @@ None.
 
 - Commits 060758a3 and 3a5e5b47 are both in the branch log.
 - All modified files exist.
+
+## UAT follow-ups (2026-11-03, inline)
+
+Rounds driven by user feedback after the planned tasks; all in Time mode on epic detail.
+
+1. **Logged vs forecast** (9cd19387): one model, story total = logged + remaining; rows and epic bars add up; done stories with no logs count 0.
+2. **Status-grouped TimeBar** (715fb2d4, user picked option 1 from a sketch): done → in progress → to do; solid logged, faint remaining; beyond estimate amber (red past 125%), striped when forecast; estimate tick; shared person scale. Same bar on hero, person rows, Stories rows.
+3. **Person chips + per-status tooltips** (c70a2b91): chips logged · left · estimate · delta; tooltip one row per status plus Estimate with forecast.
+4. **Under budget** (10f4ff73): net delta chip (+ amber/red, − green); "−X under" in tooltips; "Under by" on Stories rows.
+5. **Logged by worklog author** (64ddf774): people who log on stories assigned to others get a row; remaining/estimate/under stay with the assignee; estimate consumed in worklog-date order. Count/SP stay assignee-only.
+6. **Polish** (f37c765a, b2f5a934, fb5a17e9): wider chips; estimate tick no longer clipped at rounded ends; person track ends at own work so blank space ≠ to-do time.
+
+Status: verified, UAT approved.
