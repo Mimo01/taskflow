@@ -34,6 +34,7 @@ import {
   deriveTimeForecast,
   deriveTimeSegments,
   deriveTimeTotals,
+  deriveTimeUnder,
   formatMetric,
   HISTORY_SOURCE_TEXT,
   type HistorySource,
@@ -66,6 +67,7 @@ import {
   TimeBar,
   TimeBreakdown,
   TimeChips,
+  type TimeUnder,
 } from './EpicBands';
 import { EpicCfdChart } from './EpicCfdChart';
 import {
@@ -121,11 +123,16 @@ function statusBarTip(statuses: StatusBucket[], statusTotal: number): ReactNode 
   );
 }
 
-function assigneeTip(a: AssigneeBucket, metric: Metric, segments: TimeSegment[]): ReactNode {
+function assigneeTip(
+  a: AssigneeBucket,
+  metric: Metric,
+  segments: TimeSegment[],
+  under: TimeUnder | undefined,
+): ReactNode {
   return (
     <TooltipBody title={a.name}>
       {metric === 'time' ? (
-        <TimeBreakdown segments={segments} estimate={a.estimate} />
+        <TimeBreakdown segments={segments} under={under} estimate={a.estimate} />
       ) : (
         <BandBreakdown bands={assigneeBands(a)} metric={metric} valueAs="share" />
       )}
@@ -233,12 +240,20 @@ export function EpicProgressSection({
   const time = deriveTimeTotals(stories);
   const timeSegments = timeMode ? deriveTimeSegments(stories) : [];
   // Per person Time bars share one scale: the longest of any person's total or estimate.
+  const timeUnder = timeMode ? deriveTimeUnder(stories) : undefined;
   const personTime = new Map(
     timeMode
       ? assignees.map((a) => {
-          const segs = deriveTimeSegments(stories.filter((s) => assigneeIdOf(s) === a.id));
-          return [a.id, segs] as const;
+          const mine = stories.filter((s) => assigneeIdOf(s) === a.id);
+          return [a.id, deriveTimeSegments(mine)] as const;
         })
+      : [],
+  );
+  const personUnder = new Map(
+    timeMode
+      ? assignees.map(
+          (a) => [a.id, deriveTimeUnder(stories.filter((s) => assigneeIdOf(s) === a.id))] as const,
+        )
       : [],
   );
   const personScale = Math.max(
@@ -391,6 +406,7 @@ export function EpicProgressSection({
         summary={summary}
         time={time}
         timeSegments={timeSegments}
+        timeUnder={timeUnder}
         finish={finish}
         risks={risks}
         sourceNote={heroSourceNote}
@@ -533,13 +549,17 @@ export function EpicProgressSection({
                       )}
                     </div>
                     {timeMode ? (
-                      <TimeChips segments={personTime.get(a.id) ?? []} estimate={a.estimate} />
+                      <TimeChips
+                        segments={personTime.get(a.id) ?? []}
+                        under={personUnder.get(a.id)}
+                        estimate={a.estimate}
+                      />
                     ) : (
                       <BandChips bands={assigneeBands(a)} metric={metric} />
                     )}
                   </TooltipTrigger>
                   <TooltipContent>
-                    {assigneeTip(a, metric, personTime.get(a.id) ?? [])}
+                    {assigneeTip(a, metric, personTime.get(a.id) ?? [], personUnder.get(a.id))}
                   </TooltipContent>
                 </Tooltip>
               </div>

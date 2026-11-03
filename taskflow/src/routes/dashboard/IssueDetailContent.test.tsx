@@ -394,7 +394,8 @@ describe('IssueDetailContent', () => {
       renderEpic([epicStory('S-1', 'indeterminate', { est: 7200, spent: 1800, rem: 3600 })]);
       await user.hover(screen.getByTestId('story-time-bar'));
       await waitFor(() => expect(rowTexts().length).toBeGreaterThan(0));
-      expect(rowTexts()).toEqual(['Estimate2h', 'Logged30m', 'Remaining1h']);
+      // Forecast 1h 30m against a 2h estimate → 30m under budget.
+      expect(rowTexts()).toEqual(['Estimate2h', 'Logged30m', 'Remaining1h', 'Under by30m']);
     });
 
     it('a Tempo-only story (remaining, no original) has estimate = remaining + logged (261103-lcd)', async () => {

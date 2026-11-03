@@ -44,7 +44,7 @@ import {
 import { cn } from '@/lib/utils';
 import { formatDurationCompact } from '@/services/jira/duration';
 import { ConfidenceMeter } from './ConfidenceMeter';
-import { BandBar, BandBreakdown, TimeBar, TimeBreakdown } from './EpicBands';
+import { BandBar, BandBreakdown, TimeBar, TimeBreakdown, type TimeUnder } from './EpicBands';
 import {
   SMALL_TEXT,
   STAT_CARD_CLASS,
@@ -70,6 +70,8 @@ interface EpicProgressSummaryProps {
   time: TimeTotals;
   /** Time-bar segments for the whole epic (used by the Time hero bar). */
   timeSegments: TimeSegment[];
+  /** Under-budget seconds per status (Time tooltip). */
+  timeUnder?: TimeUnder;
   /** Average of the Count / SP / Time forecasts (independent of the metric toggle). */
   finish: AveragedForecast;
   risks: EpicRisk[];
@@ -100,12 +102,14 @@ function Hero({
   summary,
   time,
   timeSegments,
+  timeUnder,
   sourceNote,
 }: {
   metric: Metric;
   summary: EpicSummary;
   time: TimeTotals;
   timeSegments: TimeSegment[];
+  timeUnder?: TimeUnder;
   sourceNote: string | null;
 }) {
   // Count / SP: done / in progress / to do. Time: % = logged / (logged + remaining)
@@ -117,7 +121,7 @@ function Hero({
       note={sourceNote ? <span data-testid="hero-source-note">{sourceNote}</span> : undefined}
     >
       {metric === 'time' ? (
-        <TimeBreakdown segments={timeSegments} estimate={time.estimated} />
+        <TimeBreakdown segments={timeSegments} under={timeUnder} estimate={time.estimated} />
       ) : (
         <BandBreakdown bands={bands} metric={metric} share />
       )}
@@ -513,6 +517,7 @@ export function EpicProgressSummary({
   summary,
   time,
   timeSegments,
+  timeUnder,
   finish,
   risks,
   sourceNote,
@@ -537,6 +542,7 @@ export function EpicProgressSummary({
           summary={summary}
           time={time}
           timeSegments={timeSegments}
+          timeUnder={timeUnder}
           sourceNote={sourceNote}
         />
         <FinishTile finish={finish} today={today} />

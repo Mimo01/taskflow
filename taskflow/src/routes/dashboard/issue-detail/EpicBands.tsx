@@ -7,6 +7,7 @@
  * bars use the same TimeBar, so rows and epic bars add up.
  * No hooks, spans only: the hero renders these inside a <button>.
  */
+import type { ReactNode } from 'react';
 import { TooltipRow } from '@/components/ui/tooltip-body';
 import {
   BANDS,
@@ -189,24 +190,49 @@ export function BandBreakdown({
 const OVER_TEXT = {
   amber: 'text-amber-700 dark:text-amber-400',
   red: 'text-red-600 dark:text-red-400',
+  under: 'text-green-700 dark:text-green-400',
 } as const;
 const OVER_CHIP = {
   amber: 'bg-amber-500/15 text-amber-700 dark:text-amber-400',
   red: 'bg-red-500/15 text-red-600 dark:text-red-400',
+  under: 'bg-green-500/15 text-green-700 dark:text-green-400',
 } as const;
+const MINUS = '\u2212';
+
+/** "+2h over" / "−1h under" (both when a status has stories on each side). */
+function overUnderSub(g: TimeGroup): ReactNode {
+  if (g.over <= 0 && g.under <= 0) return undefined;
+  return (
+    <span className="inline-flex gap-1.5">
+      {g.over > 0 ? (
+        <span className={OVER_TEXT[g.severe ? 'red' : 'amber']}>
+          {`+${formatDurationCompact(g.over)} over`}
+        </span>
+      ) : null}
+      {g.under > 0 ? (
+        <span className={OVER_TEXT.under}>{`${MINUS}${formatDurationCompact(g.under)} under`}</span>
+      ) : null}
+    </span>
+  );
+}
 
 export interface TimeGroup {
   cat: TimeSegment['cat'];
   logged: number;
   left: number;
   over: number;
+  /** Under budget: forecast below the estimate (opposite of over). */
+  under: number;
   severe: boolean;
 }
+/** Under-budget seconds per status (deriveTimeUnder). */
+export type TimeUnder = Record<TimeSegment['cat'], number>;
+const NO_UNDER: TimeUnder = { done: 0, indeterminate: 0, new: 0 };
 
 /** Per status group (done → in progress → to do): logged, left and overspend seconds. */
-export function timeGroups(segments: TimeSegment[]): TimeGroup[] {
+export function timeGroups(segments: TimeSegment[], under: TimeUnder = NO_UNDER): TimeGroup[] {
   return BANDS.map(({ cat }) => {
-    const g: TimeGroup = { cat, logged: 0, left: 0, over: 0, severe: false };
+    const g: TimeGroup = { cat, logged: 0, left: 0, over: 0, under: under[cat], severe: false };
     for (const s of segments) {
       if (s.cat !== cat) continue;
       if (s.part === 'logged' || s.part === 'loggedOver') g.logged += s.seconds;
@@ -221,12 +247,13 @@ export function timeGroups(segments: TimeSegment[]): TimeGroup[] {
 }
 
 /** Totals of a Time bar: logged, left, overspend (Σ per story beyond its estimate) and severity. */
-export function timeSummary(segments: TimeSegment[]) {
-  const groups = timeGroups(segments);
+export function timeSummary(segments: TimeSegment[], under: TimeUnder = NO_UNDER) {
+  const groups = timeGroups(segments, under);
   return {
     logged: groups.reduce((n, g) => n + g.logged, 0),
     left: groups.reduce((n, g) => n + g.left, 0),
     over: groups.reduce((n, g) => n + g.over, 0),
+    under: groups.reduce((n, g) => n + g.under, 0),
     severe: groups.some((g) => g.over > 0 && g.severe),
   };
 }
@@ -244,12 +271,14 @@ function groupValue(g: TimeGroup): string {
  */
 export function TimeBreakdown({
   segments,
+  under,
   estimate,
 }: {
   segments: TimeSegment[];
+  under?: TimeUnder;
   estimate: number;
 }) {
-  const groups = timeGroups(segments);
+  const groups = timeGroups(segments, under);
   const forecast = segmentsTotal(segments);
   const delta = forecast - estimate;
   return (
@@ -261,13 +290,7 @@ export function TimeBreakdown({
           color={STATUS_CATEGORY_COLOR[g.cat]}
           label={CAT_LABEL[g.cat]}
           value={groupValue(g)}
-          sub={
-            g.over > 0 ? (
-              <span className={OVER_TEXT[g.severe ? 'red' : 'amber']}>
-                {`+${formatDurationCompact(g.over)} over`}
-              </span>
-            ) : undefined
-          }
+          sub={overUnderSub(g)}
         />
       ))}
       <TooltipRow
@@ -288,9 +311,20 @@ export function TimeBreakdown({
   );
 }
 
-/** Time chips after a person bar: logged · left · estimate · over (amber / red, dim at 0). */
-export function TimeChips({ segments, estimate }: { segments: TimeSegment[]; estimate: number }) {
-  const t = timeSummary(segments);
+/** Time chips after a person bar: logged · left · estimate · net over (+ amber/red) or under (− green). */
+export function TimeChips({
+  segments,
+  under,
+  estimate,
+}: {
+  segments: TimeSegment[];
+  under?: TimeUnder;
+  estimate: number;
+}) {
+  const t = timeSummary(segments, under);
+  // Net of per-story overspend and under-budget: + amber / red, − green, 0 dimmed.
+  const net = t.over - t.under;
+  const tone = net > 0 ? OVER_CHIP[t.severe ? 'red' : 'amber'] : net < 0 ? OVER_CHIP.under : null;
   const chips = [
     { key: 'logged', label: 'logged', value: t.logged, tone: 'text-foreground' },
     { key: 'left', label: 'left', value: t.left, tone: 'text-muted-foreground' },
@@ -318,17 +352,25 @@ export function TimeChips({ segments, estimate }: { segments: TimeSegment[]; est
       <span
         role="img"
         data-testid="epic-assignee-chip"
-        data-part="over"
-        aria-label={`over ${formatChip(t.over, 'time')}`}
+        data-part="delta"
+        aria-label={
+          net > 0
+            ? `over ${formatChip(net, 'time')}`
+            : net < 0
+              ? `under ${formatChip(-net, 'time')}`
+              : `on estimate ${formatChip(0, 'time')}`
+        }
         className={cn(
           'w-12 truncate rounded px-1 text-center tabular-nums whitespace-nowrap',
           SMALL_TEXT,
-          t.over > 0
-            ? OVER_CHIP[t.severe ? 'red' : 'amber']
-            : 'bg-muted text-muted-foreground opacity-40',
+          tone ?? 'bg-muted text-muted-foreground opacity-40',
         )}
       >
-        {t.over > 0 ? `+${formatChip(t.over, 'time')}` : formatChip(0, 'time')}
+        {net > 0
+          ? `+${formatChip(net, 'time')}`
+          : net < 0
+            ? `${MINUS}${formatChip(-net, 'time')}`
+            : formatChip(0, 'time')}
       </span>
     </span>
   );

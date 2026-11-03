@@ -245,6 +245,21 @@ export function deriveTimeSegments(stories: JiraIssue[]): TimeSegment[] {
   return out;
 }
 
+/**
+ * Under-budget seconds per status (opposite of overspend): Σ per estimated story of
+ * max(estimate − (logged + remaining), 0). Not drawn as a segment — it is the empty track
+ * between the bar end and the estimate tick.
+ */
+export function deriveTimeUnder(stories: JiraIssue[]): Record<Cat, number> {
+  const out: Record<Cat, number> = { done: 0, indeterminate: 0, new: 0 };
+  for (const s of stories) {
+    const est = estimateOf(s);
+    if (est <= 0) continue;
+    out[catOf(s)] += Math.max(est - loggedOf(s) - remainingOf(s), 0);
+  }
+  return out;
+}
+
 /** Date key a done story was completed; null when the story is not in the done category. */
 export function doneDateKey(s: JiraIssue, today: string): string | null {
   if (catOf(s) !== 'done') return null;

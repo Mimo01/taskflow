@@ -319,6 +319,7 @@ export function IssueDetailContent({
                 const total = logged + remaining;
                 const overrun = est > 0 && logged > est;
                 const over = est > 0 ? Math.max(total - est, 0) : 0;
+                const under = est > 0 ? Math.max(est - total, 0) : 0;
                 return (
                   <li key={story.key}>
                     <button
@@ -392,6 +393,17 @@ export function IssueDetailContent({
                                 icon={<TriangleAlert className="size-3" />}
                                 label="Over by"
                                 value={formatDuration(over)}
+                              />
+                            ) : null}
+                            {under > 0 ? (
+                              <TooltipRow
+                                icon={<MARKER_ICON.estimate className="size-3" />}
+                                label="Under by"
+                                value={
+                                  <span className="text-green-700 dark:text-green-400">
+                                    {formatDuration(under)}
+                                  </span>
+                                }
                               />
                             ) : null}
                           </TooltipBody>

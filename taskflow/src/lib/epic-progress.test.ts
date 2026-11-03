@@ -60,6 +60,7 @@ import {
   remainingOf,
   timeWeightOf,
   deriveTimeSegments,
+  deriveTimeUnder,
   bandsOf,
   BANDS,
   bandPct,
@@ -394,6 +395,16 @@ describe('time model (261103-lcd)', () => {
     ]);
     // Total = logged + remaining.
     expect(segs.reduce((n, x) => n + x.seconds, 0)).toBe(24 * H);
+  });
+  it('deriveTimeUnder: per status, estimate minus forecast for stories under budget', () => {
+    expect(
+      deriveTimeUnder([
+        st('A', { cat: 'done', est: 4 * H, spent: 3 * H }),
+        st('B', { cat: 'indeterminate', est: 4 * H, spent: 2 * H, rem: 4 * H }),
+        st('C', { cat: 'indeterminate', est: 6 * H, spent: 3 * H, rem: 2 * H }),
+        st('U', { spent: H }),
+      ]),
+    ).toEqual({ done: H, indeterminate: H, new: 0 });
   });
   it('deriveTimeSegments: overspend up to 125% of the estimate is not severe', () => {
     const segs = deriveTimeSegments([

@@ -242,11 +242,12 @@ describe('EpicProgressSection review fixes (261001-fmk)', () => {
 
 // 261103-lcd: T-1 done → logged 1h 30m; T-2 open → Jira remaining 1h. Total 2h 30m.
 // 261103-lcd: Time tooltip = one row per status (logged · left, overspend) + Estimate/forecast.
-// T-1 done: 1h estimate, 1h 30m logged (30m over, 150% → red); T-2 to do: 1h left.
+// T-1 done: 1h estimate, 1h 30m logged (30m over, 150% → red); T-2 to do: 2h estimate, 1h left
+// (1h under budget).
 const ASSIGNEE_TIME_ROWS = [
   'Completed1h 30m logged+30m over',
   'In progress\u2014',
-  'To do1h left',
+  'To do1h left\u22121h under',
   'Estimate3hforecast 2h 30m (\u221230m)',
 ];
 
@@ -341,13 +342,14 @@ describe('EpicProgressSection time metric, card and tooltips (261001-g5q)', () =
     renderTimed();
     fireEvent.click(screen.getByRole('button', { name: 'Time' }));
     const row = screen.getByTestId('epic-assignee-row');
-    // 261103-lcd: logged = T-1 logged; left = T-2 Jira remaining; over = T-1 30m beyond 1h.
+    // 261103-lcd: logged = T-1 logged; left = T-2 Jira remaining; net = T-1 30m over minus
+    // T-2 1h under = 30m under (green, minus sign).
     expect(within(row).getByLabelText('logged 1h 30m')).toBeInTheDocument();
     expect(within(row).getByLabelText('left 1h')).toBeInTheDocument();
     expect(within(row).getByLabelText('estimate 3h')).toBeInTheDocument();
-    const over = within(row).getByLabelText('over 30m');
-    expect(over).toHaveTextContent('+30m');
-    expect(over.className).toContain('text-red-600');
+    const net = within(row).getByLabelText('under 30m');
+    expect(net).toHaveTextContent('\u221230m');
+    expect(net.className).toContain('text-green-700');
     expect(within(row).queryByLabelText(/^to do/)).toBeNull();
   });
 
@@ -1245,12 +1247,12 @@ describe('EpicProgressSection unified tabs (261001-rtw)', () => {
     const row = screen.getByTestId('epic-assignee-row');
     const chips = within(row).getAllByTestId('epic-assignee-chip');
     // 261103-lcd: logged = 1h 30m; remaining = T-2 Jira remaining 1h.
-    expect(chips.map((c) => c.textContent)).toEqual(['1h 30m', '1h', '3h', '+30m']);
+    expect(chips.map((c) => c.textContent)).toEqual(['1h 30m', '1h', '3h', '\u221230m']);
     expect(chips.map((c) => c.getAttribute('data-part'))).toEqual([
       'logged',
       'left',
       'estimate',
-      'over',
+      'delta',
     ]);
     // Status-grouped TimeBar: T-1 done (1h estimate, 1h 30m logged → 1h + 30m over, red at
     // 150%); T-2 to do (Jira remaining 1h, within its estimate).
