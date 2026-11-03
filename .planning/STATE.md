@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-08-13)
 Phase: 94
 Plan: Not started
 Status: Milestone complete
-Last activity: 2026-11-03 - Completed quick task 261103-jmo: release detail Not-covered table column order matches Deployment package mismatches (UAT approved)
+Last activity: 2026-11-03 - Completed quick task 261103-jqy: release detail Progress slot "release train" variant for future releases
 
 ## Performance Metrics
 
@@ -247,6 +247,7 @@ Acknowledged and deferred at v1.14 milestone close (2026-08-13) — 111 open art
 | 261103-fxn | Issue detail Merge Requests: replace capped 20-most-recent project fetch + client filter with per-issue search (state=all, in=title,description); merged/closed/opened all shown, "Closed" badge; branch-only key matches not covered | 2026-11-03 | 3d68adec | Verified (UAT approved) | [261103-fxn-merged-vs-closed-mr-linking-in-jira-issu](./quick/261103-fxn-merged-vs-closed-mr-linking-in-jira-issu/) |
 | 261103-g8m | Release detail task row: compact MR status (mixed-state ring + count, or state glyph + word) with per-MR details in a popover; single-MR in-place and multi-MR group BR/MS fixes; columns reordered | 2026-11-03 | 0c3c3c58 | Verified (UAT approved) | [261103-g8m-release-detail-task-row-mr-overall-statu](./quick/261103-g8m-release-detail-task-row-mr-overall-statu/) |
 | 261103-jmo | Release detail "Not covered by tasks above": columns reordered to match "Deployment package mismatches" (icon+Key, State, Author, Reviewers, Merge request, MR state, BR, MS, Fix) | 2026-11-03 | e23e717d | Verified (UAT approved) | [261103-jmo-release-detail-not-covered-table-matches](./quick/261103-jmo-release-detail-not-covered-table-matches/) |
+| 261103-jqy | Release detail Progress slot, thin-history/future variant redesigned as a "release train": TODAY → ticks for releases ahead → "window opens" → RELEASE, with "N releases ahead · window X d · in Y d"; header "after <prev>" while the window is ahead; burnup untouched | 2026-11-03 | 37a4b9ff | Needs UAT | [261103-jqy-release-detail-progress-variant-redesign](./quick/261103-jqy-release-detail-progress-variant-redesign/) |
 
 ## Session Continuity
 
