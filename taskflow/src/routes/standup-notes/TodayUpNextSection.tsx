@@ -26,6 +26,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { doneSummaryClass } from '@/lib/issueDisplayUtils';
 import { statusPillClass } from '@/lib/statusStyles';
+import { isDoneStatus } from '@/lib/time-progress';
 import { cn } from '@/lib/utils';
 import type { JiraIssue } from '@/services/jira';
 import type { SprintRow } from './filterSprintItems';
@@ -148,6 +149,7 @@ function IssueRow({
             widthClassName={TODAY_TIME_BAR_WIDTH_CLASS}
             testId="standup-time-bar"
             alwaysShowTrack
+            isDone={isDoneStatus(issue.fields.status.statusCategory?.key)}
           />
           <CachedAvatar
             url={issue.fields.assignee?.avatarUrls?.['48x48'] ?? null}

@@ -36,6 +36,7 @@ import { PriorityIcon } from '@/components/ui/priority-icon';
 import { doneSummaryClass } from '@/lib/issueDisplayUtils';
 import { PEEKED_ROW_CLASS } from '@/lib/peek-highlight';
 import { statusPillClass } from '@/lib/statusStyles';
+import { isDoneStatus } from '@/lib/time-progress';
 import { cn } from '@/lib/utils';
 import type { JiraIssue } from '@/services/jira';
 import { isIssueFlagged } from '@/services/jira';
@@ -211,7 +212,11 @@ export function MyTaskRow({
       </span>
 
       {/* Stacked time bar — fixed 144px width; consistent track + caption */}
-      <StackedTimeBar spentSeconds={spentSeconds} totalSeconds={totalSeconds} />
+      <StackedTimeBar
+        spentSeconds={spentSeconds}
+        totalSeconds={totalSeconds}
+        isDone={isDoneStatus(statusCategoryKey)}
+      />
 
       {/* Assignee avatar */}
       <CachedAvatar

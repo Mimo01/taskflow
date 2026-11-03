@@ -1,4 +1,5 @@
 import { Progress } from '@/components/ui/progress';
+import { timeProgress } from '@/lib/time-progress';
 import { cn } from '@/lib/utils';
 import { formatDuration } from '@/services/jira/duration';
 
@@ -15,6 +16,8 @@ interface StackedTimeBarProps {
   /** Render an empty track + "0m" caption instead of a blank spacer when there
    *  is no time data, so every row shows a bar (standup Today rows). */
   alwaysShowTrack?: boolean;
+  /** Row's own status is done: fills green at/under estimate instead of amber. */
+  isDone?: boolean;
 }
 
 /**
@@ -27,6 +30,7 @@ export function StackedTimeBar({
   widthClassName = TIME_BAR_WIDTH_CLASS,
   testId = 'my-task-time-bar',
   alwaysShowTrack = false,
+  isDone = false,
 }: StackedTimeBarProps) {
   const hasEst = typeof totalSeconds === 'number' && totalSeconds > 0;
   const hasSpent = spentSeconds > 0;
@@ -36,14 +40,12 @@ export function StackedTimeBar({
   }
 
   const est = hasEst ? (totalSeconds as number) : 0;
-  const fillPct = hasEst ? Math.min(100, Math.round((spentSeconds / est) * 100)) : 0;
-  const indicatorColor = hasEst
-    ? spentSeconds >= est
-      ? 'bg-red-500 rounded-full'
-      : fillPct >= 75
-        ? 'bg-amber-500 rounded-full'
-        : 'bg-green-500 rounded-full'
-    : undefined;
+  const { fillPct, indicatorClass } = timeProgress({
+    spentSeconds,
+    estimateSeconds: totalSeconds,
+    isDone,
+  });
+  const indicatorColor = indicatorClass ? `${indicatorClass} rounded-full` : undefined;
 
   const caption = hasEst
     ? `${formatDuration(spentSeconds)} / ${formatDuration(est)}`
