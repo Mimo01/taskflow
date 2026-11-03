@@ -47,3 +47,8 @@ By status / By type / By assignee rows on the release detail page are now native
 
 - Row tooltips covered neighbouring rows → now open after 600ms on the right of the row (`TooltipContent` gained a `side` prop).
 - "+N more" lines were inert → now a button opening a popover listing every hidden row as an aria-pressed toggle; the trigger shows `bg-muted` when a hidden value is filtered.
+
+## UAT follow-up 2 (ebf0442b) — approved 2026-11-03
+
+- "+N more" popover rows mirror the graph rows (avatar / type icon, name, mini bar, count) on the tooltip surface.
+- Constant selection padding: status/assignee rows px-1.5, waffle rows px-1.5 py-1 (column count minus 12px), popover rows h-7 px-2 — no shift on toggle.

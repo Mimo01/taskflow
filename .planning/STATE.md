@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-08-13)
 Phase: 94
 Plan: Not started
 Status: Milestone complete
-Last activity: 2026-11-02 - Completed quick task 261102-vuw: release detail breakdown rows toggle table filters
+Last activity: 2026-11-03 - Completed quick task 261102-vuw: release detail breakdown rows toggle table filters (UAT approved)
 
 ## Performance Metrics
 
@@ -237,7 +237,7 @@ Acknowledged and deferred at v1.14 milestone close (2026-08-13) — 111 open art
 | 261102-tg3 | Release detail MR labels: column-major pill grid capped to the donut height (extra pills open content-sized columns, nothing hidden); unlabelled MRs lead as an orange "N MRs without label" banner (orange accent-bar callout) above a hairline (grid drops to 4 rows) | 2026-11-02 | 35336628 | Verified (UAT approved) | [261102-tg3-release-detail-mr-labels-reduce-height-w](./quick/261102-tg3-release-detail-mr-labels-reduce-height-w/) |
 | 261102-u5r | Release detail Progress graph: no countdown in the slot (page header pill has it); burnup end labels removed, fixed 120px compact body (= donut size) at every width, denser date ticks (52px), right margin 40→12, TODAY line unlabelled, RELEASE labelled; MR donut tooltip titles sentence-case; thin timeline shows version names only (previous left, this release right) + shaded today→release gap; top done bar keeps N / M done with a simple Done/In Progress/To Do count tooltip (statusNames row + % removed) ; hairline dividers between graph slots (16px each side), band cols 1.1/auto/1.1/1.1fr | 2026-11-02 | 25340d68 | Verified (UAT approved) | [261102-u5r-redo-release-detail-progress-bar-burnup-](./quick/261102-u5r-redo-release-detail-progress-bar-burnup-/) |
 | 261102-vpm | Release detail By status: compact rows 24px → 22px (20px tried, too tight; cap/width/+N more unchanged) | 2026-11-02 | 66e515f4 | Verified (UAT approved) | [261102-vpm-on-release-detail-page-make-the-by-statu](./quick/261102-vpm-on-release-detail-page-make-the-by-statu/) |
-| 261102-vuw | Release detail By type/status/assignee rows toggle the Issues table Status/Type/Assignee filters (lifted useTaskIssueFilters, aria-pressed buttons, active bg-muted + others dimmed) | 2026-11-02 | ed65c161 | Needs Review (UAT) | [261102-vuw-release-detail-breakdown-rows-toggle-tab](./quick/261102-vuw-release-detail-breakdown-rows-toggle-tab/) |
+| 261102-vuw | Release detail By type/status/assignee rows toggle the Issues table Status/Type/Assignee filters (lifted useTaskIssueFilters, aria-pressed buttons, active bg-muted + others dimmed) | 2026-11-02 | ebf0442b | Verified (UAT approved) | [261102-vuw-release-detail-breakdown-rows-toggle-tab](./quick/261102-vuw-release-detail-breakdown-rows-toggle-tab/) |
 
 ## Session Continuity
 
