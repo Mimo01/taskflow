@@ -165,7 +165,7 @@ export function ReleaseDetailHeader({
     >
       <div className="flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
-          <h1 className="min-w-0 truncate text-lg font-semibold" title={name}>
+          <h1 className="min-w-0 truncate text-2xl font-semibold" title={name}>
             {name}
           </h1>
           <div className="flex flex-none">

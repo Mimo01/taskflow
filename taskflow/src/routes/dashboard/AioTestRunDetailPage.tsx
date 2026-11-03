@@ -226,7 +226,10 @@ export default function AioTestRunDetailPage() {
       </div>
       <div className="flex min-w-0 flex-shrink-0 items-center gap-3 border-b border-border px-6 py-3">
         <div className="flex min-w-0 flex-1 items-center gap-3">
-          <h1 className="min-w-0 truncate text-lg font-semibold" data-testid="aio-run-detail-title">
+          <h1
+            className="min-w-0 truncate text-2xl font-semibold"
+            data-testid="aio-run-detail-title"
+          >
             {title ||
               headerKey ||
               (runsPending ? <Skeleton className="h-5 w-64" /> : `Run ${runId}`)}

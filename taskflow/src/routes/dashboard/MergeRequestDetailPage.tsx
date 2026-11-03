@@ -215,7 +215,7 @@ export default function MergeRequestDetailPage() {
                   <MRStateBadge state={mr.state} draft={mr.draft} />
                 </div>
                 <div className="flex items-center gap-3">
-                  <h2 className="text-xl font-semibold leading-snug flex-1">{mr.title}</h2>
+                  <h2 className="text-2xl font-semibold leading-snug flex-1">{mr.title}</h2>
                   <LinkContextMenu href={mr.web_url}>
                     <Button
                       variant="outline"

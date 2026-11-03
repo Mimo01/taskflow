@@ -501,6 +501,7 @@ export function IssueDetailView({
 
   const issueDetailContentNode = issue && (
     <IssueDetailContent
+      titleClassName={layout === 'two-column' ? 'text-2xl' : undefined}
       issue={issue}
       issueKey={issueKey}
       jiraBaseUrl={jiraBaseUrl ?? ''}

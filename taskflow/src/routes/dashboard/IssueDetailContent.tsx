@@ -60,6 +60,8 @@ interface IssueDetailContentProps {
   onClone?: (initialValues: EditInitialValues) => void;
   onAddSubtask?: (parentKey: string) => void;
   epicStories?: JiraIssue[];
+  /** Tailwind text-size class for the summary title. Defaults to text-xl (peek sheet); the full page passes text-2xl. */
+  titleClassName?: string;
   isPinned?: boolean;
   onTogglePin?: (key: string) => void;
   /** Enriched subtasks from independent query (undefined = pending, [] = empty/loaded) */
@@ -155,6 +157,7 @@ function subtaskListContent({
 }
 
 export function IssueDetailContent({
+  titleClassName,
   issue,
   issueKey,
   jiraBaseUrl,
@@ -268,7 +271,7 @@ export function IssueDetailContent({
       {/* Title (the subtask parent link now lives in the Fields/sidebar block) */}
       <div>
         <p className="text-xs font-mono text-muted-foreground mb-1">{issue.key}</p>
-        <h2 className="text-xl font-semibold leading-snug">{summary}</h2>
+        <h2 className={cn(titleClassName ?? 'text-xl', 'font-semibold leading-snug')}>{summary}</h2>
       </div>
 
       {/* Description */}

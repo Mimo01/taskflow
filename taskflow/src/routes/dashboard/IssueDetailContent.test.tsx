@@ -121,6 +121,25 @@ const rowTexts = () =>
   [...document.querySelectorAll('[data-slot="tooltip-row"]')].map((r) => r.textContent);
 
 describe('IssueDetailContent', () => {
+  it('title defaults to text-xl and honours titleClassName', () => {
+    const props = {
+      issue: makeSubtaskIssue(),
+      issueKey: 'PROJ-10',
+      jiraBaseUrl: 'https://jira.example.com',
+      storyPointsFieldKey: 'story_points',
+      sprintFieldKey: 'sprint',
+      epicLinkFieldKey: 'epic_link',
+    };
+    const { unmount } = render(<IssueDetailContent {...props} />, { wrapper });
+    const title = screen.getByRole('heading', { level: 2, name: 'A subtask issue' });
+    expect(title).toHaveClass('text-xl');
+    unmount();
+    render(<IssueDetailContent {...props} titleClassName="text-2xl" />, { wrapper });
+    const title2 = screen.getByRole('heading', { level: 2, name: 'A subtask issue' });
+    expect(title2).toHaveClass('text-2xl');
+    expect(title2).not.toHaveClass('text-xl');
+  });
+
   // DETAIL-01: for a subtask fixture with fields.parent, a clickable parent card with the
   //            parent key + summary renders in the relationships region (replaced the old
   //            breadcrumb-above-title; see quick-260606-ugr redesign).

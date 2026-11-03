@@ -79,7 +79,7 @@ describe('ReleaseDetailHeader', () => {
   it('renders the name h1, one pill and the date', () => {
     renderHeader();
     const h = screen.getByRole('heading', { level: 1, name: '33.5.0' });
-    expect(h).toHaveClass('text-lg', 'font-semibold');
+    expect(h).toHaveClass('text-2xl', 'font-semibold');
     expect(h).toHaveAttribute('title', '33.5.0');
     expect(screen.getAllByTestId('release-status-pill')).toHaveLength(1);
     expect(screen.getByText('In 3 days')).toBeInTheDocument();

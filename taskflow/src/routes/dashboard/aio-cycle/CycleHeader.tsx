@@ -126,7 +126,7 @@ export function CycleHeader({
     <div className="flex flex-none flex-col gap-1 px-6 pt-3 pb-2">
       <div className="flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
-          <h1 className="min-w-0 truncate text-lg font-semibold">{name}</h1>
+          <h1 className="min-w-0 truncate text-2xl font-semibold">{name}</h1>
           <span className="flex-none font-mono text-xs text-muted-foreground">{cycleKey}</span>
           {cycle && (
             <div className="flex flex-none">
