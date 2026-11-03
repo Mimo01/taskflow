@@ -311,10 +311,13 @@ export function IssueDetailContent({
           {epicStories && epicStories.length > 0 && (
             <ul className="space-y-1 density-compact:space-y-0.5 density-comfortable:space-y-2">
               {epicStories.map((story) => {
+                // Same model as the epic bars: total = logged + remaining, fill = logged / total.
                 const est = estimateOf(story);
                 const logged = loggedOf(story);
-                const overrun = est > 0 && logged > est;
                 const remaining = remainingOf(story);
+                const total = logged + remaining;
+                const overrun = est > 0 && logged > est;
+                const over = est > 0 ? Math.max(total - est, 0) : 0;
                 return (
                   <li key={story.key}>
                     <button
@@ -348,26 +351,33 @@ export function IssueDetailContent({
                           data-testid="story-time-bar"
                           role="img"
                           aria-label={
-                            est > 0
-                              ? `Logged ${formatDuration(logged)} of ${formatDuration(est)}`
-                              : `No estimate, logged ${formatDuration(logged)}`
+                            total > 0
+                              ? `Logged ${formatDuration(logged)} of ${formatDuration(total)}`
+                              : 'No estimate'
                           }
                           data-overrun={overrun ? 'true' : undefined}
-                          data-empty={est > 0 ? undefined : 'true'}
+                          data-empty={total > 0 ? undefined : 'true'}
                           className="relative inline-flex h-1.5 w-16 flex-none overflow-hidden rounded-full bg-muted"
                         >
-                          {est > 0 && logged > 0 ? (
+                          {logged > 0 ? (
                             <span
                               className={cn(
                                 'h-full',
                                 overrun ? 'bg-destructive' : 'bg-muted-foreground',
                               )}
-                              style={{ width: `${Math.min(logged / est, 1) * 100}%` }}
+                              style={{ width: `${(logged / total) * 100}%` }}
+                            />
+                          ) : null}
+                          {over > 0 ? (
+                            <span
+                              data-testid="story-estimate-tick"
+                              className="absolute inset-y-0 w-px bg-foreground"
+                              style={{ left: `${(est / total) * 100}%` }}
                             />
                           ) : null}
                         </TooltipTrigger>
                         <TooltipContent>
-                          <TooltipBody note={est > 0 ? undefined : 'No estimate'}>
+                          <TooltipBody note={est > 0 || remaining > 0 ? undefined : 'No estimate'}>
                             {est > 0 ? (
                               <TooltipRow
                                 icon={<MARKER_ICON.estimate className="size-3" />}
@@ -380,18 +390,18 @@ export function IssueDetailContent({
                               label="Logged"
                               value={formatDuration(logged)}
                             />
-                            {est > 0 && !overrun ? (
+                            {est > 0 || remaining > 0 ? (
                               <TooltipRow
                                 icon={<MARKER_ICON.remaining className="size-3" />}
                                 label="Remaining"
                                 value={formatDuration(remaining)}
                               />
                             ) : null}
-                            {overrun ? (
+                            {over > 0 ? (
                               <TooltipRow
                                 icon={<TriangleAlert className="size-3" />}
                                 label="Over by"
-                                value={formatDuration(logged - est)}
+                                value={formatDuration(over)}
                               />
                             ) : null}
                           </TooltipBody>

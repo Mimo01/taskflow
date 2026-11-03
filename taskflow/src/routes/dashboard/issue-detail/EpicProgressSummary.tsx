@@ -103,7 +103,8 @@ function Hero({
   time: TimeTotals;
   sourceNote: string | null;
 }) {
-  // One model for every tab: done / in progress / to do weighted by the active metric.
+  // Count / SP: done / in progress / to do. Time: logged vs remaining (bands.done = logged),
+  // so the % is logged / (logged + remaining) — the sum of the Stories row bars.
   const bands = summaryBands(summary);
   const bigText = summary.total === 0 ? '\u2014' : `${summary.pctDone}%`;
   const tip = (
@@ -111,11 +112,16 @@ function Hero({
       note={sourceNote ? <span data-testid="hero-source-note">{sourceNote}</span> : undefined}
     >
       <BandBreakdown bands={bands} metric={metric} share />
-      {metric === 'time' ? (
+      {metric === 'time' && time.estimated > 0 ? (
         <TooltipRow
-          icon={<MARKER_ICON.logged className="size-3" />}
-          label="Logged"
-          value={formatDuration(time.logged)}
+          icon={<MARKER_ICON.estimate className="size-3" />}
+          label="Estimate"
+          value={formatDuration(time.estimated)}
+          sub={
+            summary.total > time.estimated
+              ? `+${formatDurationCompact(summary.total - time.estimated)} over`
+              : undefined
+          }
         />
       ) : null}
     </TooltipBody>
@@ -142,7 +148,14 @@ function Hero({
               </span>
             </>
           }
-          sub={<BandBar bands={bands} className="h-2 w-3/4 max-w-40" testId="epic-hero-bar" />}
+          sub={
+            <BandBar
+              bands={bands}
+              metric={metric}
+              className="h-2 w-3/4 max-w-40"
+              testId="epic-hero-bar"
+            />
+          }
         />
       </TooltipTrigger>
       <TooltipContent>{tip}</TooltipContent>

@@ -348,9 +348,9 @@ describe('time model (261103-lcd)', () => {
     expect(estimateOf(st('A', { rem: 0, spent: 600 }))).toBe(0);
     expect(estimateOf(st('A', { est: 7200, rem: 1800 }))).toBe(7200);
   });
-  it('timeWeightOf: done → logged (else estimate), open → logged + remaining', () => {
+  it('timeWeightOf: logged + remaining (done → logged only, even when unlogged)', () => {
     expect(timeWeightOf(st('A', { cat: 'done', est: H, spent: 5400 }))).toBe(5400);
-    expect(timeWeightOf(st('A', { cat: 'done', est: H }))).toBe(H);
+    expect(timeWeightOf(st('A', { cat: 'done', est: H }))).toBe(0);
     expect(timeWeightOf(st('A', { est: 7200, spent: 1800, rem: H }))).toBe(5400);
     expect(timeWeightOf(st('A', { est: H }))).toBe(H);
   });
@@ -1713,10 +1713,10 @@ describe('status bands (261001-rtw)', () => {
       expect(sum).toEqual(summaryBands(deriveSummary(stories, metric, SP)));
     }
   });
-  it('time bands: done = completed work (incl. logged on open stories), rest = remaining (261103-lcd)', () => {
+  it('time bands: done = logged on every story, rest = remaining (261103-lcd)', () => {
     const b = summaryBands(deriveSummary(stories, 'time', SP));
-    // A done unlogged → its estimate H; B open, 5h logged over a 2h estimate → 5h done, 0 left.
-    expect(b.done).toBe(6 * H);
+    // A done unlogged → 0; B open, 5h logged over a 2h estimate → 5h logged, 0 left.
+    expect(b.done).toBe(5 * H);
     expect(b.inProgress).toBe(0);
     expect(b.todo).toBe(2 * H);
   });

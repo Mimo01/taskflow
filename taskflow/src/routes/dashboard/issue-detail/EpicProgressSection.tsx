@@ -116,11 +116,11 @@ function assigneeTip(a: AssigneeBucket, metric: Metric): ReactNode {
   return (
     <TooltipBody title={a.name}>
       <BandBreakdown bands={assigneeBands(a)} metric={metric} valueAs="share" />
-      {metric === 'time' ? (
+      {metric === 'time' && a.estimate > 0 ? (
         <TooltipRow
-          icon={<MARKER_ICON.logged className="size-3" />}
-          label="Logged"
-          value={formatDuration(a.logged)}
+          icon={<MARKER_ICON.estimate className="size-3" />}
+          label="Estimate"
+          value={formatDuration(a.estimate)}
         />
       ) : null}
     </TooltipBody>
@@ -128,8 +128,8 @@ function assigneeTip(a: AssigneeBucket, metric: Metric): ReactNode {
 }
 
 /**
- * The assignee's three status bands in the active metric's unit. Time: completed seconds
- * (logged, or a closed story's weight) vs remaining seconds on in-progress / to-do stories.
+ * The assignee's bands in the active metric's unit. Time: done = logged seconds,
+ * inProgress + todo = remaining seconds (rendered as Logged vs Remaining).
  */
 function assigneeBands(a: AssigneeBucket): Bands {
   return { done: a.done, inProgress: a.inProgress, todo: a.todo };
@@ -336,7 +336,7 @@ export function EpicProgressSection({
       ? 'unavailable'
       : 'loading';
   const emptyEstimate =
-    (metric === 'sp' && summary.total === 0) || (timeMode && time.estimated === 0);
+    (metric === 'sp' && summary.total === 0) || (timeMode && summary.total === 0);
   const heroSourceNote = sourceNote({
     metric,
     history: historySource,
@@ -488,7 +488,11 @@ export function EpicProgressSection({
                     // group, not img: its avatar and chips are role="img" children (no nested img roles).
                     role="group"
                     tabIndex={0}
-                    aria-label={`${a.name}: done ${formatMetric(a.done, metric)}, in progress ${formatMetric(a.inProgress, metric)}, to do ${formatMetric(a.todo, metric)}`}
+                    aria-label={
+                      timeMode
+                        ? `${a.name}: logged ${formatMetric(a.done, metric)}, remaining ${formatMetric(a.inProgress + a.todo, metric)}`
+                        : `${a.name}: done ${formatMetric(a.done, metric)}, in progress ${formatMetric(a.inProgress, metric)}, to do ${formatMetric(a.todo, metric)}`
+                    }
                     className="flex items-center gap-2 rounded-sm py-0.5 hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                   >
                     <span className="flex w-40 min-w-0 flex-none items-center gap-1.5">
@@ -496,7 +500,12 @@ export function EpicProgressSection({
                       <span className="truncate pr-0.5">{a.name}</span>
                     </span>
                     <div data-testid="epic-assignee-bar" className="min-w-0 flex-1">
-                      <BandBar bands={assigneeBands(a)} scale={maxAssignee} className="h-3" />
+                      <BandBar
+                        bands={assigneeBands(a)}
+                        metric={metric}
+                        scale={maxAssignee}
+                        className="h-3"
+                      />
                     </div>
                     <BandChips bands={assigneeBands(a)} metric={metric} />
                   </TooltipTrigger>

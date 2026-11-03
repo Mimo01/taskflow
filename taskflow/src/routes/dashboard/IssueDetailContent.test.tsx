@@ -290,16 +290,38 @@ describe('IssueDetailContent', () => {
       renderEpic([epicStory('S-1', 'new', { est: 3600, spent: 7200 })]);
       await user.hover(screen.getByTestId('story-time-bar'));
       expect(await screen.findByText('Over by')).toBeInTheDocument();
-      // Over by replaces Remaining (never both).
-      expect(rowTexts()).toEqual(['Estimate1h', 'Logged2h', 'Over by1h']);
+      expect(rowTexts()).toEqual(['Estimate1h', 'Logged2h', 'Remaining0m', 'Over by1h']);
     });
 
-    it('renders an empty muted track when there is no estimate', async () => {
+    it('fills logged / (logged + remaining) with a tick at the estimate when the forecast overruns (261103-lcd)', async () => {
       const user = userEvent.setup();
-      renderEpic([epicStory('S-1', 'new', { spent: 1800 })]);
+      // 2h estimate, 30m logged, Jira remaining 3h → total 3h 30m, forecast 1h 30m over.
+      renderEpic([epicStory('S-1', 'indeterminate', { est: 7200, spent: 1800, rem: 10800 })]);
+      const bar = screen.getByTestId('story-time-bar');
+      expect(bar).toHaveAttribute('aria-label', 'Logged 30m of 3h 30m');
+      const fill = bar.firstElementChild as HTMLElement;
+      expect(Number.parseFloat(fill.style.width)).toBeCloseTo((1800 / 12600) * 100, 3);
+      expect(fill.className).toContain('bg-muted-foreground');
+      const tick = screen.getByTestId('story-estimate-tick');
+      expect(Number.parseFloat(tick.style.left)).toBeCloseTo((7200 / 12600) * 100, 3);
+      await user.hover(bar);
+      await waitFor(() => expect(rowTexts().length).toBeGreaterThan(0));
+      expect(rowTexts()).toEqual(['Estimate2h', 'Logged30m', 'Remaining3h', 'Over by1h 30m']);
+    });
+
+    it('renders an empty muted track when there is nothing logged or estimated', () => {
+      renderEpic([epicStory('S-1', 'new', {})]);
       const bar = screen.getByTestId('story-time-bar');
       expect(bar).toHaveAttribute('data-empty', 'true');
       expect(bar.firstElementChild).toBeNull();
+    });
+
+    it('no estimate but logged: logged is the whole total, tooltip notes no estimate', async () => {
+      const user = userEvent.setup();
+      renderEpic([epicStory('S-1', 'new', { spent: 1800 })]);
+      const bar = screen.getByTestId('story-time-bar');
+      expect(bar).not.toHaveAttribute('data-empty');
+      expect((bar.firstElementChild as HTMLElement).style.width).toBe('100%');
       await user.hover(bar);
       expect(await screen.findByText('No estimate')).toBeInTheDocument();
       expect(rowTexts()).toEqual(['Logged30m']);

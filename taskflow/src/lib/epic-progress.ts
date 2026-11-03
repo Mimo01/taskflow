@@ -148,14 +148,11 @@ export function remainingOf(s: JiraIssue): number {
 }
 
 /**
- * Per-story forecast total (seconds): done → logged (or the estimate when
- * nothing was logged); open → logged + remaining.
+ * Per-story forecast total (seconds) = logged + remaining (remaining is 0 once
+ * done). The Stories rows, hero and assignee bars all use this one total, so a
+ * row's bar and the epic bar always add up.
  */
 export function timeWeightOf(s: JiraIssue): number {
-  if (catOf(s) === 'done') {
-    const log = loggedOf(s);
-    return log > 0 ? log : estimateOf(s);
-  }
   return loggedOf(s) + remainingOf(s);
 }
 
@@ -166,14 +163,14 @@ export function weightOf(s: JiraIssue, metric: Metric, spKey: string): number {
 }
 
 /**
- * Per-story split of its weight into status bands. Count / SP: the whole
- * weight goes into the band of the story's category. Time: done band =
- * completed work (a done story's weight, or time logged on an open story);
- * an open story's remaining goes into the band of its category.
+ * Per-story split of its weight into bands. Count / SP: the whole weight goes
+ * into the band of the story's category. Time: `done` = logged (every story)
+ * and the remaining goes into `inProgress` / `todo` by category — the UI
+ * renders Time as two parts, Logged vs Remaining (inProgress + todo).
  */
 export function bandsOf(s: JiraIssue, metric: Metric, spKey: string): Bands {
   const c = catOf(s);
-  if (metric === 'time' && c !== 'done') {
+  if (metric === 'time') {
     const rem = remainingOf(s);
     return {
       done: loggedOf(s),
