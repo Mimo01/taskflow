@@ -222,13 +222,13 @@ export function mrStatusSummary(rows: DriftRow[]): {
   let label: string;
   let tone: ChipTone;
   if (live === 0) {
-    label = 'closed';
+    label = 'Closed';
     tone = 'muted';
   } else if (merged === live) {
-    label = 'merged';
+    label = 'Merged';
     tone = 'green';
   } else if (merged === 0) {
-    label = open === 0 ? 'draft' : 'open';
+    label = open === 0 ? 'Draft' : 'Open';
     tone = open === 0 ? 'muted' : 'blue';
   } else {
     label = `${merged}/${live} merged`;
@@ -237,7 +237,7 @@ export function mrStatusSummary(rows: DriftRow[]): {
 
   const parts = [`${merged} merged`, `${open + draft} open`];
   if (closed > 0) parts.push(`${closed} closed`);
-  const fraction = live === 0 ? 'closed' : `${merged}/${live}`;
+  const fraction = live === 0 ? 'Closed' : `${merged}/${live}`;
   // Starts with the visible text (WCAG 2.5.3 label-in-name).
   const ariaLabel = `${groups.filter((g) => g.kind !== 'closed').length > 1 ? `${fraction} merged` : label} — ${n} merge request${n === 1 ? '' : 's'}: ${parts.join(', ')} — show details`;
 
@@ -1029,7 +1029,7 @@ function TaskMrCell({
           <MrEmptyRing />
           <span className="sr-only">MR status unknown</span>
           <span aria-hidden="true" className="truncate min-w-0">
-            unknown
+            Unknown
           </span>
         </div>
         {naDriftCells}
@@ -1066,7 +1066,7 @@ function TaskMrCell({
           <MrEmptyRing />
           <span className="sr-only">No milestone, not checked</span>
           <span aria-hidden="true" className="truncate min-w-0">
-            no MS
+            No MS
           </span>
         </div>
         {naDriftCells}
@@ -1219,6 +1219,14 @@ const MR_KIND_GLYPH: Record<MrStateKind, LucideIcon> = {
   closed: GitPullRequestClosed,
 };
 
+/** Sentence case, like the app's status pills ("In Progress"). */
+const MR_KIND_WORD: Record<MrStateKind, string> = {
+  merged: 'Merged',
+  open: 'Open',
+  draft: 'Draft',
+  closed: 'Closed',
+};
+
 const MR_KIND_TONE: Record<MrStateKind, ChipTone> = {
   merged: 'green',
   open: 'blue',
@@ -1232,7 +1240,7 @@ function MrKindGlyph({ kind }: { kind: MrStateKind }) {
   return (
     <>
       <Icon aria-hidden="true" data-mr-state={kind} className="size-4 flex-none" />
-      <span data-testid="mr-status-label">{kind}</span>
+      <span data-testid="mr-status-label">{MR_KIND_WORD[kind]}</span>
     </>
   );
 }

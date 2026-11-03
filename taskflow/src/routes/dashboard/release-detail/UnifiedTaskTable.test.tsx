@@ -303,7 +303,7 @@ describe('UnifiedTaskTable', () => {
     const taskRow = screen.getByTestId('task-row');
     expect(taskRow).not.toHaveTextContent('!9');
     expect(taskRow).not.toHaveTextContent('Merged thing');
-    expect(screen.getByTestId('mr-status-chip')).toHaveTextContent('merged');
+    expect(screen.getByTestId('mr-status-chip')).toHaveTextContent('Merged');
     const popover = await openMrPopover();
     expect(popover).toHaveTextContent('!9');
     expect(popover).toHaveTextContent('Merged thing');
@@ -343,7 +343,7 @@ describe('UnifiedTaskTable', () => {
       mr: makeMR({ state: 'opened', draft: true }),
     });
     renderWithRows([row], { flaggedMrCount: 1 });
-    expect(screen.getByTestId('mr-status-chip')).toHaveTextContent('draft');
+    expect(screen.getByTestId('mr-status-chip')).toHaveTextContent('Draft');
     expect(
       screen.getByTestId('mr-status-chip').querySelector('[data-mr-state="draft"]'),
     ).not.toBeNull();
@@ -418,7 +418,7 @@ describe('UnifiedTaskTable', () => {
       ];
       renderWithRows(rows);
       const chip = screen.getByTestId('mr-status-chip');
-      expect(within(chip).getByTestId('mr-status-label')).toHaveTextContent('open');
+      expect(within(chip).getByTestId('mr-status-label')).toHaveTextContent('Open');
       expect(chip).toHaveAttribute('aria-label', expect.stringContaining('3 merge request'));
       // One state only → no ring, just the state glyph + word.
       expect(chip.querySelectorAll('[data-mr-group]')).toHaveLength(0);
@@ -463,7 +463,7 @@ describe('UnifiedTaskTable', () => {
     it('a single MR uses the same chip + popover (no direct link)', async () => {
       renderWithRows([makeRow({ mr: makeMR({ iid: 1, state: 'merged' }) })]);
       const chip = screen.getByTestId('mr-status-chip');
-      expect(within(chip).getByTestId('mr-status-label')).toHaveTextContent('merged');
+      expect(within(chip).getByTestId('mr-status-label')).toHaveTextContent('Merged');
       expect(chip).toHaveAttribute('aria-label', expect.stringContaining('1 merge request'));
       const popover = await openMrPopover();
       expect(within(popover).getAllByTestId('mr-popover-line')).toHaveLength(1);
@@ -1292,9 +1292,9 @@ describe('CR-08: the MR chip actually reveals every MR', () => {
     const lines = within(popover).getAllByTestId('mr-popover-line');
     expect(lines).toHaveLength(2);
     expect(popover).toHaveTextContent('!1');
-    expect(popover).toHaveTextContent('merged');
+    expect(popover).toHaveTextContent('Merged');
     expect(popover).toHaveTextContent('!2');
-    expect(popover).toHaveTextContent('open');
+    expect(popover).toHaveTextContent('Open');
   });
 });
 
@@ -2045,7 +2045,7 @@ describe('responsive container tiers', () => {
     expect(icon).toHaveClass('@max-[640px]:hidden');
     const chip = within(taskRow).getByTestId('mr-status-chip');
     // The label goes sr-only at narrow widths; the state/count groups carry it.
-    expect(within(chip).getByTestId('mr-status-label')).toHaveTextContent('open');
+    expect(within(chip).getByTestId('mr-status-label')).toHaveTextContent('Open');
     // Fixed-width badge: fills its (constant-width) column.
     expect(chip.parentElement).toHaveClass('w-[5rem]', '@max-[520px]:hidden');
     const state = within(taskRow).getByText('Status');
@@ -2056,7 +2056,7 @@ describe('responsive container tiers', () => {
     const { unmount } = renderWithRows([], { driftUnavailable: true, hasMatchedMilestone: true });
     const failed = screen.getByTestId('mr-slot-failed');
     expect(within(failed).getByText('MR status unknown')).toHaveClass('sr-only');
-    const short = within(failed).getByText('unknown');
+    const short = within(failed).getByText('Unknown');
     expect(short).toHaveAttribute('aria-hidden', 'true');
     expect(short).toHaveClass('truncate');
     unmount();
@@ -2070,7 +2070,7 @@ describe('responsive container tiers', () => {
     renderWithRows([], { hasMatchedMilestone: false });
     const unavailable = screen.getByTestId('mr-slot-unavailable');
     expect(within(unavailable).getByText('No milestone, not checked')).toHaveClass('sr-only');
-    expect(within(unavailable).getByText('no MS')).toHaveAttribute('aria-hidden', 'true');
+    expect(within(unavailable).getByText('No MS')).toHaveAttribute('aria-hidden', 'true');
   });
 
   it('flagged badge words hide below 520 while counts and aria-labels remain', () => {
@@ -2196,13 +2196,13 @@ describe('261102-fkr: secondary row info', () => {
   });
 
   it.each([
-    ['opened', false, 'open'],
-    ['opened', true, 'draft'],
-    ['merged', false, 'merged'],
-    ['closed', false, 'closed'],
+    ['opened', false, 'Open', 'open'],
+    ['opened', true, 'Draft', 'draft'],
+    ['merged', false, 'Merged', 'merged'],
+    ['closed', false, 'Closed', 'closed'],
     // GitLab "locked" is a closed MR that can't be reopened — same glyph.
-    ['locked', false, 'closed'],
-  ] as const)('state %s draft=%s renders %s', (state, draft, label) => {
+    ['locked', false, 'Closed', 'closed'],
+  ] as const)('state %s draft=%s renders %s', (state, draft, label, kind) => {
     renderSection({
       secondaryRows: [
         makeRow({
@@ -2216,7 +2216,7 @@ describe('261102-fkr: secondary row info', () => {
     const cell = sec().getByTestId('secondary-mr-state');
     expect(cell).toHaveTextContent(label);
     // Same glyph + word style as the task row's MR status.
-    expect(cell.querySelector(`[data-mr-state="${label}"]`)).not.toBeNull();
+    expect(cell.querySelector(`[data-mr-state="${kind}"]`)).not.toBeNull();
   });
 });
 
@@ -2793,17 +2793,17 @@ describe('mrStatusSummary', () => {
     makeRow({ mr: makeMR({ id, iid: id, state, draft }) });
 
   it('labels merged / mixed / open / draft / n open / closed', () => {
-    expect(mrStatusSummary([r(1, 'merged'), r(2, 'merged')]).label).toBe('merged');
+    expect(mrStatusSummary([r(1, 'merged'), r(2, 'merged')]).label).toBe('Merged');
     const mixed = mrStatusSummary([r(1, 'opened'), r(2, 'merged')]);
     expect(mixed.label).toBe('1/2 merged');
-    expect(mrStatusSummary([r(1, 'opened')]).label).toBe('open');
-    expect(mrStatusSummary([r(1, 'opened', true)]).label).toBe('draft');
-    expect(mrStatusSummary([r(1, 'opened'), r(2, 'opened')]).label).toBe('open');
-    expect(mrStatusSummary([r(1, 'closed'), r(2, 'locked')]).label).toBe('closed');
+    expect(mrStatusSummary([r(1, 'opened')]).label).toBe('Open');
+    expect(mrStatusSummary([r(1, 'opened', true)]).label).toBe('Draft');
+    expect(mrStatusSummary([r(1, 'opened'), r(2, 'opened')]).label).toBe('Open');
+    expect(mrStatusSummary([r(1, 'closed'), r(2, 'locked')]).label).toBe('Closed');
   });
 
   it('excludes closed MRs from the counts when something is live', () => {
-    expect(mrStatusSummary([r(1, 'merged'), r(2, 'closed')]).label).toBe('merged');
+    expect(mrStatusSummary([r(1, 'merged'), r(2, 'closed')]).label).toBe('Merged');
   });
 
   it('groups by state (merged, open, draft, closed) and counts every MR', () => {
@@ -2844,7 +2844,7 @@ describe('mrStatusSummary', () => {
     expect(mrStatusSummary([r(1, 'opened'), r(2, 'merged')]).ariaLabel).toBe(
       '1/2 merged — 2 merge requests: 1 merged, 1 open — show details',
     );
-    expect(mrStatusSummary([r(1, 'merged')]).ariaLabel).toMatch(/^merged — 1 merge request: /);
+    expect(mrStatusSummary([r(1, 'merged')]).ariaLabel).toMatch(/^Merged — 1 merge request: /);
   });
 });
 
@@ -2926,7 +2926,7 @@ describe('task row MR status chip + popover (261103-g8m)', () => {
     expect(line).toHaveTextContent('Fix login redirect');
     expect(line).not.toHaveTextContent('PROJ-1');
     expect(line).toHaveTextContent('Alexandra Longname-Smith');
-    expect(within(line).getByTestId('mr-popover-state')).toHaveTextContent('open');
+    expect(within(line).getByTestId('mr-popover-state')).toHaveTextContent('Open');
   });
 
   it('orders task columns Key / Summary / MRs / BR / MS / Status / Assignee', () => {
@@ -2951,7 +2951,7 @@ describe('task row MR status chip + popover (261103-g8m)', () => {
     ]);
     // merged + closed → all live MRs merged: a check, no ring.
     const done = screen.getByTestId('mr-status-chip');
-    expect(within(done).getByTestId('mr-status-label')).toHaveTextContent('merged');
+    expect(within(done).getByTestId('mr-status-label')).toHaveTextContent('Merged');
     expect(done.querySelectorAll('[data-mr-group]')).toHaveLength(0);
     unmount();
 
@@ -2989,7 +2989,7 @@ describe('task row MR status chip + popover (261103-g8m)', () => {
     renderWithRows([makeRow({ mr: makeMR({ id: 9, iid: 9, state: 'merged' }) })]);
     const lone = screen.getByTestId('mr-status-chip');
     expect(lone).toHaveAttribute('aria-label', expect.stringContaining('1 merge request'));
-    expect(within(lone).getByTestId('mr-status-label')).toHaveTextContent('merged');
+    expect(within(lone).getByTestId('mr-status-label')).toHaveTextContent('Merged');
     // All merged → a check, not a single-colour ring.
     expect(lone.querySelector('[data-mr-state="merged"]')).not.toBeNull();
     expect(lone.querySelectorAll('[data-mr-group]')).toHaveLength(0);
