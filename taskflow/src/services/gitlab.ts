@@ -1218,7 +1218,7 @@ export function flattenGitLabError(body: unknown): string | undefined {
  * @param token     - Personal Access Token
  * @param projectId - GitLab numeric project ID
  * @param mrIid     - Merge request project-scoped `iid`
- * @param fields    - Subset of { target_branch, milestone_id } to update
+ * @param fields    - Subset of { target_branch, milestone_id, title } to update
  * @returns The updated merge request
  */
 export async function updateMergeRequest(
@@ -1226,17 +1226,22 @@ export async function updateMergeRequest(
   token: string,
   projectId: number,
   mrIid: number,
-  fields: { target_branch?: string; milestone_id?: number },
+  fields: { target_branch?: string; milestone_id?: number; title?: string },
 ): Promise<GitLabMR> {
-  if (fields.target_branch === undefined && fields.milestone_id === undefined) {
-    throw new Error('updateMergeRequest requires target_branch or milestone_id');
+  if (
+    fields.target_branch === undefined &&
+    fields.milestone_id === undefined &&
+    fields.title === undefined
+  ) {
+    throw new Error('updateMergeRequest requires target_branch, milestone_id or title');
   }
 
   // T-90-01: explicit pick only — never spread `fields` or JSON.stringify it,
   // so an unknown/extra key passed at runtime is always dropped.
-  const body: { target_branch?: string; milestone_id?: number } = {};
+  const body: { target_branch?: string; milestone_id?: number; title?: string } = {};
   if (fields.target_branch !== undefined) body.target_branch = fields.target_branch;
   if (fields.milestone_id !== undefined) body.milestone_id = fields.milestone_id;
+  if (fields.title !== undefined) body.title = fields.title;
 
   const base = baseUrl.replace(/\/$/, '');
   const url = `${base}/api/v4/projects/${projectId}/merge_requests/${mrIid}`;

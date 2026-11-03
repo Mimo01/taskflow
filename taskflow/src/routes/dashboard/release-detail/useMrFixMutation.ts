@@ -66,6 +66,7 @@ export { MR_CHANNEL_QUERY_PREFIXES };
 export type MrFixPatch = {
   target_branch?: string;
   milestone?: GitLabMR['milestone'];
+  title?: string;
 };
 
 /**

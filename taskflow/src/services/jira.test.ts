@@ -10,6 +10,7 @@ import {
   buildBodySearchJql,
   fetchIssuesByKeys,
   searchJiraBody,
+  addIssueFixVersion,
   bulkUpdateIssue,
   fetchEnrichedSubtasks,
   createIssue,
@@ -1349,6 +1350,48 @@ describe('jira service', () => {
     });
   });
 
+  describe('addIssueFixVersion', () => {
+    it('PUTs the update.fixVersions add verb (never fields.fixVersions)', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({ ok: true, status: 204 } as Response);
+
+      await addIssueFixVersion('https://jira.example.com/', 'token', 'PROJ-1', '10100');
+
+      const call = vi.mocked(mockFetch).mock.calls[0];
+      expect(call[0]).toBe('https://jira.example.com/rest/api/2/issue/PROJ-1');
+      const options = call[1] as RequestInit;
+      expect(options.method).toBe('PUT');
+      expect(JSON.parse(options.body as string)).toEqual({
+        update: { fixVersions: [{ add: { id: '10100' } }] },
+      });
+    });
+
+    it('throws before any fetch for an invalid issue key', async () => {
+      await expect(
+        addIssueFixVersion('https://jira.example.com', 'token', '../x', '10100'),
+      ).rejects.toThrow('Invalid issue key');
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+
+    it('surfaces the flattened Jira message', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: false,
+        status: 400,
+        json: async () => ({ errorMessages: ['Version is not valid for project'] }),
+      } as Response);
+
+      await expect(
+        addIssueFixVersion('https://jira.example.com', 'secret-tok', 'PROJ-1', '1'),
+      ).rejects.toThrow('Version is not valid for project');
+    });
+
+    it('throws a token-free generic error on 403', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({ ok: false, status: 403 } as Response);
+      await expect(
+        addIssueFixVersion('https://jira.example.com', 'secret-tok', 'PROJ-1', '1'),
+      ).rejects.toThrow('Failed to update PROJ-1');
+    });
+  });
+
   describe('CREATE-03: bulkUpdateIssue', () => {
     it('sends PUT to /rest/api/2/issue/{key} with correct fields body', async () => {
       vi.mocked(mockFetch).mockResolvedValue({
@@ -2649,9 +2692,7 @@ describe('buildBodySearchJql', () => {
     expect(buildBodySearchJql('SHOP', 'sign-in flow', 'open')).toContain(
       'text ~ "sign" AND text ~ "flow*"',
     );
-    expect(buildBodySearchJql('SHOP', 'api/v2', 'open')).toContain(
-      'text ~ "api" AND text ~ "v2*"',
-    );
+    expect(buildBodySearchJql('SHOP', 'api/v2', 'open')).toContain('text ~ "api" AND text ~ "v2*"');
     expect(buildBodySearchJql('SHOP', 'user@example.com', 'open')).toContain(
       'text ~ "user" AND text ~ "example.com*"',
     );

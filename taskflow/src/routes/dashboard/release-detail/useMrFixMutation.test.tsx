@@ -65,6 +65,20 @@ describe('useMrFixMutation', () => {
   });
 
   describe('cache helpers', () => {
+    it('patchMrInChannelCaches patches title across every channel prefix', () => {
+      const queryClient = makeQueryClient();
+      seedChannelCaches(queryClient, [makeMr({ id: 7, title: 'Old' })]);
+
+      patchMrInChannelCaches(queryClient, PROJECT_ID, 7, { title: 'PROJ-1 Old' });
+
+      for (const prefix of MR_CHANNEL_QUERY_PREFIXES) {
+        const [[, list]] = queryClient.getQueriesData<GitLabMR[]>({
+          queryKey: [prefix, PROJECT_ID],
+        });
+        expect(list?.[0].title).toBe('PROJ-1 Old');
+      }
+    });
+
     it('patchMrInChannelCaches patches the target MR across all three windowed prefixes for the project, leaving other MRs and other projects untouched', () => {
       const queryClient = makeQueryClient();
       const targetMr = makeMr({ id: 7, target_branch: 'develop' });

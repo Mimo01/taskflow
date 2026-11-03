@@ -2981,6 +2981,44 @@ export async function bulkUpdateIssue(
 }
 
 /**
+ * ADD a fix version to an issue without touching its other fixVersions.
+ *
+ * Uses the `update.fixVersions` add verb (atomic, no read needed) rather than
+ * `fields.fixVersions`, which would REPLACE the whole set.
+ * Fallback if Jira DC rejects add-by-id: `{ add: { name } }`.
+ *
+ * @throws Error 'Invalid issue key' before any fetch when the key is malformed
+ */
+export async function addIssueFixVersion(
+  baseUrl: string,
+  token: string,
+  issueKey: string,
+  versionId: string,
+): Promise<void> {
+  if (!ISSUE_KEY_RE.test(issueKey)) {
+    throw new Error(`Invalid issue key: ${issueKey}`);
+  }
+  const url = `${baseUrl.replace(/\/$/, '')}/rest/api/2/issue/${issueKey}`;
+  const response = await apiFetch(
+    'jira',
+    url,
+    {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ update: { fixVersions: [{ add: { id: versionId } }] } }),
+    },
+    'Create/Edit Issue',
+  );
+  if (!response.ok && response.status !== 204) {
+    if (response.status === 401 || response.status === 403) {
+      throw new ApiError(`Failed to update ${issueKey}`, response.status, 'jira');
+    }
+    const body = await response.json().catch(() => ({}));
+    throw new Error(flattenJiraError(body) ?? `Failed to update ${issueKey}: ${response.status}`);
+  }
+}
+
+/**
  * Assign (or unassign) an issue via the dedicated Jira Server/DC endpoint.
  * name === null means Unassigned. Never send "-1" (assigns the project default)
  * or "Unassigned" (400 not assignable).

@@ -2852,9 +2852,22 @@ describe('gitlab service', () => {
 
     it('throws before any fetch when neither field is provided', async () => {
       await expect(updateMergeRequest(BASE, TOKEN, PROJECT_ID, MR_IID, {})).rejects.toThrow(
-        'updateMergeRequest requires target_branch or milestone_id',
+        'updateMergeRequest requires target_branch, milestone_id or title',
       );
       expect(mockFetch).not.toHaveBeenCalled();
+    });
+
+    it('sends only { title } when only a title is provided', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => updatedMr,
+      } as Response);
+
+      await updateMergeRequest(BASE, TOKEN, PROJECT_ID, MR_IID, { title: 'PROJ-1 Fix' });
+
+      const [, calledOptions] = vi.mocked(mockFetch).mock.calls[0] as [string, { body: string }];
+      expect(JSON.parse(calledOptions.body)).toEqual({ title: 'PROJ-1 Fix' });
     });
 
     it('drops unknown/extra keys from the request body', async () => {
