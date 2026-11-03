@@ -2792,3 +2792,95 @@ describe('mrStatusSummary', () => {
     expect(mrStatusSummary([r(1, 'merged')]).ariaLabel).toMatch(/^1 merge request: /);
   });
 });
+
+describe('task row MR status chip + popover (261103-g8m)', () => {
+  beforeEach(() => {
+    mockUpdateMergeRequest.mockReset();
+  });
+
+  it('a failed fix is still shown after the popover is closed and reopened (lazy keepMounted)', async () => {
+    mockUpdateMergeRequest.mockRejectedValueOnce(new Error('protected branch'));
+    renderWithRows([makeRow({ br: 'flag', flagged: true })], { flaggedMrCount: 1 });
+
+    // Never opened: nothing is mounted for this row.
+    expect(screen.queryByTestId('mr-popover')).toBeNull();
+
+    const popover = await openMrPopover();
+    fireEvent.click(screen.getByTestId('drift-br'));
+    await waitFor(() =>
+      expect(screen.getByTestId('drift-br').querySelector('.text-red-600')).toBeTruthy(),
+    );
+
+    fireEvent.keyDown(popover, { key: 'Escape' });
+    await waitFor(() =>
+      expect(screen.getByTestId('mr-status-chip')).toHaveAttribute('aria-expanded', 'false'),
+    );
+
+    await openMrPopover();
+    const br = screen.getByTestId('drift-br');
+    expect(br.querySelector('.text-red-600')).toBeTruthy();
+    expect(br).toHaveAttribute('title', 'protected branch');
+    expect(mockUpdateMergeRequest).toHaveBeenCalledTimes(1);
+  });
+
+  it('the chip and a flagged aggregate are z-10 pointer-events-auto buttons, siblings of the overlay; an ok aggregate is inert', () => {
+    renderWithRows([makeRow({ br: 'flag', ms: 'ok', flagged: true })], { flaggedMrCount: 1 });
+
+    const overlay = screen.getByTestId('task-row-overlay');
+    for (const id of ['mr-status-chip', 'task-drift-br']) {
+      const el = screen.getByTestId(id);
+      expect(el.tagName).toBe('BUTTON');
+      expect(el).toHaveClass('pointer-events-auto', 'relative', 'z-10');
+      expect(overlay.contains(el)).toBe(false);
+    }
+    const ok = screen.getByTestId('task-drift-ms');
+    expect(ok.tagName).not.toBe('BUTTON');
+    expect(ok.parentElement).toHaveClass('pointer-events-none');
+  });
+
+  it('clicking the chip never opens the issue peek', async () => {
+    const onOpenIssue = vi.fn();
+    renderWithRows([makeRow()], { onOpenIssue });
+    await openMrPopover();
+    expect(onOpenIssue).not.toHaveBeenCalled();
+  });
+
+  it('every popover line carries group/row and the scroller is positioned (sr-only live regions)', async () => {
+    renderWithRows([
+      makeRow({ mr: makeMR({ id: 1, iid: 1 }) }),
+      makeRow({ mr: makeMR({ id: 2, iid: 2 }) }),
+    ]);
+    const popover = await openMrPopover();
+    const lines = within(popover).getAllByTestId('mr-popover-line');
+    expect(lines).toHaveLength(2);
+    for (const l of lines) expect(l).toHaveClass('group/row');
+    expect(lines[0].parentElement).toHaveClass('relative');
+  });
+
+  it('caps dots at 3 plus +N for 5 MRs; a lone merged MR is 1 dot and "merged"', async () => {
+    const five = [1, 2, 3, 4, 5].map((i) => makeRow({ mr: makeMR({ id: i, iid: i }) }));
+    const { unmount } = renderWithRows(five);
+    const chip = screen.getByTestId('mr-status-chip');
+    expect(chip.querySelectorAll('.rounded-full')).toHaveLength(3);
+    expect(chip).toHaveTextContent('+2');
+    unmount();
+
+    renderWithRows([makeRow({ mr: makeMR({ id: 9, iid: 9, state: 'merged' }) })]);
+    const lone = screen.getByTestId('mr-status-chip');
+    expect(lone.querySelectorAll('.rounded-full')).toHaveLength(1);
+    expect(lone).toHaveTextContent('merged');
+    const popover = await openMrPopover();
+    expect(within(popover).getAllByTestId('mr-popover-line')).toHaveLength(1);
+  });
+
+  it('the chip aria-label summarises merged/open counts', () => {
+    renderWithRows([
+      makeRow({ mr: makeMR({ id: 1, iid: 1, state: 'merged' }), evaluated: false }),
+      makeRow({ mr: makeMR({ id: 2, iid: 2, state: 'opened' }) }),
+    ]);
+    expect(screen.getByTestId('mr-status-chip')).toHaveAttribute(
+      'aria-label',
+      expect.stringMatching(/2 merge requests: 1 merged, 1 open/),
+    );
+  });
+});
