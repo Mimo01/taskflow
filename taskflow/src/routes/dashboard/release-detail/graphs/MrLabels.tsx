@@ -1,4 +1,4 @@
-import { Check, TriangleAlert } from 'lucide-react';
+import { Tag as TagIcon, TriangleAlert } from 'lucide-react';
 import type { CSSProperties } from 'react';
 import { cn } from '@/lib/utils';
 import type { LabelCoverage } from '../releaseSummaries';
@@ -43,7 +43,7 @@ function LabelPill({
           }
         : {})}
       className={cn(
-        'inline-flex h-5 max-w-full min-w-0 items-stretch self-start justify-self-start overflow-hidden rounded text-xs font-medium text-[color:var(--lp-l)] dark:text-[color:var(--lp-d)]',
+        'inline-flex h-5 max-w-full min-w-0 items-stretch overflow-hidden rounded text-xs font-medium text-[color:var(--lp-l)] dark:text-[color:var(--lp-d)]',
         interactive && 'cursor-pointer ring-offset-0 hover:brightness-95',
         active && 'ring-2 ring-[color:var(--lp-l)] dark:ring-[color:var(--lp-d)]',
       )}
@@ -55,7 +55,9 @@ function LabelPill({
         } as CSSProperties
       }
     >
-      <span className="flex min-w-0 items-center truncate px-1.5">{l.label.name}</span>
+      <span className="flex min-w-0 max-w-[16rem] items-center truncate px-1.5">
+        {l.label.name}
+      </span>
       <span
         data-testid="mr-label-count"
         className="flex items-center border-l px-1.5 tabular-nums opacity-80"
@@ -68,16 +70,10 @@ function LabelPill({
 }
 
 /**
- * Max rows (banner included) before extra pills flow into another column: 5 rows
- * of h-5 pills plus gap-1 is 116px, which fits beside the 120px donut.
- */
-const MAX_LABEL_ROWS = 5;
-
-/**
- * Labels block of the Merge requests cell, behind a hairline: an orange "N MRs
- * without label" warning banner on top spanning the full width (when any MR is
- * unlabelled), then a column-major grid of every GitLab-style pill (never
- * collapsed) whose row cap leaves room for the banner within the donut height.
+ * Full-width label strip under the release graphs: a muted "Labels" caption, an
+ * orange "N MRs without label" chip first (when any MR is unlabelled), then every
+ * GitLab-style pill (never collapsed) in a wrapping row. Chip and pills toggle
+ * the task table label filter when onToggleLabel is set.
  */
 export function MrLabels({
   labelSummary,
@@ -97,19 +93,18 @@ export function MrLabels({
   const missing = coverage && !coverage.allLabeled ? coverage.unlabeled.length : 0;
   if (labelSummary.length === 0 && missing === 0) return null;
 
-  const hasBanner = missing > 0;
-  // The banner takes one row of the donut-height budget, so the grid gets one fewer.
-  const maxRows = hasBanner ? MAX_LABEL_ROWS - 1 : MAX_LABEL_ROWS;
-  const rows = Math.max(1, Math.min(labelSummary.length, maxRows));
-  const Banner = onToggleLabel ? 'button' : 'div';
+  const hasChip = missing > 0;
+  const Chip = onToggleLabel ? 'button' : 'div';
 
   return (
     <div
       data-testid="mr-labels"
-      className={cn('flex min-w-0 flex-col gap-1 border-l pl-3 text-xs', className)}
+      className={cn('flex min-w-0 flex-wrap items-center gap-1.5 text-xs', className)}
     >
-      {hasBanner ? (
-        <Banner
+      <TagIcon className="size-3.5 flex-none text-muted-foreground" aria-hidden="true" />
+      <span className="text-xs text-muted-foreground @max-[440px]/page:sr-only">Labels</span>
+      {hasChip ? (
+        <Chip
           {...(onToggleLabel
             ? {
                 type: 'button' as const,
@@ -120,7 +115,7 @@ export function MrLabels({
             : {})}
           data-testid="mr-labels-unlabeled"
           className={cn(
-            'flex h-5 w-full min-w-0 items-center gap-1.5 overflow-hidden rounded-r border-l-[3px] border-orange-500 bg-orange-500/8 px-1.5 text-left text-xs text-orange-800 dark:border-orange-400 dark:bg-orange-400/10 dark:text-orange-200',
+            'inline-flex h-5 flex-none items-center gap-1 rounded bg-orange-500/10 px-1.5 font-medium text-orange-800 dark:bg-orange-400/10 dark:text-orange-200',
             onToggleLabel && 'cursor-pointer hover:bg-orange-500/15',
             activeLabel === UNLABELED_FILTER &&
               'bg-orange-500/20 ring-2 ring-orange-500/60 dark:bg-orange-400/20 dark:ring-orange-400/60',
@@ -134,39 +129,19 @@ export function MrLabels({
             <span className="font-semibold tabular-nums">{missing}</span>{' '}
             {missing === 1 ? 'MR' : 'MRs'} without label
           </span>
-        </Banner>
+        </Chip>
       ) : null}
-      {hasBanner && labelSummary.length > 0 ? (
-        <hr data-testid="mr-labels-divider" className="border-border" />
+      {hasChip && labelSummary.length > 0 ? (
+        <span aria-hidden="true" className="h-4 border-l" />
       ) : null}
-      {labelSummary.length > 0 ? (
-        <div
-          data-testid="mr-labels-grid"
-          className="grid min-w-0 grid-flow-col content-start justify-start gap-1 gap-x-1.5"
-          style={{
-            gridTemplateRows: `repeat(${rows}, auto)`,
-            gridAutoColumns: 'fit-content(9.5rem)',
-          }}
-        >
-          {labelSummary.map((l) => (
-            <LabelPill
-              key={l.label.name}
-              l={l}
-              active={activeLabel === l.label.name}
-              onToggle={onToggleLabel}
-            />
-          ))}
-        </div>
-      ) : coverage?.allLabeled && labelSummary.length === 0 ? (
-        <span
-          data-testid="mr-labels-all"
-          title="All MRs labelled"
-          className="inline-flex text-green-600 dark:text-green-400"
-        >
-          <Check className="size-3 flex-none" aria-hidden="true" />
-          <span className="sr-only">All MRs labelled</span>
-        </span>
-      ) : null}
+      {labelSummary.map((l) => (
+        <LabelPill
+          key={l.label.name}
+          l={l}
+          active={activeLabel === l.label.name}
+          onToggle={onToggleLabel}
+        />
+      ))}
     </div>
   );
 }

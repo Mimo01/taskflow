@@ -19,6 +19,7 @@ import { CreateBranchDialog } from './release-detail/CreateBranchDialog';
 import { CreateMilestoneDialog } from './release-detail/CreateMilestoneDialog';
 import { DeploymentPackageSection } from './release-detail/DeploymentPackageSection';
 import { EditReleaseModal } from './release-detail/EditReleaseModal';
+import { MrLabels } from './release-detail/graphs/MrLabels';
 import { ReleaseAssigneeRows } from './release-detail/graphs/ReleaseAssigneeRows';
 import { ReleaseBurnup } from './release-detail/graphs/ReleaseBurnup';
 import { ReleaseMrDonut } from './release-detail/graphs/ReleaseMrDonut';
@@ -336,15 +337,7 @@ export default function ReleaseDetailPage() {
     />
   );
   const mrSlotEl = showDonut ? (
-    <ReleaseMrDonut
-      counts={mrDonutCounts}
-      state={donutState}
-      labelCoverage={labelCoverage}
-      labelSummary={labelSummary}
-      activeLabel={labelFilter}
-      onToggleLabel={toggleLabelFilter}
-      compact
-    />
+    <ReleaseMrDonut counts={mrDonutCounts} state={donutState} compact />
   ) : (
     <div className="flex min-w-0 flex-1 flex-col gap-2">
       <ReleaseStatusRows
@@ -532,6 +525,15 @@ export default function ReleaseDetailPage() {
                   </div>
                 </div>
               )}
+              {showDonut && donutState === 'ready' ? (
+                <MrLabels
+                  labelSummary={labelSummary}
+                  coverage={labelCoverage}
+                  activeLabel={labelFilter}
+                  onToggleLabel={toggleLabelFilter}
+                  className="mx-6 mt-4 border-t pt-3"
+                />
+              ) : null}
             </>
           )}
           {/* Package mismatches as a full-width action list (renders nothing

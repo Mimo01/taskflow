@@ -454,7 +454,7 @@ describe('ReleaseDetailPage', () => {
     }
   });
 
-  it('has no separate Labels row; labels live in the Merge requests cell', () => {
+  it('renders labels in their own strip after the graph grid, not in the Merge requests cell', () => {
     const mr = { id: 1, iid: 1, title: 't', state: 'merged', draft: false, labels: [] };
     mockHook.mockReturnValue({
       ...gitlabFixture(),
@@ -467,10 +467,17 @@ describe('ReleaseDetailPage', () => {
     } as never);
     renderPage();
     expect(screen.queryByTestId('label-summary-section')).toBeNull();
-    expect(screen.queryByText('Labels')).toBeNull();
-    expect(screen.getByTestId('release-graph-mrs')).toContainElement(
-      screen.getByTestId('mr-labels'),
-    );
+    const strip = screen.getByTestId('mr-labels');
+    expect(screen.getByTestId('release-graph-mrs')).not.toContainElement(strip);
+    const grid = screen.getByTestId('release-graph-grid');
+    expect(grid.compareDocumentPosition(strip) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const table = screen.queryByTestId('unified-task-table');
+    if (table) {
+      expect(strip.compareDocumentPosition(table) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    }
+    const pill = screen.getByTestId('mr-label-pill');
+    fireEvent.click(pill);
+    expect(pill).toHaveAttribute('aria-pressed', 'true');
   });
 
   it('shows no label line when By status replaces the MR cell', () => {

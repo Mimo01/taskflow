@@ -1,11 +1,7 @@
 import { GitMerge } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
-import { cn } from '@/lib/utils';
 import { AioDonut, AioDonutSkeleton } from '../../aio-cycle/AioDonut';
 import { mrDonutSlices } from '../releaseBuckets';
-import type { LabelCoverage } from '../releaseSummaries';
 import { COMPACT_DONUT_SIZE, DONUT_GRAPH_SIZE, GraphSlot, type GraphSlotState } from './GraphSlot';
-import { type MrLabelCount, MrLabels } from './MrLabels';
 
 type Counts = { merged: number; open: number; draft: number; closed: number };
 const ORDER = ['merged', 'open', 'draft', 'closed'] as const;
@@ -14,23 +10,11 @@ export const MR_ERROR_TEXT = "Couldn't load merge requests. Refresh to try again
 export function ReleaseMrDonut({
   counts,
   state,
-  labelCoverage = null,
-  labelSummary = [],
-  activeLabel = null,
-  onToggleLabel,
   compact = false,
   className,
 }: {
   counts: Counts;
   state: GraphSlotState;
-  /** Footer line: MRs missing a label (omitted without coverage). */
-  labelCoverage?: LabelCoverage | null;
-  /** MR label chips for the footer line. */
-  labelSummary?: MrLabelCount[];
-  /** Label currently filtering the task table. */
-  activeLabel?: string | null;
-  /** Click a label pill to filter the task table by it. */
-  onToggleLabel?: (name: string) => void;
   compact?: boolean;
   className?: string;
 }) {
@@ -50,22 +34,12 @@ export function ReleaseMrDonut({
       testId="release-graph-mrs"
       className={className}
       skeleton={
-        <div className="flex flex-wrap items-center gap-4">
+        <div className="flex justify-center">
           <AioDonutSkeleton size={DONUT_GRAPH_SIZE} testId="release-mr-donut-skeleton" />
-          <div className="grid gap-1.5">
-            <Skeleton className="h-3 w-20" />
-            <Skeleton className="h-3 w-16" />
-            <Skeleton className="h-3 w-14" />
-          </div>
         </div>
       }
     >
-      <div
-        className={cn(
-          'my-auto flex flex-wrap items-start justify-center gap-y-3',
-          compact ? 'gap-x-3' : 'gap-x-6',
-        )}
-      >
+      <div className="my-auto flex justify-center">
         {/* No legend: slice counts come from the hover tooltip and the aria-label. */}
         <AioDonut
           slices={slices}
@@ -78,12 +52,6 @@ export function ReleaseMrDonut({
               <span className="text-xs text-muted-foreground">MRs</span>
             </>
           }
-        />
-        <MrLabels
-          labelSummary={labelSummary}
-          coverage={labelCoverage}
-          activeLabel={activeLabel}
-          onToggleLabel={onToggleLabel}
         />
       </div>
     </GraphSlot>
