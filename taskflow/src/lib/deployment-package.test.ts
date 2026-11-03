@@ -188,6 +188,38 @@ describe('evaluatePackageSync', () => {
     expect(r.state).toBe('mismatch');
     expect(r.fixes.map((f) => f.kind).sort()).toEqual(['set-fix-version', 'set-package']);
   });
+  it('mismatch with several dated fix versions offers a package fix per resolvable version', () => {
+    // Issue already had R-99 (no RM week) and gained R-44 via "add fix version";
+    // the package sits in week 43 where the project has no version.
+    const v99 = { id: '9', name: 'R-99', releaseDate: '2027-01-01' };
+    const r = evaluatePackageSync({
+      ...base,
+      projectVersions: [v44, v99],
+      pkgKey: 'RM-11',
+      fixVersions: [v99, v44],
+    });
+    expect(r.state).toBe('mismatch');
+    expect(r.fixes).toEqual([
+      {
+        kind: 'set-package',
+        childKey: 'RM-21',
+        childSummary: 'Core deployment',
+        weekSummary: 'WEEK44 (26.10.2026 - 01.11.2026)',
+      },
+    ]);
+  });
+  it('mismatch without any fix says why', () => {
+    const r = evaluatePackageSync({
+      ...base,
+      projectVersions: [v44],
+      pkgKey: 'RM-11',
+      fixVersions: [v44],
+      projectName: 'Billing',
+    });
+    expect(r.state).toBe('mismatch');
+    expect(r.fixes).toEqual([]);
+    expect(r.hint).toContain('No task for "Billing"');
+  });
   it('unresolved for unknown package key or undated fix versions', () => {
     expect(evaluatePackageSync({ ...base, pkgKey: 'RM-999', fixVersions: [v43] }).state).toBe(
       'unresolved',

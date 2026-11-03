@@ -398,13 +398,32 @@ export function evaluatePackageSync(input: {
   const fixes: PackageFix[] = [];
   const fvFix = setFixVersionFix(projectVersions, pkgWeek, fixVersions);
   if (fvFix) fixes.push(fvFix);
-  const pkgFix = setPackageFix(dated, weeks, projectName, projectKey);
-  if ('fix' in pkgFix) fixes.push(pkgFix.fix);
-  return {
-    state: 'mismatch',
-    hint: `Fix version release date is outside the package week (${pkgWeek.start} to ${pkgWeek.end}).`,
-    fixes,
-  };
+  // Several dated fix versions (e.g. one just added from "Not covered by
+  // tasks"): offer moving the package to each version's week that resolves,
+  // instead of bailing out as ambiguous and leaving the row without a fix.
+  let pkgReason: { reason: string; detail?: string } | null = null;
+  const seen = new Set<string>();
+  for (const v of dated) {
+    const r = setPackageFix([v], weeks, projectName, projectKey);
+    if (!('fix' in r)) {
+      pkgReason ??= r;
+      continue;
+    }
+    if (r.fix.kind !== 'set-package' || r.fix.childKey === pkgKey || seen.has(r.fix.childKey))
+      continue;
+    seen.add(r.fix.childKey);
+    fixes.push(r.fix);
+  }
+  const hint = `Fix version release date is outside the package week (${pkgWeek.start} to ${pkgWeek.end}).`;
+  if (fixes.length === 0 && pkgReason) {
+    return {
+      state: 'mismatch',
+      hint: `${hint} ${pkgReason.reason}`,
+      detail: pkgReason.detail,
+      fixes,
+    };
+  }
+  return { state: 'mismatch', hint, fixes };
 }
 
 /**
