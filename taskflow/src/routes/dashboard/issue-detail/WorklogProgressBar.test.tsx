@@ -8,6 +8,7 @@ function makeIssue(overrides: {
   isSubtask?: boolean;
   timeSpentSeconds?: number;
   originalEstimateSeconds?: number;
+  statusCategoryKey?: string;
 }): JiraIssueDetail {
   return {
     id: '1',
@@ -17,6 +18,7 @@ function makeIssue(overrides: {
         name: overrides.issuetypeName ?? 'Story',
         subtask: overrides.isSubtask ?? false,
       },
+      status: { statusCategory: { key: overrides.statusCategoryKey ?? 'indeterminate' } },
       timetracking:
         overrides.timeSpentSeconds != null || overrides.originalEstimateSeconds != null
           ? {
@@ -69,10 +71,28 @@ describe('WorklogProgressBar', () => {
     expect(screen.getByText('2h / 3h')).toBeTruthy();
   });
 
-  it('uses red indicator when spent >= estimate', () => {
-    const issue = makeIssue({ timeSpentSeconds: 7200, originalEstimateSeconds: 7200 });
+  it('uses red indicator when spent > estimate', () => {
+    const issue = makeIssue({ timeSpentSeconds: 9000, originalEstimateSeconds: 7200 });
     const { container } = render(<WorklogProgressBar issue={issue} subtasks={undefined} />);
     expect(container.querySelector('.bg-red-500')).toBeTruthy();
+  });
+
+  it('uses amber indicator when not done and spent == estimate', () => {
+    const issue = makeIssue({ timeSpentSeconds: 7200, originalEstimateSeconds: 7200 });
+    const { container } = render(<WorklogProgressBar issue={issue} subtasks={undefined} />);
+    expect(container.querySelector('.bg-amber-500')).toBeTruthy();
+    expect(container.querySelector('.bg-red-500')).toBeNull();
+  });
+
+  it('done issue spent 2h / original 4h is a 50% green bar', () => {
+    const issue = makeIssue({
+      timeSpentSeconds: 7200,
+      originalEstimateSeconds: 14400,
+      statusCategoryKey: 'done',
+    });
+    const { container } = render(<WorklogProgressBar issue={issue} subtasks={undefined} />);
+    expect(container.querySelector('.bg-green-500')).toBeTruthy();
+    expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '50');
   });
 
   it('uses amber indicator when fill >= 75%', () => {

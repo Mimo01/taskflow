@@ -4,8 +4,8 @@
  * Shows a spent-vs-estimate progress bar with a "{spent} / {estimate}"
  * caption when an estimate is available, or just "Spent: X" text otherwise.
  * Visual pattern matches the My Tasks page's `StackedTimeBar` (`MyTaskRow.tsx`): shared `Progress`
- * primitive, `h-1.5 w-full rounded-full` track, same color thresholds (green
- * under 75%, amber from 75% up to 100%, red on overrun), and the caption
+ * primitive, `h-1.5 w-full rounded-full` track, color matrix from the shared
+ * `timeProgress` helper (see lib/time-progress.ts), and the caption
  * stacked below the bar rather than beside it. The bar is intentionally
  * omitted (not rendered as a misleading 0%/full bar) when there's no estimate
  * at all.
@@ -31,12 +31,14 @@
  * subtasks by hand -- was tried across several rounds and was solving the
  * wrong layer: Jira already computes and exposes this aggregate natively).
  *
- * The progress percentage itself prefers Jira's own `aggregateprogress.percent`
- * (server-computed, own + subtasks, consistent with the spent/estimate fields
- * above) and only falls back to a locally-computed spent/estimate ratio when
- * `aggregateprogress` isn't present.
+ * Fill is spent vs the ORIGINAL estimate via the shared `timeProgress`
+ * helper. Jira's `aggregateprogress` and remaining estimate are deliberately
+ * not used for done issues because Jira zeroes remaining on close, which made
+ * closed issues show a full bar; remaining is only an estimate fallback for
+ * not-done issues.
  */
 import { Progress } from '@/components/ui/progress';
+import { timeProgress } from '@/lib/time-progress';
 import { formatDuration } from '@/services/jira/duration';
 import { MetaRow } from './MetaRow';
 
@@ -59,8 +61,8 @@ interface TimeTrackingSummaryProps {
   aggregatetimespent?: number | null;
   /** Jira's own (non-aggregate) time spent on this issue, in seconds. */
   timespent?: number | null;
-  /** Jira's server-computed aggregate progress (own + subtasks); `percent` is preferred over deriving one from spent/estimate. */
-  aggregateprogress?: { progress: number; total: number; percent?: number } | null;
+  /** Issue is in the done status category. */
+  isDone: boolean;
 }
 
 export function TimeTrackingSummary({
@@ -69,23 +71,27 @@ export function TimeTrackingSummary({
   aggregatetimeestimate,
   aggregatetimespent,
   timespent,
-  aggregateprogress,
+  isDone,
 }: TimeTrackingSummaryProps) {
   const spent = aggregatetimespent ?? timespent ?? timetracking?.timeSpentSeconds ?? 0;
-  const estimate =
-    aggregatetimeoriginalestimate ??
-    aggregatetimeestimate ??
-    timetracking?.originalEstimateSeconds ??
-    timetracking?.remainingEstimateSeconds ??
-    0;
+  const originalEstimate =
+    aggregatetimeoriginalestimate ?? timetracking?.originalEstimateSeconds ?? 0;
+  const estimate = isDone
+    ? originalEstimate
+    : (aggregatetimeoriginalestimate ??
+      timetracking?.originalEstimateSeconds ??
+      aggregatetimeestimate ??
+      timetracking?.remainingEstimateSeconds ??
+      0);
   const hasData = spent > 0 || estimate > 0;
 
   // Bar only makes sense when there's an estimate to measure progress against;
   // omit it entirely otherwise rather than showing a misleading 0%/full bar.
-  const rawPercent = aggregateprogress?.percent ?? Math.round((spent / estimate) * 100);
-  const fillPct = Math.min(100, Math.max(0, rawPercent));
-  const isOverrun = spent >= estimate && estimate > 0;
-  const indicatorColor = isOverrun ? 'bg-red-500' : fillPct >= 75 ? 'bg-amber-500' : 'bg-green-500';
+  const { fillPct, indicatorClass } = timeProgress({
+    spentSeconds: spent,
+    estimateSeconds: estimate,
+    isDone,
+  });
 
   return (
     <MetaRow label="Time Tracking">
@@ -96,7 +102,7 @@ export function TimeTrackingSummary({
           <Progress
             value={fillPct}
             className="h-1.5 w-full rounded-full"
-            indicatorClassName={`${indicatorColor} rounded-full`}
+            indicatorClassName={`${indicatorClass} rounded-full`}
           />
           <span className="text-xs text-muted-foreground tabular-nums whitespace-nowrap">
             {formatDuration(spent)} / {formatDuration(estimate)}

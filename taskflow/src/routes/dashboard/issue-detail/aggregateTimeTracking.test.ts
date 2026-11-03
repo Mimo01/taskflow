@@ -96,4 +96,29 @@ describe('aggregateTimeTracking', () => {
 
     expect(result).toEqual({ spentSeconds: 5, estimateSeconds: 0 });
   });
+
+  it('does not use own remaining as the estimate when the issue is done', () => {
+    const own = { timeSpentSeconds: 3600, remainingEstimateSeconds: 7200 };
+    const result = aggregateTimeTracking(own, undefined, { isSubtask: false, isDone: true });
+    expect(result.estimateSeconds).toBe(0);
+  });
+
+  it('ignores remaining on a done subtask but keeps it for a not-done subtask', () => {
+    const subtasks = [
+      {
+        fields: {
+          timetracking: { remainingEstimateSeconds: 1000 },
+          status: { statusCategory: { key: 'done' } },
+        },
+      },
+      {
+        fields: {
+          timetracking: { remainingEstimateSeconds: 500 },
+          status: { statusCategory: { key: 'indeterminate' } },
+        },
+      },
+    ];
+    const result = aggregateTimeTracking({}, subtasks, { isSubtask: false });
+    expect(result.estimateSeconds).toBe(500);
+  });
 });

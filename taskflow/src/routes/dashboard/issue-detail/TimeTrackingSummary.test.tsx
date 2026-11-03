@@ -4,13 +4,14 @@ import { TimeTrackingSummary } from './TimeTrackingSummary';
 
 describe('TimeTrackingSummary', () => {
   it('shows "No time logged" when native timetracking and aggregate fields are all empty', () => {
-    render(<TimeTrackingSummary timetracking={undefined} />);
+    render(<TimeTrackingSummary isDone={false} timetracking={undefined} />);
     expect(screen.getByText('No time logged')).toBeInTheDocument();
   });
 
   it('shows "No time logged" when everything is zero', () => {
     render(
       <TimeTrackingSummary
+        isDone={false}
         timetracking={{ timeSpentSeconds: 0, originalEstimateSeconds: 0 }}
         aggregatetimespent={0}
         aggregatetimeoriginalestimate={0}
@@ -25,6 +26,7 @@ describe('TimeTrackingSummary', () => {
     // reflect the correct own+subtasks totals.
     render(
       <TimeTrackingSummary
+        isDone={false}
         timetracking={{}}
         aggregatetimeoriginalestimate={82800}
         aggregatetimespent={61500}
@@ -35,13 +37,13 @@ describe('TimeTrackingSummary', () => {
   });
 
   it('falls back to timespent when aggregatetimespent is absent', () => {
-    render(<TimeTrackingSummary timetracking={{}} timespent={7200} />);
+    render(<TimeTrackingSummary isDone={false} timetracking={{}} timespent={7200} />);
     expect(screen.getByText(/Spent:/)).toBeInTheDocument();
     expect(screen.getByText(/2h/)).toBeInTheDocument();
   });
 
   it('falls back to the nested timetracking timeSpentSeconds when no aggregate/top-level spent field is present', () => {
-    render(<TimeTrackingSummary timetracking={{ timeSpentSeconds: 3600 }} />);
+    render(<TimeTrackingSummary isDone={false} timetracking={{ timeSpentSeconds: 3600 }} />);
     expect(screen.getByText(/Spent:/)).toBeInTheDocument();
     expect(screen.getByText(/1h/)).toBeInTheDocument();
   });
@@ -49,6 +51,7 @@ describe('TimeTrackingSummary', () => {
   it('falls back to aggregatetimeestimate (remaining) when aggregatetimeoriginalestimate is absent', () => {
     render(
       <TimeTrackingSummary
+        isDone={false}
         timetracking={{}}
         aggregatetimeestimate={14400}
         aggregatetimespent={3600}
@@ -61,6 +64,7 @@ describe('TimeTrackingSummary', () => {
   it('falls back to nested originalEstimateSeconds/remainingEstimateSeconds when no aggregate estimate field is present', () => {
     render(
       <TimeTrackingSummary
+        isDone={false}
         timetracking={{
           timeSpentSeconds: 3600,
           remainingEstimateSeconds: 14400,
@@ -73,7 +77,7 @@ describe('TimeTrackingSummary', () => {
   });
 
   it('still shows "No estimate" when neither aggregate nor nested estimate fields are present', () => {
-    render(<TimeTrackingSummary timetracking={{ timeSpentSeconds: 3600 }} />);
+    render(<TimeTrackingSummary isDone={false} timetracking={{ timeSpentSeconds: 3600 }} />);
     expect(screen.getByText('No estimate')).toBeInTheDocument();
   });
 
@@ -81,6 +85,7 @@ describe('TimeTrackingSummary', () => {
     it('renders with the correct percent for the normal (computed) case', () => {
       render(
         <TimeTrackingSummary
+          isDone={false}
           timetracking={{
             timeSpentSeconds: 3600,
             originalEstimateSeconds: 28800,
@@ -92,22 +97,63 @@ describe('TimeTrackingSummary', () => {
       expect(screen.getByText('1h / 8h')).toBeInTheDocument();
     });
 
-    it('uses aggregateprogress.percent when present instead of the computed ratio', () => {
+    it('closed issue (remaining 0) shows a 50% green bar from spent / original', () => {
       render(
         <TimeTrackingSummary
+          isDone
           timetracking={{}}
-          aggregatetimeoriginalestimate={82800}
-          aggregatetimespent={61500}
-          aggregateprogress={{ progress: 61500, total: 82800, percent: 74 }}
+          aggregatetimespent={7200}
+          aggregatetimeoriginalestimate={14400}
+          aggregatetimeestimate={0}
         />,
       );
-      expect(screen.getByRole('progressbar')).toBeInTheDocument();
-      expect(screen.getByText('17h 5m / 23h')).toBeInTheDocument();
+      const bar = screen.getByRole('progressbar');
+      expect(bar).toHaveAttribute('aria-valuenow', '50');
+      expect(bar.querySelector('[data-slot="progress-indicator"]')).toHaveClass('bg-green-500');
+      expect(screen.getByText('2h / 4h')).toBeInTheDocument();
+    });
+
+    it('done issue without an original estimate shows no bar (remaining is not an estimate)', () => {
+      render(
+        <TimeTrackingSummary
+          isDone
+          timetracking={{ remainingEstimateSeconds: 14400 }}
+          aggregatetimeestimate={14400}
+          aggregatetimespent={3600}
+        />,
+      );
+      expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
+      expect(screen.getByText(/Spent:/)).toBeInTheDocument();
+      expect(screen.getByText('No estimate')).toBeInTheDocument();
+    });
+
+    it('not done: spent == original is amber, spent > original is red', () => {
+      const { rerender } = render(
+        <TimeTrackingSummary
+          isDone={false}
+          timetracking={{}}
+          aggregatetimeoriginalestimate={3600}
+          aggregatetimespent={3600}
+        />,
+      );
+      const cls = () =>
+        screen.getByRole('progressbar').querySelector('[data-slot="progress-indicator"]');
+      expect(cls()).toHaveClass('bg-amber-500');
+      rerender(
+        <TimeTrackingSummary
+          isDone={false}
+          timetracking={{}}
+          aggregatetimeoriginalestimate={3600}
+          aggregatetimespent={7200}
+        />,
+      );
+      expect(cls()).toHaveClass('bg-red-500');
     });
 
     it('caps the visual fill at 100% on overrun and signals overrun distinctly', () => {
       render(
         <TimeTrackingSummary
+          isDone={false}
           timetracking={{}}
           aggregatetimeoriginalestimate={3600}
           aggregatetimespent={7200}
@@ -120,12 +166,12 @@ describe('TimeTrackingSummary', () => {
     });
 
     it('does not render a bar when there is no estimate', () => {
-      render(<TimeTrackingSummary timetracking={{ timeSpentSeconds: 3600 }} />);
+      render(<TimeTrackingSummary isDone={false} timetracking={{ timeSpentSeconds: 3600 }} />);
       expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
     });
 
     it('does not render a bar when nothing has been logged ("No time logged" text state)', () => {
-      render(<TimeTrackingSummary timetracking={undefined} />);
+      render(<TimeTrackingSummary isDone={false} timetracking={undefined} />);
       expect(screen.getByText('No time logged')).toBeInTheDocument();
       expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
     });
