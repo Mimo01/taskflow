@@ -122,8 +122,9 @@ export interface UnifiedTaskTableProps {
 //
 // WR-06: the two tables are deliberately DIFFERENT SHAPES, and each has its own
 // header strip. A task row is Key / Summary / Assignee / Status / MR / BR / MS;
-// a secondary MR sub-line is Reason / Key / Merge request / Author / Reviewers /
-// State / BR / MS (261102-fkr). Sharing one strip across both put three
+// a secondary MR sub-line is icon+Key / State / Author / Reviewers / Merge request /
+// MR state / BR / MS / Fix (261102-fkr, reordered 261103-jmo to match the
+// deployment-package table). Sharing one strip across both put three
 // column headings — Assignee, Status, MR — over the middle of the MR title
 // text. Do not "re-unify" the strips without also restoring those cells.
 // Keys must never wrap — a Jira key broken at its dash reads as two keys. Fixed
@@ -725,7 +726,8 @@ function ColumnHeaderStrip({
 /**
  * The SECONDARY (uncovered-MRs) table's header strip (WR-06).
  *
- * A secondary row is an `MrSubLine`: `pl-6` + Key + the MR title + BR + MS.
+ * A secondary row is an `MrSubLine`: icon + Key, State, Author, Reviewers, the MR
+ * title, MR state, BR, MS, Fix (same lead order as the deployment-package table).
  * It renders no Assignee, Status or MR cell, so labelling those columns —
  * which the shared `ColumnHeaderStrip` did — put three headings over the
  * middle of the title text. The `pl-6` here matches the row's own indent so
@@ -734,14 +736,14 @@ function ColumnHeaderStrip({
 function SecondaryHeaderStrip() {
   return (
     <div data-testid="secondary-header" className={CALLOUT_HEADER_CLASS}>
+      <span className={`${COL_ICON} ${COL_SECONDARY_KEY}`} aria-hidden="true" />
+      <span className={`${COL_KEY} ${COL_SECONDARY_KEY}`}>Key</span>
       <span className={COL_SECONDARY_STATE}>
         <span className="@max-[520px]:sr-only">State</span>
       </span>
-      <span className={`${COL_ICON} ${COL_SECONDARY_KEY}`} aria-hidden="true" />
-      <span className={`${COL_KEY} ${COL_SECONDARY_KEY}`}>Key</span>
-      <span className={COL_SECONDARY_SUMMARY}>Merge request</span>
       <span className={COL_PERSON}>Author</span>
       <span className={COL_REVIEWERS}>Reviewers</span>
+      <span className={COL_SECONDARY_SUMMARY}>Merge request</span>
       <span className={COL_MR_STATE}>MR state</span>
       <span
         className="flex-none w-[1.75rem] text-center"
@@ -847,6 +849,19 @@ function MrSubLine({
     return parts;
   })();
 
+  const summaryCell = (
+    <span className={`${reasonCell ? COL_SECONDARY_SUMMARY : COL_SUMMARY} truncate`}>
+      {keyCell ? (
+        <span className="inline-flex items-center gap-2">
+          {iidButton}
+          {titleContent}
+        </span>
+      ) : (
+        titleContent
+      )}
+    </span>
+  );
+
   const rowEl = (
     <div
       data-testid="drift-row"
@@ -856,25 +871,18 @@ function MrSubLine({
           : `group/row pl-6 flex items-center gap-2 text-xs py-1 density-compact:py-0.5 density-comfortable:py-2 ${isFlagged ? 'text-foreground' : 'text-muted-foreground'}`
       }
     >
-      {reasonCell}
+      {/* Secondary rows: icon+Key, State, Author, Reviewers, then the MR title
+          (same lead order as the deployment-package table). Primary: Key, title. */}
       {keyCell ?? <span className={COL_KEY}>{iidButton}</span>}
-      <span className={`${reasonCell ? COL_SECONDARY_SUMMARY : COL_SUMMARY} truncate`}>
-        {keyCell ? (
-          <span className="inline-flex items-center gap-2">
-            {iidButton}
-            {titleContent}
-          </span>
-        ) : (
-          titleContent
-        )}
-      </span>
       {reasonCell && (
         <>
+          {reasonCell}
           <MrAuthorCell mr={mr} />
           <MrReviewersCell mr={mr} />
-          <MrStatePill mr={mr} />
         </>
       )}
+      {summaryCell}
+      {reasonCell && <MrStatePill mr={mr} />}
       {/* 261103-fqd: BR is opened-only (GitLab rejects retargeting a merged
           MR); MS is also evaluated for merged MRs, so it renders regardless. */}
       {row.evaluated ? (

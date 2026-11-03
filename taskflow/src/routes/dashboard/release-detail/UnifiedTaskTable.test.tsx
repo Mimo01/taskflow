@@ -2948,6 +2948,30 @@ describe('task row MR status chip + popover (261103-g8m)', () => {
     expect(within(line).getByTestId('mr-popover-state')).toHaveTextContent('Open');
   });
 
+  it('orders secondary columns Key / State / Author / Reviewers / Merge request / MR state / BR / MS / Fix', () => {
+    renderWithRows([makeRow()], {
+      secondaryRows: [makeRow({ taskKeys: ['PROJ-9'] })],
+    });
+    const header = screen.getByTestId('secondary-header');
+    const labels = [...header.children].map((c) => c.textContent?.trim()).filter(Boolean);
+    expect(labels).toEqual([
+      'Key',
+      'State',
+      'Author',
+      'Reviewers',
+      'Merge request',
+      'MR state',
+      'BR',
+      'MS',
+      'Fix',
+    ]);
+    const row = within(screen.getByTestId('secondary-section')).getByTestId('drift-row');
+    const icon = within(row).getByTestId('secondary-type-icon');
+    const pill = within(row).getByTestId('secondary-reason-pill');
+    expect(icon.compareDocumentPosition(pill) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(row.firstElementChild).toBe(icon);
+  });
+
   it('orders task columns Key / Summary / MRs / BR / MS / Status / Assignee', () => {
     renderWithRows([makeRow()]);
     const header = screen.getByTestId('task-column-header');
