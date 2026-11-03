@@ -1166,7 +1166,7 @@ describe('D-04: task row click behaviour', () => {
     const onOpenIssue = vi.fn();
     const onOpenIssueFull = vi.fn();
     const onSeedBreadcrumb = vi.fn();
-    // Two MRs: a flagged aggregate opens the popover (one MR would fix in place).
+    // A flag that can't be auto-fixed (no release branch) opens the popover.
     const row = makeRow({ mr: makeMR({ id: 4, iid: 4 }), br: 'flag', flagged: true });
     const other = makeRow({ mr: makeMR({ id: 5, iid: 5 }) });
     renderWithRows([row, other], {
@@ -1174,6 +1174,7 @@ describe('D-04: task row click behaviour', () => {
       onOpenIssueFull,
       onSeedBreadcrumb,
       flaggedMrCount: 1,
+      fix: { ...DEFAULT_FIX, releaseBranchExists: false },
     });
 
     const chip = screen.getByTestId('mr-status-chip');
@@ -2894,7 +2895,8 @@ describe('task row MR status chip + popover (261103-g8m)', () => {
         makeRow({ br: 'flag', ms: 'ok', flagged: true }),
         makeRow({ mr: makeMR({ id: 2, iid: 2 }) }),
       ],
-      { flaggedMrCount: 1 },
+      // Not auto-fixable → the flagged aggregate is the popover trigger.
+      { flaggedMrCount: 1, fix: { ...DEFAULT_FIX, releaseBranchExists: false } },
     );
 
     const overlay = screen.getByTestId('task-row-overlay');
@@ -2994,20 +2996,86 @@ describe('task row MR status chip + popover (261103-g8m)', () => {
     expect(screen.queryByTestId('mr-popover')).toBeNull();
   });
 
-  it('two MRs: a flagged BR on the row opens the popover instead of fixing', async () => {
+  it('two MRs: clicking the flagged BR group cell retargets every flagged MR (no popover)', async () => {
+    mockUpdateMergeRequest.mockResolvedValue(makeMR());
     renderWithRows(
-      [makeRow({ br: 'flag', flagged: true }), makeRow({ mr: makeMR({ id: 2, iid: 2 }) })],
-      { flaggedMrCount: 1 },
+      [
+        makeRow({ mr: makeMR({ id: 1, iid: 11 }), br: 'flag', flagged: true }),
+        makeRow({ mr: makeMR({ id: 2, iid: 12 }), br: 'flag', flagged: true }),
+        makeRow({ mr: makeMR({ id: 3, iid: 13 }) }),
+      ],
+      { flaggedMrCount: 2 },
     );
-    const trigger = screen.getByTestId('task-drift-br');
-    // Row hover swaps the warning for a "pick an MR" glyph (≠ the fix icons).
-    const [warn, pick] = trigger.querySelectorAll('svg');
+    const cell = screen.getByTestId('task-drift-br');
+    expect(cell).toHaveAttribute(
+      'aria-label',
+      expect.stringContaining('Retarget 2 merge requests'),
+    );
+    // Row hover reveals the "fix all" glyph (≠ the single-MR action icons).
+    const [warn, all] = cell.querySelectorAll('svg');
     expect(warn).toHaveClass('group-hover/row:hidden');
-    expect(pick).toHaveClass('hidden', 'group-hover/row:block');
-    expect(pick).toHaveClass('lucide-list-checks');
-    fireEvent.click(trigger);
-    expect(await screen.findByTestId('mr-popover')).toBeInTheDocument();
-    expect(mockUpdateMergeRequest).not.toHaveBeenCalled();
+    expect(all).toHaveClass('hidden', 'group-hover/row:block', 'lucide-list-checks');
+    fireEvent.click(cell);
+    await waitFor(() => expect(mockUpdateMergeRequest).toHaveBeenCalledTimes(2));
+    const iids = mockUpdateMergeRequest.mock.calls.map((c) => c[3]).sort();
+    expect(iids).toEqual([11, 12]);
+    expect(screen.queryByTestId('mr-popover')).toBeNull();
+  });
+
+  it('two MRs: a partial group failure turns the cell red with the failed MR and a retry', async () => {
+    mockUpdateMergeRequest
+      .mockResolvedValueOnce(makeMR())
+      .mockRejectedValueOnce(new Error('protected branch'));
+    renderWithRows(
+      [
+        makeRow({ mr: makeMR({ id: 1, iid: 11 }), ms: 'flag', flagged: true }),
+        makeRow({ mr: makeMR({ id: 2, iid: 12 }), ms: 'flag', flagged: true }),
+      ],
+      { flaggedMrCount: 2 },
+    );
+    fireEvent.click(screen.getByTestId('task-drift-ms'));
+    await waitFor(() =>
+      expect(screen.getByTestId('task-drift-ms').querySelector('.text-red-600')).toBeTruthy(),
+    );
+    const cell = screen.getByTestId('task-drift-ms');
+    expect(cell).toHaveAttribute('aria-label', expect.stringContaining('1 of 2 failed'));
+    expect(cell).toHaveAttribute('aria-label', expect.stringContaining('!12: protected branch'));
+    expect(cell).toHaveAttribute('aria-label', expect.stringContaining('click to retry'));
+    expect(cell.tagName).toBe('BUTTON');
+  });
+
+  it('single MR: the in-place fix keeps its spinner while pending and its red failure after', async () => {
+    let rejectWrite: (err: Error) => void = () => {};
+    mockUpdateMergeRequest.mockReturnValueOnce(
+      new Promise<GitLabMR>((_resolve, reject) => {
+        rejectWrite = reject;
+      }),
+    );
+    const flagged = makeRow({ br: 'flag', flagged: true });
+    const { rerender, props } = renderWithRows([flagged], { flaggedMrCount: 1 });
+    const issue = props.primaryRows[0].issue;
+    const withMark = (br: 'ok' | 'flag') => (
+      <UnifiedTaskTable
+        {...props}
+        primaryRows={[{ issue, mrs: [{ ...flagged, br, flagged: br === 'flag' }] }]}
+      />
+    );
+    fireEvent.click(screen.getByTestId('task-drift-br'));
+    // What the real cache does: the optimistic patch flips the mark to ok
+    // while the write is in flight. The cell must stay mounted (spinner).
+    rerender(withMark('ok'));
+    await waitFor(() =>
+      expect(screen.getByTestId('task-drift-br')).toHaveAttribute('aria-busy', 'true'),
+    );
+    // Write fails → rollback restores the flag; the failure must stay red.
+    await act(async () => {
+      rejectWrite(new Error('protected branch'));
+      await Promise.resolve();
+    });
+    rerender(withMark('flag'));
+    await waitFor(() =>
+      expect(screen.getByTestId('task-drift-br').querySelector('.text-red-600')).toBeTruthy(),
+    );
   });
 
   it('draws the ring only for a mix of states', () => {

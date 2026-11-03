@@ -128,6 +128,60 @@ interface MrFixMutationContext {
   previous: MrFixPatch;
 }
 
+type MrFixWriteArgs = {
+  action: MrFixAction;
+  mr: GitLabMR;
+  projectId: number | null;
+  baseUrl: string | null;
+  token: string | null;
+  targetBranch: string | null;
+  milestone: { id: number; title: string } | null;
+};
+
+/**
+ * The single GitLab write behind both hooks. WR-10: never `?? 0` / `?? -1`
+ * into a write URL — throw before the service call when a required value is
+ * missing.
+ */
+function writeMrFix({
+  action,
+  mr,
+  projectId,
+  baseUrl,
+  token,
+  targetBranch,
+  milestone,
+}: MrFixWriteArgs): Promise<GitLabMR> {
+  if (!projectId || !baseUrl || !token) {
+    return Promise.reject(new Error('GitLab project not configured'));
+  }
+  if (!mr.iid) return Promise.reject(new Error('Merge request iid unavailable'));
+  if (action === 'retarget') {
+    if (!targetBranch) return Promise.reject(new Error('Release branch unavailable'));
+    return updateMergeRequest(baseUrl, token, projectId, mr.iid, { target_branch: targetBranch });
+  }
+  if (!milestone) return Promise.reject(new Error('Release milestone unavailable'));
+  return updateMergeRequest(baseUrl, token, projectId, mr.iid, { milestone_id: milestone.id });
+}
+
+/** The optimistic patch an action writes, and its inverse (CR-01: one field only). */
+function fixPatches(
+  action: MrFixAction,
+  mr: GitLabMR,
+  targetBranch: string | null,
+  milestone: { id: number; title: string } | null,
+): { patch: MrFixPatch; previous: MrFixPatch } {
+  return action === 'retarget'
+    ? {
+        patch: { target_branch: targetBranch ?? mr.target_branch },
+        previous: { target_branch: mr.target_branch },
+      }
+    : {
+        patch: { milestone: milestone ?? mr.milestone },
+        previous: { milestone: mr.milestone },
+      };
+}
+
 /**
  * Per-(MR, action) mutation: fires `updateMergeRequest` for either a
  * retarget or an assign-milestone write, with an optimistic multi-cache
@@ -160,26 +214,8 @@ export function useMrFixMutation(args: {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const mutation = useMutation<GitLabMR, Error, void, MrFixMutationContext | undefined>({
-    mutationFn: async () => {
-      // WR-10: never `?? 0` / `?? -1` into a write URL — throw before the
-      // service call when a required value is missing.
-      if (!projectId || !baseUrl || !token) {
-        throw new Error('GitLab project not configured');
-      }
-      if (!mr.iid) {
-        throw new Error('Merge request iid unavailable');
-      }
-      if (action === 'retarget') {
-        if (!targetBranch) throw new Error('Release branch unavailable');
-        return updateMergeRequest(baseUrl, token, projectId, mr.iid, {
-          target_branch: targetBranch,
-        });
-      }
-      if (!milestone) throw new Error('Release milestone unavailable');
-      return updateMergeRequest(baseUrl, token, projectId, mr.iid, {
-        milestone_id: milestone.id,
-      });
-    },
+    mutationFn: () =>
+      writeMrFix({ action, mr, projectId, baseUrl, token, targetBranch, milestone }),
     onMutate: async () => {
       setStatus('pending');
       setErrorMessage(null);
@@ -199,14 +235,9 @@ export function useMrFixMutation(args: {
       // is missing the patch below falls back to the MR's current value (a
       // no-op change) rather than writing an invalid one.
       if (!projectId) return undefined;
-      const patch: MrFixPatch =
-        action === 'retarget'
-          ? { target_branch: targetBranch ?? mr.target_branch }
-          : { milestone: milestone ?? mr.milestone };
       // CR-01: capture ONLY the field this action owns, so the rollback below
       // is an inverse patch rather than a whole-array restore.
-      const previous: MrFixPatch =
-        action === 'retarget' ? { target_branch: mr.target_branch } : { milestone: mr.milestone };
+      const { patch, previous } = fixPatches(action, mr, targetBranch, milestone);
       patchMrInChannelCaches(queryClient, projectId, mr.id, patch);
       return { previous };
     },
@@ -249,6 +280,74 @@ export function useMrFixMutation(args: {
    * when its `mark` turns 'ok'. Never call this while pending: it would
    * desync `status` from the in-flight mutation.
    */
+  const reset = () => {
+    if (status === 'pending') return;
+    setStatus('idle');
+    setErrorMessage(null);
+  };
+
+  return { status, errorMessage, fire, reset };
+}
+
+/**
+ * Group fix (task row with several MRs): apply ONE action to every MR in
+ * `mrs` at once — retarget them all, or assign the milestone to them all.
+ *
+ * Same contract as `useMrFixMutation`, per MR: optimistic field-scoped patch,
+ * inverse-patch rollback for exactly the MRs whose write failed (the ones that
+ * succeeded keep their patch), sticky component-state failure, project-level
+ * invalidation once everything settles. Writes run in parallel; one failing
+ * MR never blocks the others. A retry re-fires over the caller's CURRENT
+ * `mrs` — after a partial failure that is just the ones still flagged.
+ */
+export function useMrGroupFix(args: Omit<MrFixWriteArgs, 'mr'> & { mrs: GitLabMR[] }): {
+  status: MrFixStatus;
+  errorMessage: string | null;
+  fire: () => void;
+  reset: () => void;
+} {
+  const { action, mrs, projectId, targetBranch, milestone } = args;
+  const queryClient = useQueryClient();
+  const [status, setStatus] = useState<MrFixStatus>('idle');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const run = async (targets: GitLabMR[]) => {
+    setStatus('pending');
+    setErrorMessage(null);
+    if (projectId) {
+      for (const prefix of MR_CHANNEL_QUERY_PREFIXES) {
+        await queryClient.cancelQueries({
+          queryKey: mrChannelKeys.channelForProject(prefix, projectId),
+        });
+      }
+    }
+    const inverses = targets.map((mr) => {
+      const { patch, previous } = fixPatches(action, mr, targetBranch, milestone);
+      if (projectId) patchMrInChannelCaches(queryClient, projectId, mr.id, patch);
+      return previous;
+    });
+    const results = await Promise.allSettled(targets.map((mr) => writeMrFix({ ...args, mr })));
+    const failures: string[] = [];
+    results.forEach((r, i) => {
+      if (r.status === 'fulfilled') return;
+      if (projectId) patchMrInChannelCaches(queryClient, projectId, targets[i].id, inverses[i]);
+      const msg = r.reason instanceof Error ? r.reason.message : 'Failed to update merge request';
+      failures.push(`!${targets[i].iid}: ${msg}`);
+    });
+    if (projectId) invalidateMrChannelCaches(queryClient, projectId);
+    if (failures.length === 0) {
+      setStatus('idle');
+      return;
+    }
+    setStatus('error');
+    setErrorMessage(`${failures.length} of ${targets.length} failed — ${failures.join('; ')}`);
+  };
+
+  const fire = () => {
+    if (status === 'pending' || mrs.length === 0) return;
+    void run(mrs);
+  };
+
   const reset = () => {
     if (status === 'pending') return;
     setStatus('idle');

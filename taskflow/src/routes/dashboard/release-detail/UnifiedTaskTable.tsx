@@ -56,7 +56,7 @@ import {
   sortTaskRows,
   type TaskSortKey,
 } from './taskTableFilters';
-import { type MrFixAction, useMrFixMutation } from './useMrFixMutation';
+import { type MrFixAction, useMrFixMutation, useMrGroupFix } from './useMrFixMutation';
 import { type TaskIssueFilterState, useTaskIssueFilters } from './useTaskIssueFilters';
 
 /**
@@ -1084,7 +1084,6 @@ function TaskMrCell({
   const brFlagCount = allMrs.filter((r) => r.evaluated && r.br === 'flag').length;
   const msFlagCount = allMrs.filter((r) => r.ms === 'flag').length;
   const sorted = sortPopoverMrs(allMrs);
-  const soleMr = allMrs.length === 1 ? allMrs[0] : null;
 
   return (
     <Popover
@@ -1115,60 +1114,29 @@ function TaskMrCell({
           <MrStatusGlyph summary={summary} />
         </PopoverTrigger>
       </div>
-      {/* CR-05: `interactive` is DERIVED — only a flagged aggregate is a
-          button (it opens the popover, even when no fix is possible, so the
-          user can see why); ok/na stay inert and fall through to the row. */}
-      {/* One MR → the row's BR/MS cells ARE that MR's cells: a flagged,
-          actionable mark fixes it in place (Retarget / Assign milestone), no
-          popover detour. Several MRs, or a flag that can't be auto-fixed,
-          keep the popover trigger so the user sees which MR and why.
-          CR-07: keyed by mr.id so write state stays on its MR. */}
-      {soleMr?.evaluated && isMrFixActionable(soleMr.br, 'retarget', fix) ? (
-        <DriftCellSlot interactive>
-          <DriftActionCell
-            key={`row-br-${soleMr.mr.id}`}
-            mr={soleMr.mr}
-            action="retarget"
-            mark={soleMr.br}
-            testId="task-drift-br"
-            fix={fix}
-          />
-        </DriftCellSlot>
-      ) : (
-        <DriftCellSlot interactive={brAgg === 'flag'}>
-          {brAgg === 'flag' ? (
-            <AggregateFlagTrigger
-              testId="task-drift-br"
-              label={`${brFlagCount} merge request${brFlagCount === 1 ? '' : 's'} with branch drift — show details`}
-            />
-          ) : (
-            <DriftMarkCell mark={brAgg} testId="task-drift-br" />
-          )}
-        </DriftCellSlot>
-      )}
-      {soleMr && isMrFixActionable(soleMr.ms, 'assign-milestone', fix) ? (
-        <DriftCellSlot interactive>
-          <DriftActionCell
-            key={`row-ms-${soleMr.mr.id}`}
-            mr={soleMr.mr}
-            action="assign-milestone"
-            mark={soleMr.ms}
-            testId="task-drift-ms"
-            fix={fix}
-          />
-        </DriftCellSlot>
-      ) : (
-        <DriftCellSlot interactive={msAgg === 'flag'}>
-          {msAgg === 'flag' ? (
-            <AggregateFlagTrigger
-              testId="task-drift-ms"
-              label={`${msFlagCount} merge request${msFlagCount === 1 ? '' : 's'} with milestone drift — show details`}
-            />
-          ) : (
-            <DriftMarkCell mark={msAgg} testId="task-drift-ms" />
-          )}
-        </DriftCellSlot>
-      )}
+      {/* BR/MS on the row. One MR → its own action cell (fixes in place).
+          Several MRs → a group cell that applies the action to every flagged
+          MR at once. A flag that can't be auto-fixed (no release branch / no
+          milestone / no GitLab config) stays a popover trigger so the user
+          can see which MR and why. CR-05: ok / na stay inert. */}
+      <RowDriftCell
+        action="retarget"
+        testId="task-drift-br"
+        rows={allMrs.filter((r) => r.evaluated)}
+        mark={brAgg}
+        flagCount={brFlagCount}
+        driftLabel="branch drift"
+        fix={fix}
+      />
+      <RowDriftCell
+        action="assign-milestone"
+        testId="task-drift-ms"
+        rows={allMrs}
+        mark={msAgg}
+        flagCount={msFlagCount}
+        driftLabel="milestone drift"
+        fix={fix}
+      />
       {/* Lazy keepMounted: the per-MR cells hold their write state (incl. a
           sticky red failure, D-08) in component state, so once opened the
           content stays mounted while closed. Never-opened rows mount nothing. */}
@@ -1215,6 +1183,180 @@ function TaskMrCell({
       </PopoverContent>
     </Popover>
   );
+}
+
+/**
+ * One row BR or MS cell. Kept MOUNTED across mark changes on purpose: a fix
+ * patches the cache optimistically (flag → ok) while its write is in flight,
+ * and swapping components on `mark` would unmount the cell mid-write —
+ * losing the spinner and, on failure, the sticky red retry state (D-08).
+ * So the branch is chosen on the TASK's shape (one MR / several) and the
+ * fix's readiness, never on the live mark; the cells render every mark.
+ */
+function RowDriftCell({
+  action,
+  testId,
+  rows,
+  mark,
+  flagCount,
+  driftLabel,
+  fix,
+}: {
+  action: MrFixAction;
+  testId: string;
+  /** The task's MRs this column evaluates (BR: opened only; MS: all). */
+  rows: DriftRow[];
+  mark: DriftMark;
+  flagCount: number;
+  driftLabel: string;
+  fix: MrFixContext;
+}) {
+  const { configComplete, prereqReady } = mrFixReadiness(action, fix);
+  const ready = configComplete && prereqReady;
+  if (!ready || rows.length === 0) {
+    return (
+      <DriftCellSlot interactive={mark === 'flag'}>
+        {mark === 'flag' ? (
+          <AggregateFlagTrigger
+            testId={testId}
+            label={`${flagCount} merge request${flagCount === 1 ? '' : 's'} with ${driftLabel} — show details`}
+          />
+        ) : (
+          <DriftMarkCell mark={mark} testId={testId} />
+        )}
+      </DriftCellSlot>
+    );
+  }
+  if (rows.length === 1) {
+    const [only] = rows;
+    const field = action === 'retarget' ? only.br : only.ms;
+    return (
+      <DriftCellSlot interactive={field === 'flag'}>
+        <DriftActionCell
+          key={`row-${action}-${only.mr.id}`}
+          mr={only.mr}
+          action={action}
+          mark={field}
+          testId={testId}
+          fix={fix}
+        />
+      </DriftCellSlot>
+    );
+  }
+  return (
+    <DriftGroupActionCell
+      action={action}
+      testId={testId}
+      flagged={rows
+        .filter((r) => (action === 'retarget' ? r.br : r.ms) === 'flag')
+        .map((r) => r.mr)}
+      mark={mark}
+      fix={fix}
+    />
+  );
+}
+
+/**
+ * Group BR/MS cell for a task with several MRs: one click applies the action
+ * to EVERY flagged MR (retarget all / assign milestone to all). Mirrors
+ * `DriftActionCell`'s states — pending spinner, sticky red failure with retry
+ * (re-fires over whichever MRs are still flagged), hover reveal — but its
+ * hover glyph is ListChecks ("fix all"), not the single-MR action icon.
+ */
+function DriftGroupActionCell({
+  action,
+  testId,
+  flagged,
+  mark,
+  fix,
+}: {
+  action: MrFixAction;
+  testId: string;
+  flagged: GitLabMR[];
+  mark: DriftMark;
+  fix: MrFixContext;
+}) {
+  const { status, errorMessage, fire, reset } = useMrGroupFix({
+    action,
+    mrs: flagged,
+    projectId: fix.projectId,
+    baseUrl: fix.baseUrl,
+    token: fix.token,
+    targetBranch: fix.releaseBranchName,
+    milestone: fix.matchedMilestone,
+  });
+
+  // WR-08 (as in DriftActionCell): a sticky failure must not outlive the
+  // problem — once every MR in the column is ok, drop the red state.
+  const lastMarkRef = useRef(mark);
+  if (lastMarkRef.current !== mark) {
+    lastMarkRef.current = mark;
+    if (mark === 'ok' && status === 'error') reset();
+  }
+
+  const rootClassName = 'flex-none w-[1.75rem] flex items-center justify-center';
+  const n = flagged.length;
+  const actionLabel =
+    action === 'retarget'
+      ? `Retarget ${n} merge request${n === 1 ? '' : 's'} to ${fix.releaseBranchName}`
+      : `Assign milestone ${fix.matchedMilestone?.title} to ${n} merge request${n === 1 ? '' : 's'}`;
+  const liveRegion = (
+    <span role="status" aria-live="polite" className="sr-only">
+      {status === 'error' ? (errorMessage ?? 'Update failed') : ''}
+    </span>
+  );
+  const buttonClass = `${rootClassName} rounded focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring`;
+
+  let body: React.ReactNode;
+  if (status === 'pending') {
+    body = (
+      <button
+        type="button"
+        data-testid={testId}
+        onClick={fire}
+        aria-disabled="true"
+        aria-busy="true"
+        aria-label={actionLabel}
+        className={buttonClass}
+      >
+        <Loader2 className="size-3.5 animate-spin text-muted-foreground" />
+        {liveRegion}
+      </button>
+    );
+  } else if (status === 'error') {
+    const label = `${errorMessage ?? 'Update failed'} — click to retry`;
+    body = (
+      <button
+        type="button"
+        data-testid={testId}
+        onClick={fire}
+        title={label}
+        aria-label={label}
+        className={`${buttonClass} hover:bg-accent hover:ring-1 hover:ring-border`}
+      >
+        <AlertTriangle className="size-3.5 text-red-600 dark:text-red-400" />
+        {liveRegion}
+      </button>
+    );
+  } else if (mark === 'flag') {
+    body = (
+      <button
+        type="button"
+        data-testid={testId}
+        onClick={fire}
+        title={actionLabel}
+        aria-label={actionLabel}
+        className={`${buttonClass} group/fix hover:bg-accent hover:ring-1 hover:ring-border`}
+      >
+        <AlertTriangle className="size-3.5 text-orange-600 dark:text-orange-400 group-hover/row:hidden group-focus-visible/fix:hidden" />
+        <ListChecks className="hidden size-3.5 group-hover/row:block group-focus-visible/fix:block" />
+        {liveRegion}
+      </button>
+    );
+  } else {
+    body = <DriftMarkCell mark={mark} testId={testId} />;
+  }
+  return <DriftCellSlot interactive={mark === 'flag' || status !== 'idle'}>{body}</DriftCellSlot>;
 }
 
 /** Flagged aggregate BR/MS mark: a real button that opens the row's MR popover. */
