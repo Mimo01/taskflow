@@ -3324,6 +3324,8 @@ export interface EpicWorklogDay {
   /** Calendar day of the worklog in the author's offset (YYYY-MM-DD, `started.slice(0, 10)`). */
   day: string;
   seconds: number;
+  /** Who logged it (DC username, else display name); absent when Jira returns no author. */
+  author?: { key: string; name: string; avatarUrl: string | null };
 }
 
 type WorklogSearchIssue = JiraIssue & {
@@ -3405,7 +3407,22 @@ export async function fetchEpicWorklogs(
         list = [];
         result.set(target, list);
       }
-      list.push({ day: String(w.started ?? '').slice(0, 10), seconds });
+      const a = w.author;
+      const login = a?.name || a?.displayName;
+      const avatar = a?.avatarUrls?.['48x48'];
+      list.push({
+        day: String(w.started ?? '').slice(0, 10),
+        seconds,
+        ...(login
+          ? {
+              author: {
+                key: login,
+                name: a.displayName || login,
+                avatarUrl: typeof avatar === 'string' && avatar !== '' ? avatar : null,
+              },
+            }
+          : {}),
+      });
     }
   }
   return result;

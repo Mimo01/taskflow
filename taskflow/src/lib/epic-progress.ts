@@ -260,6 +260,110 @@ export function deriveTimeUnder(stories: JiraIssue[]): Record<Cat, number> {
   return out;
 }
 
+export interface TimePerson {
+  id: string;
+  name: string;
+  avatarUrl: string | null;
+  segments: TimeSegment[];
+  under: Record<Cat, number>;
+  /** Σ estimate of the stories assigned to this person. */
+  estimate: number;
+}
+
+/**
+ * Time "By person" (261103-lcd): logged time goes to whoever logged it (worklog author), so
+ * people who log on stories assigned to someone else are listed too; remaining, estimate and
+ * under-budget go to the assignee. A story's estimate is consumed in worklog-date order, so
+ * the overspend lands on the time logged after it ran out. Logged time without a dated,
+ * authored worklog (not loaded yet, or beyond what the worklogs cover) goes to the assignee.
+ * Per story the parts sum exactly to deriveTimeSegments / deriveTimeUnder.
+ * Order: forecast total (logged + remaining) desc, then name.
+ */
+export function deriveTimePeople(
+  stories: JiraIssue[],
+  logs: Map<string, EpicWorklogDay[]> | undefined,
+): TimePerson[] {
+  type Acc = TimePerson & { parts: Record<Cat, Record<TimePart, number>>; severe: Set<Cat> };
+  const map = new Map<string, Acc>();
+  const zeroParts = () => ({ logged: 0, loggedOver: 0, remaining: 0, remainingOver: 0 });
+  const personOf = (id: string, name: string, avatarUrl: string | null): Acc => {
+    let p = map.get(id);
+    if (!p) {
+      p = {
+        id,
+        name,
+        avatarUrl,
+        segments: [],
+        under: { done: 0, indeterminate: 0, new: 0 },
+        estimate: 0,
+        parts: { done: zeroParts(), indeterminate: zeroParts(), new: zeroParts() },
+        severe: new Set(),
+      };
+      map.set(id, p);
+    }
+    return p;
+  };
+  for (const s of stories) {
+    const a = s.fields.assignee;
+    const owner = personOf(assigneeIdOf(s), a?.displayName || a?.name || 'Unassigned', avatarOf(a));
+    const cat = catOf(s);
+    const est = estimateOf(s);
+    const log = loggedOf(s);
+    const rem = remainingOf(s);
+    const budget = est > 0 ? est : Number.POSITIVE_INFINITY;
+    if (est > 0 && log + rem > est * OVERRUN_RED_RATIO) {
+      owner.severe.add(cat);
+    }
+    // Dated, authored worklogs in order; anything Jira counts beyond them goes to the owner.
+    const entries = (logs?.get(s.key) ?? [])
+      .filter((l) => Number.isFinite(l.seconds) && l.seconds > 0)
+      .slice()
+      .sort((x, y) => (x.day < y.day ? -1 : x.day > y.day ? 1 : 0));
+    let used = 0;
+    const spend = (p: Acc, seconds: number) => {
+      const take = Math.min(seconds, log - used);
+      if (take <= 0) return;
+      const within = Math.min(take, Math.max(budget - used, 0));
+      p.parts[cat].logged += within;
+      p.parts[cat].loggedOver += take - within;
+      if (take - within > 0 && est > 0 && log + rem > est * OVERRUN_RED_RATIO) p.severe.add(cat);
+      used += take;
+    };
+    for (const e of entries) {
+      const p = e.author
+        ? personOf(`user:${e.author.key}`, e.author.name, e.author.avatarUrl)
+        : owner;
+      spend(p, e.seconds);
+    }
+    if (used < log) spend(owner, log - used);
+    const rw = est > 0 ? Math.min(rem, Math.max(est - log, 0)) : rem;
+    owner.parts[cat].remaining += rw;
+    owner.parts[cat].remainingOver += rem - rw;
+    owner.estimate += est;
+    if (est > 0) owner.under[cat] += Math.max(est - log - rem, 0);
+  }
+  const out: TimePerson[] = [];
+  for (const p of map.values()) {
+    const segments: TimeSegment[] = [];
+    for (const cat of ['done', 'indeterminate', 'new'] as const) {
+      for (const part of TIME_PARTS) {
+        const v = p.parts[cat][part];
+        if (v > 0) segments.push({ cat, part, seconds: v, severe: p.severe.has(cat) });
+      }
+    }
+    out.push({
+      id: p.id,
+      name: p.name,
+      avatarUrl: p.avatarUrl,
+      segments,
+      under: p.under,
+      estimate: p.estimate,
+    });
+  }
+  const total = (p: TimePerson) => p.segments.reduce((n, x) => n + x.seconds, 0);
+  return out.sort((x, y) => total(y) - total(x) || x.name.localeCompare(y.name));
+}
+
 /** Date key a done story was completed; null when the story is not in the done category. */
 export function doneDateKey(s: JiraIssue, today: string): string | null {
   if (catOf(s) !== 'done') return null;

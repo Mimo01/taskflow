@@ -1980,6 +1980,45 @@ describe('jira service', () => {
       expect(mockFetch).toHaveBeenCalledTimes(1);
     });
 
+    it('keeps the worklog author (username, display name, avatar) for By person (261103-lcd)', async () => {
+      vi.mocked(mockFetch).mockResolvedValue(
+        searchRes([
+          {
+            key: 'P-1',
+            fields: {
+              worklog: {
+                total: 2,
+                worklogs: [
+                  {
+                    ...wl('2026-10-01T09:00:00.000+0200', 3600),
+                    author: {
+                      name: 'user.a',
+                      displayName: 'User A',
+                      avatarUrls: { '48x48': 'https://jira.example.com/a.png' },
+                    },
+                  },
+                  { ...wl('2026-10-02T09:00:00.000+0200', 600), author: { displayName: 'User B' } },
+                ],
+              },
+            },
+          },
+        ]),
+      );
+      const r = await fetchEpicWorklogs(BASE, TOKEN, ['P-1']);
+      expect(r.get('P-1')).toEqual([
+        {
+          day: '2026-10-01',
+          seconds: 3600,
+          author: { key: 'user.a', name: 'User A', avatarUrl: 'https://jira.example.com/a.png' },
+        },
+        {
+          day: '2026-10-02',
+          seconds: 600,
+          author: { key: 'User B', name: 'User B', avatarUrl: null },
+        },
+      ]);
+    });
+
     it('tops up only truncated worklogs and keeps embedded if top-up is shorter', async () => {
       vi.mocked(mockFetch).mockImplementation((async (url: string) => {
         if (url.includes('/issue/P-1/worklog')) {

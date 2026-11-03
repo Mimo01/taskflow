@@ -338,6 +338,38 @@ describe('EpicProgressSection time metric, card and tooltips (261001-g5q)', () =
     expect(tiles[2].textContent).toMatch(/^Risks/);
   });
 
+  it('Time By person lists people who logged on stories assigned to others (261103-lcd)', async () => {
+    const author = (key: string) => ({ key, name: key, avatarUrl: null });
+    // T-1 (Amy's, 1h estimate, 1h 30m logged): Amy 1h first, then Zed 30m → Zed's 30m is over.
+    mockWorklogs.mockResolvedValue(
+      new Map([
+        [
+          'T-1',
+          [
+            { day: daysAgo(3), seconds: 3600, author: author('Amy') },
+            { day: daysAgo(2), seconds: 1800, author: author('Zed') },
+          ],
+        ],
+      ]),
+    );
+    renderTimed();
+    fireEvent.click(screen.getByRole('button', { name: 'Time' }));
+    await waitFor(() => expect(screen.getAllByTestId('epic-assignee-row')).toHaveLength(2));
+    const [amy, zed] = screen.getAllByTestId('epic-assignee-row');
+    expect(within(amy).getByText('Amy')).toBeInTheDocument();
+    expect(within(amy).getByLabelText('logged 1h')).toBeInTheDocument();
+    expect(within(amy).getByLabelText('left 1h')).toBeInTheDocument();
+    expect(within(amy).getByLabelText('estimate 3h')).toBeInTheDocument();
+    expect(within(zed).getByText('Zed')).toBeInTheDocument();
+    expect(within(zed).getByLabelText('logged 30m')).toBeInTheDocument();
+    expect(within(zed).getByLabelText('estimate 0m')).toBeInTheDocument();
+    const over = within(zed).getByLabelText('over 30m');
+    expect(over.className).toContain('text-red-600');
+    // Count tab stays assignee-only.
+    fireEvent.click(screen.getByRole('button', { name: 'Count' }));
+    expect(screen.getAllByTestId('epic-assignee-row')).toHaveLength(1);
+  });
+
   it('Time mode assignee chips show logged / remaining time', () => {
     renderTimed();
     fireEvent.click(screen.getByRole('button', { name: 'Time' }));

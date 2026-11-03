@@ -59,6 +59,7 @@ import {
   weightOf,
   remainingOf,
   timeWeightOf,
+  deriveTimePeople,
   deriveTimeSegments,
   deriveTimeUnder,
   bandsOf,
@@ -405,6 +406,59 @@ describe('time model (261103-lcd)', () => {
         st('U', { spent: H }),
       ]),
     ).toEqual({ done: H, indeterminate: H, new: 0 });
+  });
+  it('deriveTimePeople: logged by worklog author (incl. non-assignees), rest by assignee', () => {
+    // Author key = DC username, the same id the assignee bucket uses (here the display name).
+    const who = (key: string) => ({ key, name: key, avatarUrl: null });
+    const stories = [
+      // Amy's 4h story, 6h logged: Amy 3h first, then Ben 3h → Ben's last 2h are over (150% → red).
+      st('A', { cat: 'indeterminate', assignee: 'Amy', est: 4 * H, spent: 6 * H, rem: 0 }),
+      // Amy's 2h story: Cleo logged 1h, 2h left → 1h of the remaining is forecast overspend.
+      st('B', { assignee: 'Amy', est: 2 * H, spent: H, rem: 2 * H }),
+    ];
+    const logs = new Map([
+      [
+        'A',
+        [
+          { day: '2026-10-02', seconds: 3 * H, author: who('Ben') },
+          { day: '2026-10-01', seconds: 3 * H, author: who('Amy') },
+        ],
+      ],
+      ['B', [{ day: '2026-10-03', seconds: H, author: who('Cleo') }]],
+    ]);
+    const people = deriveTimePeople(stories, logs);
+    const view = Object.fromEntries(
+      people.map((p) => [
+        p.name,
+        {
+          est: p.estimate / H,
+          segs: p.segments.map((x) => `${x.cat}:${x.part}=${x.seconds / H}${x.severe ? '!' : ''}`),
+        },
+      ]),
+    );
+    expect(view).toEqual({
+      Amy: {
+        est: 6,
+        segs: ['indeterminate:logged=3!', 'new:remaining=1!', 'new:remainingOver=1!'],
+      },
+      Ben: { est: 0, segs: ['indeterminate:logged=1!', 'indeterminate:loggedOver=2!'] },
+      Cleo: { est: 0, segs: ['new:logged=1'] },
+    });
+    // Same totals as the story-level segments the hero bar draws.
+    const sum = (xs: { seconds: number }[]) => xs.reduce((n, x) => n + x.seconds, 0);
+    expect(sum(people.flatMap((p) => p.segments))).toBe(sum(deriveTimeSegments(stories)));
+  });
+  it('deriveTimePeople: without worklogs, logged time stays with the assignee', () => {
+    const people = deriveTimePeople(
+      [st('A', { cat: 'indeterminate', assignee: 'Amy', est: 4 * H, spent: H, rem: 2 * H })],
+      undefined,
+    );
+    expect(people.map((p) => p.name)).toEqual(['Amy']);
+    expect(people[0].segments.map((x) => [x.part, x.seconds / H])).toEqual([
+      ['logged', 1],
+      ['remaining', 2],
+    ]);
+    expect(people[0].under.indeterminate).toBe(H);
   });
   it('deriveTimeSegments: overspend up to 125% of the estimate is not severe', () => {
     const segs = deriveTimeSegments([

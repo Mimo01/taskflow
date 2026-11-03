@@ -17,7 +17,6 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { TooltipBody, TooltipRow } from '@/components/ui/tooltip-body';
 import {
   type AssigneeBucket,
-  assigneeIdOf,
   averageForecasts,
   type Bands,
   buildStatusCategoryLookup,
@@ -32,6 +31,7 @@ import {
   deriveStatusBuckets,
   deriveSummary,
   deriveTimeForecast,
+  deriveTimePeople,
   deriveTimeSegments,
   deriveTimeTotals,
   deriveTimeUnder,
@@ -46,7 +46,6 @@ import {
   type StatusBucket,
   sourceNote,
   spanDays,
-  type TimeSegment,
   visiblePresets,
   WORKLOG_SOURCE_TEXT,
   type WorklogSource,
@@ -67,7 +66,7 @@ import {
   TimeBar,
   TimeBreakdown,
   TimeChips,
-  type TimeUnder,
+  timeSummary,
 } from './EpicBands';
 import { EpicCfdChart } from './EpicCfdChart';
 import {
@@ -123,19 +122,10 @@ function statusBarTip(statuses: StatusBucket[], statusTotal: number): ReactNode 
   );
 }
 
-function assigneeTip(
-  a: AssigneeBucket,
-  metric: Metric,
-  segments: TimeSegment[],
-  under: TimeUnder | undefined,
-): ReactNode {
+function assigneeTip(a: AssigneeBucket, metric: Metric): ReactNode {
   return (
     <TooltipBody title={a.name}>
-      {metric === 'time' ? (
-        <TimeBreakdown segments={segments} under={under} estimate={a.estimate} />
-      ) : (
-        <BandBreakdown bands={assigneeBands(a)} metric={metric} valueAs="share" />
-      )}
+      <BandBreakdown bands={assigneeBands(a)} metric={metric} valueAs="share" />
     </TooltipBody>
   );
 }
@@ -241,24 +231,12 @@ export function EpicProgressSection({
   const timeSegments = timeMode ? deriveTimeSegments(stories) : [];
   // Per person Time bars share one scale: the longest of any person's total or estimate.
   const timeUnder = timeMode ? deriveTimeUnder(stories) : undefined;
-  const personTime = new Map(
-    timeMode
-      ? assignees.map((a) => {
-          const mine = stories.filter((s) => assigneeIdOf(s) === a.id);
-          return [a.id, deriveTimeSegments(mine)] as const;
-        })
-      : [],
-  );
-  const personUnder = new Map(
-    timeMode
-      ? assignees.map(
-          (a) => [a.id, deriveTimeUnder(stories.filter((s) => assigneeIdOf(s) === a.id))] as const,
-        )
-      : [],
-  );
+  // Time "By person": logged by worklog author (incl. people with no assigned story),
+  // remaining / estimate by assignee; rows share one scale (largest total or estimate).
+  const timePeople = timeMode ? deriveTimePeople(stories, worklogs.data) : [];
   const personScale = Math.max(
     1,
-    ...assignees.map((a) => Math.max(a.estimate, segmentsTotal(personTime.get(a.id) ?? []))),
+    ...timePeople.map((p) => Math.max(p.estimate, segmentsTotal(p.segments))),
   );
 
   const countForecast = deriveAdaptiveForecast(
@@ -515,8 +493,47 @@ export function EpicProgressSection({
         >
           <h4 className="text-xs font-medium text-muted-foreground">By person</h4>
           <div className="mt-2 flex flex-col">
-            {assignees.map((a) => (
-              <div key={a.id} data-testid="epic-assignee-row" className="text-xs">
+            {(timeMode
+              ? timePeople.map((p) => {
+                  const t = timeSummary(p.segments, p.under);
+                  return {
+                    id: p.id,
+                    name: p.name,
+                    avatarUrl: p.avatarUrl,
+                    label: `${p.name}: logged ${formatMetric(t.logged, metric)}, left ${formatMetric(t.left, metric)}, estimate ${formatMetric(p.estimate, metric)}`,
+                    bar: (
+                      <TimeBar
+                        segments={p.segments}
+                        estimate={p.estimate}
+                        scale={personScale}
+                        className="h-3"
+                      />
+                    ),
+                    chips: (
+                      <TimeChips segments={p.segments} under={p.under} estimate={p.estimate} />
+                    ),
+                    tip: (
+                      <TooltipBody title={p.name}>
+                        <TimeBreakdown
+                          segments={p.segments}
+                          under={p.under}
+                          estimate={p.estimate}
+                        />
+                      </TooltipBody>
+                    ),
+                  };
+                })
+              : assignees.map((a) => ({
+                  id: a.id,
+                  name: a.name,
+                  avatarUrl: a.avatarUrl,
+                  label: `${a.name}: done ${formatMetric(a.done, metric)}, in progress ${formatMetric(a.inProgress, metric)}, to do ${formatMetric(a.todo, metric)}`,
+                  bar: <BandBar bands={assigneeBands(a)} scale={maxAssignee} className="h-3" />,
+                  chips: <BandChips bands={assigneeBands(a)} metric={metric} />,
+                  tip: assigneeTip(a, metric),
+                }))
+            ).map((row) => (
+              <div key={row.id} data-testid="epic-assignee-row" className="text-xs">
                 <Tooltip trackCursorAxis="x">
                   <TooltipTrigger
                     delay={0}
@@ -525,42 +542,19 @@ export function EpicProgressSection({
                     // group, not img: its avatar and chips are role="img" children (no nested img roles).
                     role="group"
                     tabIndex={0}
-                    aria-label={
-                      timeMode
-                        ? `${a.name}: logged ${formatMetric(a.done, metric)}, remaining ${formatMetric(a.inProgress + a.todo, metric)}, estimate ${formatMetric(a.estimate, metric)}`
-                        : `${a.name}: done ${formatMetric(a.done, metric)}, in progress ${formatMetric(a.inProgress, metric)}, to do ${formatMetric(a.todo, metric)}`
-                    }
+                    aria-label={row.label}
                     className="flex items-center gap-2 rounded-sm py-0.5 hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                   >
                     <span className="flex w-40 min-w-0 flex-none items-center gap-1.5">
-                      <CachedAvatar url={a.avatarUrl} name={a.name} size={20} />
-                      <span className="truncate pr-0.5">{a.name}</span>
+                      <CachedAvatar url={row.avatarUrl} name={row.name} size={20} />
+                      <span className="truncate pr-0.5">{row.name}</span>
                     </span>
                     <div data-testid="epic-assignee-bar" className="min-w-0 flex-1">
-                      {timeMode ? (
-                        <TimeBar
-                          segments={personTime.get(a.id) ?? []}
-                          estimate={a.estimate}
-                          scale={personScale}
-                          className="h-3"
-                        />
-                      ) : (
-                        <BandBar bands={assigneeBands(a)} scale={maxAssignee} className="h-3" />
-                      )}
+                      {row.bar}
                     </div>
-                    {timeMode ? (
-                      <TimeChips
-                        segments={personTime.get(a.id) ?? []}
-                        under={personUnder.get(a.id)}
-                        estimate={a.estimate}
-                      />
-                    ) : (
-                      <BandChips bands={assigneeBands(a)} metric={metric} />
-                    )}
+                    {row.chips}
                   </TooltipTrigger>
-                  <TooltipContent>
-                    {assigneeTip(a, metric, personTime.get(a.id) ?? [], personUnder.get(a.id))}
-                  </TooltipContent>
+                  <TooltipContent>{row.tip}</TooltipContent>
                 </Tooltip>
               </div>
             ))}
