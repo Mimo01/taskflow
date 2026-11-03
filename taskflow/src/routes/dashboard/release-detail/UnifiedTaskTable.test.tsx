@@ -303,7 +303,7 @@ describe('UnifiedTaskTable', () => {
     const taskRow = screen.getByTestId('task-row');
     expect(taskRow).not.toHaveTextContent('!9');
     expect(taskRow).not.toHaveTextContent('Merged thing');
-    expect(screen.getByTestId('mr-status-chip')).toHaveTextContent('1/1');
+    expect(screen.getByTestId('mr-status-chip')).toHaveTextContent('merged');
     const popover = await openMrPopover();
     expect(popover).toHaveTextContent('!9');
     expect(popover).toHaveTextContent('Merged thing');
@@ -343,9 +343,9 @@ describe('UnifiedTaskTable', () => {
       mr: makeMR({ state: 'opened', draft: true }),
     });
     renderWithRows([row], { flaggedMrCount: 1 });
-    expect(screen.getByTestId('mr-status-chip')).toHaveTextContent('0/1');
+    expect(screen.getByTestId('mr-status-chip')).toHaveTextContent('draft');
     expect(
-      screen.getByTestId('mr-status-chip').querySelector('[data-mr-group="draft"]'),
+      screen.getByTestId('mr-status-chip').querySelector('[data-mr-state="draft"]'),
     ).not.toBeNull();
     await openMrPopover();
     expect(screen.getByTestId('drift-br').querySelector('svg')).toBeTruthy();
@@ -418,9 +418,11 @@ describe('UnifiedTaskTable', () => {
       ];
       renderWithRows(rows);
       const chip = screen.getByTestId('mr-status-chip');
-      expect(within(chip).getByTestId('mr-status-label')).toHaveTextContent('0/3');
-      expect(chip.querySelector('[data-mr-group="open"]')).toHaveAttribute('data-count', '3');
-      expect(chip.querySelectorAll('[data-mr-group]')).toHaveLength(1);
+      expect(within(chip).getByTestId('mr-status-label')).toHaveTextContent('open');
+      expect(chip).toHaveAttribute('aria-label', expect.stringContaining('3 merge request'));
+      // One state only → no ring, just the state glyph + word.
+      expect(chip.querySelectorAll('[data-mr-group]')).toHaveLength(0);
+      expect(chip.querySelector('[data-mr-state="open"]')).not.toBeNull();
       const popover = await openMrPopover();
       const lines = within(popover).getAllByTestId('mr-popover-line');
       expect(lines.map((l) => l.textContent)).toEqual([
@@ -461,8 +463,8 @@ describe('UnifiedTaskTable', () => {
     it('a single MR uses the same chip + popover (no direct link)', async () => {
       renderWithRows([makeRow({ mr: makeMR({ iid: 1, state: 'merged' }) })]);
       const chip = screen.getByTestId('mr-status-chip');
-      expect(within(chip).getByTestId('mr-status-label')).toHaveTextContent('1/1');
-      expect(chip.querySelector('[data-mr-group="merged"]')).toHaveAttribute('data-count', '1');
+      expect(within(chip).getByTestId('mr-status-label')).toHaveTextContent('merged');
+      expect(chip).toHaveAttribute('aria-label', expect.stringContaining('1 merge request'));
       const popover = await openMrPopover();
       expect(within(popover).getAllByTestId('mr-popover-line')).toHaveLength(1);
     });
@@ -1007,9 +1009,10 @@ describe('D-17: five mutually exclusive MR-slot states', () => {
     const rowA = makeRow({ mr: makeMR({ id: 1, iid: 1 }) });
     const rowB = makeRow({ mr: makeMR({ id: 2, iid: 2 }) });
     renderWithRows([rowA, rowB], { isLoadingDrift: false });
-    expect(
-      screen.getByTestId('mr-status-chip').querySelector('[data-mr-group="open"]'),
-    ).toHaveAttribute('data-count', '2');
+    expect(screen.getByTestId('mr-status-chip')).toHaveAttribute(
+      'aria-label',
+      expect.stringContaining('2 merge request'),
+    );
     const popover = await openMrPopover();
     expect(within(popover).getAllByTestId('mr-popover-line')).toHaveLength(2);
     expect(screen.queryByTestId('mr-slot-pending')).toBeNull();
@@ -1837,16 +1840,18 @@ describe('UAT-91.1-B: filtering warning badges', () => {
       brFlaggedCount: 1,
     });
 
-    expect(
-      screen.getByTestId('mr-status-chip').querySelector('[data-mr-group="open"]'),
-    ).toHaveAttribute('data-count', '4');
+    expect(screen.getByTestId('mr-status-chip')).toHaveAttribute(
+      'aria-label',
+      expect.stringContaining('4 merge request'),
+    );
 
     fireEvent.click(screen.getByTestId('flagged-br-badge'));
 
     // The filter changes which tasks/MRs match, never how many the task has.
-    expect(
-      screen.getByTestId('mr-status-chip').querySelector('[data-mr-group="open"]'),
-    ).toHaveAttribute('data-count', '4');
+    expect(screen.getByTestId('mr-status-chip')).toHaveAttribute(
+      'aria-label',
+      expect.stringContaining('4 merge request'),
+    );
     expect(screen.getByTestId('task-drift-br').tagName).toBe('BUTTON');
     const popover = await openMrPopover();
     expect(within(popover).getAllByTestId('mr-popover-line')).toHaveLength(4);
@@ -2040,7 +2045,7 @@ describe('responsive container tiers', () => {
     expect(icon).toHaveClass('@max-[640px]:hidden');
     const chip = within(taskRow).getByTestId('mr-status-chip');
     // The label goes sr-only at narrow widths; the state/count groups carry it.
-    expect(within(chip).getByTestId('mr-status-label')).toHaveTextContent('0/1');
+    expect(within(chip).getByTestId('mr-status-label')).toHaveTextContent('open');
     // Fixed-width badge: fills its (constant-width) column.
     expect(chip.parentElement).toHaveClass('w-[5rem]', '@max-[520px]:hidden');
     const state = within(taskRow).getByText('Status');
@@ -2835,7 +2840,7 @@ describe('mrStatusSummary', () => {
     expect(mrStatusSummary([r(1, 'opened'), r(2, 'merged')]).ariaLabel).toBe(
       '1/2 merged — 2 merge requests: 1 merged, 1 open — show details',
     );
-    expect(mrStatusSummary([r(1, 'merged')]).ariaLabel).toMatch(/^1\/1 merged — 1 merge request: /);
+    expect(mrStatusSummary([r(1, 'merged')]).ariaLabel).toMatch(/^merged — 1 merge request: /);
   });
 });
 
@@ -2935,18 +2940,32 @@ describe('task row MR status chip + popover (261103-g8m)', () => {
     expect(row.lastElementChild?.querySelector('[data-testid="mr-status-chip"]')).toBeNull();
   });
 
+  it('draws the ring only for a mix of states', () => {
+    renderWithRows([
+      makeRow({ mr: makeMR({ id: 1, iid: 1, state: 'merged' }) }),
+      makeRow({ mr: makeMR({ id: 2, iid: 2 }) }),
+    ]);
+    const chip = screen.getByTestId('mr-status-chip');
+    expect(chip.querySelectorAll('[data-mr-group]')).toHaveLength(2);
+    expect(within(chip).getByTestId('mr-status-label')).toHaveTextContent('1/2');
+    expect(chip.querySelector('[data-mr-state]')).toBeNull();
+  });
+
   it('counts all 5 MRs in one group with no +N; a lone merged MR is "1" and "merged"', async () => {
     const five = [1, 2, 3, 4, 5].map((i) => makeRow({ mr: makeMR({ id: i, iid: i }) }));
     const { unmount } = renderWithRows(five);
     const chip = screen.getByTestId('mr-status-chip');
-    expect(chip.querySelector('[data-mr-group="open"]')).toHaveAttribute('data-count', '5');
+    expect(chip).toHaveAttribute('aria-label', expect.stringContaining('5 merge request'));
     expect(chip).not.toHaveTextContent('+');
     unmount();
 
     renderWithRows([makeRow({ mr: makeMR({ id: 9, iid: 9, state: 'merged' }) })]);
     const lone = screen.getByTestId('mr-status-chip');
-    expect(lone.querySelector('[data-mr-group="merged"]')).toHaveAttribute('data-count', '1');
-    expect(within(lone).getByTestId('mr-status-label')).toHaveTextContent('1/1');
+    expect(lone).toHaveAttribute('aria-label', expect.stringContaining('1 merge request'));
+    expect(within(lone).getByTestId('mr-status-label')).toHaveTextContent('merged');
+    // All merged → a check, not a single-colour ring.
+    expect(lone.querySelector('[data-mr-state="merged"]')).not.toBeNull();
+    expect(lone.querySelectorAll('[data-mr-group]')).toHaveLength(0);
     const popover = await openMrPopover();
     expect(within(popover).getAllByTestId('mr-popover-line')).toHaveLength(1);
   });

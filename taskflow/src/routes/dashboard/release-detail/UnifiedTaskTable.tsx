@@ -270,7 +270,7 @@ export function mrStatusSummary(rows: DriftRow[]): {
   if (closed > 0) parts.push(`${closed} closed`);
   const fraction = live === 0 ? 'closed' : `${merged}/${live}`;
   // Starts with the visible text (WCAG 2.5.3 label-in-name).
-  const ariaLabel = `${live === 0 ? 'closed' : `${fraction} merged`} — ${n} merge request${n === 1 ? '' : 's'}: ${parts.join(', ')} — show details`;
+  const ariaLabel = `${groups.length > 1 ? `${fraction} merged` : label} — ${n} merge request${n === 1 ? '' : 's'}: ${parts.join(', ')} — show details`;
 
   const progress = live === 0 ? 0 : merged / live;
 
@@ -1146,8 +1146,7 @@ function TaskMrCell({
             MR_TONE_TEXT[summary.tone],
           )}
         >
-          <MrStatusRing groups={summary.groups} />
-          <span data-testid="mr-status-label">{summary.fraction}</span>
+          <MrStatusGlyph summary={summary} />
         </PopoverTrigger>
       </div>
       {/* CR-05: `interactive` is DERIVED — only a flagged aggregate is a
@@ -1194,8 +1193,7 @@ function TaskMrCell({
                 MR_TONE_TEXT[summary.tone],
               )}
             >
-              <MrStatusRing groups={summary.groups} />
-              {summary.fraction === 'closed' ? 'closed' : `${summary.fraction} merged`}
+              <MrStatusGlyph summary={summary} long />
             </span>
           </div>
           <div
@@ -1254,6 +1252,46 @@ const MR_KIND_ORDER_STROKE: Record<MrStateKind, string> = {
   draft: 'stroke-muted-foreground/60',
   closed: 'stroke-muted-foreground/30',
 };
+
+const MR_KIND_GLYPH: Record<MrStateKind, LucideIcon> = {
+  merged: Check,
+  open: GitPullRequest,
+  draft: GitPullRequestDraft,
+  closed: GitPullRequestClosed,
+};
+
+/**
+ * The MR status visual. A mix of states → the segmented ring + merged/live
+ * ("1/2"; `long` adds "merged"). Every MR in one state → no ring (it would be
+ * a single-colour circle): just that state's glyph — a check when all merged
+ * — and its word.
+ */
+function MrStatusGlyph({
+  summary,
+  long = false,
+}: {
+  summary: ReturnType<typeof mrStatusSummary>;
+  long?: boolean;
+}) {
+  if (summary.groups.length > 1) {
+    return (
+      <>
+        <MrStatusRing groups={summary.groups} />
+        <span data-testid="mr-status-label">
+          {long ? `${summary.fraction} merged` : summary.fraction}
+        </span>
+      </>
+    );
+  }
+  const kind = summary.groups[0]?.kind ?? 'closed';
+  const Icon = MR_KIND_GLYPH[kind];
+  return (
+    <>
+      <Icon aria-hidden="true" data-mr-state={kind} className="size-4 flex-none" />
+      <span data-testid="mr-status-label">{summary.label}</span>
+    </>
+  );
+}
 
 /** Dashed empty ring — the "no data" stand-in for `MrStatusRing` in the slot states. */
 function MrEmptyRing() {
