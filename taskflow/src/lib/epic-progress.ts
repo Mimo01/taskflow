@@ -1,4 +1,5 @@
 import { toLocalDateString } from '@/lib/local-date';
+import { OVERRUN_RED_RATIO } from '@/lib/time-progress';
 import type { EpicStatusHistory, EpicWorklogDay, JiraIssue, JiraStatus } from '@/services/jira';
 import { formatDuration, formatDurationCompact } from '@/services/jira/duration';
 
@@ -186,6 +187,64 @@ export function bandsOf(s: JiraIssue, metric: Metric, spKey: string): Bands {
   };
 }
 
+/** Assignee bucket id: DC username so same-named users (or a user named "Unassigned") don't merge. */
+export function assigneeIdOf(s: JiraIssue): string {
+  const a = s.fields.assignee;
+  return a ? `user:${a.name || a.displayName}` : 'unassigned';
+}
+
+export type TimePart = 'logged' | 'loggedOver' | 'remaining' | 'remainingOver';
+/** One drawn piece of a Time bar: a status group's logged / remaining, within or beyond the estimate. */
+export interface TimeSegment {
+  cat: Cat;
+  part: TimePart;
+  seconds: number;
+  /** Over-parts only: some story in the group forecasts beyond OVERRUN_RED_RATIO × its estimate (red, else amber). */
+  severe: boolean;
+}
+const TIME_PARTS: readonly TimePart[] = ['logged', 'loggedOver', 'remaining', 'remainingOver'];
+
+/**
+ * Time bar segments (261103-lcd, option 1): grouped by status (done → in progress → to do);
+ * inside a group, logged within the estimate, logged beyond it, remaining within it, remaining
+ * beyond it (forecast overspend). Per story: within = up to its estimate; a story with no
+ * estimate has no known overspend. Segment total = Σ logged + remaining.
+ */
+export function deriveTimeSegments(stories: JiraIssue[]): TimeSegment[] {
+  const out: TimeSegment[] = [];
+  for (const cat of ['done', 'indeterminate', 'new'] as const) {
+    const sums: Record<TimePart, number> = {
+      logged: 0,
+      loggedOver: 0,
+      remaining: 0,
+      remainingOver: 0,
+    };
+    let severe = false;
+    for (const s of stories) {
+      if (catOf(s) !== cat) continue;
+      const est = estimateOf(s);
+      const log = loggedOf(s);
+      const rem = remainingOf(s);
+      if (est <= 0) {
+        sums.logged += log;
+        sums.remaining += rem;
+        continue;
+      }
+      const lw = Math.min(log, est);
+      const rw = Math.min(rem, Math.max(est - log, 0));
+      sums.logged += lw;
+      sums.loggedOver += log - lw;
+      sums.remaining += rw;
+      sums.remainingOver += rem - rw;
+      if (log + rem > est * OVERRUN_RED_RATIO) severe = true;
+    }
+    for (const part of TIME_PARTS) {
+      if (sums[part] > 0) out.push({ cat, part, seconds: sums[part], severe });
+    }
+  }
+  return out;
+}
+
 /** Date key a done story was completed; null when the story is not in the done category. */
 export function doneDateKey(s: JiraIssue, today: string): string | null {
   if (catOf(s) !== 'done') return null;
@@ -238,7 +297,7 @@ export function deriveAssigneeBuckets(
   for (const s of stories) {
     const a = s.fields.assignee;
     // Key by DC username so same-named users (or a user literally named "Unassigned") don't merge.
-    const id = a ? `user:${a.name || a.displayName}` : 'unassigned';
+    const id = assigneeIdOf(s);
     let b = map.get(id);
     if (!b) {
       b = {

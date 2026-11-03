@@ -18,7 +18,7 @@ import { LinkContextMenu } from '@/components/ui/link-context-menu';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { TooltipBody, TooltipRow } from '@/components/ui/tooltip-body';
 import { useMentionUserMap } from '@/hooks/useMentionUserMap';
-import { estimateOf, loggedOf, remainingOf } from '@/lib/epic-progress';
+import { deriveTimeSegments, estimateOf, loggedOf, remainingOf } from '@/lib/epic-progress';
 import { openExternal } from '@/lib/openExternal';
 import { statusPillClass } from '@/lib/statusStyles';
 import { cn } from '@/lib/utils';
@@ -37,6 +37,7 @@ import { useSettingsStore } from '@/stores/settings.store';
 import { BulkCreateSubtasksModal } from './BulkCreateSubtasksModal';
 import type { EditInitialValues } from './CreateEditIssueModal';
 import { AttachmentsSection } from './issue-detail/AttachmentsSection';
+import { TimeBar } from './issue-detail/EpicBands';
 import { EpicProgressSection } from './issue-detail/EpicProgressSection';
 import { MARKER_ICON } from './issue-detail/epic-markers';
 import { LogWorkPopover } from './issue-detail/LogWorkPopover';
@@ -311,7 +312,7 @@ export function IssueDetailContent({
           {epicStories && epicStories.length > 0 && (
             <ul className="space-y-1 density-compact:space-y-0.5 density-comfortable:space-y-2">
               {epicStories.map((story) => {
-                // Same model as the epic bars: total = logged + remaining, fill = logged / total.
+                // Same TimeBar as the epic bars: total = logged + remaining, tick at the estimate.
                 const est = estimateOf(story);
                 const logged = loggedOf(story);
                 const remaining = remainingOf(story);
@@ -357,24 +358,13 @@ export function IssueDetailContent({
                           }
                           data-overrun={overrun ? 'true' : undefined}
                           data-empty={total > 0 ? undefined : 'true'}
-                          className="relative inline-flex h-1.5 w-16 flex-none overflow-hidden rounded-full bg-muted"
+                          className="inline-flex w-16 flex-none"
                         >
-                          {logged > 0 ? (
-                            <span
-                              className={cn(
-                                'h-full',
-                                overrun ? 'bg-destructive' : 'bg-muted-foreground',
-                              )}
-                              style={{ width: `${(logged / total) * 100}%` }}
-                            />
-                          ) : null}
-                          {over > 0 ? (
-                            <span
-                              data-testid="story-estimate-tick"
-                              className="absolute inset-y-0 w-px bg-foreground"
-                              style={{ left: `${(est / total) * 100}%` }}
-                            />
-                          ) : null}
+                          <TimeBar
+                            segments={deriveTimeSegments([story])}
+                            estimate={est}
+                            className="h-1.5 rounded-full"
+                          />
                         </TooltipTrigger>
                         <TooltipContent>
                           <TooltipBody note={est > 0 || remaining > 0 ? undefined : 'No estimate'}>

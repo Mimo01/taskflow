@@ -59,6 +59,7 @@ import {
   weightOf,
   remainingOf,
   timeWeightOf,
+  deriveTimeSegments,
   bandsOf,
   BANDS,
   bandPct,
@@ -373,6 +374,32 @@ describe('time model (261103-lcd)', () => {
       inProgress: 0,
       todo: 0,
     });
+  });
+  it('deriveTimeSegments: status groups, within vs beyond estimate, severity (option 1)', () => {
+    const segs = deriveTimeSegments([
+      st('A', { cat: 'done', est: 4 * H, spent: 6 * H }),
+      st('B', { cat: 'indeterminate', est: 4 * H, spent: 2 * H, rem: 4 * H }),
+      st('C', { est: 2 * H, rem: 2 * H }),
+      st('D', { cat: 'indeterminate', est: 8 * H, spent: 7 * H, rem: 2 * H }),
+      st('U', { cat: 'indeterminate', spent: H }),
+    ]);
+    expect(segs.map((x) => [`${x.cat}:${x.part}`, x.seconds / H, x.severe])).toEqual([
+      ['done:logged', 4, true],
+      ['done:loggedOver', 2, true],
+      // B 2h + D 7h + unestimated U 1h within; B forecasts 2h over (150% → red).
+      ['indeterminate:logged', 10, true],
+      ['indeterminate:remaining', 3, true],
+      ['indeterminate:remainingOver', 3, true],
+      ['new:remaining', 2, false],
+    ]);
+    // Total = logged + remaining.
+    expect(segs.reduce((n, x) => n + x.seconds, 0)).toBe(24 * H);
+  });
+  it('deriveTimeSegments: overspend up to 125% of the estimate is not severe', () => {
+    const segs = deriveTimeSegments([
+      st('A', { cat: 'indeterminate', est: 4 * H, spent: 5 * H, rem: 0 }),
+    ]);
+    expect(segs.find((x) => x.part === 'loggedOver')?.severe).toBe(false);
   });
   const timed = (spent: number, rem: number) => [
     st('D', { cat: 'done', est: H, spent: 5400 }),

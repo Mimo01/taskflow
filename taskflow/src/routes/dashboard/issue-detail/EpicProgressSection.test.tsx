@@ -1229,7 +1229,7 @@ describe('EpicProgressSection unified tabs (261001-rtw)', () => {
       r.children[0].getAttribute('data-marker'),
     );
 
-  it('Time mode person bar segments agree with the chips (logged / remaining)', () => {
+  it('Time mode person bar is status-grouped with overspend and an estimate tick', () => {
     renderSection(timedSection());
     fireEvent.click(screen.getByRole('button', { name: 'Time' }));
     const row = screen.getByTestId('epic-assignee-row');
@@ -1237,14 +1237,20 @@ describe('EpicProgressSection unified tabs (261001-rtw)', () => {
     // 261103-lcd: logged = 1h 30m; remaining = T-2 Jira remaining 1h.
     expect(chips.map((c) => c.textContent)).toEqual(['1h 30m', '1h']);
     expect(chips.map((c) => c.getAttribute('data-part'))).toEqual(['logged', 'remaining']);
+    // Status-grouped TimeBar: T-1 done (1h estimate, 1h 30m logged → 1h + 30m over, red at
+    // 150%); T-2 to do (Jira remaining 1h, within its estimate).
     const segs = [...row.querySelectorAll('[data-segment]')] as HTMLElement[];
-    expect(segs.map((s) => s.getAttribute('data-segment'))).toEqual(['logged', 'remaining']);
-    // Neutral fills, never a status colour.
-    expect(segs[0].className).toContain('bg-muted-foreground');
-    expect(segs[0].className).not.toMatch(/bg-(green|blue|gray)/);
-    // Scale = the largest assignee total (2h 30m): 1h 30m -> 60%, 1h -> 40%.
-    expect(Number.parseFloat(segs[0].style.width)).toBeCloseTo(60, 3);
-    expect(Number.parseFloat(segs[1].style.width)).toBeCloseTo(40, 3);
+    expect(segs.map((s) => s.getAttribute('data-segment'))).toEqual([
+      'done:logged',
+      'done:loggedOver',
+      'new:remaining',
+    ]);
+    expect(segs[1].className).toContain('bg-red-500');
+    expect(segs[2].className).toContain('opacity-35');
+    // Scale = max(total 2h 30m, estimate) of the largest person; tick at the person's estimate.
+    const total = segs.reduce((n, s) => n + Number.parseFloat(s.style.width), 0);
+    expect(within(row).getByTestId('time-estimate-tick')).toBeInTheDocument();
+    expect(total).toBeLessThanOrEqual(100.0001);
   });
 
   it('Time hero tooltip lists Logged / Remaining with share, then the Estimate (261103-lcd)', async () => {

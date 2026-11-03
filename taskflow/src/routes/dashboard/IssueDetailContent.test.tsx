@@ -60,7 +60,7 @@ vi.mock('@tauri-apps/plugin-opener', () => ({
 // --- Imports ---
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -245,6 +245,15 @@ describe('IssueDetailContent', () => {
         },
       };
     }
+    /** data-segment → width (%) of the shared TimeBar inside a story row. */
+    function segs(bar: HTMLElement): Record<string, number> {
+      return Object.fromEntries(
+        [...bar.querySelectorAll<HTMLElement>('[data-segment]')].map((el) => [
+          el.getAttribute('data-segment'),
+          Number.parseFloat(el.style.width),
+        ]),
+      );
+    }
     function renderEpic(stories: unknown[], onOpenIssue = vi.fn()) {
       render(
         <IssueDetailContent
@@ -268,7 +277,8 @@ describe('IssueDetailContent', () => {
       expect(bar.tagName).toBe('SPAN');
       expect(bar).not.toHaveAttribute('data-overrun');
       expect(bar).not.toHaveAttribute('data-empty');
-      expect((bar.firstElementChild as HTMLElement).style.width).toBe('50%');
+      // To do, 2h estimate, 1h logged, 1h left: solid logged half, faint remaining half.
+      expect(segs(bar)).toEqual({ 'new:logged': 50, 'new:remaining': 50 });
       const row = bar.closest('button') as HTMLElement;
       expect(bar.hasAttribute('tabindex')).toBe(false);
       expect(row.querySelectorAll('button')).toHaveLength(0);
@@ -276,13 +286,22 @@ describe('IssueDetailContent', () => {
       expect(onOpen).toHaveBeenCalledWith('S-1');
     });
 
-    it('flags overrun with a clamped red fill', () => {
+    it('shows logged beyond the estimate as a red over segment (past 125%)', () => {
       renderEpic([epicStory('S-1', 'new', { est: 3600, spent: 7200 })]);
       const bar = screen.getByTestId('story-time-bar');
       expect(bar).toHaveAttribute('data-overrun', 'true');
-      const fill = bar.firstElementChild as HTMLElement;
-      expect(fill.style.width).toBe('100%');
-      expect(fill.className).toContain('bg-destructive');
+      expect(segs(bar)).toEqual({ 'new:logged': 50, 'new:loggedOver': 50 });
+      const over = bar.querySelector('[data-segment="new:loggedOver"]') as HTMLElement;
+      expect(over.className).toContain('bg-red-500');
+      const tick = within(bar).getByTestId('time-estimate-tick');
+      expect(tick.style.left).toBe('calc(50% - 1px)');
+    });
+
+    it('overspend within 125% of the estimate is amber', () => {
+      renderEpic([epicStory('S-1', 'indeterminate', { est: 7200, spent: 8100, rem: 0 })]);
+      const bar = screen.getByTestId('story-time-bar');
+      const over = bar.querySelector('[data-segment="indeterminate:loggedOver"]') as HTMLElement;
+      expect(over.className).toContain('bg-amber-500');
     });
 
     it('names the overrun in the tooltip, not only by colour', async () => {
@@ -299,11 +318,26 @@ describe('IssueDetailContent', () => {
       renderEpic([epicStory('S-1', 'indeterminate', { est: 7200, spent: 1800, rem: 10800 })]);
       const bar = screen.getByTestId('story-time-bar');
       expect(bar).toHaveAttribute('aria-label', 'Logged 30m of 3h 30m');
-      const fill = bar.firstElementChild as HTMLElement;
-      expect(Number.parseFloat(fill.style.width)).toBeCloseTo((1800 / 12600) * 100, 3);
-      expect(fill.className).toContain('bg-muted-foreground');
-      const tick = screen.getByTestId('story-estimate-tick');
-      expect(Number.parseFloat(tick.style.left)).toBeCloseTo((7200 / 12600) * 100, 3);
+      // Logged 30m (solid blue), remaining up to the estimate 1h 30m (faint blue), forecast
+      // overspend 1h 30m (faint striped red: 3h 30m is past 125% of 2h).
+      const w = segs(bar);
+      expect(Object.keys(w)).toEqual([
+        'indeterminate:logged',
+        'indeterminate:remaining',
+        'indeterminate:remainingOver',
+      ]);
+      expect(w['indeterminate:logged']).toBeCloseTo((1800 / 12600) * 100, 3);
+      expect(w['indeterminate:remaining']).toBeCloseTo((5400 / 12600) * 100, 3);
+      expect(w['indeterminate:remainingOver']).toBeCloseTo((5400 / 12600) * 100, 3);
+      const fc = bar.querySelector('[data-segment="indeterminate:remainingOver"]') as HTMLElement;
+      expect(fc.className).toContain('bg-red-500');
+      expect(fc.className).toContain('opacity-35');
+      expect(fc.style.backgroundImage).toContain('repeating-linear-gradient');
+      const tick = within(bar).getByTestId('time-estimate-tick');
+      expect(Number.parseFloat(tick.style.left.replace('calc(', ''))).toBeCloseTo(
+        (7200 / 12600) * 100,
+        3,
+      );
       await user.hover(bar);
       await waitFor(() => expect(rowTexts().length).toBeGreaterThan(0));
       expect(rowTexts()).toEqual(['Estimate2h', 'Logged30m', 'Remaining3h', 'Over by1h 30m']);
@@ -313,7 +347,8 @@ describe('IssueDetailContent', () => {
       renderEpic([epicStory('S-1', 'new', {})]);
       const bar = screen.getByTestId('story-time-bar');
       expect(bar).toHaveAttribute('data-empty', 'true');
-      expect(bar.firstElementChild).toBeNull();
+      expect(bar.querySelectorAll('[data-segment]')).toHaveLength(0);
+      expect(within(bar).queryByTestId('time-estimate-tick')).toBeNull();
     });
 
     it('no estimate but logged: logged is the whole total, tooltip notes no estimate', async () => {
@@ -321,7 +356,7 @@ describe('IssueDetailContent', () => {
       renderEpic([epicStory('S-1', 'new', { spent: 1800 })]);
       const bar = screen.getByTestId('story-time-bar');
       expect(bar).not.toHaveAttribute('data-empty');
-      expect((bar.firstElementChild as HTMLElement).style.width).toBe('100%');
+      expect(segs(bar)).toEqual({ 'new:logged': 100 });
       await user.hover(bar);
       expect(await screen.findByText('No estimate')).toBeInTheDocument();
       expect(rowTexts()).toEqual(['Logged30m']);
@@ -336,13 +371,16 @@ describe('IssueDetailContent', () => {
       expect(document.querySelector('[data-slot="tooltip-note"]')).toBeNull();
     });
 
-    it('uses a neutral fill (not a status colour) and icon markers in the tooltip', async () => {
+    it('colours by status (solid logged, faint remaining) with icon markers in the tooltip', async () => {
       const user = userEvent.setup();
       renderEpic([epicStory('S-1', 'indeterminate', { est: 7200, spent: 1800 })]);
       const bar = screen.getByTestId('story-time-bar');
-      const fill = bar.firstElementChild as HTMLElement;
-      expect(fill.className).toContain('bg-muted-foreground');
-      expect(fill.className).not.toMatch(/bg-(green|blue|gray)/);
+      const logged = bar.querySelector('[data-segment="indeterminate:logged"]') as HTMLElement;
+      const left = bar.querySelector('[data-segment="indeterminate:remaining"]') as HTMLElement;
+      expect(logged.className).toContain('bg-blue-500');
+      expect(logged.className).not.toContain('opacity-35');
+      expect(left.className).toContain('bg-blue-500');
+      expect(left.className).toContain('opacity-35');
       await user.hover(bar);
       await waitFor(() => expect(rowTexts().length).toBeGreaterThan(0));
       const markers = [...document.querySelectorAll('[data-slot="tooltip-row"]')].map((r) =>

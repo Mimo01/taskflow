@@ -1,9 +1,10 @@
 /**
  * Shared band components (quick 261001-rtw). Count and SP render three status bands
  * (done / in progress / to do, weighted 1 / story points), so the hero, assignee rows, chips
- * and tooltips can never disagree. Time renders two neutral parts instead — Logged vs
- * Remaining (Bands.done = logged, inProgress + todo = remaining; 261103-lcd) — the same split
- * as each Stories row bar, so rows and epic bars add up.
+ * and tooltips can never disagree. Time bars use TimeBar (status groups, solid logged / faint
+ * remaining, amber/red overspend, estimate tick); Time chips and tooltips show Logged vs
+ * Remaining (Bands.done = logged, inProgress + todo = remaining; 261103-lcd). The Stories row
+ * bars use the same TimeBar, so rows and epic bars add up.
  * No hooks, spans only: the hero renders these inside a <button>.
  */
 import { TooltipRow } from '@/components/ui/tooltip-body';
@@ -16,6 +17,7 @@ import {
   formatChip,
   formatMetric,
   type Metric,
+  type TimeSegment,
 } from '@/lib/epic-progress';
 import {
   STATUS_CATEGORY_COLOR,
@@ -26,19 +28,86 @@ import { cn } from '@/lib/utils';
 import { SMALL_TEXT } from './EpicStatCard';
 import { MARKER_ICON } from './epic-markers';
 
-/** Neutral fills for Time (not a status, so no status colour): logged solid, remaining faint. */
-export const LOGGED_FILL = 'bg-muted-foreground';
-export const REMAINING_FILL = 'bg-muted-foreground/25';
-
 /** Time view of the bands: logged vs remaining. */
 export function timeParts(b: Bands): { logged: number; remaining: number } {
   return { logged: b.done, remaining: b.inProgress + b.todo };
 }
 
 const TIME_PARTS = [
-  { key: 'logged', label: 'Logged', fill: LOGGED_FILL, Icon: MARKER_ICON.logged },
-  { key: 'remaining', label: 'Remaining', fill: REMAINING_FILL, Icon: MARKER_ICON.remaining },
+  { key: 'logged', label: 'Logged', Icon: MARKER_ICON.logged },
+  { key: 'remaining', label: 'Remaining', Icon: MARKER_ICON.remaining },
 ] as const;
+
+/** Faint diagonal stripes on forecast overspend (remaining beyond the estimate). */
+const HATCH = {
+  backgroundImage:
+    'repeating-linear-gradient(135deg, transparent 0 3px, rgb(255 255 255 / 0.55) 3px 5px)',
+};
+
+function segmentClass(seg: TimeSegment): string {
+  const over = seg.severe ? 'bg-red-500' : 'bg-amber-500';
+  switch (seg.part) {
+    case 'logged':
+      return statusCategoryDotClass(seg.cat);
+    case 'loggedOver':
+      return over;
+    case 'remaining':
+      return cn(statusCategoryDotClass(seg.cat), 'opacity-35');
+    case 'remainingOver':
+      return cn(over, 'opacity-35');
+  }
+}
+
+/** Σ seconds of a segment list (= logged + remaining). */
+export function segmentsTotal(segments: TimeSegment[]): number {
+  return segments.reduce((n, s) => n + s.seconds, 0);
+}
+
+/**
+ * Time bar (261103-lcd option 1): status groups done → in progress → to do; inside each, solid =
+ * logged, faint = remaining; beyond the estimate amber (red past 125%), striped when forecast.
+ * A tick marks the original estimate. Width denominator = max(total, estimate) unless `scale`.
+ */
+export function TimeBar({
+  segments,
+  estimate,
+  scale,
+  className,
+  testId,
+}: {
+  segments: TimeSegment[];
+  estimate: number;
+  /** Shared denominator (e.g. the largest person) so rows compare by length. */
+  scale?: number;
+  className?: string;
+  testId?: string;
+}) {
+  const denom = scale ?? Math.max(segmentsTotal(segments), estimate);
+  const pct = (n: number) => (denom > 0 ? Math.min(n / denom, 1) * 100 : 0);
+  return (
+    <span
+      data-testid={testId}
+      className={cn('relative flex w-full gap-px overflow-hidden rounded bg-muted', className)}
+    >
+      {segments.map((seg) => (
+        <span
+          key={`${seg.cat}:${seg.part}`}
+          data-segment={`${seg.cat}:${seg.part}`}
+          className={cn('h-full flex-none', segmentClass(seg))}
+          style={{ width: `${pct(seg.seconds)}%`, ...(seg.part === 'remainingOver' ? HATCH : {}) }}
+        />
+      ))}
+      {estimate > 0 && denom > 0 ? (
+        <span
+          data-testid="time-estimate-tick"
+          aria-hidden="true"
+          className="absolute inset-y-0 w-0.5 bg-foreground"
+          style={{ left: `calc(${pct(estimate)}% - 1px)` }}
+        />
+      ) : null}
+    </span>
+  );
+}
 
 function timePct(n: number, total: number): number {
   return total > 0 ? Math.round((n / total) * 100) : 0;
@@ -47,38 +116,17 @@ function timePct(n: number, total: number): number {
 /** Segmented bar. Height comes from className; widths are value / (scale ?? total). */
 export function BandBar({
   bands,
-  metric,
   scale,
   className,
   testId,
 }: {
   bands: Bands;
-  /** Time renders Logged vs Remaining instead of the three status bands. */
-  metric?: Metric;
   /** Denominator override (e.g. the largest assignee total so rows share one scale). */
   scale?: number;
   className?: string;
   testId?: string;
 }) {
   const denom = scale ?? bandTotal(bands);
-  if (metric === 'time') {
-    const parts = timeParts(bands);
-    return (
-      <span
-        data-testid={testId}
-        className={cn('flex w-full gap-px overflow-hidden rounded bg-muted', className)}
-      >
-        {TIME_PARTS.filter(({ key }) => parts[key] > 0).map(({ key, fill }) => (
-          <span
-            key={key}
-            data-segment={key}
-            className={cn('h-full', fill)}
-            style={{ width: `${denom > 0 ? (parts[key] / denom) * 100 : 0}%` }}
-          />
-        ))}
-      </span>
-    );
-  }
   return (
     <span
       data-testid={testId}

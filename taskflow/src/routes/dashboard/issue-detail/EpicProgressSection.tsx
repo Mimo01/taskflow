@@ -17,6 +17,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { TooltipBody, TooltipRow } from '@/components/ui/tooltip-body';
 import {
   type AssigneeBucket,
+  assigneeIdOf,
   averageForecasts,
   type Bands,
   buildStatusCategoryLookup,
@@ -31,6 +32,7 @@ import {
   deriveStatusBuckets,
   deriveSummary,
   deriveTimeForecast,
+  deriveTimeSegments,
   deriveTimeTotals,
   formatMetric,
   HISTORY_SOURCE_TEXT,
@@ -56,7 +58,7 @@ import { statusCategoryColor, statusCategoryDotClass } from '@/lib/statusStyles'
 import { cn } from '@/lib/utils';
 import type { JiraIssue } from '@/services/jira';
 import { formatDuration } from '@/services/jira/duration';
-import { BandBar, BandBreakdown, BandChips } from './EpicBands';
+import { BandBar, BandBreakdown, BandChips, segmentsTotal, TimeBar } from './EpicBands';
 import { EpicCfdChart } from './EpicCfdChart';
 import {
   CHART_HEIGHT,
@@ -225,6 +227,20 @@ export function EpicProgressSection({
   const assignees = deriveAssigneeBuckets(stories, metric, storyPointsFieldKey);
   const summary = deriveSummary(stories, metric, storyPointsFieldKey);
   const time = deriveTimeTotals(stories);
+  const timeSegments = timeMode ? deriveTimeSegments(stories) : [];
+  // Per person Time bars share one scale: the longest of any person's total or estimate.
+  const personTime = new Map(
+    timeMode
+      ? assignees.map((a) => {
+          const segs = deriveTimeSegments(stories.filter((s) => assigneeIdOf(s) === a.id));
+          return [a.id, segs] as const;
+        })
+      : [],
+  );
+  const personScale = Math.max(
+    1,
+    ...assignees.map((a) => Math.max(a.estimate, segmentsTotal(personTime.get(a.id) ?? []))),
+  );
 
   const countForecast = deriveAdaptiveForecast(
     stories,
@@ -370,6 +386,7 @@ export function EpicProgressSection({
         metric={metric}
         summary={summary}
         time={time}
+        timeSegments={timeSegments}
         finish={finish}
         risks={risks}
         sourceNote={heroSourceNote}
@@ -500,12 +517,16 @@ export function EpicProgressSection({
                       <span className="truncate pr-0.5">{a.name}</span>
                     </span>
                     <div data-testid="epic-assignee-bar" className="min-w-0 flex-1">
-                      <BandBar
-                        bands={assigneeBands(a)}
-                        metric={metric}
-                        scale={maxAssignee}
-                        className="h-3"
-                      />
+                      {timeMode ? (
+                        <TimeBar
+                          segments={personTime.get(a.id) ?? []}
+                          estimate={a.estimate}
+                          scale={personScale}
+                          className="h-3"
+                        />
+                      ) : (
+                        <BandBar bands={assigneeBands(a)} scale={maxAssignee} className="h-3" />
+                      )}
                     </div>
                     <BandChips bands={assigneeBands(a)} metric={metric} />
                   </TooltipTrigger>

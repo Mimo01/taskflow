@@ -38,12 +38,13 @@ import {
   type Metric,
   type RiskKey,
   summaryBands,
+  type TimeSegment,
   type TimeTotals,
 } from '@/lib/epic-progress';
 import { cn } from '@/lib/utils';
 import { formatDuration, formatDurationCompact } from '@/services/jira/duration';
 import { ConfidenceMeter } from './ConfidenceMeter';
-import { BandBar, BandBreakdown } from './EpicBands';
+import { BandBar, BandBreakdown, TimeBar } from './EpicBands';
 import {
   SMALL_TEXT,
   STAT_CARD_CLASS,
@@ -67,6 +68,8 @@ interface EpicProgressSummaryProps {
   metric: Metric;
   summary: EpicSummary;
   time: TimeTotals;
+  /** Time-bar segments for the whole epic (used by the Time hero bar). */
+  timeSegments: TimeSegment[];
   /** Average of the Count / SP / Time forecasts (independent of the metric toggle). */
   finish: AveragedForecast;
   risks: EpicRisk[];
@@ -96,15 +99,17 @@ function Hero({
   metric,
   summary,
   time,
+  timeSegments,
   sourceNote,
 }: {
   metric: Metric;
   summary: EpicSummary;
   time: TimeTotals;
+  timeSegments: TimeSegment[];
   sourceNote: string | null;
 }) {
-  // Count / SP: done / in progress / to do. Time: logged vs remaining (bands.done = logged),
-  // so the % is logged / (logged + remaining) — the sum of the Stories row bars.
+  // Count / SP: done / in progress / to do. Time: % = logged / (logged + remaining)
+  // (bands.done = logged); the bar is the status-grouped TimeBar, the sum of the Stories rows.
   const bands = summaryBands(summary);
   const bigText = summary.total === 0 ? '\u2014' : `${summary.pctDone}%`;
   const tip = (
@@ -149,12 +154,16 @@ function Hero({
             </>
           }
           sub={
-            <BandBar
-              bands={bands}
-              metric={metric}
-              className="h-2 w-3/4 max-w-40"
-              testId="epic-hero-bar"
-            />
+            metric === 'time' ? (
+              <TimeBar
+                segments={timeSegments}
+                estimate={time.estimated}
+                className="h-2 w-3/4 max-w-40"
+                testId="epic-hero-bar"
+              />
+            ) : (
+              <BandBar bands={bands} className="h-2 w-3/4 max-w-40" testId="epic-hero-bar" />
+            )
           }
         />
       </TooltipTrigger>
@@ -511,6 +520,7 @@ export function EpicProgressSummary({
   metric,
   summary,
   time,
+  timeSegments,
   finish,
   risks,
   sourceNote,
@@ -530,7 +540,13 @@ export function EpicProgressSummary({
   return (
     <div className={STAT_CONTAINER_CLASS}>
       <div className={STAT_GRID_CLASS}>
-        <Hero metric={metric} summary={summary} time={time} sourceNote={sourceNote} />
+        <Hero
+          metric={metric}
+          summary={summary}
+          time={time}
+          timeSegments={timeSegments}
+          sourceNote={sourceNote}
+        />
         <FinishTile finish={finish} today={today} />
         <Tile
           label="Remaining"
