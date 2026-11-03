@@ -31,13 +31,13 @@ export function ReleaseDetailSkeleton() {
         <Skeleton data-testid="skeleton-property-strip" className="mt-1 h-5 w-[28rem] max-w-full" />
       </div>
       {/* Stats block mirrors release-stats: done bar + graphs */}
-      <div className="flex flex-col gap-5 border-y px-6 py-4">
+      <div className="flex flex-col gap-3 border-b px-6 pt-1 pb-4">
         <div>
           <Skeleton className="h-2 w-full rounded-full" />
         </div>
         <div
           data-testid="skeleton-graphs"
-          className="grid grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] gap-x-4 gap-y-5 @max-[640px]/page:grid-cols-2 @max-[640px]/page:gap-6 @max-[440px]/page:grid-cols-1 @min-[1180px]/page:grid-cols-[minmax(220px,1.1fr)_auto_minmax(250px,1.1fr)_minmax(260px,1.1fr)] @min-[1180px]/page:items-stretch @min-[1180px]/page:gap-x-4 @min-[1180px]/page:gap-y-0"
+          className="mt-1 grid grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] gap-x-4 gap-y-4 @max-[640px]/page:grid-cols-2 @max-[440px]/page:grid-cols-1 @min-[1180px]/page:grid-cols-[minmax(220px,1.1fr)_auto_minmax(250px,1.1fr)_minmax(260px,1.1fr)] @min-[1180px]/page:items-stretch @min-[1180px]/page:gap-x-4 @min-[1180px]/page:gap-y-0"
         >
           <Skeleton
             className="h-[196px] w-full @max-[640px]/page:col-span-full @max-[640px]/page:h-[160px] @min-[1180px]/page:h-auto @min-[1180px]/page:min-h-[110px]"

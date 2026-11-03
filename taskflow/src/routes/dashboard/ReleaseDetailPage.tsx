@@ -484,7 +484,7 @@ export default function ReleaseDetailPage() {
             <section
               data-testid="release-stats"
               aria-label="Release progress"
-              className="flex flex-col gap-5 border-y px-6 py-4"
+              className="flex flex-col gap-3 border-b px-6 pt-1 pb-4"
             >
               <ReleaseDoneBar
                 breakdown={headerBreakdown}
@@ -507,7 +507,7 @@ export default function ReleaseDetailPage() {
               {band ? (
                 <div
                   data-testid="release-graph-grid"
-                  className="grid grid-cols-[minmax(220px,1.1fr)_auto_minmax(250px,1.1fr)_minmax(260px,1.1fr)] items-stretch gap-x-4"
+                  className="mt-1 grid grid-cols-[minmax(220px,1.1fr)_auto_minmax(250px,1.1fr)_minmax(260px,1.1fr)] items-stretch gap-x-4"
                 >
                   {burnupEl}
                   <div className={`${SLOT_COL} ${DIVIDER}`}>{mrSlotEl}</div>
@@ -517,7 +517,7 @@ export default function ReleaseDetailPage() {
               ) : (
                 <div
                   data-testid="release-graph-grid"
-                  className="grid grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] gap-x-4 gap-y-5 @max-[640px]/page:grid-cols-2 @max-[640px]/page:gap-x-4 @max-[640px]/page:gap-y-5 @max-[440px]/page:grid-cols-1"
+                  className="mt-1 grid grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] gap-x-4 gap-y-4 @max-[640px]/page:grid-cols-2 @max-[440px]/page:grid-cols-1"
                 >
                   {burnupEl}
                   {/* Right column: MRs beside the burnup (which spans the row below 640),

@@ -7,7 +7,9 @@ describe('ReleaseDetailSkeleton', () => {
   it('keeps its root testid and mirrors header, done bar, graphs and table', () => {
     const { container } = render(<ReleaseDetailSkeleton />);
     expect(screen.getByTestId('release-detail-skeleton')).toBeInTheDocument();
-    expect(container.querySelector('.border-y.px-6.py-4')).not.toBeNull();
+    expect(container.querySelector('.border-b.px-6.pb-4')).not.toBeNull();
+    // no hairline above the done bar (261103-bfx UAT)
+    expect(container.querySelector('.border-y')).toBeNull();
     expect(container.querySelector('.border-t.px-6.pt-4')).toBeNull();
     expect(screen.getByTestId('skeleton-graphs')).toBeInTheDocument();
     expect(screen.getAllByTestId('skeleton-table-row').length).toBeGreaterThan(0);

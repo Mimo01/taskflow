@@ -495,7 +495,10 @@ describe('ReleaseDetailPage', () => {
     } as never);
     renderPage();
     const stats = screen.getByTestId('release-stats');
-    expect(stats).toHaveClass('border-y', 'px-6', 'py-4');
+    expect(stats).toHaveClass('border-b', 'px-6', 'pb-4');
+    // no hairline above the done bar (261103-bfx UAT)
+    expect(stats).not.toHaveClass('border-y');
+    expect(stats).not.toHaveClass('border-t');
     const kids = ['release-done-bar', 'mr-labels', 'release-graph-grid'].map((id) =>
       screen.getByTestId(id),
     );
@@ -590,7 +593,7 @@ describe('ReleaseDetailPage', () => {
     it('label strip wraps and collapses its caption at 440', () => {
       withLabels();
       renderPage();
-      const strip = screen.getByTestId('mr-labels-pills');
+      const strip = screen.getByTestId('mr-labels');
       expect(strip.className).toContain('flex-wrap');
       expect(screen.getByText('Labels').className).toContain('@max-[440px]/page:sr-only');
     });

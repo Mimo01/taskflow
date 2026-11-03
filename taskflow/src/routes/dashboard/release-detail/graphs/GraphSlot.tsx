@@ -55,7 +55,7 @@ export function GraphSlot({
           <div className="ml-auto min-w-0 truncate pl-2 text-xs text-muted-foreground">{aside}</div>
         ) : null}
       </div>
-      <div className="mt-3 flex flex-1 flex-col">
+      <div className="mt-2 flex flex-1 flex-col">
         {state === 'loading' ? (
           <div data-testid={`${testId}-skeleton`}>
             {skeleton ?? <Skeleton className="w-full" style={{ height }} />}
