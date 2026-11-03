@@ -633,7 +633,8 @@ function ColumnHeaderStrip({
       <span className="flex-none w-[1.75rem] text-center" title="Release milestone assigned">
         MS
       </span>
-      <span className={CALLOUT_FIX_ACTION_COL} aria-hidden="true" />
+      {/* No action-column spacer here: task rows end at MS (only the
+          not-covered callout rows render an Apply / Link task cell). */}
     </div>
   );
 }

@@ -548,6 +548,21 @@ describe('WR-05: column header strip labels', () => {
     expect(within(strip).getByText('MS')).toBeInTheDocument();
   });
 
+  // 261103-fg2: a trailing action-column spacer (only secondary rows render
+  // that column) shifted every heading left of its column.
+  it('has one header cell per task-row cell, ending at MS', () => {
+    const issue = makeIssue({ key: 'PROJ-1' });
+    renderSection({ primaryRows: [{ issue, mrs: [] }] });
+
+    const strip = screen.getByTestId('task-column-header');
+    const row = screen.getByTestId('task-row');
+    const rowCells = Array.from(row.children).filter(
+      (el) => el.getAttribute('data-testid') !== 'task-row-overlay',
+    );
+    expect(strip.children).toHaveLength(rowCells.length);
+    expect(strip.lastElementChild).toHaveTextContent('MS');
+  });
+
   it('renders no element with role="table", role="row" or role="columnheader"', () => {
     const issue = makeIssue({ key: 'PROJ-1' });
     const { container } = renderSection({ primaryRows: [{ issue, mrs: [] }] });
