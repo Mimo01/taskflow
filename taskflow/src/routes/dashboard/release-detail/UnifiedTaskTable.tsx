@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import type React from 'react';
 import { useRef, useState } from 'react';
-import { Badge, badgeVariants } from '@/components/ui/badge';
+import { Badge } from '@/components/ui/badge';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
 import { LinkContextMenu } from '@/components/ui/link-context-menu';
@@ -134,9 +134,9 @@ const COL_KEY = 'flex-none w-[5.5rem] whitespace-nowrap';
 const COL_SUMMARY = 'flex-1 min-w-0';
 const COL_PERSON = 'flex-none w-[8.75rem] min-w-0 @max-[860px]:w-9';
 const COL_STATE = 'flex-none w-[6rem] @max-[400px]:hidden';
-// MR status pill: overlapping per-MR state discs + a progress label. Sized for ~7 discs + "3/5 merged";
-// the label shortens at 860 ("1/2") and the column drops at 520 (BR/MS stay).
-const COL_MR = 'flex-none w-[10rem] min-w-0 @max-[860px]:w-[6.5rem] @max-[520px]:hidden';
+// MR status: a fixed-size segmented ring + "merged/live" ("3/5"), so the column
+// is narrow and never stretches with the MR count; it drops at 520 (BR/MS stay).
+const COL_MR = 'flex-none w-[4.5rem] min-w-0 @max-[520px]:hidden';
 // Primary-row assignee sits LAST (shipped list convention: Key / Title / Status /
 // domain columns / Assignee — AIO Executions + Defects, Backlog). Wider when there
 // is room, avatar-only at 860 like every other release table.
@@ -209,63 +209,72 @@ function mrStateIcon(mr: GitLabMR): LucideIcon {
   return GitPullRequestClosed;
 }
 
-const DOT_ORDER: Record<GitLabMR['state'], number> = {
-  merged: 0,
-  opened: 1,
-  closed: 2,
-  locked: 2,
-};
+export type MrStateKind = 'merged' | 'open' | 'draft' | 'closed';
+
+function mrStateKind(mr: GitLabMR): MrStateKind {
+  if (mr.state === 'merged') return 'merged';
+  if (mr.state === 'opened') return mr.draft ? 'draft' : 'open';
+  return 'closed';
+}
+
+const MR_KIND_ORDER: MrStateKind[] = ['merged', 'open', 'draft', 'closed'];
 
 /**
- * Overall status of a task's MRs for the primary-row chip: ordered state dots
- * (merged, opened, closed; capped at 4 slots), a progress label, and an
- * accessible summary. Pure — derived inline in render (React Compiler).
+ * Overall status of a task's MRs for the primary-row badge: one group per
+ * state present (merged, open, draft, closed) with its count — bounded at four
+ * groups however many MRs a task has, yet every MR is counted (no "+N") — plus
+ * a progress label, a tone and the merged share for the badge's fill.
+ * Pure — derived inline in render (React Compiler).
  */
 export function mrStatusSummary(rows: DriftRow[]): {
-  dots: DriftRow[];
+  groups: Array<{ kind: MrStateKind; count: number }>;
   label: string;
-  shortLabel: string;
   ariaLabel: string;
   tone: ChipTone;
+  /** Merged share of the live (non-closed) MRs, 0..1. */
+  progress: number;
+  /** Visible row text: merged / live ("3/5"), or "closed" when nothing is live. */
+  fraction: string;
 } {
-  // Every MR gets a dot — no "+N" collapse (user decision at UAT).
-  const ordered = [...rows].sort((a, b) => DOT_ORDER[a.mr.state] - DOT_ORDER[b.mr.state]);
-  const n = ordered.length;
-  const dots = ordered;
+  const n = rows.length;
+  const counts = new Map<MrStateKind, number>();
+  for (const r of rows) counts.set(mrStateKind(r.mr), (counts.get(mrStateKind(r.mr)) ?? 0) + 1);
+  const groups = MR_KIND_ORDER.filter((k) => counts.has(k)).map((k) => ({
+    kind: k,
+    count: counts.get(k) ?? 0,
+  }));
 
-  const merged = ordered.filter((r) => r.mr.state === 'merged').length;
-  const opened = ordered.filter((r) => r.mr.state === 'opened').length;
-  const live = ordered.filter((r) => r.mr.state !== 'closed' && r.mr.state !== 'locked');
+  const merged = counts.get('merged') ?? 0;
+  const open = counts.get('open') ?? 0;
+  const draft = counts.get('draft') ?? 0;
+  const closed = counts.get('closed') ?? 0;
+  const live = merged + open + draft;
 
   let label: string;
-  let shortLabel: string;
   let tone: ChipTone;
-  if (live.length === 0) {
+  if (live === 0) {
     label = 'closed';
-    shortLabel = label;
     tone = 'muted';
-  } else if (merged === live.length) {
+  } else if (merged === live) {
     label = 'merged';
-    shortLabel = label;
     tone = 'green';
   } else if (merged === 0) {
-    const draftOnly = live.length === 1 && live[0].mr.draft;
-    label = live.length === 1 ? (draftOnly ? 'draft' : 'open') : `${live.length} open`;
-    shortLabel = label;
-    tone = draftOnly ? 'muted' : 'blue';
+    label = open === 0 ? 'draft' : 'open';
+    tone = open === 0 ? 'muted' : 'blue';
   } else {
-    label = `${merged}/${live.length} merged`;
-    shortLabel = `${merged}/${live.length}`;
+    label = `${merged}/${live} merged`;
     tone = 'blue';
   }
 
-  const parts = [`${merged} merged`, `${opened} open`];
-  const closed = n - merged - opened;
+  const parts = [`${merged} merged`, `${open + draft} open`];
   if (closed > 0) parts.push(`${closed} closed`);
-  // Starts with the visible label (WCAG 2.5.3 label-in-name).
-  const ariaLabel = `${label} — ${n} merge request${n === 1 ? '' : 's'}: ${parts.join(', ')} — show details`;
+  const fraction = live === 0 ? 'closed' : `${merged}/${live}`;
+  // Starts with the visible text (WCAG 2.5.3 label-in-name).
+  const ariaLabel = `${live === 0 ? 'closed' : `${fraction} merged`} — ${n} merge request${n === 1 ? '' : 's'}: ${parts.join(', ')} — show details`;
 
-  return { dots, label, shortLabel, ariaLabel, tone };
+  const progress = live === 0 ? 0 : merged / live;
+
+  return { groups, label, ariaLabel, tone, progress, fraction };
 }
 
 export type SecondaryReason = 'no-linked-task' | 'not-in-fix-version' | 'unevaluated';
@@ -717,11 +726,8 @@ function ColumnHeaderStrip({
       <span className={COL_ICON} aria-hidden="true" />
       <SortableHeader sortKey="key" label="Key" className={COL_KEY} {...headerProps} />
       <SortableHeader sortKey="summary" label="Summary" className={COL_SUMMARY} {...headerProps} />
-      <span className={COL_MR}>
-        <span className="@max-[860px]:sr-only">Merge requests</span>
-        <span aria-hidden="true" className="hidden @max-[860px]:inline">
-          MRs
-        </span>
+      <span className={COL_MR} title="Merge requests — merged / open">
+        MRs
       </span>
       <span
         className="flex-none w-[1.75rem] text-center"
@@ -1134,16 +1140,12 @@ function TaskMrCell({
           aria-label={summary.ariaLabel}
           onClick={(e) => e.stopPropagation()}
           className={cn(
-            MR_STATUS_BADGE_CLASS,
-            'pointer-events-auto relative z-10 max-w-full min-w-0 cursor-pointer justify-start bg-background hover:bg-muted data-[popup-open]:bg-muted',
+            'pointer-events-auto relative z-10 -ml-1 inline-flex h-6 cursor-pointer items-center gap-1.5 rounded px-1 text-xs font-medium tabular-nums transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring data-[popup-open]:bg-muted',
             MR_TONE_TEXT[summary.tone],
           )}
         >
-          <MrStateDots rows={summary.dots} />
-          <span className="min-w-0 truncate @max-[860px]:sr-only">{summary.label}</span>
-          <span aria-hidden="true" className="hidden min-w-0 truncate @max-[860px]:inline">
-            {summary.shortLabel}
-          </span>
+          <MrStatusRing groups={summary.groups} />
+          <span data-testid="mr-status-label">{summary.fraction}</span>
         </PopoverTrigger>
       </div>
       {/* CR-05: `interactive` is DERIVED — only a flagged aggregate is a
@@ -1184,9 +1186,14 @@ function TaskMrCell({
           <div className="flex items-center gap-2 border-b bg-muted/30 p-3">
             <span className="text-sm font-semibold">Merge requests</span>
             <span className="text-xs tabular-nums text-muted-foreground">{allMrs.length}</span>
-            <span className={cn(MR_STATUS_BADGE_CLASS, 'ml-auto', MR_TONE_TEXT[summary.tone])}>
-              <MrStateDots rows={summary.dots} />
-              {summary.label}
+            <span
+              className={cn(
+                'ml-auto inline-flex items-center gap-1.5 text-xs font-medium tabular-nums',
+                MR_TONE_TEXT[summary.tone],
+              )}
+            >
+              <MrStatusRing groups={summary.groups} />
+              {summary.fraction === 'closed' ? 'closed' : `${summary.fraction} merged`}
             </span>
           </div>
           <div
@@ -1239,31 +1246,50 @@ function PopoverStateIcon({ mr }: { mr: GitLabMR }) {
   return <Icon aria-hidden="true" />;
 }
 
-/**
- * Outline Badge geometry (h-5, rounded, text-xs font-medium) for the MR status
- * summary — row chip and popover header.
- */
-const MR_STATUS_BADGE_CLASS = cn(badgeVariants({ variant: 'outline' }), 'shrink gap-1.5');
+const MR_KIND_ORDER_STROKE: Record<MrStateKind, string> = {
+  merged: 'stroke-green-500',
+  open: 'stroke-blue-500',
+  draft: 'stroke-muted-foreground/60',
+  closed: 'stroke-muted-foreground/30',
+};
 
 /**
- * One bare state icon per MR (merged first), packed edge to edge — no discs.
- * Colour is the text tone of the shared palette, matching the popover's
- * toned state Badges.
+ * Tiny segmented ring — one arc per state, sized by its count (merged, open,
+ * draft, closed; same order and colours as the release MR donut). Fixed size
+ * whatever the MR count, so the row column never stretches. Arcs are
+ * separated by a small gap when there is more than one.
  */
-function MrStateDots({ rows }: { rows: DriftRow[] }) {
+function MrStatusRing({ groups }: { groups: Array<{ kind: MrStateKind; count: number }> }) {
+  const r = 6;
+  const c = 2 * Math.PI * r;
+  const total = groups.reduce((n, g) => n + g.count, 0);
+  const gap = groups.length > 1 ? 1.5 : 0;
+  let offset = 0;
   return (
-    <span aria-hidden="true" className="inline-flex flex-none items-center -space-x-0.5">
-      {rows.map((r) => {
-        const Icon = mrStateIcon(r.mr);
-        return (
-          <Icon
-            key={r.mr.id}
-            data-mr-disc={r.mr.state}
-            className={cn('size-3 flex-none', MR_TONE_TEXT[mrStateTone(r.mr)])}
+    <svg aria-hidden="true" viewBox="0 0 16 16" className="size-4 flex-none -rotate-90">
+      <circle cx="8" cy="8" r={r} fill="none" strokeWidth="3" className="stroke-muted" />
+      {groups.map(({ kind, count }) => {
+        const len = (count / total) * c;
+        const dash = Math.max(len - gap, 0.5);
+        const el = (
+          <circle
+            key={kind}
+            data-mr-group={kind}
+            data-count={count}
+            cx="8"
+            cy="8"
+            r={r}
+            fill="none"
+            strokeWidth="3"
+            className={MR_KIND_ORDER_STROKE[kind]}
+            strokeDasharray={`${dash} ${c - dash}`}
+            strokeDashoffset={-offset}
           />
         );
+        offset += len;
+        return el;
       })}
-    </span>
+    </svg>
   );
 }
 
