@@ -2492,6 +2492,16 @@ describe('261103-cln: not-covered section callout + fix actions', () => {
     expect(spacer.className).toBe((row.lastElementChild as HTMLElement).className);
   });
 
+  it('the Fix column sits directly before the button column, in header and rows', () => {
+    renderSection({ secondaryRows: [noTask(1)] });
+    const header = screen.getByTestId('secondary-header');
+    expect(header.lastElementChild?.previousElementSibling).toHaveTextContent('Fix');
+    const row = screen.getByTestId('drift-row');
+    expect(row.lastElementChild?.previousElementSibling).toBe(
+      within(row).getByTestId('secondary-fix-target'),
+    );
+  });
+
   it('no Apply button when jiraFix is absent', () => {
     renderSection({ secondaryRows: [notInVersion(1)] });
     expect(screen.queryByRole('button', { name: /Add PROJ-9/ })).toBeNull();

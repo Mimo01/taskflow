@@ -638,7 +638,6 @@ function SecondaryHeaderStrip() {
       <span className={COL_PERSON}>Author</span>
       <span className={COL_REVIEWERS}>Reviewers</span>
       <span className={COL_MR_STATE}>MR state</span>
-      <span className={COL_SECONDARY_FIX_TARGET}>Fix</span>
       <span
         className="flex-none w-[1.75rem] text-center"
         title="Target branch matches release branch"
@@ -648,6 +647,7 @@ function SecondaryHeaderStrip() {
       <span className="flex-none w-[1.75rem] text-center" title="Release milestone assigned">
         MS
       </span>
+      <span className={COL_SECONDARY_FIX_TARGET}>Fix</span>
       {/* Spacer over the rows' trailing Apply / Link task cell — without it every
           header label shifts right and BR/MS sit over the action buttons. */}
       <span
@@ -768,18 +768,6 @@ function MrSubLine({
           <MrAuthorCell mr={mr} />
           <MrReviewersCell mr={mr} />
           <MrStatePill mr={mr} />
-          <span
-            data-testid="secondary-fix-target"
-            className={`${COL_SECONDARY_FIX_TARGET} truncate text-xs text-muted-foreground`}
-            title={fixTarget?.title}
-          >
-            {fixTarget ? (
-              <>
-                <span aria-hidden="true">→ </span>
-                {fixTarget.text}
-              </>
-            ) : null}
-          </span>
         </>
       )}
       {row.evaluated ? (
@@ -799,7 +787,24 @@ function MrSubLine({
           <DriftMarkCell mark="na" testId="drift-ms" />
         </>
       )}
-      {reasonCell && <span className={CALLOUT_FIX_ACTION_COL}>{actionCell}</span>}
+      {reasonCell && (
+        <>
+          {/* Fix sits directly before the button it describes. */}
+          <span
+            data-testid="secondary-fix-target"
+            className={`${COL_SECONDARY_FIX_TARGET} truncate text-xs text-muted-foreground`}
+            title={fixTarget?.title}
+          >
+            {fixTarget ? (
+              <>
+                <span aria-hidden="true">→ </span>
+                {fixTarget.text}
+              </>
+            ) : null}
+          </span>
+          <span className={CALLOUT_FIX_ACTION_COL}>{actionCell}</span>
+        </>
+      )}
     </div>
   );
 
