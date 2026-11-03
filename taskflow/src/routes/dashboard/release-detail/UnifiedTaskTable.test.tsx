@@ -1292,9 +1292,9 @@ describe('CR-08: the MR chip actually reveals every MR', () => {
     const lines = within(popover).getAllByTestId('mr-popover-line');
     expect(lines).toHaveLength(2);
     expect(popover).toHaveTextContent('!1');
-    expect(popover).toHaveTextContent('Merged');
+    expect(popover).toHaveTextContent('merged');
     expect(popover).toHaveTextContent('!2');
-    expect(popover).toHaveTextContent('Open');
+    expect(popover).toHaveTextContent('open');
   });
 });
 
@@ -2196,11 +2196,12 @@ describe('261102-fkr: secondary row info', () => {
   });
 
   it.each([
-    ['opened', false, 'Open'],
-    ['opened', true, 'Draft'],
-    ['merged', false, 'Merged'],
-    ['closed', false, 'Closed'],
-    ['locked', false, 'Locked'],
+    ['opened', false, 'open'],
+    ['opened', true, 'draft'],
+    ['merged', false, 'merged'],
+    ['closed', false, 'closed'],
+    // GitLab "locked" is a closed MR that can't be reopened — same glyph.
+    ['locked', false, 'closed'],
   ] as const)('state %s draft=%s renders %s', (state, draft, label) => {
     renderSection({
       secondaryRows: [
@@ -2212,7 +2213,10 @@ describe('261102-fkr: secondary row info', () => {
         }),
       ],
     });
-    expect(sec().getByTestId('secondary-mr-state')).toHaveTextContent(label);
+    const cell = sec().getByTestId('secondary-mr-state');
+    expect(cell).toHaveTextContent(label);
+    // Same glyph + word style as the task row's MR status.
+    expect(cell.querySelector(`[data-mr-state="${label}"]`)).not.toBeNull();
   });
 });
 
@@ -2922,7 +2926,7 @@ describe('task row MR status chip + popover (261103-g8m)', () => {
     expect(line).toHaveTextContent('Fix login redirect');
     expect(line).not.toHaveTextContent('PROJ-1');
     expect(line).toHaveTextContent('Alexandra Longname-Smith');
-    expect(within(line).getByTestId('mr-popover-state')).toHaveTextContent('Open');
+    expect(within(line).getByTestId('mr-popover-state')).toHaveTextContent('open');
   });
 
   it('orders task columns Key / Summary / MRs / BR / MS / Status / Assignee', () => {

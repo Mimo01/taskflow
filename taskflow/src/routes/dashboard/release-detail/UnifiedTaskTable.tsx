@@ -2,7 +2,6 @@ import {
   AlertTriangle,
   Check,
   GitBranch,
-  GitMerge,
   GitPullRequest,
   GitPullRequestClosed,
   GitPullRequestDraft,
@@ -154,20 +153,9 @@ const MUTED_STATE_PILL_CLASS =
   'inline-flex items-center justify-center gap-1 rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground';
 const COL_REVIEWERS =
   'flex-none w-[4.5rem] min-w-0 flex items-center overflow-hidden @max-[640px]:hidden';
-const COL_MR_STATE = 'flex-none w-[4rem] flex items-center @max-[400px]:hidden';
+const COL_MR_STATE = 'flex-none w-[5rem] flex items-center @max-[400px]:hidden';
 
-function mrStateBadgeClass(state: GitLabMR['state']): string {
-  return state === 'merged'
-    ? 'border-green-500 text-green-600'
-    : state === 'opened'
-      ? 'border-blue-500 text-blue-600'
-      : 'border-gray-400 text-gray-500';
-}
-
-/**
- * Text-only colour for the outline MR status pill (row chip + popover header):
- * neutral border, label in the overall-state colour, dots carry per-MR state.
- */
+/** Text colour per tone for the MR status style (glyph + word, ring count). */
 const MR_TONE_TEXT: Record<ChipTone, string> = {
   blue: 'text-blue-600 dark:text-blue-400',
   green: 'text-green-600 dark:text-green-400',
@@ -178,35 +166,11 @@ const MR_TONE_TEXT: Record<ChipTone, string> = {
   muted: 'text-muted-foreground',
 };
 
-/** Tinted tone for one MR's state — the popover's state pill and the row chip share it. */
-function mrStateTone(mr: GitLabMR): ChipTone {
-  if (mr.state === 'merged') return 'green';
-  if (mr.state === 'opened') return mr.draft ? 'muted' : 'blue';
-  return 'muted';
-}
-
-function mrStateLabel(mr: GitLabMR): string {
-  if (mr.state === 'opened') return mr.draft ? 'Draft' : 'Open';
-  if (mr.state === 'merged') return 'Merged';
-  if (mr.state === 'closed') return 'Closed';
-  return 'Locked';
-}
-
 /** Worst mark across a task's MRs: flag beats ok beats na. */
 export function aggregateMark(marks: DriftMark[]): DriftMark {
   if (marks.includes('flag')) return 'flag';
   if (marks.includes('ok')) return 'ok';
   return 'na';
-}
-
-/**
- * Per-MR state glyph (GitLab's own vocabulary): merged / open / draft / closed.
- * Colour always comes from `mrStateTone` → the shared muted-tint palette.
- */
-function mrStateIcon(mr: GitLabMR): LucideIcon {
-  if (mr.state === 'merged') return GitMerge;
-  if (mr.state === 'opened') return mr.draft ? GitPullRequestDraft : GitPullRequest;
-  return GitPullRequestClosed;
 }
 
 export type MrStateKind = 'merged' | 'open' | 'draft' | 'closed';
@@ -220,11 +184,10 @@ function mrStateKind(mr: GitLabMR): MrStateKind {
 const MR_KIND_ORDER: MrStateKind[] = ['merged', 'open', 'draft', 'closed'];
 
 /**
- * Overall status of a task's MRs for the primary-row badge: one group per
- * state present (merged, open, draft, closed) with its count — bounded at four
- * groups however many MRs a task has, yet every MR is counted (no "+N") — plus
- * a progress label, a tone and the merged share for the badge's fill.
- * Pure — derived inline in render (React Compiler).
+ * Overall status of a task's MRs for the task row: one group per state
+ * present (merged, open, draft, closed) with its count — every MR counted,
+ * no "+N" — plus the single-state word, a tone, the merged/live fraction and
+ * the live groups the ring draws. Pure — derived inline in render (React Compiler).
  */
 export function mrStatusSummary(rows: DriftRow[]): {
   groups: Array<{ kind: MrStateKind; count: number }>;
@@ -379,16 +342,9 @@ function MrReviewersCell({ mr }: { mr: GitLabMR }) {
 }
 
 function MrStatePill({ mr }: { mr: GitLabMR }) {
-  const isDraft = mr.state === 'opened' && mr.draft;
   return (
     <span className={COL_MR_STATE}>
-      <Badge
-        variant="outline"
-        data-testid="secondary-mr-state"
-        className={`pointer-events-none text-[10px] ${isDraft ? 'border-dashed border-gray-400 text-gray-500' : mrStateBadgeClass(mr.state)}`}
-      >
-        {mrStateLabel(mr)}
-      </Badge>
+      <MrStateGlyph mr={mr} testId="secondary-mr-state" />
     </span>
   );
 }
@@ -1249,11 +1205,6 @@ const MR_POP_COL_STATE = 'w-[5rem] flex-none';
 const MR_POP_COL_IID = 'w-[3.5rem] flex-none';
 const MR_POP_COL_AUTHOR = 'w-[11rem] flex-none min-w-0 @max-[34rem]:w-[22px]';
 
-function PopoverStateIcon({ mr }: { mr: GitLabMR }) {
-  const Icon = mrStateIcon(mr);
-  return <Icon aria-hidden="true" />;
-}
-
 const MR_KIND_ORDER_STROKE: Record<MrStateKind, string> = {
   merged: 'stroke-green-500',
   open: 'stroke-blue-500',
@@ -1267,6 +1218,43 @@ const MR_KIND_GLYPH: Record<MrStateKind, LucideIcon> = {
   draft: GitPullRequestDraft,
   closed: GitPullRequestClosed,
 };
+
+const MR_KIND_TONE: Record<MrStateKind, ChipTone> = {
+  merged: 'green',
+  open: 'blue',
+  draft: 'muted',
+  closed: 'muted',
+};
+
+/** One state's glyph (a check when merged) + its word — the bare form of the MR status style. */
+function MrKindGlyph({ kind }: { kind: MrStateKind }) {
+  const Icon = MR_KIND_GLYPH[kind];
+  return (
+    <>
+      <Icon aria-hidden="true" data-mr-state={kind} className="size-4 flex-none" />
+      <span data-testid="mr-status-label">{kind}</span>
+    </>
+  );
+}
+
+/**
+ * A single MR's state in the page's MR status style (uncovered-MRs table,
+ * popover lines): coloured glyph + word, no pill.
+ */
+function MrStateGlyph({ mr, testId }: { mr: GitLabMR; testId: string }) {
+  const kind = mrStateKind(mr);
+  return (
+    <span
+      data-testid={testId}
+      className={cn(
+        'pointer-events-none inline-flex items-center gap-1.5 text-xs font-medium',
+        MR_TONE_TEXT[MR_KIND_TONE[kind]],
+      )}
+    >
+      <MrKindGlyph kind={kind} />
+    </span>
+  );
+}
 
 /**
  * The MR status visual. A mix of live states → the segmented ring + merged/live
@@ -1291,14 +1279,7 @@ function MrStatusGlyph({
       </>
     );
   }
-  const kind = summary.ringGroups[0]?.kind ?? 'closed';
-  const Icon = MR_KIND_GLYPH[kind];
-  return (
-    <>
-      <Icon aria-hidden="true" data-mr-state={kind} className="size-4 flex-none" />
-      <span data-testid="mr-status-label">{summary.label}</span>
-    </>
-  );
+  return <MrKindGlyph kind={summary.ringGroups[0]?.kind ?? 'closed'} />;
 }
 
 /** Dashed empty ring — the "no data" stand-in for `MrStatusRing` in the slot states. */
@@ -1393,10 +1374,7 @@ function MrPopoverLine({ row, fix }: { row: DriftRow; fix: MrFixContext }) {
       className="group/row flex h-9 items-center gap-2 rounded px-2 text-sm hover:bg-muted/50"
     >
       <span className={`${MR_POP_COL_STATE} flex items-center`}>
-        <Badge data-testid="mr-popover-state" tone={mrStateTone(mr)} className="w-full">
-          <PopoverStateIcon mr={mr} />
-          {mrStateLabel(mr)}
-        </Badge>
+        <MrStateGlyph mr={mr} testId="mr-popover-state" />
       </span>
       <span className={MR_POP_COL_IID}>
         <LinkContextMenu href={mr.web_url}>
