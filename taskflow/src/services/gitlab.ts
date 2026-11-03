@@ -2345,6 +2345,80 @@ export async function searchGitLabMRs(
 }
 
 /**
+ * Fetch the MRs linked to one Jira issue with a single server-side search.
+ *
+ * Replaces the project-wide "20 most recently updated MRs" fetch + client
+ * filter that useLinkedMRs used to do: that was the fetch-once page-cap
+ * pitfall (an older merged MR fell off the page and vanished). Do not revert
+ * to a project-wide page + client filter.
+ *
+ * `state=all` is deliberate (261103-fxn locked decision): every linked MR is
+ * shown regardless of state (opened, merged, closed).
+ *
+ * Limitation: GitLab's `search` with `in=title,description` does NOT cover
+ * source_branch, so an MR whose key appears ONLY in its branch name (not
+ * title or description) is not found. Accepted trade-off to keep one request
+ * per issue: a branch lookup would need repository/branches?search plus one
+ * source_branch query per hit, and merged MRs' branches are usually deleted,
+ * so it would not help the merged case this fix targets.
+ *
+ * A single page (`per_page=100`) is acceptable here because the result set is
+ * already scoped to one issue key; this is not the page-cap pitfall.
+ *
+ * GitLab search is a substring match (ABC-12 matches ABC-123), so the caller
+ * must still exact-match keys (extractTicketKeys on title / source_branch).
+ *
+ * Never throws: returns [] on transport error, non-ok status, unparseable
+ * body or a non-array body so the sidebar can never error.
+ */
+export async function fetchIssueLinkedMRs(
+  baseUrl: string,
+  token: string,
+  projectId: number | string,
+  issueKey: string,
+): Promise<GitLabMR[]> {
+  const base = baseUrl.replace(/\/$/, '');
+  const url = `${base}/api/v4/projects/${projectId}/merge_requests?state=all&search=${encodeURIComponent(issueKey)}&in=title,description&per_page=100`;
+
+  let response: Response;
+  try {
+    response = await apiFetch(
+      'gitlab',
+      url,
+      {
+        headers: { 'PRIVATE-TOKEN': token, 'Content-Type': 'application/json' },
+      },
+      'Load Merge Requests',
+    );
+  } catch {
+    return [];
+  }
+  if (!response.ok) return [];
+
+  let data: GitLabMR[];
+  try {
+    data = (await response.json()) as GitLabMR[];
+  } catch {
+    return [];
+  }
+  if (!Array.isArray(data)) return [];
+
+  // Normalise string labels to GitLabLabel with default gray (no colour enrichment request)
+  for (const mr of data) {
+    if (Array.isArray(mr.labels)) {
+      mr.labels = mr.labels.map((l: string | GitLabLabel) => {
+        if (typeof l === 'string') {
+          return { name: l, color: '#6b7280', text_color: '#FFFFFF' };
+        }
+        return l;
+      });
+    }
+  }
+
+  return data;
+}
+
+/**
  * Shape of a Git commit returned by GitLab's repository commits endpoint.
  * Used for the Standup Notes Yesterday recap (STAND-05).
  */

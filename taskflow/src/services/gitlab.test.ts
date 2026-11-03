@@ -17,6 +17,7 @@ import {
   fetchParticipatedMRs,
   fetchProject,
   fetchProjectBranches,
+  fetchIssueLinkedMRs,
   fetchProjectMilestones,
   fetchReviewerMRs,
   fetchSourceBranchMRs,
@@ -466,6 +467,77 @@ describe('gitlab service', () => {
       await searchGitLabMRs('https://gitlab.example.com', 'my-token', 'feat login');
       const calledUrl = vi.mocked(mockFetch).mock.calls[0][0] as string;
       expect(calledUrl).toMatch(/state=opened/);
+    });
+  });
+
+  describe('fetchIssueLinkedMRs (261103-fxn)', () => {
+    const BASE = 'https://gitlab.example.com/';
+    const mk = (iid: number, state: string, labels: unknown[] = []) => ({
+      id: iid,
+      iid,
+      state,
+      title: `ABC-123 mr ${iid}`,
+      source_branch: `b${iid}`,
+      labels,
+    });
+    const ok = (body: unknown) =>
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => body,
+      } as Response);
+
+    it('requests exactly one state=all server-side search URL', async () => {
+      ok([]);
+      await fetchIssueLinkedMRs(BASE, 'tok', 42, 'ABC-123');
+      expect(vi.mocked(mockFetch)).toHaveBeenCalledTimes(1);
+      expect(vi.mocked(mockFetch).mock.calls[0][0]).toBe(
+        'https://gitlab.example.com/api/v4/projects/42/merge_requests?state=all&search=ABC-123&in=title,description&per_page=100',
+      );
+    });
+
+    it('encodes the issue key so it cannot inject query params', async () => {
+      ok([]);
+      await fetchIssueLinkedMRs(BASE, 'tok', 42, 'A&B#1');
+      const url = vi.mocked(mockFetch).mock.calls[0][0] as string;
+      expect(url).toContain('search=A%26B%231&in=');
+    });
+
+    it('passes opened, merged and closed MRs through and maps string labels', async () => {
+      ok([mk(1, 'opened', ['bug']), mk(2, 'merged'), mk(3, 'closed')]);
+      const result = await fetchIssueLinkedMRs(BASE, 'tok', 42, 'ABC-123');
+      expect(result.map((m) => m.state)).toEqual(['opened', 'merged', 'closed']);
+      expect(result[0].labels).toEqual([{ name: 'bug', color: '#6b7280', text_color: '#FFFFFF' }]);
+    });
+
+    it('returns [] when the request rejects', async () => {
+      vi.mocked(mockFetch).mockRejectedValue(new Error('net'));
+      expect(await fetchIssueLinkedMRs(BASE, 'tok', 42, 'ABC-123')).toEqual([]);
+    });
+
+    it.each([401, 403, 500])('returns [] on status %i', async (status) => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: false,
+        status,
+        json: async () => [],
+      } as Response);
+      expect(await fetchIssueLinkedMRs(BASE, 'tok', 42, 'ABC-123')).toEqual([]);
+    });
+
+    it('returns [] when json() rejects', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => {
+          throw new SyntaxError('<html>');
+        },
+      } as unknown as Response);
+      expect(await fetchIssueLinkedMRs(BASE, 'tok', 42, 'ABC-123')).toEqual([]);
+    });
+
+    it('returns [] on a non-array body', async () => {
+      ok({ message: 'nope' });
+      expect(await fetchIssueLinkedMRs(BASE, 'tok', 42, 'ABC-123')).toEqual([]);
     });
   });
 
