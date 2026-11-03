@@ -529,6 +529,72 @@ describe('ReleaseDetailPage', () => {
     expect(cls).toContain('[&_[role=button]]:cursor-pointer');
   });
 
+  describe('responsive classes', () => {
+    const withWidth = (width: number) =>
+      class {
+        constructor(private cb: ResizeObserverCallback) {}
+        observe(target: Element) {
+          this.cb(
+            [{ target, contentRect: { width, height: 400 } } as ResizeObserverEntry],
+            this as never,
+          );
+        }
+        unobserve() {}
+        disconnect() {}
+      } as unknown as typeof ResizeObserver;
+    const withLabels = () => {
+      const mr = { id: 1, iid: 1, title: 't', state: 'merged', draft: false, labels: [] };
+      mockHook.mockReturnValue({
+        ...gitlabFixture(),
+        milestoneMRs: [mr],
+        releaseMrs: [mr],
+        labelSummary: [
+          { label: { name: 'backend', color: '#428BCA', text_color: '#fff' }, count: 1 },
+        ],
+        labelCoverage: { total: 2, labeled: 1, unlabeled: [mr], allLabeled: false },
+      } as never);
+    };
+
+    it('the scroll container is the @container/page and carries no /page variants itself', () => {
+      renderPage();
+      const cls = screen.getByTestId('release-detail-scroll').className;
+      expect(cls).toContain('@container/page');
+      expect(cls).not.toContain('@max-[');
+    });
+
+    it('header: labels collapse under 640, title row never wraps', () => {
+      renderPage();
+      expect(screen.getByText('Edit release').className).toContain('@max-[640px]/page:sr-only');
+      const row = screen.getByRole('heading', { level: 1 }).parentElement?.parentElement;
+      expect(row?.className).not.toContain('flex-wrap');
+    });
+
+    it('2x2 grid collapses to 2 columns at 640 and 1 at 440; the band applies from the band width', () => {
+      const RealRO = global.ResizeObserver;
+      try {
+        global.ResizeObserver = withWidth(900);
+        const { unmount } = renderPage();
+        const grid = screen.getByTestId('release-graph-grid').className;
+        expect(grid).toContain('@max-[640px]/page:grid-cols-2');
+        expect(grid).toContain('@max-[440px]/page:grid-cols-1');
+        unmount();
+        global.ResizeObserver = withWidth(1300);
+        renderPage();
+        expect(screen.getByTestId('release-graph-grid').className).toContain('items-stretch');
+      } finally {
+        global.ResizeObserver = RealRO;
+      }
+    });
+
+    it('label strip wraps and collapses its caption at 440', () => {
+      withLabels();
+      renderPage();
+      const strip = screen.getByTestId('mr-labels');
+      expect(strip.className).toContain('flex-wrap');
+      expect(screen.getByText('Labels').className).toContain('@max-[440px]/page:sr-only');
+    });
+  });
+
   it('opens the edit modal from Edit release', async () => {
     renderPage();
     fireEvent.click(screen.getByText('Edit release'));
