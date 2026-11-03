@@ -87,7 +87,7 @@ describe('ReleaseBurnup', () => {
     );
     expect(screen.getByTestId('release-graph-burnup-thin')).toBeInTheDocument();
     expect(screen.getByText('No burnup yet')).toBeInTheDocument();
-    expect(screen.getByText("Appears after the window's first day.")).toBeInTheDocument();
+    expect(screen.getByText('Appears after the first day of this release.')).toBeInTheDocument();
     expect(screen.queryByRole('img', { name: /Release burnup/ })).toBeNull();
     expect(screen.queryByText(/days left/)).toBeNull();
   });
