@@ -188,14 +188,19 @@ export function ReleaseBurnup({
   // One line, never wraps. With a previous release only its name shows (version
   // names usually carry the date already); the start date stays in the hover title.
   const sinceDate = axis ? withYearLabel(axis.start) : '';
+  // Release train with the window still ahead: the release starts "after" the
+  // previous one rather than "since" it.
+  const lead = summary.train && !summary.train.windowOpen && axis?.previousName ? 'after' : 'since';
   const aside = axis ? (
     <span
       className="flex min-w-0 items-baseline whitespace-nowrap"
-      title={axis.previousName ? `since ${axis.previousName} · ${sinceDate}` : `since ${sinceDate}`}
+      title={
+        axis.previousName ? `${lead} ${axis.previousName} · ${sinceDate}` : `since ${sinceDate}`
+      }
     >
       {axis.previousName ? (
         <>
-          <span className="shrink-0">since&nbsp;</span>
+          <span className="shrink-0">{lead}&nbsp;</span>
           <span className="min-w-0 truncate text-foreground/80">{axis.previousName}</span>
         </>
       ) : (

@@ -57,6 +57,7 @@ import {
   computeStoryPoints,
   resolveGitLabMatch,
 } from './releaseSummaries';
+import { deriveReleaseTrain } from './releaseTrain';
 
 /**
  * useReleaseDetail — the single data-layer hook for the release detail page.
@@ -710,6 +711,7 @@ export function useReleaseDetail(versionId: string | undefined) {
   const burnupAxis = version
     ? releaseBurnupAxis({ version, previous: prevVersion, issues: releaseIssues, today })
     : null;
+  const releaseTrain = version ? deriveReleaseTrain({ version, fixVersions, today }) : null;
   const burnupPoints = burnupAxis
     ? deriveReleaseBurnup(releaseIssues, burnupAxis, storyPointsFieldKey)
     : [];
@@ -772,6 +774,7 @@ export function useReleaseDetail(versionId: string | undefined) {
     previousVersion: prevVersion,
     burnupAxis,
     burnupPoints,
+    releaseTrain,
     assigneeRows,
     typeRows,
     mrDonutCounts,
