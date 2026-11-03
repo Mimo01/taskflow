@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-08-13)
 Phase: 94
 Plan: Not started
 Status: Milestone complete
-Last activity: 2026-11-03 - Completed quick task : release detail Progress slot shows an empty state for future releases
+Last activity: 2026-11-03 - Completed quick task 261103-kn9: release detail Progress slot shows an empty state for future releases
 
 ## Performance Metrics
 
@@ -248,8 +248,8 @@ Acknowledged and deferred at v1.14 milestone close (2026-08-13) — 111 open art
 | 261103-g8m | Release detail task row: compact MR status (mixed-state ring + count, or state glyph + word) with per-MR details in a popover; single-MR in-place and multi-MR group BR/MS fixes; columns reordered | 2026-11-03 | 0c3c3c58 | Verified (UAT approved) | [261103-g8m-release-detail-task-row-mr-overall-statu](./quick/261103-g8m-release-detail-task-row-mr-overall-statu/) |
 | 261103-jmo | Release detail "Not covered by tasks above": columns reordered to match "Deployment package mismatches" (icon+Key, State, Author, Reviewers, Merge request, MR state, BR, MS, Fix) | 2026-11-03 | e23e717d | Verified (UAT approved) | [261103-jmo-release-detail-not-covered-table-matches](./quick/261103-jmo-release-detail-not-covered-table-matches/) |
 | 261103-jqy | Release detail Progress slot, thin-history/future variant redesigned as a "release train": TODAY → ticks for releases ahead → "window opens" → RELEASE, with "N releases ahead · window X d · in Y d"; header "after <prev>" while the window is ahead; burnup untouched | 2026-11-03 | 37a4b9ff | Superseded by 261103-kbn (rejected at UAT) | [261103-jqy-release-detail-progress-variant-redesign](./quick/261103-jqy-release-detail-progress-variant-redesign/) |
-| 261103-kbn | Release detail Progress slot, future/thin-history variant: empty burnup frame (same chart in frame mode: dashed flat scope at issue count, faint ideal diagonal, RELEASE/TODAY lines, "opens in N d" caption); release train removed; real burnup unchanged | 2026-11-03 | 6b22bfd3 | Superseded by  (rejected at UAT) | [261103-kbn-release-detail-progress-empty-burnup-fra](./quick/261103-kbn-release-detail-progress-empty-burnup-fra/) |
-|  | Release detail Progress slot: future/thin-history releases show the shared EmptyState ("No progress yet" + start info); frame/track removed; real burnup unchanged | 2026-11-03 | a78fce15 | Needs UAT | [-](./quick/-/) |
+| 261103-kbn | Release detail Progress slot, future/thin-history variant: empty burnup frame (same chart in frame mode: dashed flat scope at issue count, faint ideal diagonal, RELEASE/TODAY lines, "opens in N d" caption); release train removed; real burnup unchanged | 2026-11-03 | 6b22bfd3 | Superseded by 261103-kn9 (rejected at UAT) | [261103-kbn-release-detail-progress-empty-burnup-fra](./quick/261103-kbn-release-detail-progress-empty-burnup-fra/) |
+| 261103-kn9 | Release detail Progress slot: future/thin-history releases show the shared EmptyState ("No burnup yet" + when it starts/appears); frame/track removed; real burnup unchanged | 2026-11-03 | a78fce15, 4be089b5 | Needs UAT (design approved, text changed) | [261103-kn9-release-detail-progress-empty-state-for-](./quick/261103-kn9-release-detail-progress-empty-state-for-/) |
 
 ## Session Continuity
 
