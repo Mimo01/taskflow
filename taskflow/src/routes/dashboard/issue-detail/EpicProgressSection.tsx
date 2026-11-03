@@ -45,6 +45,7 @@ import {
   type StatusBucket,
   sourceNote,
   spanDays,
+  type TimeSegment,
   visiblePresets,
   WORKLOG_SOURCE_TEXT,
   type WorklogSource,
@@ -57,8 +58,15 @@ import { toLocalDateString } from '@/lib/local-date';
 import { statusCategoryColor, statusCategoryDotClass } from '@/lib/statusStyles';
 import { cn } from '@/lib/utils';
 import type { JiraIssue } from '@/services/jira';
-import { formatDuration } from '@/services/jira/duration';
-import { BandBar, BandBreakdown, BandChips, segmentsTotal, TimeBar } from './EpicBands';
+import {
+  BandBar,
+  BandBreakdown,
+  BandChips,
+  segmentsTotal,
+  TimeBar,
+  TimeBreakdown,
+  TimeChips,
+} from './EpicBands';
 import { EpicCfdChart } from './EpicCfdChart';
 import {
   CHART_HEIGHT,
@@ -71,7 +79,6 @@ import {
 import { EpicProgressSummary } from './EpicProgressSummary';
 import { STAT_CONTAINER_CLASS, STAT_GRID_CLASS } from './EpicStatCard';
 import { EpicTimeBurnup } from './EpicTimeBurnup';
-import { MARKER_ICON } from './epic-markers';
 import {
   useEpicStatusHistory,
   useEpicWorkCalendar,
@@ -114,17 +121,14 @@ function statusBarTip(statuses: StatusBucket[], statusTotal: number): ReactNode 
   );
 }
 
-function assigneeTip(a: AssigneeBucket, metric: Metric): ReactNode {
+function assigneeTip(a: AssigneeBucket, metric: Metric, segments: TimeSegment[]): ReactNode {
   return (
     <TooltipBody title={a.name}>
-      <BandBreakdown bands={assigneeBands(a)} metric={metric} valueAs="share" />
-      {metric === 'time' && a.estimate > 0 ? (
-        <TooltipRow
-          icon={<MARKER_ICON.estimate className="size-3" />}
-          label="Estimate"
-          value={formatDuration(a.estimate)}
-        />
-      ) : null}
+      {metric === 'time' ? (
+        <TimeBreakdown segments={segments} estimate={a.estimate} />
+      ) : (
+        <BandBreakdown bands={assigneeBands(a)} metric={metric} valueAs="share" />
+      )}
     </TooltipBody>
   );
 }
@@ -507,7 +511,7 @@ export function EpicProgressSection({
                     tabIndex={0}
                     aria-label={
                       timeMode
-                        ? `${a.name}: logged ${formatMetric(a.done, metric)}, remaining ${formatMetric(a.inProgress + a.todo, metric)}`
+                        ? `${a.name}: logged ${formatMetric(a.done, metric)}, remaining ${formatMetric(a.inProgress + a.todo, metric)}, estimate ${formatMetric(a.estimate, metric)}`
                         : `${a.name}: done ${formatMetric(a.done, metric)}, in progress ${formatMetric(a.inProgress, metric)}, to do ${formatMetric(a.todo, metric)}`
                     }
                     className="flex items-center gap-2 rounded-sm py-0.5 hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
@@ -528,9 +532,15 @@ export function EpicProgressSection({
                         <BandBar bands={assigneeBands(a)} scale={maxAssignee} className="h-3" />
                       )}
                     </div>
-                    <BandChips bands={assigneeBands(a)} metric={metric} />
+                    {timeMode ? (
+                      <TimeChips segments={personTime.get(a.id) ?? []} estimate={a.estimate} />
+                    ) : (
+                      <BandChips bands={assigneeBands(a)} metric={metric} />
+                    )}
                   </TooltipTrigger>
-                  <TooltipContent>{assigneeTip(a, metric)}</TooltipContent>
+                  <TooltipContent>
+                    {assigneeTip(a, metric, personTime.get(a.id) ?? [])}
+                  </TooltipContent>
                 </Tooltip>
               </div>
             ))}

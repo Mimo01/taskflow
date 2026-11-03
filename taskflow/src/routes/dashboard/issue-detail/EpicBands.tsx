@@ -25,18 +25,9 @@ import {
   statusCategoryDotClass,
 } from '@/lib/statusStyles';
 import { cn } from '@/lib/utils';
+import { formatDurationCompact } from '@/services/jira/duration';
 import { SMALL_TEXT } from './EpicStatCard';
 import { MARKER_ICON } from './epic-markers';
-
-/** Time view of the bands: logged vs remaining. */
-export function timeParts(b: Bands): { logged: number; remaining: number } {
-  return { logged: b.done, remaining: b.inProgress + b.todo };
-}
-
-const TIME_PARTS = [
-  { key: 'logged', label: 'Logged', Icon: MARKER_ICON.logged },
-  { key: 'remaining', label: 'Remaining', Icon: MARKER_ICON.remaining },
-] as const;
 
 /** Faint diagonal stripes on forecast overspend (remaining beyond the estimate). */
 const HATCH = {
@@ -109,10 +100,6 @@ export function TimeBar({
   );
 }
 
-function timePct(n: number, total: number): number {
-  return total > 0 ? Math.round((n / total) * 100) : 0;
-}
-
 /** Segmented bar. Height comes from className; widths are value / (scale ?? total). */
 export function BandBar({
   bands,
@@ -146,30 +133,6 @@ export function BandBar({
 
 /** One chip per band; the category word lives in the aria-label. */
 export function BandChips({ bands, metric }: { bands: Bands; metric: Metric }) {
-  if (metric === 'time') {
-    const parts = timeParts(bands);
-    return (
-      <span className="flex flex-none items-center gap-1">
-        {TIME_PARTS.map(({ key, label }) => (
-          <span
-            key={key}
-            role="img"
-            data-testid="epic-assignee-chip"
-            data-part={key}
-            aria-label={`${label.toLowerCase()} ${formatChip(parts[key], metric)}`}
-            className={cn(
-              'w-12 truncate rounded bg-muted px-1 text-center tabular-nums whitespace-nowrap',
-              SMALL_TEXT,
-              key === 'logged' ? 'text-foreground' : 'text-muted-foreground',
-              parts[key] === 0 && 'opacity-40',
-            )}
-          >
-            {formatChip(parts[key], metric)}
-          </span>
-        ))}
-      </span>
-    );
-  }
   return (
     <span className="flex flex-none items-center gap-1">
       {BANDS.map(({ key, cat }) => (
@@ -207,27 +170,6 @@ export function BandBreakdown({
   /** 'share' shows the percentage as the value (no sub), e.g. the assignee tooltip. */
   valueAs?: 'value' | 'share';
 }) {
-  if (metric === 'time') {
-    const parts = timeParts(bands);
-    const total = parts.logged + parts.remaining;
-    return (
-      <>
-        {TIME_PARTS.map(({ key, label, Icon }) => (
-          <TooltipRow
-            key={key}
-            icon={<Icon className="size-3" />}
-            label={label}
-            value={
-              valueAs === 'share'
-                ? `${timePct(parts[key], total)}%`
-                : formatMetric(parts[key], metric)
-            }
-            sub={share && valueAs === 'value' ? `${timePct(parts[key], total)}%` : undefined}
-          />
-        ))}
-      </>
-    );
-  }
   return (
     <>
       {BANDS.map(({ key, cat }) => (
@@ -241,5 +183,153 @@ export function BandBreakdown({
         />
       ))}
     </>
+  );
+}
+
+const OVER_TEXT = {
+  amber: 'text-amber-700 dark:text-amber-400',
+  red: 'text-red-600 dark:text-red-400',
+} as const;
+const OVER_CHIP = {
+  amber: 'bg-amber-500/15 text-amber-700 dark:text-amber-400',
+  red: 'bg-red-500/15 text-red-600 dark:text-red-400',
+} as const;
+
+export interface TimeGroup {
+  cat: TimeSegment['cat'];
+  logged: number;
+  left: number;
+  over: number;
+  severe: boolean;
+}
+
+/** Per status group (done → in progress → to do): logged, left and overspend seconds. */
+export function timeGroups(segments: TimeSegment[]): TimeGroup[] {
+  return BANDS.map(({ cat }) => {
+    const g: TimeGroup = { cat, logged: 0, left: 0, over: 0, severe: false };
+    for (const s of segments) {
+      if (s.cat !== cat) continue;
+      if (s.part === 'logged' || s.part === 'loggedOver') g.logged += s.seconds;
+      else g.left += s.seconds;
+      if (s.part === 'loggedOver' || s.part === 'remainingOver') {
+        g.over += s.seconds;
+        if (s.severe) g.severe = true;
+      }
+    }
+    return g;
+  });
+}
+
+/** Totals of a Time bar: logged, left, overspend (Σ per story beyond its estimate) and severity. */
+export function timeSummary(segments: TimeSegment[]) {
+  const groups = timeGroups(segments);
+  return {
+    logged: groups.reduce((n, g) => n + g.logged, 0),
+    left: groups.reduce((n, g) => n + g.left, 0),
+    over: groups.reduce((n, g) => n + g.over, 0),
+    severe: groups.some((g) => g.over > 0 && g.severe),
+  };
+}
+
+function groupValue(g: TimeGroup): string {
+  const parts = [];
+  if (g.logged > 0) parts.push(`${formatDurationCompact(g.logged)} logged`);
+  if (g.left > 0) parts.push(`${formatDurationCompact(g.left)} left`);
+  return parts.length > 0 ? parts.join(' \u00b7 ') : '\u2014';
+}
+
+/**
+ * Time tooltip (261103-lcd): one row per status (logged · left, with its overspend) and an
+ * Estimate row with the forecast. Four rows.
+ */
+export function TimeBreakdown({
+  segments,
+  estimate,
+}: {
+  segments: TimeSegment[];
+  estimate: number;
+}) {
+  const groups = timeGroups(segments);
+  const forecast = segmentsTotal(segments);
+  const delta = forecast - estimate;
+  return (
+    <>
+      {groups.map((g) => (
+        <TooltipRow
+          key={g.cat}
+          marker="status"
+          color={STATUS_CATEGORY_COLOR[g.cat]}
+          label={CAT_LABEL[g.cat]}
+          value={groupValue(g)}
+          sub={
+            g.over > 0 ? (
+              <span className={OVER_TEXT[g.severe ? 'red' : 'amber']}>
+                {`+${formatDurationCompact(g.over)} over`}
+              </span>
+            ) : undefined
+          }
+        />
+      ))}
+      <TooltipRow
+        icon={<MARKER_ICON.estimate className="size-3" />}
+        label="Estimate"
+        value={estimate > 0 ? formatDurationCompact(estimate) : 'none'}
+        sub={
+          estimate > 0
+            ? `forecast ${formatDurationCompact(forecast)}${
+                delta !== 0
+                  ? ` (${delta > 0 ? '+' : '\u2212'}${formatDurationCompact(Math.abs(delta))})`
+                  : ''
+              }`
+            : undefined
+        }
+      />
+    </>
+  );
+}
+
+/** Time chips after a person bar: logged · left · estimate · over (amber / red, dim at 0). */
+export function TimeChips({ segments, estimate }: { segments: TimeSegment[]; estimate: number }) {
+  const t = timeSummary(segments);
+  const chips = [
+    { key: 'logged', label: 'logged', value: t.logged, tone: 'text-foreground' },
+    { key: 'left', label: 'left', value: t.left, tone: 'text-muted-foreground' },
+    { key: 'estimate', label: 'estimate', value: estimate, tone: 'text-muted-foreground' },
+  ] as const;
+  return (
+    <span className="flex flex-none items-center gap-1">
+      {chips.map((c) => (
+        <span
+          key={c.key}
+          role="img"
+          data-testid="epic-assignee-chip"
+          data-part={c.key}
+          aria-label={`${c.label} ${formatChip(c.value, 'time')}`}
+          className={cn(
+            'w-12 truncate rounded bg-muted px-1 text-center tabular-nums whitespace-nowrap',
+            SMALL_TEXT,
+            c.tone,
+            c.value === 0 && 'opacity-40',
+          )}
+        >
+          {formatChip(c.value, 'time')}
+        </span>
+      ))}
+      <span
+        role="img"
+        data-testid="epic-assignee-chip"
+        data-part="over"
+        aria-label={`over ${formatChip(t.over, 'time')}`}
+        className={cn(
+          'w-12 truncate rounded px-1 text-center tabular-nums whitespace-nowrap',
+          SMALL_TEXT,
+          t.over > 0
+            ? OVER_CHIP[t.severe ? 'red' : 'amber']
+            : 'bg-muted text-muted-foreground opacity-40',
+        )}
+      >
+        {t.over > 0 ? `+${formatChip(t.over, 'time')}` : formatChip(0, 'time')}
+      </span>
+    </span>
   );
 }

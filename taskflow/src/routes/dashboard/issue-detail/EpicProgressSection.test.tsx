@@ -241,8 +241,14 @@ describe('EpicProgressSection review fixes (261001-fmk)', () => {
 });
 
 // 261103-lcd: T-1 done → logged 1h 30m; T-2 open → Jira remaining 1h. Total 2h 30m.
-// 261103-lcd: Time = Logged vs Remaining shares, then the original Estimate.
-const ASSIGNEE_TIME_ROWS = ['Logged60%', 'Remaining40%', 'Estimate3h'];
+// 261103-lcd: Time tooltip = one row per status (logged · left, overspend) + Estimate/forecast.
+// T-1 done: 1h estimate, 1h 30m logged (30m over, 150% → red); T-2 to do: 1h left.
+const ASSIGNEE_TIME_ROWS = [
+  'Completed1h 30m logged+30m over',
+  'In progress\u2014',
+  'To do1h left',
+  'Estimate3hforecast 2h 30m (\u221230m)',
+];
 
 describe('EpicProgressSection time metric, card and tooltips (261001-g5q)', () => {
   const timed = [
@@ -335,9 +341,13 @@ describe('EpicProgressSection time metric, card and tooltips (261001-g5q)', () =
     renderTimed();
     fireEvent.click(screen.getByRole('button', { name: 'Time' }));
     const row = screen.getByTestId('epic-assignee-row');
-    // 261103-lcd: logged = T-1 logged; remaining = T-2 Jira remaining.
+    // 261103-lcd: logged = T-1 logged; left = T-2 Jira remaining; over = T-1 30m beyond 1h.
     expect(within(row).getByLabelText('logged 1h 30m')).toBeInTheDocument();
-    expect(within(row).getByLabelText('remaining 1h')).toBeInTheDocument();
+    expect(within(row).getByLabelText('left 1h')).toBeInTheDocument();
+    expect(within(row).getByLabelText('estimate 3h')).toBeInTheDocument();
+    const over = within(row).getByLabelText('over 30m');
+    expect(over).toHaveTextContent('+30m');
+    expect(over.className).toContain('text-red-600');
     expect(within(row).queryByLabelText(/^to do/)).toBeNull();
   });
 
@@ -385,7 +395,7 @@ describe('EpicProgressSection time metric, card and tooltips (261001-g5q)', () =
       return el;
     });
     expect(within(tip).getByText('Amy')).toBeInTheDocument();
-    // Shares only (chips already show values), then the original estimate for Time.
+    // Time: per-status logged · left with overspend, then Estimate with the forecast.
     expect(rowTexts()).toEqual(ASSIGNEE_TIME_ROWS);
   });
 
@@ -399,7 +409,7 @@ describe('EpicProgressSection time metric, card and tooltips (261001-g5q)', () =
     await waitFor(() => expect(rowTexts()).toEqual(expected));
     await user.unhover(within(row).getByText('Amy'));
     await waitFor(() => expect(document.querySelector('[data-slot="tooltip-content"]')).toBeNull());
-    await user.hover(within(row).getByLabelText('remaining 1h'));
+    await user.hover(within(row).getByLabelText('left 1h'));
     await waitFor(() => expect(rowTexts()).toEqual(expected));
     expect(row.querySelectorAll('button')).toHaveLength(0);
     expect(row.querySelectorAll('button, [tabindex="0"]')).toHaveLength(1);
@@ -1235,8 +1245,13 @@ describe('EpicProgressSection unified tabs (261001-rtw)', () => {
     const row = screen.getByTestId('epic-assignee-row');
     const chips = within(row).getAllByTestId('epic-assignee-chip');
     // 261103-lcd: logged = 1h 30m; remaining = T-2 Jira remaining 1h.
-    expect(chips.map((c) => c.textContent)).toEqual(['1h 30m', '1h']);
-    expect(chips.map((c) => c.getAttribute('data-part'))).toEqual(['logged', 'remaining']);
+    expect(chips.map((c) => c.textContent)).toEqual(['1h 30m', '1h', '3h', '+30m']);
+    expect(chips.map((c) => c.getAttribute('data-part'))).toEqual([
+      'logged',
+      'left',
+      'estimate',
+      'over',
+    ]);
     // Status-grouped TimeBar: T-1 done (1h estimate, 1h 30m logged → 1h + 30m over, red at
     // 150%); T-2 to do (Jira remaining 1h, within its estimate).
     const segs = [...row.querySelectorAll('[data-segment]')] as HTMLElement[];
@@ -1253,15 +1268,13 @@ describe('EpicProgressSection unified tabs (261001-rtw)', () => {
     expect(total).toBeLessThanOrEqual(100.0001);
   });
 
-  it('Time hero tooltip lists Logged / Remaining with share, then the Estimate (261103-lcd)', async () => {
+  it('Time hero tooltip lists each status (logged · left, overspend), then the Estimate (261103-lcd)', async () => {
     const user = userEvent.setup();
     renderSection(timedSection());
     fireEvent.click(screen.getByRole('button', { name: 'Time' }));
     await user.hover(screen.getByTestId('epic-hero'));
-    await waitFor(() =>
-      expect(rowTexts()).toEqual(['Logged1h 30m60%', 'Remaining1h40%', 'Estimate3h']),
-    );
-    expect(markers()).toEqual(['icon', 'icon', 'icon']);
+    await waitFor(() => expect(rowTexts()).toEqual(ASSIGNEE_TIME_ROWS));
+    expect(markers()).toEqual(['status', 'status', 'status', 'icon']);
   });
 
   it('Count hero tooltip keeps the three band rows', async () => {

@@ -42,9 +42,9 @@ import {
   type TimeTotals,
 } from '@/lib/epic-progress';
 import { cn } from '@/lib/utils';
-import { formatDuration, formatDurationCompact } from '@/services/jira/duration';
+import { formatDurationCompact } from '@/services/jira/duration';
 import { ConfidenceMeter } from './ConfidenceMeter';
-import { BandBar, BandBreakdown, TimeBar } from './EpicBands';
+import { BandBar, BandBreakdown, TimeBar, TimeBreakdown } from './EpicBands';
 import {
   SMALL_TEXT,
   STAT_CARD_CLASS,
@@ -116,19 +116,11 @@ function Hero({
     <TooltipBody
       note={sourceNote ? <span data-testid="hero-source-note">{sourceNote}</span> : undefined}
     >
-      <BandBreakdown bands={bands} metric={metric} share />
-      {metric === 'time' && time.estimated > 0 ? (
-        <TooltipRow
-          icon={<MARKER_ICON.estimate className="size-3" />}
-          label="Estimate"
-          value={formatDuration(time.estimated)}
-          sub={
-            summary.total > time.estimated
-              ? `+${formatDurationCompact(summary.total - time.estimated)} over`
-              : undefined
-          }
-        />
-      ) : null}
+      {metric === 'time' ? (
+        <TimeBreakdown segments={timeSegments} estimate={time.estimated} />
+      ) : (
+        <BandBreakdown bands={bands} metric={metric} share />
+      )}
     </TooltipBody>
   );
 
