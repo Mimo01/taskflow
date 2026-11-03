@@ -375,7 +375,7 @@ describe('UnifiedTaskTable', () => {
       expect(screen.queryByTestId('drift-row')).toBeNull();
     });
 
-    it('the popover shows author and title as text, with no avatar/img', async () => {
+    it('the chip has no author; the popover shows author (with avatar) and title', async () => {
       const row = makeRow({
         mr: makeMR({
           title: 'Fix thing',
@@ -389,7 +389,7 @@ describe('UnifiedTaskTable', () => {
       const popover = await openMrPopover();
       expect(within(popover).getByText('Alice')).toBeInTheDocument();
       expect(within(popover).getByText('Fix thing')).toHaveAttribute('title', 'Fix thing');
-      expect(within(popover).queryByRole('img')).toBeNull();
+      expect(within(popover).getByText('Alice').parentElement).toHaveAttribute('title', 'Alice');
     });
 
     it('aggregate task-drift-br / task-drift-ms render on the row; per-MR drift-br / drift-ms only after opening', async () => {
@@ -553,7 +553,7 @@ describe('WR-05: column header strip labels', () => {
 
   // 261103-fg2: a trailing action-column spacer (only secondary rows render
   // that column) shifted every heading left of its column.
-  it('has one header cell per task-row cell, ending at MS', () => {
+  it('has one header cell per task-row cell, ending at Assignee', () => {
     const issue = makeIssue({ key: 'PROJ-1' });
     renderSection({ primaryRows: [{ issue, mrs: [] }] });
 
@@ -563,7 +563,8 @@ describe('WR-05: column header strip labels', () => {
       (el) => el.getAttribute('data-testid') !== 'task-row-overlay',
     );
     expect(strip.children).toHaveLength(rowCells.length);
-    expect(strip.lastElementChild).toHaveTextContent('MS');
+    expect(strip.lastElementChild).toHaveTextContent('Assignee');
+    expect(rowCells[rowCells.length - 1]).toHaveTextContent('Unassigned');
   });
 
   it('renders no element with role="table", role="row" or role="columnheader"', () => {
@@ -630,7 +631,7 @@ describe('WR-06: the secondary table has its own header strip', () => {
     // Two strips now exist, so scope the primary assertions to the task table.
     const taskList = screen.getByTestId('task-list');
     const primaryStrip = taskList.previousElementSibling as HTMLElement;
-    for (const label of ['Key', 'Summary', 'Assignee', 'Status', 'MR', 'BR', 'MS']) {
+    for (const label of ['Key', 'Summary', 'Status', 'Merge requests', 'BR', 'MS', 'Assignee']) {
       expect(within(primaryStrip).getByText(label)).toBeInTheDocument();
     }
   });
@@ -2003,10 +2004,11 @@ describe('responsive container tiers', () => {
     expect(within(strip).getByTestId('task-sort-header-status').parentElement).toHaveClass(
       '@max-[400px]:hidden',
     );
-    expect(within(strip).getByText('MR')).toHaveClass(
-      '@max-[860px]:w-[5.5rem]',
+    expect(within(strip).getByText('Merge requests').parentElement).toHaveClass(
+      '@max-[860px]:w-[6rem]',
       '@max-[520px]:hidden',
     );
+    expect(within(strip).getByText('MRs')).toHaveClass('hidden', '@max-[860px]:inline');
     expect(strip.firstElementChild).toHaveClass('@max-[640px]:hidden');
   });
 
@@ -2029,7 +2031,7 @@ describe('responsive container tiers', () => {
     );
     const shortLabel = chip.querySelector('span[aria-hidden="true"].hidden') as HTMLElement;
     expect(shortLabel).toHaveClass('hidden', '@max-[860px]:inline');
-    expect(chip.parentElement).toHaveClass('@max-[860px]:w-[5.5rem]', '@max-[520px]:hidden');
+    expect(chip.parentElement).toHaveClass('@max-[860px]:w-[6rem]', '@max-[520px]:hidden');
     const state = within(taskRow).getByText('Status');
     expect(state.parentElement).toHaveClass('@max-[400px]:hidden');
   });
@@ -2773,16 +2775,19 @@ describe('mrStatusSummary', () => {
     expect(mrStatusSummary([r(1, 'merged'), r(2, 'closed')]).label).toBe('merged');
   });
 
-  it('orders dots merged, opened, closed and caps at 4 slots', () => {
+  it('orders dots merged, opened, closed and never collapses them', () => {
     const s = mrStatusSummary([r(1, 'closed'), r(2, 'opened'), r(3, 'merged')]);
     expect(s.dots.map((d) => d.mr.state)).toEqual(['merged', 'opened', 'closed']);
-    expect(s.overflow).toBe(0);
-    const four = mrStatusSummary([1, 2, 3, 4].map((i) => r(i, 'opened')));
-    expect(four.dots).toHaveLength(4);
-    expect(four.overflow).toBe(0);
-    const five = mrStatusSummary([1, 2, 3, 4, 5].map((i) => r(i, 'opened')));
-    expect(five.dots).toHaveLength(3);
-    expect(five.overflow).toBe(2);
+    const seven = mrStatusSummary([1, 2, 3, 4, 5, 6, 7].map((i) => r(i, 'opened')));
+    expect(seven.dots).toHaveLength(7);
+  });
+
+  it('tones the pill by overall state', () => {
+    expect(mrStatusSummary([r(1, 'merged')]).tone).toBe('green');
+    expect(mrStatusSummary([r(1, 'opened'), r(2, 'merged')]).tone).toBe('blue');
+    expect(mrStatusSummary([r(1, 'opened')]).tone).toBe('blue');
+    expect(mrStatusSummary([r(1, 'opened', true)]).tone).toBe('muted');
+    expect(mrStatusSummary([r(1, 'closed')]).tone).toBe('muted');
   });
 
   it('builds an aria label with singular/plural', () => {
@@ -2857,12 +2862,44 @@ describe('task row MR status chip + popover (261103-g8m)', () => {
     expect(lines[0].parentElement).toHaveClass('relative');
   });
 
-  it('caps dots at 3 plus +N for 5 MRs; a lone merged MR is 1 dot and "merged"', async () => {
+  it('popover strips the leading task key from the MR title and shows the full author', async () => {
+    renderWithRows([
+      makeRow({
+        mr: makeMR({
+          title: '[PROJ-1] Fix login redirect',
+          author: { id: 7, name: 'Alexandra Longname-Smith', username: 'al', avatar_url: '' },
+        }),
+      }),
+    ]);
+    const popover = await openMrPopover();
+    const line = within(popover).getByTestId('mr-popover-line');
+    expect(line).toHaveTextContent('Fix login redirect');
+    expect(line).not.toHaveTextContent('PROJ-1');
+    expect(line).toHaveTextContent('Alexandra Longname-Smith');
+    expect(within(line).getByTestId('mr-popover-state')).toHaveTextContent('Open');
+  });
+
+  it('orders task columns Key / Summary / Status / MRs / BR / MS / Assignee', () => {
+    renderWithRows([makeRow()]);
+    const header = screen.getByTestId('task-column-header');
+    const labels = [...header.children].map((c) => c.textContent?.trim()).filter(Boolean);
+    expect(labels[0]).toMatch(/^Key/);
+    expect(labels[1]).toMatch(/^Summary/);
+    expect(labels[2]).toMatch(/^Status/);
+    expect(labels[3]).toMatch(/^Merge requests/);
+    expect(labels.slice(4, 6)).toEqual(['BR', 'MS']);
+    expect(labels[6]).toMatch(/^Assignee/);
+    const row = screen.getByTestId('task-row');
+    expect(row.lastElementChild).toHaveTextContent(/Unassigned|.+/);
+    expect(row.lastElementChild?.querySelector('[data-testid="mr-status-chip"]')).toBeNull();
+  });
+
+  it('shows one dot per MR with no +N for 5 MRs; a lone merged MR is 1 dot and "merged"', async () => {
     const five = [1, 2, 3, 4, 5].map((i) => makeRow({ mr: makeMR({ id: i, iid: i }) }));
     const { unmount } = renderWithRows(five);
     const chip = screen.getByTestId('mr-status-chip');
-    expect(chip.querySelectorAll('.rounded-full')).toHaveLength(3);
-    expect(chip).toHaveTextContent('+2');
+    expect(chip.querySelectorAll('.rounded-full')).toHaveLength(5);
+    expect(chip).not.toHaveTextContent('+');
     unmount();
 
     renderWithRows([makeRow({ mr: makeMR({ id: 9, iid: 9, state: 'merged' }) })]);

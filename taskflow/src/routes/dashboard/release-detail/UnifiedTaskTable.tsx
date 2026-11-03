@@ -12,7 +12,7 @@ import { UNASSIGNED_FILTER, UNASSIGNED_LABEL } from '@/lib/assignee-filter';
 import { isEpicTypeName } from '@/lib/issue-type';
 import { openExternal } from '@/lib/openExternal';
 import { PEEKED_ROW_CLASS } from '@/lib/peek-highlight';
-import { statusPillClass } from '@/lib/statusStyles';
+import { CHIP_TONE_CLASS, type ChipTone, statusPillClass } from '@/lib/statusStyles';
 import { nextSort, type SortDir } from '@/lib/table-sort';
 import { cn } from '@/lib/utils';
 import type { GitLabMR } from '@/services/gitlab';
@@ -122,7 +122,14 @@ const COL_KEY = 'flex-none w-[5.5rem] whitespace-nowrap';
 const COL_SUMMARY = 'flex-1 min-w-0';
 const COL_PERSON = 'flex-none w-[8.75rem] min-w-0 @max-[860px]:w-9';
 const COL_STATE = 'flex-none w-[6rem] @max-[400px]:hidden';
-const COL_MR = 'flex-none w-[11.875rem] min-w-0 @max-[860px]:w-[5.5rem] @max-[520px]:hidden';
+// MR status pill: every MR's dot + a progress label. Sized for ~6 dots + "1/2 merged";
+// the label shortens at 860 ("1/2") and the column drops at 520 (BR/MS stay).
+const COL_MR = 'flex-none w-[9rem] min-w-0 @max-[860px]:w-[6rem] @max-[520px]:hidden';
+// Primary-row assignee sits LAST (shipped list convention: Key / Title / Status /
+// domain columns / Assignee — AIO Executions + Defects, Backlog). Wider when there
+// is room, avatar-only at 860 like every other release table.
+const COL_ASSIGNEE =
+  'flex-none w-[9rem] @min-[1100px]:w-[11rem] min-w-0 pr-2 @max-[860px]:w-9 @max-[860px]:pr-0';
 // Secondary (uncovered MR) row columns, explicit widths. The state pill and
 // MR-state cells are flex parents so their pills keep their own geometry. The
 // state pill collapses to an icon at 520 (same geometry as the package callout).
@@ -143,6 +150,13 @@ function mrStateBadgeClass(state: GitLabMR['state']): string {
     : state === 'opened'
       ? 'border-blue-500 text-blue-600'
       : 'border-gray-400 text-gray-500';
+}
+
+/** Tinted tone for one MR's state — the popover's state pill and the row chip share it. */
+function mrStateTone(mr: GitLabMR): ChipTone {
+  if (mr.state === 'merged') return 'green';
+  if (mr.state === 'opened') return mr.draft ? 'muted' : 'blue';
+  return 'muted';
 }
 
 function mrStateLabel(mr: GitLabMR): string {
@@ -181,15 +195,15 @@ const DOT_ORDER: Record<GitLabMR['state'], number> = {
  */
 export function mrStatusSummary(rows: DriftRow[]): {
   dots: DriftRow[];
-  overflow: number;
   label: string;
   shortLabel: string;
   ariaLabel: string;
+  tone: ChipTone;
 } {
+  // Every MR gets a dot — no "+N" collapse (user decision at UAT).
   const ordered = [...rows].sort((a, b) => DOT_ORDER[a.mr.state] - DOT_ORDER[b.mr.state]);
   const n = ordered.length;
-  const dots = n <= 4 ? ordered : ordered.slice(0, 3);
-  const overflow = n <= 4 ? 0 : n - 3;
+  const dots = ordered;
 
   const merged = ordered.filter((r) => r.mr.state === 'merged').length;
   const opened = ordered.filter((r) => r.mr.state === 'opened').length;
@@ -197,18 +211,24 @@ export function mrStatusSummary(rows: DriftRow[]): {
 
   let label: string;
   let shortLabel: string;
+  let tone: ChipTone;
   if (live.length === 0) {
     label = 'closed';
     shortLabel = label;
+    tone = 'muted';
   } else if (merged === live.length) {
     label = 'merged';
     shortLabel = label;
+    tone = 'green';
   } else if (merged === 0) {
-    label = live.length === 1 ? (live[0].mr.draft ? 'draft' : 'open') : `${live.length} open`;
+    const draftOnly = live.length === 1 && live[0].mr.draft;
+    label = live.length === 1 ? (draftOnly ? 'draft' : 'open') : `${live.length} open`;
     shortLabel = label;
+    tone = draftOnly ? 'muted' : 'blue';
   } else {
     label = `${merged}/${live.length} merged`;
     shortLabel = `${merged}/${live.length}`;
+    tone = 'blue';
   }
 
   const parts = [`${merged} merged`, `${opened} open`];
@@ -217,7 +237,7 @@ export function mrStatusSummary(rows: DriftRow[]): {
   // Starts with the visible label (WCAG 2.5.3 label-in-name).
   const ariaLabel = `${label} — ${n} merge request${n === 1 ? '' : 's'}: ${parts.join(', ')} — show details`;
 
-  return { dots, overflow, label, shortLabel, ariaLabel };
+  return { dots, label, shortLabel, ariaLabel, tone };
 }
 
 export type SecondaryReason = 'no-linked-task' | 'not-in-fix-version' | 'unevaluated';
@@ -669,6 +689,22 @@ function ColumnHeaderStrip({
       <span className={COL_ICON} aria-hidden="true" />
       <SortableHeader sortKey="key" label="Key" className={COL_KEY} {...headerProps} />
       <SortableHeader sortKey="summary" label="Summary" className={COL_SUMMARY} {...headerProps} />
+      <SortableHeader sortKey="status" label="Status" className={COL_STATE} {...headerProps} />
+      <span className={COL_MR}>
+        <span className="@max-[860px]:sr-only">Merge requests</span>
+        <span aria-hidden="true" className="hidden @max-[860px]:inline">
+          MRs
+        </span>
+      </span>
+      <span
+        className="flex-none w-[1.75rem] text-center"
+        title="Target branch matches release branch"
+      >
+        BR
+      </span>
+      <span className="flex-none w-[1.75rem] text-center" title="Release milestone assigned">
+        MS
+      </span>
       <SortableHeader
         sortKey="assignee"
         label={
@@ -679,22 +715,9 @@ function ColumnHeaderStrip({
             </span>
           </>
         }
-        className={COL_PERSON}
+        className={COL_ASSIGNEE}
         {...headerProps}
       />
-      <SortableHeader sortKey="status" label="Status" className={COL_STATE} {...headerProps} />
-      <span className={COL_MR}>MR</span>
-      <span
-        className="flex-none w-[1.75rem] text-center"
-        title="Target branch matches release branch"
-      >
-        BR
-      </span>
-      <span className="flex-none w-[1.75rem] text-center" title="Release milestone assigned">
-        MS
-      </span>
-      {/* No action-column spacer here: task rows end at MS (only the
-          not-covered callout rows render an Apply / Link task cell). */}
     </div>
   );
 }
@@ -1082,21 +1105,13 @@ function TaskMrCell({
           data-testid="mr-status-chip"
           aria-label={summary.ariaLabel}
           onClick={(e) => e.stopPropagation()}
-          className="pointer-events-auto relative z-10 inline-flex max-w-full min-w-0 items-center gap-1 whitespace-nowrap rounded focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          <span aria-hidden="true" className="inline-flex flex-none items-center gap-0.5">
-            {summary.dots.map((r) => (
-              <span
-                key={r.mr.id}
-                className={`size-1.5 flex-none rounded-full ${mrStateDotClass(r.mr)}`}
-              />
-            ))}
-          </span>
-          {summary.overflow > 0 && (
-            <span aria-hidden="true" className="flex-none tabular-nums text-muted-foreground">
-              +{summary.overflow}
-            </span>
+          className={cn(
+            'pointer-events-auto relative z-10 inline-flex h-5 max-w-full min-w-0 cursor-pointer items-center gap-1.5 whitespace-nowrap rounded px-1.5 text-xs font-medium',
+            'ring-inset transition-shadow hover:ring-1 hover:ring-current/30 focus-visible:ring-2 focus-visible:ring-ring data-[popup-open]:ring-1 data-[popup-open]:ring-current/40',
+            CHIP_TONE_CLASS[summary.tone],
           )}
+        >
+          <MrStateDots rows={summary.dots} />
           <span className="min-w-0 truncate @max-[860px]:sr-only">{summary.label}</span>
           <span aria-hidden="true" className="hidden min-w-0 truncate @max-[860px]:inline">
             {summary.shortLabel}
@@ -1133,23 +1148,43 @@ function TaskMrCell({
         data-testid="mr-popover"
         keepMounted={everOpened}
         align="end"
-        className={cn('w-[22rem] max-w-[calc(100vw-2rem)]', TOOLTIP_SURFACE, 'border-0 p-1')}
+        sideOffset={6}
+        className={cn('w-[40rem] max-w-[calc(100vw-2rem)]', TOOLTIP_SURFACE, 'p-0')}
       >
-        <div
-          aria-hidden="true"
-          className="flex h-5 items-center gap-1.5 px-2 text-[10px] text-muted-foreground"
-        >
-          <span className="min-w-0 flex-1" />
-          <span className="w-[1.75rem] flex-none text-center">BR</span>
-          <span className="w-[1.75rem] flex-none text-center">MS</span>
+        {/* Inner @container: container queries never style the container itself. */}
+        <div className="@container">
+          <div className="flex items-center gap-2 border-b px-3 py-2">
+            <span className="text-sm font-semibold">Merge requests</span>
+            <span className="tabular-nums text-muted-foreground">{allMrs.length}</span>
+            <span
+              className={cn(
+                'ml-auto inline-flex h-5 items-center gap-1.5 rounded px-1.5 text-xs font-medium',
+                CHIP_TONE_CLASS[summary.tone],
+              )}
+            >
+              <MrStateDots rows={summary.dots} />
+              {summary.label}
+            </span>
+          </div>
+          <div
+            aria-hidden="true"
+            className="flex h-6 items-center gap-2 px-3 text-[11px] font-medium text-muted-foreground"
+          >
+            <span className={MR_POP_COL_STATE}>State</span>
+            <span className={MR_POP_COL_IID}>MR</span>
+            <span className="min-w-0 flex-1">Title</span>
+            <span className={MR_POP_COL_AUTHOR}>Author</span>
+            <span className="w-[1.75rem] flex-none text-center">BR</span>
+            <span className="w-[1.75rem] flex-none text-center">MS</span>
+          </div>
+          {/* `relative`: the cells' sr-only live regions are abspos and would
+              otherwise stretch the document past this scroller. */}
+          <ul className="relative max-h-[22rem] overflow-auto px-1 pb-1">
+            {sorted.map((r) => (
+              <MrPopoverLine key={r.mr.id} row={r} fix={fix} />
+            ))}
+          </ul>
         </div>
-        {/* `relative`: the cells' sr-only live regions are abspos and would
-            otherwise stretch the document past this scroller. */}
-        <ul className="relative max-h-60 overflow-auto">
-          {sorted.map((r) => (
-            <MrPopoverLine key={r.mr.id} row={r} fix={fix} />
-          ))}
-        </ul>
       </PopoverContent>
     </Popover>
   );
@@ -1167,6 +1202,26 @@ function AggregateFlagTrigger({ testId, label }: { testId: string; label: string
     >
       <AlertTriangle className="size-3.5 text-orange-600 dark:text-orange-400" />
     </PopoverTrigger>
+  );
+}
+
+// Popover columns. The author collapses to its avatar when the popover is
+// squeezed (narrow window — it is capped at 100vw-2rem).
+const MR_POP_COL_STATE = 'w-[5rem] flex-none';
+const MR_POP_COL_IID = 'w-[3.5rem] flex-none';
+const MR_POP_COL_AUTHOR = 'w-[11rem] flex-none min-w-0 @max-[34rem]:w-[22px]';
+
+/** One dot per MR in state colour (merged, open, closed order). */
+function MrStateDots({ rows }: { rows: DriftRow[] }) {
+  return (
+    <span aria-hidden="true" className="inline-flex flex-none items-center gap-[3px]">
+      {rows.map((r) => (
+        <span
+          key={r.mr.id}
+          className={`size-1.5 flex-none rounded-full ${mrStateDotClass(r.mr)}`}
+        />
+      ))}
+    </span>
   );
 }
 
@@ -1196,32 +1251,47 @@ function sortPopoverMrs(rows: DriftRow[]): DriftRow[] {
  */
 function MrPopoverLine({ row, fix }: { row: DriftRow; fix: MrFixContext }) {
   const { mr } = row;
+  // The task key is already on the row this popover belongs to — drop the
+  // leading "[PROJ-1] " prefix, same as the uncovered-MRs table does.
+  const displayTitle = stripLeadingTicketKeys(mr.title, row.taskKeys);
   return (
     <li
       data-testid="mr-popover-line"
-      className="group/row flex h-7 items-center gap-1.5 rounded px-2 text-xs hover:bg-muted/50"
+      className="group/row flex h-9 items-center gap-2 rounded px-2 text-sm hover:bg-muted/50"
     >
-      <LinkContextMenu href={mr.web_url}>
-        <button
-          type="button"
-          onClick={() => openExternal(mr.web_url)}
-          title={channelsTitle(row.channels)}
-          className="flex-none font-mono text-xs hover:underline"
+      <span className={`${MR_POP_COL_STATE} flex items-center`}>
+        <span
+          data-testid="mr-popover-state"
+          className={cn(
+            'inline-flex w-full items-center justify-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium',
+            CHIP_TONE_CLASS[mrStateTone(mr)],
+          )}
         >
-          !{mr.iid}
-        </button>
-      </LinkContextMenu>
-      <Badge
-        variant="outline"
-        className={`flex-none rounded text-[10px] ${mrStateBadgeClass(mr.state)}`}
-      >
-        {mrStateLabel(mr)}
-      </Badge>
-      <span className="min-w-0 flex-1 truncate" title={mr.title}>
-        {mr.title}
+          <span
+            aria-hidden="true"
+            className={`size-1.5 flex-none rounded-full ${mrStateDotClass(mr)}`}
+          />
+          {mrStateLabel(mr)}
+        </span>
       </span>
-      <span className="max-w-[6rem] flex-none truncate text-muted-foreground">
-        {mr.author.name}
+      <span className={MR_POP_COL_IID}>
+        <LinkContextMenu href={mr.web_url}>
+          <button
+            type="button"
+            onClick={() => openExternal(mr.web_url)}
+            title={`Open !${mr.iid} in GitLab — ${channelsTitle(row.channels)}`}
+            className="font-mono text-xs text-primary hover:underline"
+          >
+            !{mr.iid}
+          </button>
+        </LinkContextMenu>
+      </span>
+      <span className="min-w-0 flex-1 truncate" title={mr.title}>
+        {displayTitle}
+      </span>
+      <span className={`${MR_POP_COL_AUTHOR} flex items-center gap-1.5`} title={mr.author.name}>
+        <CachedAvatar url={mr.author.avatar_url || null} name={mr.author.name} size={22} />
+        <span className="min-w-0 truncate text-xs @max-[34rem]:sr-only">{mr.author.name}</span>
       </span>
       {/* 261103-fqd: BR is gated on `evaluated` (opened only — a merged MR
           cannot be retargeted); MS is gated independently (opened + merged). */}
@@ -1314,8 +1384,21 @@ function TaskRow({
       <span className={`pointer-events-none relative ${COL_SUMMARY} line-clamp-1`}>
         {issue.fields.summary}
       </span>
+      <div className={`pointer-events-none relative ${COL_STATE} flex items-center`}>
+        <span className={statusPillClass(issue.fields.status.statusCategory?.key)}>
+          {issue.fields.status.name}
+        </span>
+      </div>
+      <TaskMrCell
+        mrs={mrs}
+        allMrs={allMrs}
+        isLoadingDrift={isLoadingDrift}
+        driftUnavailable={driftUnavailable}
+        hasMatchedMilestone={hasMatchedMilestone}
+        fix={fix}
+      />
       <span
-        className={`pointer-events-none relative ${COL_PERSON} inline-flex items-center gap-1.5 text-xs`}
+        className={`pointer-events-none relative ${COL_ASSIGNEE} inline-flex items-center gap-1.5 text-xs`}
       >
         {issue.fields.assignee ? (
           <>
@@ -1335,19 +1418,6 @@ function TaskRow({
           </>
         )}
       </span>
-      <div className={`pointer-events-none relative ${COL_STATE} flex items-center`}>
-        <span className={statusPillClass(issue.fields.status.statusCategory?.key)}>
-          {issue.fields.status.name}
-        </span>
-      </div>
-      <TaskMrCell
-        mrs={mrs}
-        allMrs={allMrs}
-        isLoadingDrift={isLoadingDrift}
-        driftUnavailable={driftUnavailable}
-        hasMatchedMilestone={hasMatchedMilestone}
-        fix={fix}
-      />
     </div>
   );
 }
