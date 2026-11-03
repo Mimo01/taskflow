@@ -395,14 +395,18 @@ export default function ReleaseDetailPage() {
         onBreadcrumbClick={handleBreadcrumbClick}
       />
 
-      {/* Detail body */}
+      {/* Detail body. The scroller below is `relative` on purpose: it makes it the
+          containing block for the many `sr-only` (position:absolute) spans in the table
+          cells. Without it their containing block is the viewport, so they escape the
+          scroller's clip and stretch the DOCUMENT's scroll height to the table's full
+          length, letting the whole window scroll past the app into blank space. */}
       {isLoading || !version ? (
         <ReleaseDetailSkeleton />
       ) : (
         <div
           ref={setPageEl}
           data-testid="release-detail-scroll"
-          className="@container/page min-h-0 flex-1 overflow-auto [--release-sticky-top:0px] [&_[role=button]]:cursor-pointer [&_a[href]]:cursor-pointer [&_button:not(:disabled)]:cursor-pointer"
+          className="@container/page relative min-h-0 flex-1 overflow-auto [--release-sticky-top:0px] [&_[role=button]]:cursor-pointer [&_a[href]]:cursor-pointer [&_button:not(:disabled)]:cursor-pointer"
         >
           {/* Header: owns the done figure (D-14) and the page actions */}
           <ReleaseDetailHeader

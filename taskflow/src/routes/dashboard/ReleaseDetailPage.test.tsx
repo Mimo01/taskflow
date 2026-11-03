@@ -192,6 +192,14 @@ describe('ReleaseDetailPage', () => {
     expect(screen.queryByRole('separator')).toBeNull();
   });
 
+  it('scroller is a containing block so sr-only cells cannot stretch the document scroll', () => {
+    // Without `relative`, the position:absolute sr-only spans inside the table cells
+    // resolve against the viewport, escape this scroller's clip and let the whole window
+    // scroll past the app into blank space (verified in WebKit + Chromium).
+    renderPage();
+    expect(screen.getByTestId('release-detail-scroll').className).toMatch(/(^|\s)relative(\s|$)/);
+  });
+
   it('without GitLab: By status takes the MR slot, no milestone fact', () => {
     renderPage();
     expect(screen.queryByTestId('release-graph-mrs')).toBeNull();
