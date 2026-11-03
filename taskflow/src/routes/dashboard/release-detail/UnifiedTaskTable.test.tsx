@@ -413,7 +413,7 @@ describe('UnifiedTaskTable', () => {
       renderWithRows(rows);
       const chip = screen.getByTestId('mr-status-chip');
       expect(chip).toHaveTextContent('3 open');
-      expect(chip.querySelectorAll('.rounded-full')).toHaveLength(3);
+      expect(chip.querySelectorAll('[data-mr-disc]')).toHaveLength(3);
       const popover = await openMrPopover();
       const lines = within(popover).getAllByTestId('mr-popover-line');
       expect(lines.map((l) => l.textContent)).toEqual([
@@ -455,7 +455,7 @@ describe('UnifiedTaskTable', () => {
       renderWithRows([makeRow({ mr: makeMR({ iid: 1, state: 'merged' }) })]);
       const chip = screen.getByTestId('mr-status-chip');
       expect(chip).toHaveTextContent('merged');
-      expect(chip.querySelectorAll('.rounded-full')).toHaveLength(1);
+      expect(chip.querySelectorAll('[data-mr-disc]')).toHaveLength(1);
       const popover = await openMrPopover();
       expect(within(popover).getAllByTestId('mr-popover-line')).toHaveLength(1);
     });
@@ -1194,7 +1194,7 @@ describe('CR-05: overlay click model — cells opt out of hit-testing unless gen
     // `pointer-events` inherits, so the wrapper's `none` would otherwise make
     // the link itself unclickable.
     expect(link.className).toContain('pointer-events-auto');
-    expect(link.className).not.toContain('pointer-events-none');
+    expect(link).not.toHaveClass('pointer-events-none');
   });
 
   it('inert BR/MS cells (ok / na marks) sit in a pointer-events-none slot, not a z-10 one', () => {
@@ -1261,7 +1261,7 @@ describe('CR-08: the MR chip actually reveals every MR', () => {
 
     const chip = screen.getByTestId('mr-status-chip');
     expect(chip.tagName).toBe('BUTTON');
-    expect(chip.className).not.toContain('pointer-events-none');
+    expect(chip).not.toHaveClass('pointer-events-none');
     expect(chip.className).toContain('pointer-events-auto');
     expect(chip.className).toContain('z-10');
   });
@@ -1826,13 +1826,13 @@ describe('UAT-91.1-B: filtering warning badges', () => {
     });
 
     expect(screen.getByTestId('mr-status-chip')).toHaveTextContent('4 open');
-    expect(screen.getByTestId('mr-status-chip').querySelectorAll('.rounded-full')).toHaveLength(4);
+    expect(screen.getByTestId('mr-status-chip').querySelectorAll('[data-mr-disc]')).toHaveLength(4);
 
     fireEvent.click(screen.getByTestId('flagged-br-badge'));
 
     // The filter changes which tasks/MRs match, never how many the task has.
     expect(screen.getByTestId('mr-status-chip')).toHaveTextContent('4 open');
-    expect(screen.getByTestId('mr-status-chip').querySelectorAll('.rounded-full')).toHaveLength(4);
+    expect(screen.getByTestId('mr-status-chip').querySelectorAll('[data-mr-disc]')).toHaveLength(4);
     expect(screen.getByTestId('task-drift-br').tagName).toBe('BUTTON');
     const popover = await openMrPopover();
     expect(within(popover).getAllByTestId('mr-popover-line')).toHaveLength(4);
@@ -2005,7 +2005,7 @@ describe('responsive container tiers', () => {
       '@max-[400px]:hidden',
     );
     expect(within(strip).getByText('Merge requests').parentElement).toHaveClass(
-      '@max-[860px]:w-[6rem]',
+      '@max-[860px]:w-[6.5rem]',
       '@max-[520px]:hidden',
     );
     expect(within(strip).getByText('MRs')).toHaveClass('hidden', '@max-[860px]:inline');
@@ -2031,7 +2031,7 @@ describe('responsive container tiers', () => {
     );
     const shortLabel = chip.querySelector('span[aria-hidden="true"].hidden') as HTMLElement;
     expect(shortLabel).toHaveClass('hidden', '@max-[860px]:inline');
-    expect(chip.parentElement).toHaveClass('@max-[860px]:w-[6rem]', '@max-[520px]:hidden');
+    expect(chip.parentElement).toHaveClass('@max-[860px]:w-[6.5rem]', '@max-[520px]:hidden');
     const state = within(taskRow).getByText('Status');
     expect(state.parentElement).toHaveClass('@max-[400px]:hidden');
   });
@@ -2898,13 +2898,13 @@ describe('task row MR status chip + popover (261103-g8m)', () => {
     const five = [1, 2, 3, 4, 5].map((i) => makeRow({ mr: makeMR({ id: i, iid: i }) }));
     const { unmount } = renderWithRows(five);
     const chip = screen.getByTestId('mr-status-chip');
-    expect(chip.querySelectorAll('.rounded-full')).toHaveLength(5);
+    expect(chip.querySelectorAll('[data-mr-disc]')).toHaveLength(5);
     expect(chip).not.toHaveTextContent('+');
     unmount();
 
     renderWithRows([makeRow({ mr: makeMR({ id: 9, iid: 9, state: 'merged' }) })]);
     const lone = screen.getByTestId('mr-status-chip');
-    expect(lone.querySelectorAll('.rounded-full')).toHaveLength(1);
+    expect(lone.querySelectorAll('[data-mr-disc]')).toHaveLength(1);
     expect(lone).toHaveTextContent('merged');
     const popover = await openMrPopover();
     expect(within(popover).getAllByTestId('mr-popover-line')).toHaveLength(1);

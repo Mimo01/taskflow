@@ -1,18 +1,30 @@
-import { AlertTriangle, Check, GitBranch, Loader2, Milestone, Search, X } from 'lucide-react';
+import {
+  AlertTriangle,
+  Check,
+  GitBranch,
+  GitMerge,
+  GitPullRequest,
+  GitPullRequestClosed,
+  GitPullRequestDraft,
+  Loader2,
+  type LucideIcon,
+  Milestone,
+  Search,
+  X,
+} from 'lucide-react';
 import type React from 'react';
 import { useRef, useState } from 'react';
-import { Badge } from '@/components/ui/badge';
+import { Badge, badgeVariants } from '@/components/ui/badge';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
 import { LinkContextMenu } from '@/components/ui/link-context-menu';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { FilterPopover, SortableHeader } from '@/components/ui/table-filter-sort';
-import { TOOLTIP_SURFACE } from '@/components/ui/tooltip-body';
 import { UNASSIGNED_FILTER, UNASSIGNED_LABEL } from '@/lib/assignee-filter';
 import { isEpicTypeName } from '@/lib/issue-type';
 import { openExternal } from '@/lib/openExternal';
 import { PEEKED_ROW_CLASS } from '@/lib/peek-highlight';
-import { CHIP_TONE_CLASS, type ChipTone, statusPillClass } from '@/lib/statusStyles';
+import { type ChipTone, statusPillClass } from '@/lib/statusStyles';
 import { nextSort, type SortDir } from '@/lib/table-sort';
 import { cn } from '@/lib/utils';
 import type { GitLabMR } from '@/services/gitlab';
@@ -122,9 +134,9 @@ const COL_KEY = 'flex-none w-[5.5rem] whitespace-nowrap';
 const COL_SUMMARY = 'flex-1 min-w-0';
 const COL_PERSON = 'flex-none w-[8.75rem] min-w-0 @max-[860px]:w-9';
 const COL_STATE = 'flex-none w-[6rem] @max-[400px]:hidden';
-// MR status pill: every MR's dot + a progress label. Sized for ~6 dots + "1/2 merged";
+// MR status pill: overlapping per-MR state discs + a progress label. Sized for ~7 discs + "3/5 merged";
 // the label shortens at 860 ("1/2") and the column drops at 520 (BR/MS stay).
-const COL_MR = 'flex-none w-[9rem] min-w-0 @max-[860px]:w-[6rem] @max-[520px]:hidden';
+const COL_MR = 'flex-none w-[10rem] min-w-0 @max-[860px]:w-[6.5rem] @max-[520px]:hidden';
 // Primary-row assignee sits LAST (shipped list convention: Key / Title / Status /
 // domain columns / Assignee — AIO Executions + Defects, Backlog). Wider when there
 // is room, avatar-only at 860 like every other release table.
@@ -187,12 +199,14 @@ export function aggregateMark(marks: DriftMark[]): DriftMark {
   return 'na';
 }
 
-/** State dot colour — same palette as `mrStateBadgeClass`; draft is a hollow blue ring. */
-function mrStateDotClass(mr: GitLabMR): string {
-  if (mr.state === 'merged') return 'bg-green-500';
-  if (mr.state === 'opened')
-    return mr.draft ? 'bg-transparent ring-1 ring-blue-500' : 'bg-blue-500';
-  return 'bg-gray-400';
+/**
+ * Per-MR state glyph (GitLab's own vocabulary): merged / open / draft / closed.
+ * Colour always comes from `mrStateTone` → the shared muted-tint palette.
+ */
+function mrStateIcon(mr: GitLabMR): LucideIcon {
+  if (mr.state === 'merged') return GitMerge;
+  if (mr.state === 'opened') return mr.draft ? GitPullRequestDraft : GitPullRequest;
+  return GitPullRequestClosed;
 }
 
 const DOT_ORDER: Record<GitLabMR['state'], number> = {
@@ -1120,8 +1134,8 @@ function TaskMrCell({
           aria-label={summary.ariaLabel}
           onClick={(e) => e.stopPropagation()}
           className={cn(
-            'pointer-events-auto relative z-10 inline-flex h-5 max-w-full min-w-0 cursor-pointer items-center gap-1.5 whitespace-nowrap rounded border border-border bg-background px-1.5 text-xs font-medium',
-            'transition-colors hover:border-foreground/30 hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring data-[popup-open]:border-foreground/30 data-[popup-open]:bg-muted/50',
+            MR_STATUS_BADGE_CLASS,
+            'pointer-events-auto relative z-10 max-w-full min-w-0 cursor-pointer justify-start bg-background hover:bg-muted data-[popup-open]:bg-muted',
             MR_TONE_TEXT[summary.tone],
           )}
         >
@@ -1163,26 +1177,21 @@ function TaskMrCell({
         keepMounted={everOpened}
         align="end"
         sideOffset={6}
-        className={cn('w-[40rem] max-w-[calc(100vw-2rem)]', TOOLTIP_SURFACE, 'p-0')}
+        className="w-[40rem] max-w-[calc(100vw-2rem)] overflow-hidden p-0"
       >
         {/* Inner @container: container queries never style the container itself. */}
         <div className="@container">
-          <div className="flex items-center gap-2 border-b px-3 py-2">
+          <div className="flex items-center gap-2 border-b bg-muted/30 p-3">
             <span className="text-sm font-semibold">Merge requests</span>
-            <span className="tabular-nums text-muted-foreground">{allMrs.length}</span>
-            <span
-              className={cn(
-                'ml-auto inline-flex h-5 items-center gap-1.5 rounded border border-border px-1.5 text-xs font-medium',
-                MR_TONE_TEXT[summary.tone],
-              )}
-            >
+            <span className="text-xs tabular-nums text-muted-foreground">{allMrs.length}</span>
+            <span className={cn(MR_STATUS_BADGE_CLASS, 'ml-auto', MR_TONE_TEXT[summary.tone])}>
               <MrStateDots rows={summary.dots} />
               {summary.label}
             </span>
           </div>
           <div
             aria-hidden="true"
-            className="flex h-6 items-center gap-2 px-3 text-[11px] font-medium text-muted-foreground"
+            className="flex items-center gap-2 border-b bg-[color-mix(in_oklab,var(--color-muted)_10%,var(--color-background))] px-3 py-1 text-xs font-medium text-muted-foreground"
           >
             <span className={MR_POP_COL_STATE}>State</span>
             <span className={MR_POP_COL_IID}>MR</span>
@@ -1193,7 +1202,7 @@ function TaskMrCell({
           </div>
           {/* `relative`: the cells' sr-only live regions are abspos and would
               otherwise stretch the document past this scroller. */}
-          <ul className="relative max-h-[22rem] overflow-auto px-1 pb-1">
+          <ul className="relative max-h-[22rem] overflow-auto p-1">
             {sorted.map((r) => (
               <MrPopoverLine key={r.mr.id} row={r} fix={fix} />
             ))}
@@ -1225,16 +1234,35 @@ const MR_POP_COL_STATE = 'w-[5rem] flex-none';
 const MR_POP_COL_IID = 'w-[3.5rem] flex-none';
 const MR_POP_COL_AUTHOR = 'w-[11rem] flex-none min-w-0 @max-[34rem]:w-[22px]';
 
-/** One dot per MR in state colour (merged, open, closed order). */
+function PopoverStateIcon({ mr }: { mr: GitLabMR }) {
+  const Icon = mrStateIcon(mr);
+  return <Icon aria-hidden="true" />;
+}
+
+/**
+ * Outline Badge geometry (h-5, rounded, text-xs font-medium) for the MR status
+ * summary — row chip and popover header.
+ */
+const MR_STATUS_BADGE_CLASS = cn(badgeVariants({ variant: 'outline' }), 'shrink gap-1.5');
+
+/**
+ * One bare state icon per MR (merged first), packed edge to edge — no discs.
+ * Colour is the text tone of the shared palette, matching the popover's
+ * toned state Badges.
+ */
 function MrStateDots({ rows }: { rows: DriftRow[] }) {
   return (
-    <span aria-hidden="true" className="inline-flex flex-none items-center gap-[3px]">
-      {rows.map((r) => (
-        <span
-          key={r.mr.id}
-          className={`size-1.5 flex-none rounded-full ${mrStateDotClass(r.mr)}`}
-        />
-      ))}
+    <span aria-hidden="true" className="inline-flex flex-none items-center -space-x-0.5">
+      {rows.map((r) => {
+        const Icon = mrStateIcon(r.mr);
+        return (
+          <Icon
+            key={r.mr.id}
+            data-mr-disc={r.mr.state}
+            className={cn('size-3 flex-none', MR_TONE_TEXT[mrStateTone(r.mr)])}
+          />
+        );
+      })}
     </span>
   );
 }
@@ -1274,19 +1302,10 @@ function MrPopoverLine({ row, fix }: { row: DriftRow; fix: MrFixContext }) {
       className="group/row flex h-9 items-center gap-2 rounded px-2 text-sm hover:bg-muted/50"
     >
       <span className={`${MR_POP_COL_STATE} flex items-center`}>
-        <span
-          data-testid="mr-popover-state"
-          className={cn(
-            'inline-flex w-full items-center justify-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium',
-            CHIP_TONE_CLASS[mrStateTone(mr)],
-          )}
-        >
-          <span
-            aria-hidden="true"
-            className={`size-1.5 flex-none rounded-full ${mrStateDotClass(mr)}`}
-          />
+        <Badge data-testid="mr-popover-state" tone={mrStateTone(mr)} className="w-full">
+          <PopoverStateIcon mr={mr} />
           {mrStateLabel(mr)}
-        </span>
+        </Badge>
       </span>
       <span className={MR_POP_COL_IID}>
         <LinkContextMenu href={mr.web_url}>
