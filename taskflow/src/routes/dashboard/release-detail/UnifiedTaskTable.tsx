@@ -159,26 +159,14 @@ function mrStateLabel(mr: GitLabMR): string {
   return 'Locked';
 }
 
-export type SecondaryReason = 'no-linked-task' | 'not-in-fix-version' | 'epic' | 'unevaluated';
+export type SecondaryReason = 'no-linked-task' | 'not-in-fix-version' | 'unevaluated';
 
 /**
  * Why a row is uncovered. Rows whose TASK reason was not evaluated (locked;
  * closed rows never reach this list — 261103-eu3) get 'unevaluated'
  * (T-91.1-14). Merged rows carry a real TASK reason since 261103-eu3.
  */
-export function secondaryReason(
-  row: DriftRow,
-  keyTypes: Record<string, string> = {},
-): SecondaryReason {
-  // Epics can't carry a fix version: a row whose every linked key is an Epic
-  // is not actionable, so it gets its own non-callout reason.
-  if (
-    row.taskReason === 'not-in-fix-version' &&
-    row.taskKeys.length > 0 &&
-    row.taskKeys.every((k) => isEpicTypeName(keyTypes[k]))
-  ) {
-    return 'epic';
-  }
+export function secondaryReason(row: DriftRow): SecondaryReason {
   if (row.taskReason === 'not-in-fix-version') return 'not-in-fix-version';
   if (row.taskReason === 'no-linked-task') return 'no-linked-task';
   return 'unevaluated';
@@ -187,28 +175,25 @@ export function secondaryReason(
 const REASON_PILL_LABEL: Record<SecondaryReason, string> = {
   'no-linked-task': 'No task',
   'not-in-fix-version': 'Not in version',
-  epic: 'Epic',
   unevaluated: 'Not evaluated',
 };
+
+/**
+ * Every linked key is an Epic. Epics can't carry a fix version, so the row
+ * keeps its "Not in version" state but has no Apply fix.
+ */
+function isEpicOnlyRow(row: DriftRow, keyTypes: Record<string, string>): boolean {
+  return row.taskKeys.length > 0 && row.taskKeys.every((k) => isEpicTypeName(keyTypes[k]));
+}
 
 function epicOnlyTitle(keys: string[]): string {
   return `${keys.join(', ')} ${keys.length > 1 ? 'are' : 'is'} an Epic — epics can't carry a fix version; link the MR to a task instead`;
 }
 
-function SecondaryReasonPill({
-  row,
-  versionName,
-  keyTypes,
-}: {
-  row: DriftRow;
-  versionName: string;
-  keyTypes: Record<string, string>;
-}) {
-  const reason = secondaryReason(row, keyTypes);
+function SecondaryReasonPill({ row, versionName }: { row: DriftRow; versionName: string }) {
+  const reason = secondaryReason(row);
   let title: string;
-  if (reason === 'epic') {
-    title = epicOnlyTitle(row.taskKeys);
-  } else if (reason === 'not-in-fix-version') {
+  if (reason === 'not-in-fix-version') {
     const keys = row.taskKeys.join(', ');
     title = keys
       ? `${keys} ${row.taskKeys.length > 1 ? 'are' : 'is'} not in fix version ${versionName}`
@@ -223,7 +208,7 @@ function SecondaryReasonPill({
       data-testid="secondary-reason-pill"
       data-reason={reason}
       title={title}
-      className={`${reason === 'unevaluated' || reason === 'epic' ? MUTED_STATE_PILL_CLASS : CALLOUT_STATE_PILL_CLASS} pointer-events-none whitespace-nowrap ${COL_SECONDARY_STATE}`}
+      className={`${reason === 'unevaluated' ? MUTED_STATE_PILL_CLASS : CALLOUT_STATE_PILL_CLASS} pointer-events-none whitespace-nowrap ${COL_SECONDARY_STATE}`}
     >
       <AlertTriangle aria-hidden className="hidden size-3 @max-[520px]:block" />
       <span className="@max-[520px]:sr-only">{REASON_PILL_LABEL[reason]}</span>
@@ -1753,12 +1738,12 @@ export function UnifiedTaskTable({
                   {keyCell}
                 </>
               );
-              const reason = secondaryReason(row, secondaryKeyTypes);
+              const reason = secondaryReason(row);
               // Epics can't carry a fix version, so they are never offered to Apply.
               const applicableKeys = keys.filter((k) => !isEpicTypeName(secondaryKeyTypes[k]));
               let actionCell: React.ReactNode = null;
               let fixTarget: { text: string; title: string; note?: boolean } | undefined;
-              if (reason === 'epic') {
+              if (reason === 'not-in-fix-version' && isEpicOnlyRow(row, secondaryKeyTypes)) {
                 fixTarget = {
                   text: "Epics can't have a fix version",
                   title: epicOnlyTitle(keys),
@@ -1797,13 +1782,7 @@ export function UnifiedTaskTable({
                   onNavigateToIssueFromMR={onNavigateToIssueFromMR}
                   fix={fix}
                   keyCell={keyCell}
-                  reasonCell={
-                    <SecondaryReasonPill
-                      row={row}
-                      versionName={versionName}
-                      keyTypes={secondaryKeyTypes}
-                    />
-                  }
+                  reasonCell={<SecondaryReasonPill row={row} versionName={versionName} />}
                   actionCell={actionCell}
                   fixTarget={fixTarget}
                   error={notCovered.errors[row.mr.id]}

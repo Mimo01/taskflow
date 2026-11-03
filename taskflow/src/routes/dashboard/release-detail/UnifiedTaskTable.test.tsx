@@ -2671,8 +2671,8 @@ describe('261103-cln: not-covered section callout + fix actions', () => {
       expect(screen.queryByRole('button', { name: /Add EPIC-1/ })).toBeNull();
       expect(screen.queryByText('Apply')).toBeNull();
       const pill = screen.getByTestId('secondary-reason-pill');
-      expect(pill).toHaveAttribute('data-reason', 'epic');
-      expect(pill).toHaveTextContent('Epic');
+      expect(pill).toHaveAttribute('data-reason', 'not-in-fix-version');
+      expect(pill).toHaveTextContent('Not in version');
       const target = screen.getByTestId('secondary-fix-target');
       expect(target).toHaveTextContent("Epics can't have a fix version");
       expect(target.textContent).not.toContain('→');
