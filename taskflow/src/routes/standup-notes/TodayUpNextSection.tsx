@@ -18,13 +18,12 @@
  */
 
 import { Coffee, GitBranch } from 'lucide-react';
-import { IssueTimeBar, timedIssue } from '@/components/jira/IssueTimeBar';
+import { IssueTimeBar, timedIssueOwn } from '@/components/jira/IssueTimeBar';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { ErrorState } from '@/components/ui/error-state';
 import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
-import { accumulateTime } from '@/lib/accumulate-time';
 import { doneSummaryClass } from '@/lib/issueDisplayUtils';
 import { statusPillClass } from '@/lib/statusStyles';
 import { cn } from '@/lib/utils';
@@ -87,7 +86,6 @@ function IssueRow({
   subtasks = [],
 }: IssueRowProps) {
   const rollsUp = subtasks.length > 0;
-  const time = accumulateTime(issue, subtasks);
   const issueType = issue.fields.issuetype.name;
   const key = issue.key;
   const summary = issue.fields.summary;
@@ -150,19 +148,11 @@ function IssueRow({
           )}
           <IssueTimeBar
             colorBy={rollsUp ? 'status' : 'health'}
-            issue={timedIssue({
-              key: issue.key,
-              statusCategoryKey: issue.fields.status.statusCategory?.key,
-              originalEstimate: rollsUp
-                ? time.accumulatedEstimateSeconds
-                : issue.fields.timetracking?.originalEstimateSeconds,
-              logged: rollsUp
-                ? time.accumulatedSpentSeconds
-                : issue.fields.timetracking?.timeSpentSeconds,
-              remaining: rollsUp
-                ? time.accumulatedRemainingSeconds
-                : issue.fields.timetracking?.remainingEstimateSeconds,
-            })}
+            issue={
+              rollsUp
+                ? [timedIssueOwn(issue), ...subtasks.map(timedIssueOwn)]
+                : timedIssueOwn(issue)
+            }
             className={TODAY_TIME_BAR_WIDTH_CLASS}
             caption
             testId="standup-time-bar"

@@ -10,7 +10,8 @@ import type { JiraIssue } from '@/services/jira';
 import { formatDuration } from '@/services/jira/duration';
 
 interface IssueTimeBarProps {
-  issue: JiraIssue;
+  /** One issue, or several (story + its subtasks) shown as one bar split by status like the epic bars. */
+  issue: JiraIssue | JiraIssue[];
   /** Width / responsive classes on the trigger (default `w-16`). */
   className?: string;
   testId?: string;
@@ -29,9 +30,8 @@ interface IssueTimeBarProps {
 export function IssueTimeBar({ caption = false, ...props }: IssueTimeBarProps) {
   if (!caption) return <TimeBarTrigger {...props} />;
   const { issue, className = 'w-16' } = props;
-  const est = estimateOf(issue);
-  const logged = loggedOf(issue);
-  if (props.empty === 'spacer' && logged + remainingOf(issue) === 0 && est === 0) {
+  const { est, logged, remaining } = totalsOf(issue);
+  if (props.empty === 'spacer' && logged + remaining === 0 && est === 0) {
     return <TimeBarTrigger {...props} />;
   }
   return (
@@ -47,6 +47,16 @@ export function IssueTimeBar({ caption = false, ...props }: IssueTimeBarProps) {
   );
 }
 
+/** Σ estimate / logged / remaining over the issue(s) behind a bar. */
+function totalsOf(issue: JiraIssue | JiraIssue[]) {
+  const list = Array.isArray(issue) ? issue : [issue];
+  return {
+    est: list.reduce((n, i) => n + estimateOf(i), 0),
+    logged: list.reduce((n, i) => n + loggedOf(i), 0),
+    remaining: list.reduce((n, i) => n + remainingOf(i), 0),
+  };
+}
+
 function TimeBarTrigger({
   issue,
   className = 'w-16',
@@ -54,9 +64,8 @@ function TimeBarTrigger({
   empty = 'track',
   colorBy = 'status',
 }: Omit<IssueTimeBarProps, 'caption'>) {
-  const est = estimateOf(issue);
-  const logged = loggedOf(issue);
-  const remaining = remainingOf(issue);
+  const { est, logged, remaining } = totalsOf(issue);
+  const list = Array.isArray(issue) ? issue : [issue];
   const total = logged + remaining;
   if (empty === 'spacer' && total === 0 && est === 0) {
     return <span aria-hidden data-testid={testId} className={cn('flex-none', className)} />;
@@ -79,11 +88,11 @@ function TimeBarTrigger({
         className={cn('inline-flex flex-none items-center', className)}
       >
         <TimeBar
-          segments={deriveTimeSegments([issue])}
+          segments={deriveTimeSegments(list)}
           estimate={est}
           healthColor={
-            colorBy === 'health'
-              ? healthClass(logged, est, isDoneStatus(issue.fields.status?.statusCategory?.key))
+            colorBy === 'health' && list.length === 1
+              ? healthClass(logged, est, isDoneStatus(list[0]?.fields.status?.statusCategory?.key))
               : undefined
           }
           className="h-1.5 rounded-full"
@@ -185,5 +194,24 @@ export function timedIssueFromJiraFields(fields: JiraTimeFields, key?: string): 
     originalEstimate: fields.aggregatetimeoriginalestimate ?? tt?.originalEstimateSeconds,
     logged: fields.aggregatetimespent ?? fields.timespent ?? tt?.timeSpentSeconds,
     remaining: fields.aggregatetimeestimate ?? tt?.remainingEstimateSeconds,
+  });
+}
+
+/** timedIssue built from an issue's own `timetracking` + status (no subtask roll-up). */
+export function timedIssueOwn(issue: JiraIssue): JiraIssue {
+  const t = issue.fields.timetracking as
+    | {
+        originalEstimateSeconds?: number;
+        timeSpentSeconds?: number;
+        remainingEstimateSeconds?: number;
+      }
+    | null
+    | undefined;
+  return timedIssue({
+    key: issue.key,
+    statusCategoryKey: issue.fields.status?.statusCategory?.key,
+    originalEstimate: t?.originalEstimateSeconds,
+    logged: t?.timeSpentSeconds,
+    remaining: t?.remainingEstimateSeconds,
   });
 }

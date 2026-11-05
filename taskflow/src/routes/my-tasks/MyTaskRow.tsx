@@ -29,7 +29,7 @@
  */
 
 import { Flag, GitPullRequest, Tag } from 'lucide-react';
-import { IssueTimeBar, timedIssue } from '@/components/jira/IssueTimeBar';
+import { IssueTimeBar, timedIssue, timedIssueOwn } from '@/components/jira/IssueTimeBar';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
 import { PriorityIcon } from '@/components/ui/priority-icon';
@@ -234,13 +234,17 @@ export function MyTaskRow({
       {/* Epic-style time bar — fixed 144px width, caption below, tooltip has the breakdown */}
       <IssueTimeBar
         colorBy={rollsUpSubtasks ? 'status' : 'health'}
-        issue={timedIssue({
-          key: issue.key,
-          statusCategoryKey,
-          originalEstimate: totalSeconds,
-          logged: spentSeconds,
-          remaining: remainingSeconds,
-        })}
+        issue={
+          !isSubtask && subtasks.length > 0
+            ? [timedIssueOwn(issue), ...subtasks.map(timedIssueOwn)]
+            : timedIssue({
+                key: issue.key,
+                statusCategoryKey,
+                originalEstimate: totalSeconds,
+                logged: spentSeconds,
+                remaining: remainingSeconds,
+              })
+        }
         className={TIME_BAR_WIDTH_CLASS}
         caption
         testId="my-task-time-bar"

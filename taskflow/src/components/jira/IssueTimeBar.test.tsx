@@ -114,3 +114,21 @@ describe('IssueTimeBar', () => {
     expect(el.querySelector('[data-testid="time-track"]')).not.toBeNull();
   });
 });
+
+describe('IssueTimeBar with several issues', () => {
+  it('splits one bar by each issue status and sums the caption', () => {
+    const story = timedIssue({
+      statusCategoryKey: 'indeterminate',
+      originalEstimate: 3600,
+      logged: 1800,
+    });
+    const done = timedIssue({ statusCategoryKey: 'done', originalEstimate: 3600, logged: 3600 });
+    render(<IssueTimeBar issue={[story, done]} colorBy="health" caption />);
+    const bar = screen.getByTestId('story-time-bar');
+    expect(bar.querySelector('[data-segment="done:logged"]')?.className).toContain('bg-green-500');
+    expect(bar.querySelector('[data-segment="indeterminate:logged"]')?.className).toContain(
+      'bg-blue-500',
+    );
+    expect(screen.getByTestId('time-bar-caption')).toHaveTextContent('1h 30m / 2h');
+  });
+});
