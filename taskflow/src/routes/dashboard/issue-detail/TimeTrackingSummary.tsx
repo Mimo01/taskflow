@@ -101,6 +101,7 @@ export function TimeTrackingSummary({
           testId="time-tracking-bar"
           isDone={isDone}
           statusCategoryKey={statusCategoryKey}
+          withTooltip
         />
       ) : (
         <div className="space-y-1">

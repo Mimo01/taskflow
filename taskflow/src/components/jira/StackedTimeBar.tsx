@@ -1,7 +1,11 @@
+import { TriangleAlert } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { TooltipBody, TooltipRow } from '@/components/ui/tooltip-body';
 import type { Cat, TimeSegment } from '@/lib/epic-progress';
 import { OVERRUN_RED_RATIO } from '@/lib/time-progress';
 import { cn } from '@/lib/utils';
 import { TimeBar } from '@/routes/dashboard/issue-detail/EpicBands';
+import { MARKER_ICON } from '@/routes/dashboard/issue-detail/epic-markers';
 import { formatDuration } from '@/services/jira/duration';
 
 /** Jira status category key -> Cat; undefined for unknown keys. */
@@ -49,6 +53,8 @@ interface StackedTimeBarProps {
   isDone?: boolean;
   /** Status category, so the solid fill matches the status colour (defaults from isDone). */
   statusCategoryKey?: string;
+  /** Hover tooltip with Estimate / Logged / Remaining / Over-Under (issue sidebar). */
+  withTooltip?: boolean;
 }
 
 /**
@@ -63,6 +69,7 @@ export function StackedTimeBar({
   alwaysShowTrack = false,
   isDone = false,
   statusCategoryKey,
+  withTooltip = false,
 }: StackedTimeBarProps) {
   const hasEst = typeof totalSeconds === 'number' && totalSeconds > 0;
   const hasSpent = spentSeconds > 0;
@@ -77,7 +84,7 @@ export function StackedTimeBar({
     ? `${formatDuration(spentSeconds)} / ${formatDuration(est)}`
     : formatDuration(spentSeconds);
 
-  return (
+  const bar = (
     <div className={cn('shrink-0 flex flex-col gap-0.5', widthClassName)} data-testid={testId}>
       <TimeBar
         segments={hasEst ? spentSegments(spentSeconds, est, isDone, toCat(statusCategoryKey)) : []}
@@ -88,5 +95,52 @@ export function StackedTimeBar({
         {caption}
       </span>
     </div>
+  );
+  if (!withTooltip || !hasEst) return bar;
+
+  const remaining = isDone ? 0 : Math.max(est - spentSeconds, 0);
+  const over = Math.max(spentSeconds - est, 0);
+  const under = isDone ? Math.max(est - spentSeconds, 0) : 0;
+  return (
+    <Tooltip>
+      <TooltipTrigger delay={0} render={<div className="block w-full" />}>
+        {bar}
+      </TooltipTrigger>
+      <TooltipContent>
+        <TooltipBody>
+          <TooltipRow
+            icon={<MARKER_ICON.estimate className="size-3" />}
+            label="Estimate"
+            value={formatDuration(est)}
+          />
+          <TooltipRow
+            icon={<MARKER_ICON.logged className="size-3" />}
+            label="Logged"
+            value={formatDuration(spentSeconds)}
+          />
+          <TooltipRow
+            icon={<MARKER_ICON.remaining className="size-3" />}
+            label="Remaining"
+            value={formatDuration(remaining)}
+          />
+          {over > 0 ? (
+            <TooltipRow
+              icon={<TriangleAlert className="size-3" />}
+              label="Over by"
+              value={formatDuration(over)}
+            />
+          ) : null}
+          {under > 0 ? (
+            <TooltipRow
+              icon={<MARKER_ICON.estimate className="size-3" />}
+              label="Under by"
+              value={
+                <span className="text-green-700 dark:text-green-400">{formatDuration(under)}</span>
+              }
+            />
+          ) : null}
+        </TooltipBody>
+      </TooltipContent>
+    </Tooltip>
   );
 }
