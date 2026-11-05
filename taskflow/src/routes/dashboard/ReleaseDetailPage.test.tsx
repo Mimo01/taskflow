@@ -626,9 +626,9 @@ describe('ReleaseDetailPage', () => {
       expect(cls).not.toContain('@max-[');
     });
 
-    it('header: labels collapse under 640, title row never wraps', () => {
+    it('header: labels collapse under 896, title row never wraps', () => {
       renderPage();
-      expect(screen.getByText('Edit release').className).toContain('@max-[640px]/page:sr-only');
+      expect(screen.getByText('Edit release').className).toContain('@max-[896px]/page:sr-only');
       const row = screen.getByRole('heading', { level: 1 }).parentElement?.parentElement;
       expect(row?.className).not.toContain('flex-wrap');
     });

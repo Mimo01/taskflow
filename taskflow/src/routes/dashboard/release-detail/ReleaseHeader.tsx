@@ -84,7 +84,9 @@ interface ReleaseDetailHeaderProps {
   onRefresh: () => void;
 }
 
-const LABEL = '@max-[640px]/page:sr-only';
+// Staged collapse so the title keeps room: the Refreshed timestamp goes first
+// (≤1024px), then the action buttons drop to icon-only (≤896px).
+const LABEL = '@max-[896px]/page:sr-only';
 
 /** CycleHeader-style release header: title + pill + actions, meta line, description. */
 export function ReleaseDetailHeader({
@@ -174,7 +176,7 @@ export function ReleaseDetailHeader({
         </div>
         <div className="flex flex-none items-center gap-2">
           {lastRefreshed && (
-            <span className="text-xs text-muted-foreground @max-[640px]/page:hidden">
+            <span className="text-xs text-muted-foreground @max-[1024px]/page:hidden">
               Refreshed: {lastRefreshed}
             </span>
           )}

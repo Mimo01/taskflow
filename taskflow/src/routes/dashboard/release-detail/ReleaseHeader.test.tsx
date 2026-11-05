@@ -98,7 +98,7 @@ describe('ReleaseDetailHeader', () => {
       expect(screen.getByRole('button', { name })).toHaveClass('flex-none');
     }
     const refreshed = screen.getByText(/Refreshed:/);
-    expect(refreshed.className).toContain('@max-[640px]/page:hidden');
+    expect(refreshed.className).toContain('@max-[1024px]/page:hidden');
     expect(refreshed.className).not.toContain('sm:');
   });
 
@@ -180,7 +180,7 @@ describe('ReleaseDetailHeader', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Open in Jira' }));
     expect(onEdit).toHaveBeenCalledTimes(1);
     expect(onOpenInJira).toHaveBeenCalledTimes(1);
-    expect(screen.getByText('Edit release').className).toContain('@max-[640px]/page:sr-only');
+    expect(screen.getByText('Edit release').className).toContain('@max-[896px]/page:sr-only');
   });
 
   it('renders the description under the meta line', () => {
