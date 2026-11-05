@@ -72,14 +72,14 @@ describe('settings.store — updateCheckInterval (Phase 38)', () => {
   });
 });
 
-describe('settings.store — standupYesterdayWidth', () => {
+describe('settings.store — standupYesterdayRatio', () => {
   it('defaults to null, is settable, and resets to null', () => {
-    act(() => useSettingsStore.getState().setStandupYesterdayWidth(null));
-    expect(useSettingsStore.getState().standupYesterdayWidth).toBeNull();
-    act(() => useSettingsStore.getState().setStandupYesterdayWidth(500));
-    expect(useSettingsStore.getState().standupYesterdayWidth).toBe(500);
-    act(() => useSettingsStore.getState().setStandupYesterdayWidth(null));
-    expect(useSettingsStore.getState().standupYesterdayWidth).toBeNull();
+    act(() => useSettingsStore.getState().setStandupYesterdayRatio(null));
+    expect(useSettingsStore.getState().standupYesterdayRatio).toBeNull();
+    act(() => useSettingsStore.getState().setStandupYesterdayRatio(0.4));
+    expect(useSettingsStore.getState().standupYesterdayRatio).toBe(0.4);
+    act(() => useSettingsStore.getState().setStandupYesterdayRatio(null));
+    expect(useSettingsStore.getState().standupYesterdayRatio).toBeNull();
   });
 });
 
@@ -498,15 +498,28 @@ describe('settings.store — rankFieldKey (Phase 76)', () => {
     expect(src).toMatch(/if\s*\(version\s*<\s*30\)/);
   });
 
-  it('persist version is 33 (v31 moved the 288 default; v32 drops the field; v33 adds standupYesterdayWidth)', () => {
+  it('persist version is 34 (v31 moved the 288 default; v32 drops the field; v34 replaces the px standup width with a ratio)', () => {
     const fs = require('node:fs') as typeof import('node:fs');
     const path = require('node:path') as typeof import('node:path');
     const src = fs.readFileSync(path.resolve(__dirname, 'settings.store.ts'), 'utf8');
     expect(src).toMatch(/if\s*\(version\s*<\s*31\)/);
     expect(src).toMatch(/releaseDetailPanelWidth === 288\) s\.releaseDetailPanelWidth = 256/);
-    expect(src).toMatch(/version: 33,/);
+    expect(src).toMatch(/version: 34,/);
     expect(src).toMatch(/if\s*\(version\s*<\s*32\)/);
     expect(src).toMatch(/if\s*\(version\s*<\s*33\)/);
+    expect(src).toMatch(/if\s*\(version\s*<\s*34\)/);
+  });
+
+  it('v33 -> v34 migration drops the px standup width and resets the ratio', async () => {
+    const migrate = useSettingsStore.persist.getOptions().migrate as (
+      persisted: unknown,
+      version: number,
+    ) => Record<string, unknown>;
+    const out = await migrate({ standupYesterdayWidth: 640 }, 33);
+    expect(out.standupYesterdayRatio).toBeNull();
+    expect('standupYesterdayWidth' in out).toBe(false);
+    const out2 = await migrate({}, 33);
+    expect(out2.standupYesterdayRatio).toBeNull();
   });
 
   it('v31 -> v32 migration deletes the persisted releaseDetailPanelWidth', async () => {
