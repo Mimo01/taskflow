@@ -1,44 +1,24 @@
 /**
- * TimeTrackingSummary -- Sidebar time tracking summary (progress bar only).
+ * TimeTrackingSummary -- Sidebar time tracking field.
  *
- * Shows a spent-vs-estimate progress bar with a "{spent} / {estimate}"
- * caption when an estimate is available, or just "Spent: X" text otherwise.
- * Visual pattern matches the My Tasks page's `StackedTimeBar` (`MyTaskRow.tsx`): shared `Progress`
- * primitive, `h-1.5 w-full rounded-full` track, color matrix from the shared
- * `timeProgress` helper (see lib/time-progress.ts), and the caption
- * stacked below the bar rather than beside it. The bar is intentionally
- * omitted (not rendered as a misleading 0%/full bar) when there's no estimate
- * at all.
+ * Shows the shared epic-style `IssueTimeBar` (logged vs remaining, tick at the
+ * estimate; tooltip carries the full breakdown) at the full width of the value
+ * column, with a one-line "{logged} / {estimate}" caption beside it (or
+ * "{logged} · No estimate" when there is no estimate). The sidebar keeps the
+ * caption because the numbers are the field's value.
  *
  * Primary data source: Jira's own server-computed AGGREGATE system fields
  * (`aggregatetimeoriginalestimate`, `aggregatetimeestimate`,
  * `aggregatetimespent`, `timespent`) -- distinct from the nested
- * `fields.timetracking.*Seconds` sub-object. These aggregate fields are
- * computed reliably by Jira itself, summing the issue's own time tracking
- * PLUS all of its subtasks', including for worklogs written by 3rd-party
- * providers like Tempo (verified directly against a real failing issue's raw
- * REST response: `aggregatetimespent`/`timespent` correctly reflected Tempo-
- * logged time, and `aggregatetimeoriginalestimate` correctly reflected the
- * sum of subtask estimates, when the parent issue's own nested `timetracking`
- * sub-object was empty).
- *
- * Falls back to the nested `timetracking` sub-object's own
- * originalEstimateSeconds/remainingEstimateSeconds/timeSpentSeconds only when
- * the aggregate fields are entirely absent (e.g. an older Jira instance that
- * doesn't return them) -- this keeps the component correct even without the
- * aggregate fields, without needing any client-side worklog-summing or
- * subtask-aggregation logic (that approach -- summing worklogs and/or
- * subtasks by hand -- was tried across several rounds and was solving the
- * wrong layer: Jira already computes and exposes this aggregate natively).
- *
- * Fill is spent vs the ORIGINAL estimate via the shared `timeProgress`
- * helper. Jira's `aggregateprogress` and remaining estimate are deliberately
- * not used for done issues because Jira zeroes remaining on close, which made
- * closed issues show a full bar; remaining is only an estimate fallback for
- * not-done issues.
+ * `fields.timetracking.*Seconds` sub-object. Jira computes these reliably,
+ * summing the issue's own time tracking PLUS all of its subtasks', including
+ * worklogs written by 3rd-party providers like Tempo (where the issue's own
+ * nested `timetracking` sub-object can be empty). The nested sub-object is only
+ * a fallback when an aggregate field is absent (see `timedIssueFromJiraFields`).
+ * No client-side worklog or subtask summing is needed: Jira already does it.
  */
-import { Progress } from '@/components/ui/progress';
-import { timeProgress } from '@/lib/time-progress';
+import { IssueTimeBar, timedIssueFromJiraFields } from '@/components/jira/IssueTimeBar';
+import { estimateOf, loggedOf, remainingOf } from '@/lib/epic-progress';
 import { formatDuration } from '@/services/jira/duration';
 import { MetaRow } from './MetaRow';
 
@@ -61,8 +41,15 @@ interface TimeTrackingSummaryProps {
   aggregatetimespent?: number | null;
   /** Jira's own (non-aggregate) time spent on this issue, in seconds. */
   timespent?: number | null;
-  /** Issue is in the done status category. */
-  isDone: boolean;
+  /** Status category key of the issue (`done` / `indeterminate` / `new`). */
+  statusCategoryKey?: unknown;
+}
+
+/** One-line caption shared by the sidebar and the Worklog bar. */
+export function timeCaption(logged: number, est: number): string {
+  return est > 0
+    ? `${formatDuration(logged)} / ${formatDuration(est)}`
+    : `${formatDuration(logged)} · No estimate`;
 }
 
 export function TimeTrackingSummary({
@@ -71,49 +58,30 @@ export function TimeTrackingSummary({
   aggregatetimeestimate,
   aggregatetimespent,
   timespent,
-  isDone,
+  statusCategoryKey,
 }: TimeTrackingSummaryProps) {
-  const spent = aggregatetimespent ?? timespent ?? timetracking?.timeSpentSeconds ?? 0;
-  const originalEstimate =
-    aggregatetimeoriginalestimate ?? timetracking?.originalEstimateSeconds ?? 0;
-  const estimate = isDone
-    ? originalEstimate
-    : (aggregatetimeoriginalestimate ??
-      timetracking?.originalEstimateSeconds ??
-      aggregatetimeestimate ??
-      timetracking?.remainingEstimateSeconds ??
-      0);
-  const hasData = spent > 0 || estimate > 0;
-
-  // Bar only makes sense when there's an estimate to measure progress against;
-  // omit it entirely otherwise rather than showing a misleading 0%/full bar.
-  const { fillPct, indicatorClass } = timeProgress({
-    spentSeconds: spent,
-    estimateSeconds: estimate,
-    isDone,
+  const issue = timedIssueFromJiraFields({
+    status: { statusCategory: { key: statusCategoryKey } },
+    timetracking,
+    aggregatetimeoriginalestimate,
+    aggregatetimeestimate,
+    aggregatetimespent,
+    timespent,
   });
+  const est = estimateOf(issue);
+  const logged = loggedOf(issue);
+  const hasData = est > 0 || logged > 0 || remainingOf(issue) > 0;
 
   return (
     <MetaRow label="Time Tracking">
       {!hasData ? (
         <span className="text-xs text-muted-foreground">No time logged</span>
-      ) : estimate > 0 ? (
-        <div className="flex flex-col gap-0.5">
-          <Progress
-            value={fillPct}
-            className="h-1.5 w-full rounded-full"
-            indicatorClassName={`${indicatorClass} rounded-full`}
-          />
-          <span className="text-xs text-muted-foreground tabular-nums whitespace-nowrap">
-            {formatDuration(spent)} / {formatDuration(estimate)}
-          </span>
-        </div>
       ) : (
-        <div className="space-y-1">
-          <span className="text-xs">
-            Spent: {spent > 0 ? formatDuration(spent) : (timetracking?.timeSpent ?? '—')}
+        <div className="flex min-w-0 items-center gap-2">
+          <IssueTimeBar issue={issue} className="min-w-0 flex-1" testId="sidebar-time-bar" />
+          <span className="text-xs text-muted-foreground tabular-nums whitespace-nowrap">
+            {timeCaption(logged, est)}
           </span>
-          <span className="text-xs text-muted-foreground ml-2">No estimate</span>
         </div>
       )}
     </MetaRow>

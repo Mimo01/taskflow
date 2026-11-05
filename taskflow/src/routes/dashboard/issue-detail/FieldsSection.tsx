@@ -32,7 +32,6 @@ import { formatWeekLabel } from '@/lib/deployment-package';
 import { epicColorToTailwind } from '@/lib/epicColors';
 import { invalidateLightweightIssue } from '@/lib/issue-lightweight-cache';
 import { exactDateTime } from '@/lib/relative-time';
-import { isDoneStatus } from '@/lib/time-progress';
 import type { JiraIssue, JiraIssueDetail, JiraPriority } from '@/services/jira';
 import {
   fetchIssuePriorityOptions,
@@ -1272,7 +1271,7 @@ export function FieldsSection({
         aggregatetimeestimate={f.aggregatetimeestimate}
         aggregatetimespent={f.aggregatetimespent}
         timespent={f.timespent}
-        isDone={isDoneStatus(f.status?.statusCategory?.key)}
+        statusCategoryKey={f.status?.statusCategory?.key}
       />
     </>
   );

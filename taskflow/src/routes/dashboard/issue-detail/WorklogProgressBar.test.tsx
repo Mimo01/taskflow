@@ -37,73 +37,45 @@ describe('WorklogProgressBar', () => {
       timeSpentSeconds: 100,
       originalEstimateSeconds: 200,
     });
-    const { container } = render(<WorklogProgressBar issue={issue} subtasks={undefined} />);
+    const { container } = render(<WorklogProgressBar issue={issue} />);
     expect(container.firstChild).toBeNull();
   });
 
-  it('renders nothing when estimate is 0 or missing', () => {
-    const issue = makeIssue({ timeSpentSeconds: 100 });
-    const { container } = render(<WorklogProgressBar issue={issue} subtasks={undefined} />);
+  it('renders nothing when estimate, logged and remaining are all 0 or missing', () => {
+    const issue = makeIssue({});
+    const { container } = render(<WorklogProgressBar issue={issue} />);
     expect(container.firstChild).toBeNull();
   });
 
-  it('renders a bar for a subtask using only its own numbers', () => {
-    const issue = makeIssue({
-      isSubtask: true,
-      timeSpentSeconds: 3600,
-      originalEstimateSeconds: 7200,
-    });
-    const subtasks = [
-      {
-        fields: { timetracking: { timeSpentSeconds: 999999, originalEstimateSeconds: 999999 } },
-      },
-    ];
-    render(<WorklogProgressBar issue={issue} subtasks={subtasks} />);
+  it('renders a full-width epic-style bar with a one-line caption', () => {
+    const issue = makeIssue({ timeSpentSeconds: 3600, originalEstimateSeconds: 7200 });
+    render(<WorklogProgressBar issue={issue} />);
+    expect(screen.getByTestId('worklog-time-bar')).toHaveAttribute('aria-label', 'Logged 1h of 2h');
     expect(screen.getByText('1h / 2h')).toBeTruthy();
   });
 
-  it('renders a bar for a story aggregating own + subtask totals', () => {
-    const issue = makeIssue({ timeSpentSeconds: 3600, originalEstimateSeconds: 7200 });
-    const subtasks = [
-      { fields: { timetracking: { timeSpentSeconds: 3600, originalEstimateSeconds: 3600 } } },
-    ];
-    render(<WorklogProgressBar issue={issue} subtasks={subtasks} />);
+  it('uses the issue aggregate fields (own + subtasks) when present', () => {
+    const issue = makeIssue({ timeSpentSeconds: 1, originalEstimateSeconds: 1 });
+    (issue.fields as unknown as Record<string, unknown>).aggregatetimespent = 7200;
+    (issue.fields as unknown as Record<string, unknown>).aggregatetimeoriginalestimate = 10800;
+    render(<WorklogProgressBar issue={issue} />);
     expect(screen.getByText('2h / 3h')).toBeTruthy();
   });
 
-  it('uses red indicator when spent > 125% of estimate', () => {
+  it('flags overrun when logged exceeds the estimate', () => {
     const issue = makeIssue({ timeSpentSeconds: 10800, originalEstimateSeconds: 7200 });
-    const { container } = render(<WorklogProgressBar issue={issue} subtasks={undefined} />);
-    expect(container.querySelector('.bg-red-500')).toBeTruthy();
+    render(<WorklogProgressBar issue={issue} />);
+    expect(screen.getByTestId('worklog-time-bar')).toHaveAttribute('data-overrun', 'true');
   });
 
-  it('uses amber indicator when not done and spent == estimate', () => {
-    const issue = makeIssue({ timeSpentSeconds: 7200, originalEstimateSeconds: 7200 });
-    const { container } = render(<WorklogProgressBar issue={issue} subtasks={undefined} />);
-    expect(container.querySelector('.bg-amber-500')).toBeTruthy();
-    expect(container.querySelector('.bg-red-500')).toBeNull();
-  });
-
-  it('done issue spent 2h / original 4h is a 50% green bar', () => {
+  it('done issue measures logged against the original estimate with no overrun', () => {
     const issue = makeIssue({
       timeSpentSeconds: 7200,
       originalEstimateSeconds: 14400,
       statusCategoryKey: 'done',
     });
-    const { container } = render(<WorklogProgressBar issue={issue} subtasks={undefined} />);
-    expect(container.querySelector('.bg-green-500')).toBeTruthy();
-    expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '50');
-  });
-
-  it('uses amber indicator when fill >= 75%', () => {
-    const issue = makeIssue({ timeSpentSeconds: 5400, originalEstimateSeconds: 7200 });
-    const { container } = render(<WorklogProgressBar issue={issue} subtasks={undefined} />);
-    expect(container.querySelector('.bg-amber-500')).toBeTruthy();
-  });
-
-  it('uses green indicator when fill < 75%', () => {
-    const issue = makeIssue({ timeSpentSeconds: 1800, originalEstimateSeconds: 7200 });
-    const { container } = render(<WorklogProgressBar issue={issue} subtasks={undefined} />);
-    expect(container.querySelector('.bg-green-500')).toBeTruthy();
+    render(<WorklogProgressBar issue={issue} />);
+    expect(screen.getByTestId('worklog-time-bar')).not.toHaveAttribute('data-overrun');
+    expect(screen.getByText('2h / 4h')).toBeTruthy();
   });
 });
