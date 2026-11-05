@@ -316,9 +316,16 @@ describe('IssueDetailContent', () => {
       expect(tick).toHaveAttribute('data-pct', '50');
     });
 
-    it('a tick at the end of the bar sits outside the rounded clip (not cut off)', () => {
-      // 2h estimate, 1h logged, 1h left → tick at 100%.
+    it('hides the tick when the forecast lands exactly on the estimate', () => {
+      // 2h estimate, 1h logged, 1h left → tick would sit at 100% and say nothing.
       renderEpic([epicStory('S-1', 'indeterminate', { est: 7200, spent: 3600, rem: 3600 })]);
+      const bar = screen.getByTestId('story-time-bar');
+      expect(within(bar).queryByTestId('time-estimate-tick')).toBeNull();
+    });
+
+    it('a tick at the end of the bar (under budget) sits outside the rounded clip (not cut off)', () => {
+      // 2h estimate, 1h logged, 30m left → forecast 1h 30m, tick at 100% of the 2h track.
+      renderEpic([epicStory('S-1', 'indeterminate', { est: 7200, spent: 3600, rem: 1800 })]);
       const bar = screen.getByTestId('story-time-bar');
       const tick = within(bar).getByTestId('time-estimate-tick');
       expect(tick).toHaveAttribute('data-pct', '100');

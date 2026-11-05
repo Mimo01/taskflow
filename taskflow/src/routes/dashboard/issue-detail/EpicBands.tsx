@@ -58,7 +58,7 @@ export function segmentsTotal(segments: TimeSegment[]): number {
 /**
  * Time bar (261103-lcd option 1): status groups done → in progress → to do; inside each, solid =
  * logged, faint = remaining; beyond the estimate amber (red past 125%), striped when forecast.
- * A tick marks the original estimate. Width denominator = max(total, estimate) unless `scale`.
+ * A tick marks the original estimate (hidden when the forecast lands exactly on it). Width denominator = max(total, estimate) unless `scale`.
  */
 export function TimeBar({
   segments,
@@ -82,6 +82,8 @@ export function TimeBar({
   const extent = Math.max(segmentsTotal(segments), estimate);
   const denom = scale ?? extent;
   const pct = (n: number) => (denom > 0 ? Math.min(n / denom, 1) * 100 : 0);
+  // Forecast lands exactly on the estimate: the tick would sit at the very end and say nothing.
+  const onEstimate = estimate > 0 && Math.abs(segmentsTotal(segments) - estimate) < 1;
   const inTrack = (n: number) => (extent > 0 ? (n / extent) * 100 : 0);
   return (
     // Outer box sizes the bar and hosts the tick; only the inner track clips to the rounding,
@@ -104,7 +106,7 @@ export function TimeBar({
           />
         ))}
       </span>
-      {estimate > 0 && denom > 0 ? (
+      {estimate > 0 && denom > 0 && !onEstimate ? (
         <span
           data-testid="time-estimate-tick"
           data-pct={pct(estimate)}
