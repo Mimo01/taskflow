@@ -72,6 +72,11 @@ interface IssueDetailContentProps {
       summary: string;
       status: { name: string; statusCategory?: { key: string } | unknown };
       assignee?: { displayName: string; name: string; avatarUrls?: { '48x48': string } } | null;
+      timetracking?: {
+        originalEstimateSeconds?: number;
+        timeSpentSeconds?: number;
+        remainingEstimateSeconds?: number;
+      };
     };
   }>;
   /** Show subtasks skeleton (200ms-gated) */
@@ -94,8 +99,103 @@ type SubtaskDisplayItem = {
     summary: string;
     status: { name: string; statusCategory?: { key: string } | unknown };
     assignee?: { displayName: string; name: string; avatarUrls?: { '48x48': string } } | null;
+    timetracking?: {
+      originalEstimateSeconds?: number;
+      timeSpentSeconds?: number;
+      remainingEstimateSeconds?: number;
+    };
   };
 };
+
+/**
+ * Time bar + tooltip shared by the epic Stories rows and the story Subtasks rows.
+ * Same TimeBar as the epic bars: total = logged + remaining, tick at the estimate.
+ */
+function RowTimeBar({ issue }: { issue: JiraIssue }) {
+  const est = estimateOf(issue);
+  const logged = loggedOf(issue);
+  const remaining = remainingOf(issue);
+  const total = logged + remaining;
+  const overrun = est > 0 && logged > est;
+  const over = est > 0 ? Math.max(total - est, 0) : 0;
+  const under = est > 0 ? Math.max(est - total, 0) : 0;
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        delay={0}
+        render={<span />}
+        data-testid="story-time-bar"
+        role="img"
+        aria-label={
+          total > 0 ? `Logged ${formatDuration(logged)} of ${formatDuration(total)}` : 'No estimate'
+        }
+        data-overrun={overrun ? 'true' : undefined}
+        data-empty={total > 0 ? undefined : 'true'}
+        className="inline-flex w-16 flex-none"
+      >
+        <TimeBar
+          segments={deriveTimeSegments([issue])}
+          estimate={est}
+          className="h-1.5 rounded-full"
+        />
+      </TooltipTrigger>
+      <TooltipContent>
+        <TooltipBody note={est > 0 || remaining > 0 ? undefined : 'No estimate'}>
+          {est > 0 ? (
+            <TooltipRow
+              icon={<MARKER_ICON.estimate className="size-3" />}
+              label="Estimate"
+              value={formatDuration(est)}
+            />
+          ) : null}
+          <TooltipRow
+            icon={<MARKER_ICON.logged className="size-3" />}
+            label="Logged"
+            value={formatDuration(logged)}
+          />
+          {est > 0 || remaining > 0 ? (
+            <TooltipRow
+              icon={<MARKER_ICON.remaining className="size-3" />}
+              label="Remaining"
+              value={formatDuration(remaining)}
+            />
+          ) : null}
+          {over > 0 ? (
+            <TooltipRow
+              icon={<TriangleAlert className="size-3" />}
+              label="Over by"
+              value={formatDuration(over)}
+            />
+          ) : null}
+          {under > 0 ? (
+            <TooltipRow
+              icon={<MARKER_ICON.estimate className="size-3" />}
+              label="Under by"
+              value={
+                <span className="text-green-700 dark:text-green-400">{formatDuration(under)}</span>
+              }
+            />
+          ) : null}
+        </TooltipBody>
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
+/** Subtask time fields (timetracking seconds) mapped onto the JiraIssue shape the epic helpers read. */
+function subtaskAsTimedIssue(sub: SubtaskDisplayItem): JiraIssue {
+  const tt = sub.fields.timetracking;
+  const fields: Record<string, unknown> = { ...sub.fields };
+  if (tt?.originalEstimateSeconds !== undefined) {
+    fields.timeoriginalestimate = tt.originalEstimateSeconds;
+    fields.aggregatetimeoriginalestimate = tt.originalEstimateSeconds;
+  }
+  if (tt?.timeSpentSeconds !== undefined) fields.aggregatetimespent = tt.timeSpentSeconds;
+  if (tt?.remainingEstimateSeconds !== undefined) {
+    fields.aggregatetimeestimate = tt.remainingEstimateSeconds;
+  }
+  return { id: sub.id, key: sub.key, fields } as unknown as JiraIssue;
+}
 
 function subtaskListContent({
   enrichedSubtasks,
@@ -127,7 +227,7 @@ function subtaskListContent({
               <button
                 type="button"
                 onClick={() => onOpenIssue?.(sub.key)}
-                className="w-full flex items-center gap-2 px-2 py-2 density-compact:py-1 density-comfortable:py-3 rounded hover:bg-accent text-sm text-left cursor-pointer"
+                className="w-full flex items-center gap-2 px-2 py-1.5 density-compact:py-1 density-comfortable:py-2.5 rounded hover:bg-accent text-sm text-left cursor-pointer"
               >
                 <span className="font-mono text-xs text-muted-foreground shrink-0">{sub.key}</span>
                 <span className="flex-1 truncate">{sub.fields.summary}</span>
@@ -146,6 +246,7 @@ function subtaskListContent({
                     </span>
                   </div>
                 )}
+                <RowTimeBar issue={subtaskAsTimedIssue(sub)} />
                 <span className={statusPillClass(statusCat?.key)}>{sub.fields.status.name}</span>
               </button>
             </li>
@@ -315,14 +416,6 @@ export function IssueDetailContent({
           {epicStories && epicStories.length > 0 && (
             <ul className="space-y-1 density-compact:space-y-0.5 density-comfortable:space-y-2">
               {epicStories.map((story) => {
-                // Same TimeBar as the epic bars: total = logged + remaining, tick at the estimate.
-                const est = estimateOf(story);
-                const logged = loggedOf(story);
-                const remaining = remainingOf(story);
-                const total = logged + remaining;
-                const overrun = est > 0 && logged > est;
-                const over = est > 0 ? Math.max(total - est, 0) : 0;
-                const under = est > 0 ? Math.max(est - total, 0) : 0;
                 return (
                   <li key={story.key}>
                     <button
@@ -349,69 +442,7 @@ export function IssueDetailContent({
                           </span>
                         </div>
                       )}
-                      <Tooltip>
-                        <TooltipTrigger
-                          delay={0}
-                          render={<span />}
-                          data-testid="story-time-bar"
-                          role="img"
-                          aria-label={
-                            total > 0
-                              ? `Logged ${formatDuration(logged)} of ${formatDuration(total)}`
-                              : 'No estimate'
-                          }
-                          data-overrun={overrun ? 'true' : undefined}
-                          data-empty={total > 0 ? undefined : 'true'}
-                          className="inline-flex w-16 flex-none"
-                        >
-                          <TimeBar
-                            segments={deriveTimeSegments([story])}
-                            estimate={est}
-                            className="h-1.5 rounded-full"
-                          />
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <TooltipBody note={est > 0 || remaining > 0 ? undefined : 'No estimate'}>
-                            {est > 0 ? (
-                              <TooltipRow
-                                icon={<MARKER_ICON.estimate className="size-3" />}
-                                label="Estimate"
-                                value={formatDuration(est)}
-                              />
-                            ) : null}
-                            <TooltipRow
-                              icon={<MARKER_ICON.logged className="size-3" />}
-                              label="Logged"
-                              value={formatDuration(logged)}
-                            />
-                            {est > 0 || remaining > 0 ? (
-                              <TooltipRow
-                                icon={<MARKER_ICON.remaining className="size-3" />}
-                                label="Remaining"
-                                value={formatDuration(remaining)}
-                              />
-                            ) : null}
-                            {over > 0 ? (
-                              <TooltipRow
-                                icon={<TriangleAlert className="size-3" />}
-                                label="Over by"
-                                value={formatDuration(over)}
-                              />
-                            ) : null}
-                            {under > 0 ? (
-                              <TooltipRow
-                                icon={<MARKER_ICON.estimate className="size-3" />}
-                                label="Under by"
-                                value={
-                                  <span className="text-green-700 dark:text-green-400">
-                                    {formatDuration(under)}
-                                  </span>
-                                }
-                              />
-                            ) : null}
-                          </TooltipBody>
-                        </TooltipContent>
-                      </Tooltip>
+                      <RowTimeBar issue={story} />
                       <span className={statusPillClass(story.fields.status.statusCategory?.key)}>
                         {story.fields.status.name}
                       </span>
