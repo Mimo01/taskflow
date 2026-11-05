@@ -212,6 +212,23 @@ describe('AttachmentPreviewModal pdf', () => {
   });
 });
 
+describe('AttachmentPreviewModal Escape in fullscreen / over a sheet', () => {
+  it('prevents default, stops before document listeners, closes once', () => {
+    const sheetHandler = vi.fn();
+    document.addEventListener('keydown', sheetHandler, { capture: true });
+    const { props } = renderModal([img1], 0);
+    loadImage();
+    const ev = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
+    act(() => {
+      document.body.dispatchEvent(ev);
+    });
+    document.removeEventListener('keydown', sheetHandler, { capture: true });
+    expect(ev.defaultPrevented).toBe(true);
+    expect(sheetHandler).not.toHaveBeenCalled();
+    expect(props.onClose).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe('AttachmentPreviewModal backdrop', () => {
   it('clicking the empty stage around an image closes; the caption does not', () => {
     const { props } = renderModal([img1], 0);

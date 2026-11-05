@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useRef } from 'react';
 import { createPortal } from 'react-dom';
 import {
   filenameFromSrc,
@@ -8,6 +8,7 @@ import {
 } from '@/lib/save-attachment';
 import { ImageViewer } from './ImageViewer';
 import { BACKDROP_ATTR, isBackdropTarget } from './preview-backdrop';
+import { usePreviewEscape } from './usePreviewEscape';
 
 interface ImageLightboxProps {
   src: string;
@@ -21,14 +22,7 @@ export function ImageLightbox({ src, alt, open, onClose }: ImageLightboxProps) {
   // that is released over the backdrop doesn't dismiss the lightbox.
   const downOnBackdrop = useRef(false);
 
-  useEffect(() => {
-    if (!open) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [open, onClose]);
+  usePreviewEscape(open, onClose);
 
   if (!open) return null;
 
@@ -53,7 +47,7 @@ export function ImageLightbox({ src, alt, open, onClose }: ImageLightboxProps) {
   }
 
   return createPortal(
-    // biome-ignore lint/a11y/useKeyWithClickEvents: backdrop click-to-close; Escape is handled by the document keydown listener
+    // biome-ignore lint/a11y/useKeyWithClickEvents: backdrop click-to-close; Escape is handled by usePreviewEscape
     <div
       className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center"
       onPointerDown={(e) => {

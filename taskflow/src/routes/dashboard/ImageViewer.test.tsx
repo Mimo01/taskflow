@@ -283,6 +283,21 @@ describe('ImageLightbox', () => {
     expect(onClose).not.toHaveBeenCalled();
   });
 
+  it('Escape is consumed: default prevented (keeps macOS fullscreen) and never reaches an underlying sheet', () => {
+    const onClose = vi.fn();
+    const sheetHandler = vi.fn();
+    document.addEventListener('keydown', sheetHandler, { capture: true });
+    render(<ImageLightbox src="https://x/a.png" alt="a.png" open onClose={onClose} />);
+    const ev = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
+    act(() => {
+      document.body.dispatchEvent(ev);
+    });
+    document.removeEventListener('keydown', sheetHandler, { capture: true });
+    expect(ev.defaultPrevented).toBe(true);
+    expect(sheetHandler).not.toHaveBeenCalled();
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
   it('does not close when a press starts on the image and ends on the backdrop', () => {
     const onClose = vi.fn();
     render(<ImageLightbox src="https://x/a.png" alt="a.png" open onClose={onClose} />);

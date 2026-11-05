@@ -8,6 +8,7 @@ import { REVEALED_MESSAGE } from '@/lib/save-attachment';
 import type { JiraAttachment } from '@/services/jira';
 import { ImageViewer } from '../ImageViewer';
 import { BACKDROP_ATTR, isBackdropTarget } from '../preview-backdrop';
+import { usePreviewEscape } from '../usePreviewEscape';
 import { ViewerToolbar } from '../ViewerToolbar';
 import { formatFileSize } from './AttachmentFileRow';
 import { highlightCode } from './highlightCode';
@@ -337,6 +338,7 @@ export function AttachmentPreviewModal({
   const downOnBackdrop = useRef(false);
   const [fallback, setFallback] = useState(false);
   const [fontSize, setFontSize] = useState(DEFAULT_FONT_SIZE);
+  usePreviewEscape(open, onClose);
 
   const activeItem = items[currentIndex];
   const activeKind = activeItem && !fallback ? resolvePreviewKind(activeItem) : 'other';
@@ -377,9 +379,8 @@ export function AttachmentPreviewModal({
           return;
         }
       }
-      if (e.key === 'Escape') {
-        onClose();
-      } else if (e.key === 'ArrowLeft' && currentIndex > 0) {
+      // Escape is handled by usePreviewEscape (window capture, fullscreen-safe).
+      if (e.key === 'ArrowLeft' && currentIndex > 0) {
         onNavigate(currentIndex - 1);
       } else if (e.key === 'ArrowRight' && currentIndex < items.length - 1) {
         onNavigate(currentIndex + 1);
@@ -387,7 +388,7 @@ export function AttachmentPreviewModal({
     }
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [open, onClose, onNavigate, currentIndex, items.length, fontZoomActive]);
+  }, [open, onNavigate, currentIndex, items.length, fontZoomActive]);
 
   // Auto-focus overlay for keyboard events
   useEffect(() => {
@@ -500,7 +501,7 @@ export function AttachmentPreviewModal({
   }
 
   return createPortal(
-    // biome-ignore lint/a11y/useKeyWithClickEvents: backdrop click-to-close; Escape is handled by the document keydown listener
+    // biome-ignore lint/a11y/useKeyWithClickEvents: backdrop click-to-close; Escape is handled by usePreviewEscape
     <div
       ref={overlayRef}
       className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center"
