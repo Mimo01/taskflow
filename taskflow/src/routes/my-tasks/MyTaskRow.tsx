@@ -369,8 +369,13 @@ export function MyTaskRow({
     </div>
   );
 
+  if (isSubtask) return rowContent;
+
   return (
-    <>
+    <div
+      data-testid="my-task-group"
+      className="space-y-0.5 density-compact:space-y-0 density-comfortable:space-y-1 py-px density-compact:py-0 density-comfortable:py-0.5"
+    >
       {rowContent}
 
       {/* Subtasks — flat rows indented beneath parent */}
@@ -386,7 +391,7 @@ export function MyTaskRow({
           onOpenIssue={onOpenIssue}
         />
       ))}
-    </>
+    </div>
   );
 }
 
