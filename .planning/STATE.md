@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-08-13)
 Phase: 94
 Plan: Not started
 Status: Milestone complete
-Last activity: 2026-11-05 - Reverted quick task 261105-fkj (story group separators)
+Last activity: 2026-11-05 - Completed quick task 261105-fw7: story vs subtask right-side alignment in Standup and My Tasks
 
 ## Performance Metrics
 
@@ -256,6 +256,7 @@ Acknowledged and deferred at v1.14 milestone close (2026-08-13) — 111 open art
 | 261105-dsl | One readable time bar everywhere (sketch option A): My Tasks, standup, sidebar, Worklog, epic rows | 2026-11-05 | 3a1e96d3 | Verified (UAT approved) | [261105-dsl](./quick/261105-dsl-apply-epic-style-time-progress-bar-to-my/) |
 | 261105-fav | Standup Today: shown stories nest ALL my subtasks (done included, Jira order); story selection + bucket placement unchanged | 2026-11-05 | fed947d1 | Pending UAT | [261105-fav-standup-today-show-all-my-subtasks-under](./quick/261105-fav-standup-today-show-all-my-subtasks-under/) |
 | 261105-fkj | My Tasks + Standup (Today/Yesterday): faint divide-border/40 hairline between story groups (story + its shown subtasks); spacing/row height unchanged | 2026-11-05 | d14d6a1f | REVERTED (user disliked separators) | [261105-fkj-story-group-separators](./quick/261105-fkj-story-group-separators/) |
+| 261105-fw7 | My Tasks + Standup Today: story time bar longer by the subtask indent (My Tasks 132px = 96+36, Standup w-32 = 96+32) so story pill/SP sit further left; subtasks render no SP slot; bar right edges + avatar column aligned | 2026-11-05 | 6ad73c69, e633ca27 | Pending UAT | [261105-fw7-story-vs-subtask-right-side-alignment-in](./quick/261105-fw7-story-vs-subtask-right-side-alignment-in/) |
 
 ## Session Continuity
 
