@@ -75,3 +75,12 @@ User decisions after code review: Download saves only (the pre-task auto-open ne
 - WR-04: removed dead `wasDrag`/`dragDistance`.
 - WR-05: gesture suppression of ctrl-wheel expires after `GESTURE_STALE_MS` (300ms).
 - 13 regression tests, each verified failing on d03bc949 in a temp worktree. Full suite 4456 passed.
+
+## UAT fixes (2026-11-05) — approved
+
+- 61833e0a: Fit fills the window (may enlarge) and differs from 1:1; images open at 'rest' (fit, never enlarged). Single click zooms toward cursor / returns to rest (replaces double-click); drag-ending clicks ignored; cursor on the image matches the click action.
+- 00acbd91: Toolbar owns Download/Open: spinner → ✓ / ✕ on the button, one action at a time; messages float above the pill (no layout shift) and auto-fade.
+- c8c40cfe: Empty space around a preview (stage, wrappers; `data-preview-backdrop`) closes on press+release; content clicks and pan drags don't.
+- 7a9418af: `usePreviewEscape` (window capture) closes the topmost preview, preventDefaults so macOS fullscreen isn't exited, stops propagation so an underlying peek sheet stays open.
+
+Task 4 (hardware UAT): approved by user.
