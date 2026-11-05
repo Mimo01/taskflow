@@ -396,15 +396,15 @@ describe('IssueDetailContent', () => {
       expect(document.querySelector('[data-slot="tooltip-note"]')).toBeNull();
     });
 
-    it('colours by status (solid logged, faint remaining) with icon markers in the tooltip', async () => {
+    it('colours by health (solid logged, faint remaining; 25% of estimate = green) with icon markers in the tooltip', async () => {
       const user = userEvent.setup();
       renderEpic([epicStory('S-1', 'indeterminate', { est: 7200, spent: 1800 })]);
       const bar = screen.getByTestId('story-time-bar');
       const logged = bar.querySelector('[data-segment="indeterminate:logged"]') as HTMLElement;
       const left = bar.querySelector('[data-segment="indeterminate:remaining"]') as HTMLElement;
-      expect(logged.className).toContain('bg-blue-500');
+      expect(logged.className).toContain('bg-green-500');
       expect(logged.className).not.toContain('opacity-35');
-      expect(left.className).toContain('bg-blue-500');
+      expect(left.className).toContain('bg-green-500');
       expect(left.className).toContain('opacity-35');
       await user.hover(bar);
       await waitFor(() => expect(rowTexts().length).toBeGreaterThan(0));

@@ -360,7 +360,7 @@ export function IssueDetailContent({
                           </span>
                         </div>
                       )}
-                      <IssueTimeBar issue={story} />
+                      <IssueTimeBar colorBy="health" issue={story} />
                       <span className={statusPillClass(story.fields.status.statusCategory?.key)}>
                         {story.fields.status.name}
                       </span>
