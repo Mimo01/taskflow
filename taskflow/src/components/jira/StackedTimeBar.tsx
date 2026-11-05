@@ -85,7 +85,10 @@ export function StackedTimeBar({
     : formatDuration(spentSeconds);
 
   const bar = (
-    <div className={cn('shrink-0 flex flex-col gap-0.5', widthClassName)} data-testid={testId}>
+    <div
+      className={cn('flex flex-col gap-0.5', withTooltip ? 'w-full' : ['shrink-0', widthClassName])}
+      data-testid={testId}
+    >
       <TimeBar
         segments={hasEst ? spentSegments(spentSeconds, est, isDone, toCat(statusCategoryKey)) : []}
         estimate={est}
@@ -103,7 +106,7 @@ export function StackedTimeBar({
   const under = isDone ? Math.max(est - spentSeconds, 0) : 0;
   return (
     <Tooltip>
-      <TooltipTrigger delay={0} render={<div className="block w-full" />}>
+      <TooltipTrigger delay={0} render={<div className={cn('block shrink-0', widthClassName)} />}>
         {bar}
       </TooltipTrigger>
       <TooltipContent>
