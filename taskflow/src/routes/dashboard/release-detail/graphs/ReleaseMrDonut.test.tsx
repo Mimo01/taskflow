@@ -33,13 +33,40 @@ describe('ReleaseMrDonut', () => {
     expect(screen.queryByText(/^merged$/i)).toBeNull();
   });
 
-  it('summarises merged of live MRs under the ring, closed excluded', () => {
-    render(<ReleaseMrDonut counts={{ merged: 11, open: 3, draft: 1, closed: 2 }} state="ready" />);
-    expect(screen.getByTestId('release-mr-summary')).toHaveTextContent('11 of 15 merged · 4 open');
+  it('shows task coverage and MRs not on a task under the ring', () => {
+    render(
+      <ReleaseMrDonut
+        counts={counts}
+        state="ready"
+        coverage={{ tasksWithMr: 17, tasks: 21, uncoveredMrs: 3 }}
+      />,
+    );
+    expect(screen.getByTestId('release-mr-coverage')).toHaveTextContent(
+      '17 of 21 tasks have an MR',
+    );
+    expect(screen.getByTestId('release-mr-uncovered')).toHaveTextContent('3 MRs not on a task');
   });
 
-  it('drops the open part when everything is merged', () => {
-    render(<ReleaseMrDonut counts={{ merged: 5, open: 0, draft: 0, closed: 0 }} state="ready" />);
-    expect(screen.getByTestId('release-mr-summary')).toHaveTextContent(/^5 of 5 merged$/);
+  it('singular wording, no warning line when every MR is on a task', () => {
+    render(
+      <ReleaseMrDonut
+        counts={counts}
+        state="ready"
+        coverage={{ tasksWithMr: 1, tasks: 1, uncoveredMrs: 0 }}
+      />,
+    );
+    expect(screen.getByTestId('release-mr-coverage')).toHaveTextContent('1 of 1 task has an MR');
+    expect(screen.queryByTestId('release-mr-uncovered')).toBeNull();
+  });
+
+  it('singular MR warning', () => {
+    render(
+      <ReleaseMrDonut
+        counts={counts}
+        state="ready"
+        coverage={{ tasksWithMr: 0, tasks: 2, uncoveredMrs: 1 }}
+      />,
+    );
+    expect(screen.getByTestId('release-mr-uncovered')).toHaveTextContent('1 MR not on a task');
   });
 });

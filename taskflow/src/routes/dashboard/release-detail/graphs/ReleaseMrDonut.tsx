@@ -1,4 +1,4 @@
-import { GitMerge } from 'lucide-react';
+import { GitMerge, TriangleAlert } from 'lucide-react';
 import { AioDonut, AioDonutSkeleton } from '../../aio-cycle/AioDonut';
 import { mrDonutSlices } from '../releaseBuckets';
 import {
@@ -10,6 +10,8 @@ import {
 } from './GraphSlot';
 
 type Counts = { merged: number; open: number; draft: number; closed: number };
+/** Release tasks with a live (non-closed) MR, and live MRs no release task covers. */
+export type MrTaskCoverage = { tasksWithMr: number; tasks: number; uncoveredMrs: number };
 const ORDER = ['merged', 'open', 'draft', 'closed'] as const;
 export const MR_ERROR_TEXT = "Couldn't load merge requests. Refresh to try again.";
 
@@ -17,17 +19,18 @@ export function ReleaseMrDonut({
   counts,
   state,
   compact = false,
+  coverage,
   className,
 }: {
   counts: Counts;
+  /** Shown under the ring: is every release task coded, is anything extra in. */
+  coverage?: MrTaskCoverage;
   state: GraphSlotState;
   compact?: boolean;
   className?: string;
 }) {
   const slices = mrDonutSlices(counts);
   const total = ORDER.reduce((n, k) => n + counts[k], 0);
-  const live = total - counts.closed;
-  const pending = counts.open + counts.draft;
   const label = `Merge requests: ${ORDER.filter((k) => counts[k] > 0)
     .map((k) => `${counts[k]} ${k}`)
     .join(', ')}`;
@@ -56,14 +59,23 @@ export function ReleaseMrDonut({
           ariaLabel={label}
           center={<DonutCentre total={total} caption="MRs" />}
         />
-        {/* One-line takeaway under the ring (closed MRs never ship, so they are not counted). */}
-        <p
-          data-testid="release-mr-summary"
-          className="text-center text-xs tabular-nums text-muted-foreground"
-        >
-          <span className="font-medium text-foreground">{counts.merged}</span> of {live} merged
-          {pending > 0 ? ` · ${pending} open` : ''}
-        </p>
+        {coverage && coverage.tasks > 0 ? (
+          <div className="flex flex-col items-center gap-0.5 text-center text-xs tabular-nums">
+            <p data-testid="release-mr-coverage" className="text-muted-foreground">
+              <span className="font-medium text-foreground">{coverage.tasksWithMr}</span> of{' '}
+              {coverage.tasks} {coverage.tasks === 1 ? 'task has' : 'tasks have'} an MR
+            </p>
+            {coverage.uncoveredMrs > 0 ? (
+              <p
+                data-testid="release-mr-uncovered"
+                className="flex items-center gap-1 font-medium text-orange-600 dark:text-orange-400"
+              >
+                <TriangleAlert className="size-3 flex-none" aria-hidden="true" />
+                {coverage.uncoveredMrs} {coverage.uncoveredMrs === 1 ? 'MR' : 'MRs'} not on a task
+              </p>
+            ) : null}
+          </div>
+        ) : null}
       </div>
     </GraphSlot>
   );
