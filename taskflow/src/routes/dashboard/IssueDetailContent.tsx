@@ -164,7 +164,7 @@ function subtaskListContent({
                     </span>
                   </div>
                 )}
-                <IssueTimeBar issue={subtaskAsTimedIssue(sub)} />
+                <IssueTimeBar colorBy="health" issue={subtaskAsTimedIssue(sub)} />
                 <span className={statusPillClass(statusCat?.key)}>{sub.fields.status.name}</span>
               </button>
             </li>
