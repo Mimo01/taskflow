@@ -1,6 +1,11 @@
 import { Calendar, Copy, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { headerActionLabel, headerSecondaryText, PageHeader } from '@/components/ui/page-header';
+import {
+  headerActionLabel,
+  headerRefreshLabel,
+  headerSecondaryText,
+  PageHeader,
+} from '@/components/ui/page-header';
 import { cn } from '@/lib/utils';
 import type { JiraAssignableUser } from '@/services/jira/types';
 import WatchedPersonPicker from './WatchedPersonPicker';
@@ -93,7 +98,7 @@ export default function StandupPageHeader({
             }
           >
             <RefreshCw className={cn(isRefreshing && 'animate-spin')} />
-            <span className={headerActionLabel}>Refresh</span>
+            <span className={headerRefreshLabel}>Refresh</span>
           </Button>
           <Button
             variant="default"

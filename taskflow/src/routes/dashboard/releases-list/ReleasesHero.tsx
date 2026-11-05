@@ -8,7 +8,7 @@ import {
   Rocket,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { headerActionLabel, headerSecondaryText, PageHeader } from '@/components/ui/page-header';
+import { headerRefreshLabel, headerSecondaryText, PageHeader } from '@/components/ui/page-header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { relativeTime } from '@/lib/relative-time';
 import { type ReleaseSummary, spanLabel } from '@/lib/release-agenda';
@@ -121,7 +121,7 @@ export function ReleasesHero({
             className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground disabled:opacity-60"
           >
             <RefreshCw className={cn('size-3', refreshing && 'animate-spin')} />
-            <span className={headerActionLabel}>Refresh</span>
+            <span className={headerRefreshLabel}>Refresh</span>
           </button>
         </>
       }

@@ -6,13 +6,15 @@ import { cn } from '@/lib/utils';
  * width (it is the `@container`), so a drawer that narrows the content area triggers them too.
  *
  * - >= 52rem: secondary status text appears ("synced Nm ago", "Updated ...", last refreshed).
- * - >= 44rem: action button text labels appear; below this, labelled buttons are icon-only.
+ * - >= 50rem: the Refresh button label appears (it collapses to icon-only first).
+ * - >= 44rem: primary action button labels appear; below this, labelled buttons are icon-only.
  * - >= 30rem: the Standup WatchedPersonPicker shows its "Showing:" prefix and a wider name cap.
  * - below that the actions wrap under the title (flex-wrap), the only stacking allowed.
  *
  * Kept as plain string literals so the Tailwind v4 source scan picks the classes up.
  */
 export const headerSecondaryText = 'hidden @[52rem]:inline';
+export const headerRefreshLabel = 'hidden @[50rem]:inline';
 export const headerActionLabel = 'hidden @[44rem]:inline';
 
 interface PageHeaderProps {
