@@ -132,7 +132,7 @@ None yet.
 | # | Description | Date | Commit | Status | Directory |
 |---|-------------|------|--------|--------|-----------|
 | 261105-jhg | Epic detail: By person rows ordered by bar length on Count/SP like Time | 2026-11-05 | e350d471 | Approved | [261105-jhg-epic-detail-order-people-graphs-on-all-t](./quick/261105-jhg-epic-detail-order-people-graphs-on-all-t/) |
-| 261105-jlv | Issue detail: removed redundant time bar from Worklog tab (sidebar keeps it) | 2026-11-05 | f8da1c6d | Done | [261105-jlv-issue-detail-worklog-tab-remove-progress](./quick/261105-jlv-issue-detail-worklog-tab-remove-progress/) |
+| 261105-jlv | Issue detail: removed redundant time bar from Worklog tab (sidebar keeps it) | 2026-11-05 | f8da1c6d | Approved | [261105-jlv-issue-detail-worklog-tab-remove-progress](./quick/261105-jlv-issue-detail-worklog-tab-remove-progress/) |
 | 261102-pk9 | Issue detail: exact date+time on hover for Created/Updated, comment time/(edited), worklog + changelog (shared exactDateTime) | 2026-11-02 | 6ef21fb1 | Verified (UAT approved) | [261102-pk9-date-hover-exact-time](./quick/261102-pk9-date-hover-exact-time/) |
 | 261102-h1i | Release detail Issues table: search + Status/Type/Assignee filters + sortable Key/Summary/Assignee/Status (shared FilterPopover/SortableHeader extracted from AIO Defects) | 2026-11-02 | 702b512a | Verified (UAT approved) | [261102-h1i-release-detail-table-filter-sort](./quick/261102-h1i-release-detail-table-filter-sort/) |
 | 261102-gyd | AIO cycle detail: stop assignee names wrapping (not-sr-only undid truncate) + wider assignee col ≥1024px | 2026-11-02 | 8a10caef | Verified (UAT approved) | [261102-gyd-allocate-more-space-for-assignee-in-aio-](./quick/261102-gyd-allocate-more-space-for-assignee-in-aio-/) |
