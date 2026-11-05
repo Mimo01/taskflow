@@ -5,12 +5,13 @@ const SLOT_COL = 'flex min-w-0 flex-col';
 const DIVIDER = 'border-l pl-4';
 
 /**
- * Layout of the release graph section. By status (three short rows) and the MR
- * donut always share one cell side by side; only that cell's neighbours move.
+ * Layout of the release graph section. By status sits directly above By type in
+ * one cell (the two short breakdown lists share row geometry); the MR donut has
+ * its own cell.
  *
- * - band (wide page): [Burnup][Status | MRs][Type][Assignee] in one row
- * - 2x2: burnup | status+MRs, then assignee | type
- * - below 640px: one column, burnup, status+MRs, type, assignee
+ * - band (wide page): [Burnup][MRs][Status / Type][Assignee] in one row
+ * - 2x2: burnup | MRs, then assignee | status/type
+ * - below 640px: burnup, then MRs | status/type, then assignee; below 440 one column
  */
 export function ReleaseGraphGrid({
   band,
@@ -27,24 +28,21 @@ export function ReleaseGraphGrid({
   type: ReactNode;
   assignee: ReactNode;
 }) {
-  const pair = (
-    <div
-      data-testid="release-graph-donuts"
-      className={`grid min-w-0 items-stretch gap-x-4 ${band ? 'grid-cols-[168px_auto]' : 'grid-cols-[minmax(150px,1fr)_auto]'}`}
-    >
-      <div className={SLOT_COL}>{status}</div>
-      <div className={`${SLOT_COL} ${DIVIDER}`}>{mrs}</div>
+  const lists = (
+    <div data-testid="release-graph-lists" className="flex min-w-0 flex-col gap-4">
+      {status}
+      {type}
     </div>
   );
   if (band) {
     return (
       <div
         data-testid="release-graph-grid"
-        className="mt-1 grid grid-cols-[minmax(190px,1fr)_auto_minmax(290px,1.15fr)_minmax(240px,1fr)] items-stretch gap-x-4"
+        className="mt-1 grid grid-cols-[minmax(220px,1.1fr)_auto_minmax(270px,1.1fr)_minmax(260px,1.1fr)] items-stretch gap-x-4"
       >
         {burnup}
-        <div className={`${SLOT_COL} ${DIVIDER}`}>{pair}</div>
-        <div className={`${SLOT_COL} ${DIVIDER}`}>{type}</div>
+        <div className={`${SLOT_COL} ${DIVIDER}`}>{mrs}</div>
+        <div className={`${SLOT_COL} ${DIVIDER}`}>{lists}</div>
         <div className={`${SLOT_COL} ${DIVIDER}`}>{assignee}</div>
       </div>
     );
@@ -52,17 +50,19 @@ export function ReleaseGraphGrid({
   return (
     <div
       data-testid="release-graph-grid"
-      className="mt-1 grid grid-cols-[minmax(0,1.2fr)_minmax(310px,1fr)] gap-x-4 gap-y-4 @max-[640px]/page:grid-cols-1"
+      className="mt-1 grid grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] gap-x-4 gap-y-4 @max-[640px]/page:grid-cols-[auto_minmax(0,1fr)] @max-[440px]/page:grid-cols-1"
     >
-      {burnup}
+      <div className={`${SLOT_COL} @max-[640px]/page:col-span-full`}>{burnup}</div>
       <div className={`${SLOT_COL} ${DIVIDER} @max-[640px]/page:border-l-0 @max-[640px]/page:pl-0`}>
-        {pair}
+        {mrs}
       </div>
-      <div className={`${SLOT_COL} @max-[640px]/page:order-4`}>{assignee}</div>
+      <div className={`${SLOT_COL} @max-[640px]/page:order-4 @max-[640px]/page:col-span-full`}>
+        {assignee}
+      </div>
       <div
-        className={`${SLOT_COL} ${DIVIDER} @max-[640px]/page:order-3 @max-[640px]/page:border-l-0 @max-[640px]/page:pl-0`}
+        className={`${SLOT_COL} ${DIVIDER} @max-[640px]/page:order-3 @max-[440px]/page:border-l-0 @max-[440px]/page:pl-0`}
       >
-        {type}
+        {lists}
       </div>
     </div>
   );

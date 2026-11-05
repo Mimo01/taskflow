@@ -632,13 +632,14 @@ describe('ReleaseDetailPage', () => {
       expect(row?.className).not.toContain('flex-wrap');
     });
 
-    it('2x2 grid collapses to one column at 640; the band applies from the band width', () => {
+    it('2x2 grid regroups at 640 and collapses to one column at 440; the band applies from the band width', () => {
       const RealRO = global.ResizeObserver;
       try {
         global.ResizeObserver = withWidth(900);
         const { unmount } = renderPage();
         const grid = screen.getByTestId('release-graph-grid').className;
-        expect(grid).toContain('@max-[640px]/page:grid-cols-1');
+        expect(grid).toContain('@max-[640px]/page:grid-cols-[auto_minmax(0,1fr)]');
+        expect(grid).toContain('@max-[440px]/page:grid-cols-1');
         unmount();
         global.ResizeObserver = withWidth(1500);
         renderPage();
