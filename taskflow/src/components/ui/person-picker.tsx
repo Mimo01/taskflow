@@ -290,7 +290,14 @@ export function PersonPicker({
         )}
         {variant === 'field' && <ChevronDown className="size-4 shrink-0 opacity-50" />}
       </PopoverTrigger>
-      <PopoverContent align="start" className={cn('w-80 p-2', contentClassName)}>
+      {/* At least 20rem, grows to the trigger's width for wide field inputs; never past the viewport. */}
+      <PopoverContent
+        align="start"
+        className={cn(
+          'w-[max(20rem,var(--anchor-width))] max-w-(--available-width) p-2',
+          contentClassName,
+        )}
+      >
         <PersonPickerPanel
           {...panel}
           open={open}
