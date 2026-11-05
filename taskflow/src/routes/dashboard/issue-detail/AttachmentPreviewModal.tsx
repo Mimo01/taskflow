@@ -7,6 +7,7 @@ import { DEFAULT_FONT_SIZE, FONT_SIZES, nextFontSize, prevFontSize } from '@/lib
 import { REVEALED_MESSAGE } from '@/lib/save-attachment';
 import type { JiraAttachment } from '@/services/jira';
 import { ImageViewer } from '../ImageViewer';
+import { BACKDROP_ATTR, isBackdropTarget } from '../preview-backdrop';
 import { ViewerToolbar } from '../ViewerToolbar';
 import { formatFileSize } from './AttachmentFileRow';
 import { highlightCode } from './highlightCode';
@@ -504,10 +505,11 @@ export function AttachmentPreviewModal({
       ref={overlayRef}
       className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center"
       onPointerDown={(e) => {
-        downOnBackdrop.current = e.target === e.currentTarget;
+        downOnBackdrop.current = isBackdropTarget(e.target, e.currentTarget);
       }}
       onClick={(e) => {
-        if (downOnBackdrop.current && e.target === e.currentTarget) onClose();
+        // Press AND release on empty space close; a pan drag released there doesn't.
+        if (downOnBackdrop.current && isBackdropTarget(e.target, e.currentTarget)) onClose();
         downOnBackdrop.current = false;
       }}
       role="dialog"
@@ -562,10 +564,8 @@ export function AttachmentPreviewModal({
       )}
 
       {/* Preview body + caption */}
-      {/* Keys are deliberately not stopped: Escape/arrows/font zoom are handled by the document listener above. */}
-      {/* biome-ignore lint/a11y/noStaticElementInteractions: propagation-stopper to prevent backdrop close when clicking preview/caption */}
-      {/* biome-ignore lint/a11y/useKeyWithClickEvents: click-only stopper; keyboard is handled by the document listener */}
-      <div className="flex flex-col items-center gap-3" onClick={(e) => e.stopPropagation()}>
+      {/* Wrapper gaps count as backdrop; the body, toolbar and caption don't. */}
+      <div className="flex flex-col items-center gap-3" {...BACKDROP_ATTR}>
         {body}
         {toolbar}
         <p className="text-white/80 text-sm">

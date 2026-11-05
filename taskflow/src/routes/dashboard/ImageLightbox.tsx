@@ -7,6 +7,7 @@ import {
   saveBlobUrl,
 } from '@/lib/save-attachment';
 import { ImageViewer } from './ImageViewer';
+import { BACKDROP_ATTR, isBackdropTarget } from './preview-backdrop';
 
 interface ImageLightboxProps {
   src: string;
@@ -56,10 +57,11 @@ export function ImageLightbox({ src, alt, open, onClose }: ImageLightboxProps) {
     <div
       className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center"
       onPointerDown={(e) => {
-        downOnBackdrop.current = e.target === e.currentTarget;
+        downOnBackdrop.current = isBackdropTarget(e.target, e.currentTarget);
       }}
       onClick={(e) => {
-        if (downOnBackdrop.current && e.target === e.currentTarget) onClose();
+        // Press AND release on empty space close; a pan drag released there doesn't.
+        if (downOnBackdrop.current && isBackdropTarget(e.target, e.currentTarget)) onClose();
         downOnBackdrop.current = false;
       }}
       role="dialog"
@@ -74,10 +76,7 @@ export function ImageLightbox({ src, alt, open, onClose }: ImageLightboxProps) {
       >
         &times;
       </button>
-      {/* Keys are deliberately not stopped here: Escape/shortcuts go to the document/window listeners. */}
-      {/* biome-ignore lint/a11y/noStaticElementInteractions: propagation-stopper to prevent backdrop close when clicking the viewer */}
-      {/* biome-ignore lint/a11y/useKeyWithClickEvents: click-only stopper; keyboard is handled by window listeners */}
-      <div onClick={(e) => e.stopPropagation()}>
+      <div {...BACKDROP_ATTR}>
         <ImageViewer
           key={src}
           src={src}

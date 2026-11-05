@@ -213,6 +213,19 @@ describe('AttachmentPreviewModal pdf', () => {
 });
 
 describe('AttachmentPreviewModal backdrop', () => {
+  it('clicking the empty stage around an image closes; the caption does not', () => {
+    const { props } = renderModal([img1], 0);
+    loadImage();
+    const caption = screen.getByText(/one\.png/, { selector: 'p' });
+    fireEvent.pointerDown(caption);
+    fireEvent.click(caption);
+    expect(props.onClose).not.toHaveBeenCalled();
+    const stage = screen.getByTestId('image-viewer-stage');
+    fireEvent.pointerDown(stage);
+    fireEvent.click(stage);
+    expect(props.onClose).toHaveBeenCalledTimes(1);
+  });
+
   it('does not close when the press started on content, closes when on backdrop', () => {
     const { props } = renderModal([txt], 0);
     const dialog = screen.getByRole('dialog');

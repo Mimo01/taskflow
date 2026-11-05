@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { fitScale, isPannable, MAX_SCALE, minScale } from '@/lib/image-viewer';
 import { useAuthBlob } from './issue-detail/useAuthBlob';
+import { BACKDROP_ATTR } from './preview-backdrop';
 import { useImageViewer } from './useImageViewer';
 import { ViewerToolbar } from './ViewerToolbar';
 
@@ -34,14 +35,13 @@ export function ImageViewer({ src, alt, onDownload, onOpenExternal }: ImageViewe
   const showPlaceholder = !loaded && !error && !imgFailed;
 
   return (
-    <div className="flex flex-col items-center gap-3">
-      {/* biome-ignore lint/a11y/noStaticElementInteractions: stage is a pointer surface; keyboard control is handled by a window listener in useImageViewer */}
-      {/* biome-ignore lint/a11y/useKeyWithClickEvents: click only stops backdrop close; keyboard is handled by window listeners */}
+    <div className="flex flex-col items-center gap-3" {...BACKDROP_ATTR}>
+      {/* The stage's empty area around the image counts as backdrop (click closes). */}
       <div
         ref={stageRef}
         className="relative overflow-hidden w-[90vw] h-[80vh] select-none touch-none"
         data-testid="image-viewer-stage"
-        onClick={(e) => e.stopPropagation()}
+        {...BACKDROP_ATTR}
       >
         {(error || imgFailed) && (
           <span className="absolute inset-0 flex items-center justify-center text-white/80 text-sm">

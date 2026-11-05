@@ -256,6 +256,33 @@ describe('ImageLightbox', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
+  it('clicking empty space around the image closes; clicking the image or toolbar does not', () => {
+    const onClose = vi.fn();
+    render(<ImageLightbox src="https://x/a.png" alt="a.png" open onClose={onClose} />);
+    const img = document.querySelector('img') as HTMLImageElement;
+    fireEvent.load(img);
+    const stage = screen.getByTestId('image-viewer-stage');
+    fireEvent.pointerDown(img);
+    fireEvent.click(img);
+    const toolbar = screen.getByRole('toolbar');
+    fireEvent.pointerDown(toolbar);
+    fireEvent.click(toolbar);
+    expect(onClose).not.toHaveBeenCalled();
+    fireEvent.pointerDown(stage);
+    fireEvent.click(stage);
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('a pan drag from the image released over the empty stage does not close', () => {
+    const onClose = vi.fn();
+    render(<ImageLightbox src="https://x/a.png" alt="a.png" open onClose={onClose} />);
+    const img = document.querySelector('img') as HTMLImageElement;
+    fireEvent.load(img);
+    fireEvent.pointerDown(img);
+    fireEvent.click(screen.getByTestId('image-viewer-stage'));
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
   it('does not close when a press starts on the image and ends on the backdrop', () => {
     const onClose = vi.fn();
     render(<ImageLightbox src="https://x/a.png" alt="a.png" open onClose={onClose} />);
