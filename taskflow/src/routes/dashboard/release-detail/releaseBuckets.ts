@@ -3,6 +3,7 @@
 import type { ChartSlice } from '@/lib/aio-cycle-charts';
 import { catOf, deriveAssigneeBuckets } from '@/lib/epic-progress';
 import type { StatusBreakdown } from '@/lib/release-list';
+import { statusCategoryColor } from '@/lib/statusStyles';
 import type { JiraIssue } from '@/services/jira';
 import { issueStoryPoints } from './releaseSummaries';
 
@@ -154,6 +155,41 @@ export function deriveReleaseStatusRows(issues: JiraIssue[]): ReleaseStatusRow[]
       b.count - a.count ||
       a.name.localeCompare(b.name),
   );
+}
+
+const CAT_LABEL = { done: 'Done', indeterminate: 'In progress', new: 'To do' } as const;
+
+/** Three-slice donut (done, in progress, to do); tooltip rows are exact status names, max 4. */
+export function statusDonutSlices(rows: ReleaseStatusRow[]): ChartSlice[] {
+  const total = rows.reduce((n, r) => n + r.count, 0);
+  return CAT_ORDER.flatMap((cat) => {
+    const inCat = rows
+      .filter((r) => r.cat === cat)
+      .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+    const value = inCat.reduce((n, r) => n + r.count, 0);
+    if (value === 0) return [];
+    const tooltipRows = inCat.slice(0, inCat.length > 4 ? 3 : 4).map((r) => ({
+      label: r.name,
+      value: r.count,
+    }));
+    if (inCat.length > 4) {
+      const rest = inCat.slice(3);
+      tooltipRows.push({
+        label: `+${rest.length} more`,
+        value: rest.reduce((n, r) => n + r.count, 0),
+      });
+    }
+    return [
+      {
+        key: cat,
+        label: CAT_LABEL[cat],
+        value,
+        share: pct(value, total),
+        color: statusCategoryColor(cat),
+        rows: tooltipRows,
+      },
+    ];
+  });
 }
 
 /**

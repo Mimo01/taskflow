@@ -6,6 +6,7 @@ import {
   deriveReleaseTypeRows,
   fitStatusRows,
   mrDonutSlices,
+  statusDonutSlices,
   WAFFLE_LAYOUT,
   waffleCapacity,
   statusBarWidth,
@@ -189,5 +190,47 @@ describe('statusBarWidth', () => {
     expect(statusBarWidth(1, 200)).toBe(3);
     expect(statusBarWidth(0, 10)).toBe(0);
     expect(statusBarWidth(5, 0)).toBe(0);
+  });
+});
+
+describe('statusDonutSlices', () => {
+  const row = (name: string, cat: 'done' | 'indeterminate' | 'new', count: number) => ({
+    name,
+    cat,
+    count,
+    filterValues: [name],
+  });
+
+  it('returns no slices for no rows', () => {
+    expect(statusDonutSlices([])).toEqual([]);
+  });
+
+  it('builds one slice per non-empty category in done, in progress, to do order', () => {
+    const s = statusDonutSlices([
+      row('Closed', 'done', 1),
+      row('Done', 'done', 2),
+      row('To Do', 'new', 5),
+    ]);
+    expect(s.map((x) => x.key)).toEqual(['done', 'new']);
+    expect(s.map((x) => x.label)).toEqual(['Done', 'To do']);
+    expect(s.map((x) => x.value)).toEqual([3, 5]);
+    expect(s.map((x) => x.share)).toEqual([38, 63]);
+    expect(s[0].rows).toEqual([
+      { label: 'Done', value: 2 },
+      { label: 'Closed', value: 1 },
+    ]);
+  });
+
+  it('caps tooltip rows at four with a +N more row', () => {
+    const s = statusDonutSlices(
+      ['A', 'B', 'C', 'D', 'E', 'F'].map((n, i) => row(n, 'indeterminate', 10 - i)),
+    );
+    expect(s[0].rows).toHaveLength(4);
+    expect(s[0].rows[3]).toEqual({ label: '+3 more', value: 7 + 6 + 5 });
+  });
+
+  it('lists all four statuses when there are exactly four', () => {
+    const s = statusDonutSlices(['A', 'B', 'C', 'D'].map((n) => row(n, 'new', 1)));
+    expect(s[0].rows.map((r) => r.label)).toEqual(['A', 'B', 'C', 'D']);
   });
 });

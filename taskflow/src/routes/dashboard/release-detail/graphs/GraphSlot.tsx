@@ -83,3 +83,13 @@ export function GraphSlot({
     </section>
   );
 }
+
+/** Centre of a release donut: total over a muted caption; shared so the pair stays identical. */
+export function DonutCentre({ total, caption }: { total: number; caption: string }) {
+  return (
+    <>
+      <span className="text-lg font-semibold leading-6 tabular-nums">{total}</span>
+      <span className="text-xs leading-4 text-muted-foreground">{caption}</span>
+    </>
+  );
+}

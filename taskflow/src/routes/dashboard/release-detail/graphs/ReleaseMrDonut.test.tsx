@@ -13,7 +13,7 @@ describe('ReleaseMrDonut', () => {
 
   it('shows the empty copy', () => {
     render(<ReleaseMrDonut counts={{ merged: 0, open: 0, draft: 0, closed: 0 }} state="empty" />);
-    expect(screen.getByText('No MRs in this milestone')).toBeInTheDocument();
+    expect(screen.getByText('No merge requests yet')).toBeInTheDocument();
   });
 
   it('renders the donut with an aria-label omitting zero states', () => {

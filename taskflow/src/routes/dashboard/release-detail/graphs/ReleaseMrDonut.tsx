@@ -1,7 +1,13 @@
 import { GitMerge } from 'lucide-react';
 import { AioDonut, AioDonutSkeleton } from '../../aio-cycle/AioDonut';
 import { mrDonutSlices } from '../releaseBuckets';
-import { COMPACT_DONUT_SIZE, DONUT_GRAPH_SIZE, GraphSlot, type GraphSlotState } from './GraphSlot';
+import {
+  COMPACT_DONUT_SIZE,
+  DONUT_GRAPH_SIZE,
+  DonutCentre,
+  GraphSlot,
+  type GraphSlotState,
+} from './GraphSlot';
 
 type Counts = { merged: number; open: number; draft: number; closed: number };
 const ORDER = ['merged', 'open', 'draft', 'closed'] as const;
@@ -29,7 +35,7 @@ export function ReleaseMrDonut({
       icon={GitMerge}
       state={state}
       height={DONUT_GRAPH_SIZE}
-      emptyLabel="No MRs in this milestone"
+      emptyLabel="No merge requests yet"
       errorLabel={MR_ERROR_TEXT}
       testId="release-graph-mrs"
       className={className}
@@ -46,12 +52,7 @@ export function ReleaseMrDonut({
           size={compact ? COMPACT_DONUT_SIZE : DONUT_GRAPH_SIZE}
           testId="release-mr-donut"
           ariaLabel={label}
-          center={
-            <>
-              <span className="text-lg font-semibold tabular-nums">{total}</span>
-              <span className="text-xs text-muted-foreground">MRs</span>
-            </>
-          }
+          center={<DonutCentre total={total} caption="MRs" />}
         />
       </div>
     </GraphSlot>
