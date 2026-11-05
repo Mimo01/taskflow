@@ -62,6 +62,10 @@ function LoadingSkeletons() {
 
 // Today column is ~half the page: narrower bar, hidden only when the column is cramped.
 const TODAY_TIME_BAR_WIDTH_CLASS = 'w-24 @max-[30rem]:hidden';
+// Story bar = base w-24 (96px) + indented wrapper 'pl-6 ml-2' (24 + 8 = 32px) = 128px (w-32).
+// Grows leftward so the story's pill + SP shift left by the indent; the hide
+// breakpoint must match TODAY_TIME_BAR_WIDTH_CLASS.
+const TODAY_STORY_TIME_BAR_WIDTH_CLASS = 'w-32 @max-[30rem]:hidden';
 
 // ─── Issue row (reused for parent and subtask) ────────────────────────────────
 
@@ -125,16 +129,17 @@ function IssueRow({
           {key}
         </button>
         <span className="flex-1 min-w-0 truncate text-sm">{summary}</span>
-        {/* Trailing cluster never shrinks; fixed-width slots keep pills/columns aligned
-            between rows that do and don't have story points or an estimate. */}
+        {/* Trailing cluster never shrinks. Story bars are longer than indented subtask bars by
+            the indent (growing leftward), so story pill + SP sit further left while bar right
+            edges and the avatar column stay aligned. Subtasks render no SP slot. */}
         <div className="flex shrink-0 items-center gap-2">
           <div className="flex shrink-0">
             <span className={statusPillClass(issue.fields.status.statusCategory?.key)}>
               {issue.fields.status.name}
             </span>
           </div>
-          {showSp && (
-            <div className="flex min-w-7 shrink-0 justify-end">
+          {showSp && !indented && (
+            <div data-testid="standup-sp-slot" className="flex min-w-7 shrink-0 justify-end">
               <span
                 className={cn(
                   'inline-flex min-w-7 justify-center rounded border border-border bg-muted px-1 py-0.5 text-xs font-medium text-muted-foreground',
@@ -148,7 +153,9 @@ function IssueRow({
           )}
           <StackedTimeBar
             issues={timeBarIssues(issue, indented ? null : timeSubtasks, { isSubtask: indented })}
-            widthClassName={TODAY_TIME_BAR_WIDTH_CLASS}
+            widthClassName={
+              indented ? TODAY_TIME_BAR_WIDTH_CLASS : TODAY_STORY_TIME_BAR_WIDTH_CLASS
+            }
             testId="standup-time-bar"
             alwaysShowTrack
           />
@@ -212,10 +219,9 @@ export default function TodayUpNextSection({
 }: TodayUpNextSectionProps) {
   const showSkeleton = useDelayedLoading(isLoading);
 
-  // Fixed-width trailing slots are reserved only when some row in the section uses them,
-  // so the pill column stays aligned without wasting width on empty columns.
-  const sectionIssues = rows.flatMap((r) => [r.issue, ...r.subtasks]);
-  const showSp = sectionIssues.some((i) => typeof i.fields[storyPointsFieldKey] === 'number');
+  // The SP slot is reserved only when some story row has points (subtasks never
+  // render it), so the pill column stays aligned without wasting width.
+  const showSp = rows.some((r) => typeof r.issue.fields[storyPointsFieldKey] === 'number');
 
   // Unlike the other sections, Up Next always renders — an empty "nothing up
   // next" state is meaningful for standup (it confirms there's no queued work).
