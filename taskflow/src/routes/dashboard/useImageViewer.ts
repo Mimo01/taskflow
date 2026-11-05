@@ -8,14 +8,17 @@ import {
   viewerReducer,
 } from '@/lib/image-viewer';
 
-const DRAG_THRESHOLD_PX = 3;
 const KEY_PAN_PX = 50;
+/**
+ * A Safari pinch suppresses ctrl+wheel (WebKit may emit both for one pinch).
+ * The suppression expires this long after the last gesture event, so a pinch
+ * that never delivers `gestureend` can't disable wheel zoom indefinitely.
+ */
+export const GESTURE_STALE_MS = 300;
 
 interface UseImageViewerResult {
   state: ViewerState;
   dispatch: (action: ViewerAction) => void;
-  /** True when the most recent pointer interaction was a drag (>3px). */
-  wasDrag: () => boolean;
 }
 
 function isEditableTarget(target: EventTarget | null): boolean {
@@ -36,7 +39,6 @@ export function useImageViewer(
   const [state, dispatch] = useReducer(viewerReducer, initialViewerState);
   const pannableRef = useRef(false);
   const scaleRef = useRef(1);
-  const dragDistance = useRef(0);
 
   // Mirror what the key handler needs; written in a layout effect, never during render.
   useLayoutEffect(() => {
@@ -67,15 +69,20 @@ export function useImageViewer(
     };
 
     let gestureActive = false;
+    let lastGestureAt = 0;
     let startScale = 1;
     let dragging = false;
     let lastX = 0;
     let lastY = 0;
 
+    const pinchInProgress = () =>
+      gestureActive && performance.now() - lastGestureAt < GESTURE_STALE_MS;
+
     const onWheel = (e: WheelEvent) => {
       if (e.ctrlKey || e.metaKey) {
         e.preventDefault();
-        if (gestureActive) return;
+        if (pinchInProgress()) return;
+        gestureActive = false;
         dispatch({ type: 'wheelZoom', deltaY: e.deltaY, point: toPoint(e.clientX, e.clientY) });
         return;
       }
@@ -88,6 +95,7 @@ export function useImageViewer(
     const onGestureStart = (e: Event) => {
       e.preventDefault();
       gestureActive = true;
+      lastGestureAt = performance.now();
       startScale = scaleRef.current;
     };
     const onGestureChange = (e: Event) => {
@@ -97,6 +105,7 @@ export function useImageViewer(
         gestureActive = true;
         startScale = scaleRef.current;
       }
+      lastGestureAt = performance.now();
       dispatch({
         type: 'pinch',
         scale: startScale * g.scale,
@@ -109,7 +118,6 @@ export function useImageViewer(
     };
 
     const onPointerDown = (e: PointerEvent) => {
-      dragDistance.current = 0;
       if (e.button !== 0 || !pannableRef.current) return;
       dragging = true;
       lastX = e.clientX;
@@ -123,7 +131,6 @@ export function useImageViewer(
       const dy = e.clientY - lastY;
       lastX = e.clientX;
       lastY = e.clientY;
-      dragDistance.current += Math.hypot(dx, dy);
       dispatch({ type: 'pan', dx, dy });
     };
     const onPointerUp = (e: PointerEvent) => {
@@ -209,5 +216,5 @@ export function useImageViewer(
     return () => window.removeEventListener('keydown', onKeyDown, { capture: true });
   }, [enabled]);
 
-  return { state, dispatch, wasDrag: () => dragDistance.current > DRAG_THRESHOLD_PX };
+  return { state, dispatch };
 }

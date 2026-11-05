@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetch } from '@tauri-apps/plugin-http';
 import { ChevronDown, ChevronRight, Paperclip } from 'lucide-react';
 import { useRef, useState } from 'react';
-import { openSavedFile, saveBytes } from '@/lib/save-attachment';
+import { assertOk, openSavedFile, saveBytes } from '@/lib/save-attachment';
 import type { JiraAttachment } from '@/services/jira';
 import { uploadAttachment } from '@/services/jira/attachments';
 import { readSecret } from '@/services/stronghold';
@@ -74,11 +74,11 @@ export function AttachmentsSection({
     const resp = await fetch(att.content, {
       headers: { Authorization: `Bearer ${token}` },
     });
-    const blob = await resp.blob();
-    const arrayBuffer = await blob.arrayBuffer();
+    const arrayBuffer = await assertOk(resp).arrayBuffer();
     return saveBytes(new Uint8Array(arrayBuffer), att.filename);
   }
 
+  // Save only — launching is the explicit "Open externally" action.
   async function handleDownload(att: JiraAttachment) {
     try {
       const savedPath = await fetchAndSave(att);
@@ -87,18 +87,17 @@ export function AttachmentsSection({
         return;
       }
       showDownloadFeedback(`${att.filename} saved to Downloads.`, false);
-      openSavedFile(savedPath).catch(() => undefined);
     } catch {
       showDownloadFeedback(`Failed to download ${att.filename}.`, true);
     }
   }
 
   // Throws a readable Error so the preview modal can show it.
-  async function handleOpenExternal(att: JiraAttachment) {
+  async function handleOpenExternal(att: JiraAttachment): Promise<'opened' | 'revealed'> {
     try {
       const savedPath = await fetchAndSave(att);
       if (!savedPath) throw new Error('No Jira credentials found.');
-      await openSavedFile(savedPath);
+      return await openSavedFile(savedPath);
     } catch (err) {
       const reason = err instanceof Error ? err.message : String(err);
       throw new Error(`Couldn't open ${att.filename}: ${reason}`);

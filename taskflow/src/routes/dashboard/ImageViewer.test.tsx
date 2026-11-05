@@ -7,7 +7,8 @@ vi.mock('./issue-detail/useAuthBlob', () => ({
 vi.mock('@/lib/save-attachment', () => ({
   filenameFromSrc: (_s: string, alt?: string) => alt || 'image',
   saveBlobUrl: vi.fn().mockResolvedValue('/dl/a.png'),
-  openSavedFile: vi.fn().mockResolvedValue(undefined),
+  openSavedFile: vi.fn().mockResolvedValue('opened'),
+  REVEALED_MESSAGE: 'Shown in Finder (test)',
 }));
 
 import { ImageLightbox } from './ImageLightbox';
@@ -94,6 +95,19 @@ describe('ImageViewer', () => {
     expect(readout()).not.toBe('100%');
   });
 
+  it('a gesture that never ends stops suppressing ctrl-wheel after it goes stale', () => {
+    let now = 1000;
+    vi.spyOn(performance, 'now').mockImplementation(() => now);
+    const { stage } = setup();
+    act(() => {
+      stage.dispatchEvent(new Event('gesturestart', { cancelable: true }));
+    });
+    // No gestureend ever arrives.
+    now += 1000;
+    fireEvent.wheel(stage, { ctrlKey: true, deltaY: -100 });
+    expect(Number.parseInt(readout() ?? '0', 10)).toBeGreaterThan(50);
+  });
+
   it('disables controls before load and zoom-in at max', () => {
     const utils = render(<ImageViewer src="https://x/a.png" alt="a.png" />);
     expect((screen.getByLabelText('Zoom in') as HTMLButtonElement).disabled).toBe(true);
@@ -144,6 +158,26 @@ describe('ImageLightbox', () => {
     render(<ImageLightbox src="https://x/a.png" alt="a.png" open onClose={onClose} />);
     expect(screen.getByRole('dialog')).toBeTruthy();
     fireEvent.keyDown(document, { key: 'Escape' });
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('Download only saves and confirms; never launches the file', async () => {
+    const { openSavedFile, saveBlobUrl } = await import('@/lib/save-attachment');
+    render(<ImageLightbox src="https://x/a.png" alt="a.png" open onClose={vi.fn()} />);
+    fireEvent.load(document.querySelector('img') as HTMLImageElement);
+    fireEvent.click(screen.getByLabelText('Download'));
+    expect(await screen.findByText('a.png saved to Downloads.')).toBeTruthy();
+    expect(saveBlobUrl).toHaveBeenCalledWith('blob:x', 'a.png');
+    expect(openSavedFile).not.toHaveBeenCalled();
+  });
+
+  it('Escape closes exactly once when focus is inside the viewer', () => {
+    const onClose = vi.fn();
+    render(<ImageLightbox src="https://x/a.png" alt="a.png" open onClose={onClose} />);
+    fireEvent.load(document.querySelector('img') as HTMLImageElement);
+    const btn = screen.getByLabelText('Zoom in');
+    btn.focus();
+    fireEvent.keyDown(btn, { key: 'Escape' });
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 

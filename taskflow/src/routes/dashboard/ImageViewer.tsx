@@ -2,13 +2,16 @@ import { useRef, useState } from 'react';
 import { fitScale, isPannable, MAX_SCALE, minScale } from '@/lib/image-viewer';
 import { useAuthBlob } from './issue-detail/useAuthBlob';
 import { useImageViewer } from './useImageViewer';
-import { stopNonEscape, ViewerToolbar } from './ViewerToolbar';
+import { ViewerToolbar } from './ViewerToolbar';
+
+/** An action may resolve to an info message to show under the image. */
+type ViewerAction = (blobUrl: string) => unknown;
 
 interface ImageViewerProps {
   src: string;
   alt: string;
-  onDownload?: (blobUrl: string) => void | Promise<void>;
-  onOpenExternal?: (blobUrl: string) => void | Promise<void>;
+  onDownload?: ViewerAction;
+  onOpenExternal?: ViewerAction;
 }
 
 function errorMessage(err: unknown, fallback: string): string {
@@ -22,9 +25,9 @@ function errorMessage(err: unknown, fallback: string): string {
 export function ImageViewer({ src, alt, onDownload, onOpenExternal }: ImageViewerProps) {
   const { blobUrl, loading, error } = useAuthBlob(src);
   const stageRef = useRef<HTMLDivElement>(null);
-  const { state, dispatch, wasDrag } = useImageViewer(stageRef);
+  const { state, dispatch } = useImageViewer(stageRef);
   const [imgFailed, setImgFailed] = useState(false);
-  const [status, setStatus] = useState<string | null>(null);
+  const [status, setStatus] = useState<{ text: string; tone: 'error' | 'info' } | null>(null);
 
   const { loaded, scale, tx, ty, rot, naturalW, naturalH } = state;
   const pannable = isPannable(state);
@@ -32,13 +35,14 @@ export function ImageViewer({ src, alt, onDownload, onOpenExternal }: ImageViewe
   const zoomOutDisabled = !loaded || scale <= floor + 1e-3;
   const zoomInDisabled = !loaded || scale >= MAX_SCALE - 1e-3;
 
-  async function run(action: ((url: string) => void | Promise<void>) | undefined, label: string) {
+  async function run(action: ViewerAction | undefined, label: string) {
     if (!action || !blobUrl) return;
     setStatus(null);
     try {
-      await action(blobUrl);
+      const message = await action(blobUrl);
+      if (typeof message === 'string' && message) setStatus({ text: message, tone: 'info' });
     } catch (err) {
-      setStatus(errorMessage(err, `${label} failed`));
+      setStatus({ text: errorMessage(err, `${label} failed`), tone: 'error' });
     }
   }
 
@@ -47,17 +51,13 @@ export function ImageViewer({ src, alt, onDownload, onOpenExternal }: ImageViewe
   return (
     <div className="flex flex-col items-center gap-3">
       {/* biome-ignore lint/a11y/noStaticElementInteractions: stage is a pointer surface; keyboard control is handled by a window listener in useImageViewer */}
+      {/* biome-ignore lint/a11y/useKeyWithClickEvents: click only stops backdrop close; keyboard is handled by window listeners */}
       <div
         ref={stageRef}
         className="relative overflow-hidden w-[90vw] h-[80vh] select-none touch-none"
         style={{ cursor: pannable ? 'grab' : loaded ? 'zoom-in' : undefined }}
         data-testid="image-viewer-stage"
-        onClick={(e) => {
-          e.stopPropagation();
-          // Swallow the click that ends a pan drag.
-          if (wasDrag()) e.preventDefault();
-        }}
-        onKeyDown={stopNonEscape}
+        onClick={(e) => e.stopPropagation()}
       >
         {(error || imgFailed) && (
           <span className="absolute inset-0 flex items-center justify-center text-white/80 text-sm">
@@ -117,7 +117,8 @@ export function ImageViewer({ src, alt, onDownload, onOpenExternal }: ImageViewe
             : undefined
         }
         controlsDisabled={!loaded}
-        status={status}
+        status={status?.text ?? null}
+        statusTone={status?.tone}
       />
     </div>
   );

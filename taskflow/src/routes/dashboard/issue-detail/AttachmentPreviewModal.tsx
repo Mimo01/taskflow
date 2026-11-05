@@ -4,9 +4,10 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/button';
 import { DEFAULT_FONT_SIZE, FONT_SIZES, nextFontSize, prevFontSize } from '@/lib/image-viewer';
+import { REVEALED_MESSAGE } from '@/lib/save-attachment';
 import type { JiraAttachment } from '@/services/jira';
 import { ImageViewer } from '../ImageViewer';
-import { stopNonEscape, ViewerToolbar } from '../ViewerToolbar';
+import { ViewerToolbar } from '../ViewerToolbar';
 import { formatFileSize } from './AttachmentFileRow';
 import { highlightCode } from './highlightCode';
 import { resolvePreviewKind } from './resolvePreviewKind';
@@ -19,7 +20,8 @@ interface AttachmentPreviewModalProps {
   onClose: () => void;
   onNavigate: (index: number) => void;
   onDownload: (attachment: JiraAttachment) => void;
-  onOpenExternal?: (attachment: JiraAttachment) => Promise<void>;
+  /** Resolves to what was done: launched in the default app, or revealed in Finder. */
+  onOpenExternal?: (attachment: JiraAttachment) => Promise<'opened' | 'revealed' | undefined>;
 }
 
 // Text/code preview size guard: skip fetching entirely (show DownloadFallback
@@ -333,7 +335,9 @@ export function AttachmentPreviewModal({
   const downOnBackdrop = useRef(false);
   const [fallback, setFallback] = useState(false);
   const [fontSize, setFontSize] = useState(DEFAULT_FONT_SIZE);
-  const [openError, setOpenError] = useState<string | null>(null);
+  const [openStatus, setOpenStatus] = useState<{ text: string; tone: 'error' | 'info' } | null>(
+    null,
+  );
 
   const activeItem = items[currentIndex];
   const activeKind = activeItem && !fallback ? resolvePreviewKind(activeItem) : 'other';
@@ -344,7 +348,7 @@ export function AttachmentPreviewModal({
   useEffect(() => {
     setFallback(false);
     setFontSize(DEFAULT_FONT_SIZE);
-    setOpenError(null);
+    setOpenStatus(null);
   }, [currentIndex]);
 
   useEffect(() => {
@@ -420,7 +424,12 @@ export function AttachmentPreviewModal({
           src={current.content}
           alt={current.filename}
           onDownload={() => onDownload(current)}
-          onOpenExternal={onOpenExternal ? () => onOpenExternal(current) : undefined}
+          onOpenExternal={
+            onOpenExternal
+              ? async () =>
+                  (await onOpenExternal(current)) === 'revealed' ? REVEALED_MESSAGE : undefined
+              : undefined
+          }
         />
       );
       break;
@@ -464,11 +473,15 @@ export function AttachmentPreviewModal({
 
   async function handleOpenExternal() {
     if (!onOpenExternal) return;
-    setOpenError(null);
+    setOpenStatus(null);
     try {
-      await onOpenExternal(current as JiraAttachment);
+      const result = await onOpenExternal(current as JiraAttachment);
+      if (result === 'revealed') setOpenStatus({ text: REVEALED_MESSAGE, tone: 'info' });
     } catch (err) {
-      setOpenError(err instanceof Error && err.message ? err.message : 'Open externally failed');
+      setOpenStatus({
+        text: err instanceof Error && err.message ? err.message : 'Open externally failed',
+        tone: 'error',
+      });
     }
   }
 
@@ -489,15 +502,24 @@ export function AttachmentPreviewModal({
           zoomInDisabled: fontSize >= (FONT_SIZES[FONT_SIZES.length - 1] ?? 24),
         }}
         onFit={() => setFontSize(DEFAULT_FONT_SIZE)}
-        status={openError}
+        status={openStatus?.text ?? null}
+        statusTone={openStatus?.tone}
         {...actions}
       />
     );
   } else if (kind === 'pdf' || kind === 'video' || kind === 'audio') {
-    toolbar = <ViewerToolbar aria-label="File actions" status={openError} {...actions} />;
+    toolbar = (
+      <ViewerToolbar
+        aria-label="File actions"
+        status={openStatus?.text ?? null}
+        statusTone={openStatus?.tone}
+        {...actions}
+      />
+    );
   }
 
   return createPortal(
+    // biome-ignore lint/a11y/useKeyWithClickEvents: backdrop click-to-close; Escape is handled by the document keydown listener
     <div
       ref={overlayRef}
       className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center"
@@ -507,9 +529,6 @@ export function AttachmentPreviewModal({
       onClick={(e) => {
         if (downOnBackdrop.current && e.target === e.currentTarget) onClose();
         downOnBackdrop.current = false;
-      }}
-      onKeyDown={(e) => {
-        if (e.key === 'Escape') onClose();
       }}
       role="dialog"
       aria-modal="true"
@@ -563,12 +582,10 @@ export function AttachmentPreviewModal({
       )}
 
       {/* Preview body + caption */}
+      {/* Keys are deliberately not stopped: Escape/arrows/font zoom are handled by the document listener above. */}
       {/* biome-ignore lint/a11y/noStaticElementInteractions: propagation-stopper to prevent backdrop close when clicking preview/caption */}
-      <div
-        className="flex flex-col items-center gap-3"
-        onClick={(e) => e.stopPropagation()}
-        onKeyDown={stopNonEscape}
-      >
+      {/* biome-ignore lint/a11y/useKeyWithClickEvents: click-only stopper; keyboard is handled by the document listener */}
+      <div className="flex flex-col items-center gap-3" onClick={(e) => e.stopPropagation()}>
         {body}
         {toolbar}
         <p className="text-white/80 text-sm">

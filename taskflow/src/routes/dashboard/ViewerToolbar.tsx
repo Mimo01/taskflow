@@ -18,13 +18,10 @@ interface ViewerToolbarProps {
   onOpenExternal?: () => void;
   /** Disables the view controls (zoom/fit/actual/rotate), not Download/Open. */
   controlsDisabled?: boolean;
-  /** Error/status line rendered above the pill. */
+  /** Status line rendered above the pill. */
   status?: string | null;
-}
-
-/** Keep keys from reaching ancestor handlers, except Escape which must still close. */
-export function stopNonEscape(e: React.KeyboardEvent) {
-  if (e.key !== 'Escape') e.stopPropagation();
+  /** 'error' (default) renders red as an alert; 'info' renders neutral. */
+  statusTone?: 'error' | 'info';
 }
 
 const BTN = 'text-white/80 hover:text-white hover:bg-white/10';
@@ -43,21 +40,25 @@ export function ViewerToolbar({
   onOpenExternal,
   controlsDisabled = false,
   status,
+  statusTone = 'error',
 }: ViewerToolbarProps) {
   const hasView = !!(zoom || onFit || onActual || onRotate);
   const hasActions = !!(onDownload || onOpenExternal);
   return (
+    // Keys are deliberately not stopped: shortcuts/Escape/arrows must reach the window/document listeners.
     // biome-ignore lint/a11y/noStaticElementInteractions: propagation-stopper so toolbar clicks never reach the backdrop close handler
-    <div
-      className="flex flex-col items-center gap-1"
-      onClick={(e) => e.stopPropagation()}
-      onKeyDown={stopNonEscape}
-    >
-      {status && (
-        <p role="alert" className="text-xs text-red-300 bg-black/60 rounded-full px-3 py-1">
-          {status}
-        </p>
-      )}
+    // biome-ignore lint/a11y/useKeyWithClickEvents: click-only stopper; keyboard is handled by window listeners
+    <div className="flex flex-col items-center gap-1" onClick={(e) => e.stopPropagation()}>
+      {status &&
+        (statusTone === 'error' ? (
+          <p role="alert" className="text-xs text-red-300 bg-black/60 rounded-full px-3 py-1">
+            {status}
+          </p>
+        ) : (
+          <p role="status" className="text-xs text-white/80 bg-black/60 rounded-full px-3 py-1">
+            {status}
+          </p>
+        ))}
       <div
         role="toolbar"
         aria-label={ariaLabel}

@@ -15,6 +15,7 @@ vi.mock('@/lib/save-attachment', () => ({
   filenameFromSrc: (_s: string, alt?: string) => alt || 'image',
   saveBlobUrl: vi.fn(),
   openSavedFile: vi.fn(),
+  REVEALED_MESSAGE: 'Shown in Finder (test)',
 }));
 
 import { AttachmentPreviewModal } from './AttachmentPreviewModal';
@@ -134,6 +135,59 @@ describe('AttachmentPreviewModal text zoom', () => {
     await waitFor(() => expect(document.querySelector('pre')).toBeTruthy());
     fireEvent.click(screen.getByLabelText('Open externally'));
     await waitFor(() => expect(screen.getByText('blocked')).toBeTruthy());
+  });
+});
+
+describe('AttachmentPreviewModal keyboard with focus inside', () => {
+  it('Escape closes exactly once when a toolbar button has focus', async () => {
+    const { props } = renderModal([txt], 0);
+    await waitFor(() => expect(document.querySelector('pre')).toBeTruthy());
+    const btn = screen.getByLabelText('Zoom in');
+    btn.focus();
+    fireEvent.keyDown(btn, { key: 'Escape' });
+    expect(props.onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('text font zoom keys work while a toolbar button has focus', async () => {
+    renderModal([txt], 0);
+    const pre = await waitFor(() => {
+      const el = document.querySelector('pre');
+      expect(el).toBeTruthy();
+      return el as HTMLElement;
+    });
+    const btn = screen.getByLabelText('Zoom in');
+    btn.focus();
+    fireEvent.keyDown(btn, { key: '-' });
+    expect(pre.style.fontSize).toBe('11px');
+  });
+
+  it('ArrowRight navigates at fit while an image toolbar button has focus', () => {
+    const { props } = renderModal([img1, img2], 0);
+    loadImage();
+    const btn = screen.getByLabelText('Fit');
+    btn.focus();
+    fireEvent.keyDown(btn, { key: 'ArrowRight' });
+    expect(props.onNavigate).toHaveBeenCalledWith(1);
+  });
+});
+
+describe('AttachmentPreviewModal reveal', () => {
+  it('shows an info message when Open externally reveals instead of launching', async () => {
+    const onOpenExternal = vi.fn().mockResolvedValue('revealed');
+    renderModal([pdf], 0, { onOpenExternal });
+    fireEvent.click(await screen.findByLabelText('Open externally'));
+    expect(await screen.findByRole('status')).toHaveProperty(
+      'textContent',
+      'Shown in Finder (test)',
+    );
+  });
+
+  it('shows the reveal message in the image viewer too', async () => {
+    const onOpenExternal = vi.fn().mockResolvedValue('revealed');
+    renderModal([img1], 0, { onOpenExternal });
+    loadImage();
+    fireEvent.click(screen.getByLabelText('Open externally'));
+    expect(await screen.findByText('Shown in Finder (test)')).toBeTruthy();
   });
 });
 

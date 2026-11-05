@@ -8,14 +8,11 @@
     "opener:default",
     {
       "identifier": "opener:allow-open-url",
-      "allow": [
-        { "url": "http://*", "app": true },
-        { "url": "https://*", "app": true }
-      ]
+      "allow": [{ "url": "http://*", "app": true }, { "url": "https://*", "app": true }]
     },
     {
       "identifier": "opener:allow-open-path",
-      "allow": [{ "path": "$DOWNLOAD/**" }, { "path": "$TEMP/**" }]
+      "allow": [{ "path": "$DOWNLOAD/**" }]
     },
     "stronghold:default",
     "store:default",

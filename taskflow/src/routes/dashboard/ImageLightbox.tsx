@@ -1,8 +1,12 @@
 import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { filenameFromSrc, openSavedFile, saveBlobUrl } from '@/lib/save-attachment';
+import {
+  filenameFromSrc,
+  openSavedFile,
+  REVEALED_MESSAGE,
+  saveBlobUrl,
+} from '@/lib/save-attachment';
 import { ImageViewer } from './ImageViewer';
-import { stopNonEscape } from './ViewerToolbar';
 
 interface ImageLightboxProps {
   src: string;
@@ -29,16 +33,17 @@ export function ImageLightbox({ src, alt, open, onClose }: ImageLightboxProps) {
 
   const filename = filenameFromSrc(src, alt);
 
-  // Same behaviour as the attachment Download: save, then auto-open (best effort).
+  // Same behaviour as the attachment Download: save only.
   async function handleDownload(blobUrl: string) {
-    const path = await saveBlobUrl(blobUrl, filename);
-    openSavedFile(path).catch(() => undefined);
+    await saveBlobUrl(blobUrl, filename);
+    return `${filename} saved to Downloads.`;
   }
 
   async function handleOpenExternal(blobUrl: string) {
-    const path = await saveBlobUrl(blobUrl, filename);
     try {
-      await openSavedFile(path);
+      const path = await saveBlobUrl(blobUrl, filename);
+      const result = await openSavedFile(path);
+      if (result === 'revealed') return REVEALED_MESSAGE;
     } catch (err) {
       throw new Error(
         `Couldn't open ${filename}: ${err instanceof Error ? err.message : String(err)}`,
@@ -47,6 +52,7 @@ export function ImageLightbox({ src, alt, open, onClose }: ImageLightboxProps) {
   }
 
   return createPortal(
+    // biome-ignore lint/a11y/useKeyWithClickEvents: backdrop click-to-close; Escape is handled by the document keydown listener
     <div
       className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center"
       onPointerDown={(e) => {
@@ -55,9 +61,6 @@ export function ImageLightbox({ src, alt, open, onClose }: ImageLightboxProps) {
       onClick={(e) => {
         if (downOnBackdrop.current && e.target === e.currentTarget) onClose();
         downOnBackdrop.current = false;
-      }}
-      onKeyDown={(e) => {
-        if (e.key === 'Escape') onClose();
       }}
       role="dialog"
       aria-modal="true"
@@ -71,8 +74,10 @@ export function ImageLightbox({ src, alt, open, onClose }: ImageLightboxProps) {
       >
         &times;
       </button>
+      {/* Keys are deliberately not stopped here: Escape/shortcuts go to the document/window listeners. */}
       {/* biome-ignore lint/a11y/noStaticElementInteractions: propagation-stopper to prevent backdrop close when clicking the viewer */}
-      <div onClick={(e) => e.stopPropagation()} onKeyDown={stopNonEscape}>
+      {/* biome-ignore lint/a11y/useKeyWithClickEvents: click-only stopper; keyboard is handled by window listeners */}
+      <div onClick={(e) => e.stopPropagation()}>
         <ImageViewer
           key={src}
           src={src}
