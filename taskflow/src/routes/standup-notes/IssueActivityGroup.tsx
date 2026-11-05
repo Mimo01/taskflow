@@ -255,7 +255,10 @@ export default function IssueActivityGroup({
   onOpenIssue,
 }: IssueActivityGroupProps) {
   return (
-    <div>
+    <div
+      data-testid="standup-story-group"
+      className="py-0.5 density-compact:py-px density-comfortable:py-1"
+    >
       {/* Group header: body → peek (onClick), key → full-page (onIssueKeyClick) */}
       <ActivityGroupHeader
         issueKey={issueKey}

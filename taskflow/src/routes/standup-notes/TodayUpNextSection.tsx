@@ -237,9 +237,13 @@ export default function TodayUpNextSection({
           <span>Nothing up next — enjoy the breather</span>
         </div>
       ) : (
-        <div className="flex flex-col gap-1 density-compact:gap-0.5 density-comfortable:gap-2">
+        <div className="flex flex-col divide-y divide-border/40">
           {rows.map((row) => (
-            <div key={row.issue.key}>
+            <div
+              key={row.issue.key}
+              data-testid="standup-story-group"
+              className="py-0.5 density-compact:py-px density-comfortable:py-1"
+            >
               <IssueRow
                 issue={row.issue}
                 storyPointsFieldKey={storyPointsFieldKey}
