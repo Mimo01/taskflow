@@ -169,18 +169,21 @@ describe('deriveStatusBuckets', () => {
 });
 
 describe('deriveAssigneeBuckets', () => {
-  it('includes Unassigned and sorts by remaining desc then name', () => {
+  it('includes Unassigned and sorts by total (bar length) desc then name, like the Time tab', () => {
     const stories = [
       st('A', { assignee: 'Zed', cat: 'done' }),
+      st('A2', { assignee: 'Zed', cat: 'done' }),
+      st('A3', { assignee: 'Zed', cat: 'done' }),
       st('B', { assignee: 'Amy', cat: 'indeterminate' }),
       st('C', { assignee: null }),
       st('D', { assignee: null, cat: 'new' }),
       st('E', { assignee: 'Bob', cat: 'new' }),
     ];
     const b = deriveAssigneeBuckets(stories, 'count', SP);
-    expect(b.map((x) => x.name)).toEqual(['Unassigned', 'Amy', 'Bob', 'Zed']);
-    expect(b[0]).toMatchObject({ todo: 2, remaining: 2 });
-    expect(b[3]).toMatchObject({ done: 1, remaining: 0 });
+    // Zed has nothing remaining but the longest bar, so leads (remaining-desc put Zed last).
+    expect(b.map((x) => x.name)).toEqual(['Zed', 'Unassigned', 'Amy', 'Bob']);
+    expect(b[0]).toMatchObject({ done: 3, remaining: 0 });
+    expect(b[1]).toMatchObject({ todo: 2, remaining: 2 });
   });
 });
 

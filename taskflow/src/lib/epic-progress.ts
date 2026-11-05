@@ -441,7 +441,9 @@ export function deriveAssigneeBuckets(
   }
   const out = [...map.values()];
   for (const b of out) b.remaining = b.inProgress + b.todo;
-  return out.sort((a, b) => b.remaining - a.remaining || a.name.localeCompare(b.name));
+  // Same order as the Time tab (deriveTimePeople): longest bar (total) first, then name.
+  const total = (b: AssigneeBucket) => b.done + b.inProgress + b.todo;
+  return out.sort((a, b) => total(b) - total(a) || a.name.localeCompare(b.name));
 }
 
 export function deriveTimeTotals(stories: JiraIssue[]): TimeTotals {
