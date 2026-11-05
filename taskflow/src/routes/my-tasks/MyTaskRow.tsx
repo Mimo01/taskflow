@@ -4,18 +4,18 @@
  * Row anatomy:
  *   LEFT region (flex-1 min-w-0): indent spacer (subtask only), type icon,
  *     priority icon (parent only), key, summary, chips (parent only)
- *   RIGHT cluster (shrink-0):
- *     status pill | SP slot (w-12, story rows only) | time bar | avatar
+ *   RIGHT cluster (shrink-0, identical layout for parent & subtask):
+ *     status pill | SP slot (w-12) | time bar (w-36) | avatar
  *
- * Story bars are w-[132px], subtask bars w-24 (96px): the story bar is longer
- * by the subtask indent (ml-9 = 36px), growing leftward. So the story's pill +
- * SP sit further left than the subtask's, while bar right edges and the avatar
- * column stay aligned. Subtasks have no SP, so they render no SP slot at all.
+ * Parent and subtask rows share an identical fixed-width right cluster so all
+ * right-edge columns align vertically. Subtasks reserve the SP slot as an
+ * invisible placeholder of the same width.
  *
  * Responsive tiers (Tailwind v4 container variants, keyed to the page
  * @container in MyTasksPage — descendants only, never window width):
  *   < 1024px: SP slot + label chips hidden
  *   <  860px: Flagged / MR chips icon-only (text sr-only, aria-label + title)
+ *   <  720px: time bar narrows 144px -> 96px
  *   <  580px: time bar hidden
  * The LEFT region is overflow-hidden so leftover chips clip instead of
  * painting over the right cluster at extreme widths.
@@ -29,7 +29,7 @@
  */
 
 import { Flag, GitPullRequest, Tag } from 'lucide-react';
-import { StackedTimeBar, TIME_BAR_WIDTH_CLASS } from '@/components/jira/StackedTimeBar';
+import { StackedTimeBar } from '@/components/jira/StackedTimeBar';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
 import { PriorityIcon } from '@/components/ui/priority-icon';
@@ -42,11 +42,6 @@ import type { JiraIssue } from '@/services/jira';
 import { isIssueFlagged } from '@/services/jira';
 import type { ReviewHealth } from '@/services/linkEngine';
 import { useIsPeeked } from '@/stores/peek.store';
-
-// Story time bar = base w-24 (96px) + subtask indent (ml-9 = 36px) = 132px.
-// Literal class (Tailwind needs static names); hide breakpoint must match
-// TIME_BAR_WIDTH_CLASS.
-const STORY_TIME_BAR_WIDTH_CLASS = 'w-[132px] @max-[580px]:hidden';
 
 // ── MR health chip config ─────────────────────────────────────────────────────
 
@@ -158,7 +153,7 @@ export function MyTaskRow({
   }
 
   // ── Shared right cluster ──────────────────────────────────────────────────
-  // Story bar is wider by the subtask indent; subtasks have no SP slot.
+  // Identical layout for parent and subtask — columns align perfectly.
 
   const rightCluster = (
     <div className="flex items-center gap-2 shrink-0">
@@ -167,28 +162,32 @@ export function MyTaskRow({
         <span className={statusPillClass(statusCategoryKey)}>{issue.fields.status.name}</span>
       </div>
 
-      {/* SP slot — fixed w-12 so WebKit never collapses it. Story rows only. */}
-      {!isSubtask && (
-        <span
-          className="flex w-12 shrink-0 items-center justify-center @max-[1024px]:hidden"
-          data-testid="my-task-sp-slot"
-        >
-          {storyPoints !== null ? (
-            <span className="inline-flex w-7 items-center justify-center rounded-md border border-border/60 bg-muted px-1 py-0.5 text-xs font-medium tabular-nums text-foreground">
-              {storyPoints}
-            </span>
-          ) : (
-            <span className="inline-flex w-7 items-center justify-center rounded-md border border-border/60 bg-muted px-1 py-0.5 text-xs font-medium text-muted-foreground/50">
-              ?
-            </span>
-          )}
-        </span>
-      )}
+      {/* SP slot — fixed w-12 so WebKit never collapses it.
+          Subtask: invisible placeholder preserves column alignment. */}
+      <span
+        className="flex w-12 shrink-0 items-center justify-center @max-[1024px]:hidden"
+        data-testid="my-task-sp-slot"
+      >
+        {isSubtask ? (
+          // Invisible placeholder — same dimensions as the filled chip
+          <span
+            className="inline-flex w-7 items-center justify-center rounded-md border border-border/60 bg-muted px-1 py-0.5 text-xs font-medium opacity-0 select-none"
+            aria-hidden
+          >
+            0
+          </span>
+        ) : storyPoints !== null ? (
+          <span className="inline-flex w-7 items-center justify-center rounded-md border border-border/60 bg-muted px-1 py-0.5 text-xs font-medium tabular-nums text-foreground">
+            {storyPoints}
+          </span>
+        ) : (
+          <span className="inline-flex w-7 items-center justify-center rounded-md border border-border/60 bg-muted px-1 py-0.5 text-xs font-medium text-muted-foreground/50">
+            ?
+          </span>
+        )}
+      </span>
 
-      <StackedTimeBar
-        issues={timeIssues}
-        widthClassName={isSubtask ? TIME_BAR_WIDTH_CLASS : STORY_TIME_BAR_WIDTH_CLASS}
-      />
+      <StackedTimeBar issues={timeIssues} />
 
       {/* Assignee avatar */}
       <CachedAvatar
