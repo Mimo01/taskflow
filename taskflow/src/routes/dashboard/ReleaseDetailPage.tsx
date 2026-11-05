@@ -24,7 +24,7 @@ import { ReleaseAssigneeRows } from './release-detail/graphs/ReleaseAssigneeRows
 import { ReleaseBurnup } from './release-detail/graphs/ReleaseBurnup';
 import { ReleaseGraphGrid } from './release-detail/graphs/ReleaseGraphGrid';
 import { ReleaseMrDonut } from './release-detail/graphs/ReleaseMrDonut';
-import { ReleaseStatusDonut } from './release-detail/graphs/ReleaseStatusDonut';
+import { ReleaseStatusRows } from './release-detail/graphs/ReleaseStatusRows';
 import { ReleaseTypeWaffle } from './release-detail/graphs/ReleaseTypeWaffle';
 import { ReleaseDetailSkeleton } from './release-detail/ReleaseDetailSkeleton';
 import { releaseFactItems } from './release-detail/ReleaseFacts';
@@ -40,7 +40,7 @@ import { useReleaseDetail } from './release-detail/useReleaseDetail';
 import { useTaskIssueFilters } from './release-detail/useTaskIssueFilters';
 
 /** Container width from which the graphs form one band (like the AIO cycle stats block). */
-const BAND_MIN_WIDTH = 1400;
+const BAND_MIN_WIDTH = 1180;
 
 // ---- Main Component ----
 
@@ -334,7 +334,14 @@ export default function ReleaseDetailPage() {
       compact
     />
   );
-  const statusEl = <ReleaseStatusDonut rows={statusRows} state={issueGraphState} compact />;
+  const statusEl = (
+    <ReleaseStatusRows
+      rows={statusRows}
+      state={issueGraphState}
+      activeValues={issueFilters.statuses}
+      onToggle={(v) => issueFilters.toggle('statuses', v)}
+    />
+  );
   const mrEl = <ReleaseMrDonut counts={mrDonutCounts} state={donutState} compact />;
   const assigneeEl = (
     <ReleaseAssigneeRows

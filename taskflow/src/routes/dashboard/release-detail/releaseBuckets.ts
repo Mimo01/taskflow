@@ -3,7 +3,6 @@
 import type { ChartSlice } from '@/lib/aio-cycle-charts';
 import { catOf, deriveAssigneeBuckets } from '@/lib/epic-progress';
 import type { StatusBreakdown } from '@/lib/release-list';
-import { statusCategoryColor } from '@/lib/statusStyles';
 import type { JiraIssue } from '@/services/jira';
 import { issueStoryPoints } from './releaseSummaries';
 
@@ -157,36 +156,49 @@ export function deriveReleaseStatusRows(issues: JiraIssue[]): ReleaseStatusRow[]
 
 const CAT_LABEL = { done: 'Done', indeterminate: 'In progress', new: 'To do' } as const;
 
-/** Three-slice donut (done, in progress, to do); tooltip rows are exact status names, max 4. */
-export function statusDonutSlices(rows: ReleaseStatusRow[]): ChartSlice[] {
+/** One By status row: a status category with its exact statuses (for the tooltip). */
+export interface ReleaseStatusCategoryRow {
+  cat: (typeof CAT_ORDER)[number];
+  label: string;
+  count: number;
+  /** Share of all issues, percent (rounded). */
+  share: number;
+  /** Every exact status name in the category (table Status filter keys). */
+  filterValues: string[];
+  /** Exact statuses for the tooltip, larger first; capped at 4 with a "+N more" row. */
+  statuses: { label: string; value: number }[];
+}
+
+/**
+ * By status: always three rows, to do, in progress, done (a zero row keeps the
+ * graph's shape stable). Exact Jira status names go to the tooltip, max 4 rows.
+ */
+export function statusCategoryRows(rows: ReleaseStatusRow[]): ReleaseStatusCategoryRow[] {
   const total = rows.reduce((n, r) => n + r.count, 0);
-  return CAT_ORDER.flatMap((cat) => {
+  return (['new', 'indeterminate', 'done'] as const).map((cat) => {
     const inCat = rows
       .filter((r) => r.cat === cat)
       .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
-    const value = inCat.reduce((n, r) => n + r.count, 0);
-    if (value === 0) return [];
-    const tooltipRows = inCat.slice(0, inCat.length > 4 ? 3 : 4).map((r) => ({
+    const count = inCat.reduce((n, r) => n + r.count, 0);
+    const statuses = inCat.slice(0, inCat.length > 4 ? 3 : 4).map((r) => ({
       label: r.name,
       value: r.count,
     }));
     if (inCat.length > 4) {
       const rest = inCat.slice(3);
-      tooltipRows.push({
+      statuses.push({
         label: `+${rest.length} more`,
         value: rest.reduce((n, r) => n + r.count, 0),
       });
     }
-    return [
-      {
-        key: cat,
-        label: CAT_LABEL[cat],
-        value,
-        share: pct(value, total),
-        color: statusCategoryColor(cat),
-        rows: tooltipRows,
-      },
-    ];
+    return {
+      cat,
+      label: CAT_LABEL[cat],
+      count,
+      share: pct(count, total),
+      filterValues: inCat.flatMap((r) => r.filterValues),
+      statuses,
+    };
   });
 }
 

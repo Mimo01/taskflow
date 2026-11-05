@@ -5,7 +5,7 @@ import {
   deriveReleaseStatusRows,
   deriveReleaseTypeRows,
   mrDonutSlices,
-  statusDonutSlices,
+  statusCategoryRows,
   WAFFLE_LAYOUT,
   waffleCapacity,
   waffleColumns,
@@ -167,7 +167,7 @@ describe('waffleCapacity', () => {
   });
 });
 
-describe('statusDonutSlices', () => {
+describe('statusCategoryRows', () => {
   const row = (name: string, cat: 'done' | 'indeterminate' | 'new', count: number) => ({
     name,
     cat,
@@ -175,36 +175,40 @@ describe('statusDonutSlices', () => {
     filterValues: [name],
   });
 
-  it('returns no slices for no rows', () => {
-    expect(statusDonutSlices([])).toEqual([]);
+  it('always returns the three categories, zero counts included', () => {
+    const s = statusCategoryRows([]);
+    expect(s.map((x) => x.cat)).toEqual(['new', 'indeterminate', 'done']);
+    expect(s.map((x) => x.count)).toEqual([0, 0, 0]);
+    expect(s.every((x) => x.filterValues.length === 0)).toBe(true);
   });
 
-  it('builds one slice per non-empty category in done, in progress, to do order', () => {
-    const s = statusDonutSlices([
+  it('groups exact statuses into to do, in progress, done', () => {
+    const s = statusCategoryRows([
       row('Closed', 'done', 1),
       row('Done', 'done', 2),
       row('To Do', 'new', 5),
     ]);
-    expect(s.map((x) => x.key)).toEqual(['done', 'new']);
-    expect(s.map((x) => x.label)).toEqual(['Done', 'To do']);
-    expect(s.map((x) => x.value)).toEqual([3, 5]);
-    expect(s.map((x) => x.share)).toEqual([38, 63]);
-    expect(s[0].rows).toEqual([
+    expect(s.map((x) => x.label)).toEqual(['To do', 'In progress', 'Done']);
+    expect(s.map((x) => x.count)).toEqual([5, 0, 3]);
+    expect(s.map((x) => x.share)).toEqual([63, 0, 38]);
+    expect(s[2].filterValues).toEqual(['Done', 'Closed']);
+    expect(s[2].statuses).toEqual([
       { label: 'Done', value: 2 },
       { label: 'Closed', value: 1 },
     ]);
   });
 
-  it('caps tooltip rows at four with a +N more row', () => {
-    const s = statusDonutSlices(
+  it('caps tooltip statuses at four with a +N more row; filter keeps every status', () => {
+    const s = statusCategoryRows(
       ['A', 'B', 'C', 'D', 'E', 'F'].map((n, i) => row(n, 'indeterminate', 10 - i)),
     );
-    expect(s[0].rows).toHaveLength(4);
-    expect(s[0].rows[3]).toEqual({ label: '+3 more', value: 7 + 6 + 5 });
+    expect(s[1].statuses).toHaveLength(4);
+    expect(s[1].statuses[3]).toEqual({ label: '+3 more', value: 7 + 6 + 5 });
+    expect(s[1].filterValues).toEqual(['A', 'B', 'C', 'D', 'E', 'F']);
   });
 
   it('lists all four statuses when there are exactly four', () => {
-    const s = statusDonutSlices(['A', 'B', 'C', 'D'].map((n) => row(n, 'new', 1)));
-    expect(s[0].rows.map((r) => r.label)).toEqual(['A', 'B', 'C', 'D']);
+    const s = statusCategoryRows(['A', 'B', 'C', 'D'].map((n) => row(n, 'new', 1)));
+    expect(s[0].statuses.map((r) => r.label)).toEqual(['A', 'B', 'C', 'D']);
   });
 });
