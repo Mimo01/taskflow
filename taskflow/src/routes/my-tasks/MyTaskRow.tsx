@@ -223,7 +223,7 @@ export function MyTaskRow({
         )}
       </span>
 
-      {/* Epic-style time bar — fixed 144px width, no caption (tooltip carries the numbers) */}
+      {/* Epic-style time bar — fixed 144px width, caption below, tooltip has the breakdown */}
       <IssueTimeBar
         issue={timedIssue({
           key: issue.key,
@@ -233,6 +233,7 @@ export function MyTaskRow({
           remaining: remainingSeconds,
         })}
         className={TIME_BAR_WIDTH_CLASS}
+        caption
         testId="my-task-time-bar"
         empty="spacer"
       />

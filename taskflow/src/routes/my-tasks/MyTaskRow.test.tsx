@@ -172,11 +172,13 @@ describe('MyTaskRow — responsive container tiers', () => {
   ])('time bar (%s) narrows below 720px and hides below 580px', (_name, timetracking) => {
     render(<MyTaskRow issue={makeIssue('PROJ-4', 'new', { timetracking })} {...BASE_PROPS} />);
     const bar = screen.getByTestId('my-task-time-bar');
-    expect(bar).toHaveClass('w-[144px]', '@max-[720px]:w-24', '@max-[580px]:hidden');
-    expect(bar).not.toHaveAttribute('style');
+    // Width classes sit on the bar + caption stack when filled, on the bar itself for the spacer.
+    const box = bar.getAttribute('aria-hidden') ? bar : (bar.parentElement as HTMLElement);
+    expect(box).toHaveClass('w-[144px]', '@max-[720px]:w-24', '@max-[580px]:hidden');
+    expect(box).not.toHaveAttribute('style');
   });
 
-  it('time bar: spacer when no data, epic-style bar (no caption) when there is', () => {
+  it('time bar: spacer when no data, epic-style bar with caption below when there is', () => {
     const { unmount } = render(<MyTaskRow issue={makeIssue('PROJ-7', 'new')} {...BASE_PROPS} />);
     expect(screen.getByTestId('my-task-time-bar')).toHaveAttribute('aria-hidden', 'true');
     unmount();
@@ -191,7 +193,7 @@ describe('MyTaskRow — responsive container tiers', () => {
     const bar = screen.getByTestId('my-task-time-bar');
     expect(bar).toHaveAttribute('role', 'img');
     expect(bar).toHaveAttribute('aria-label', 'Logged 1h of 2h');
-    expect(screen.queryByText('1h / 2h')).toBeNull();
+    expect(screen.getByText('1h / 2h')).toBeInTheDocument();
   });
 
   it('LEFT region is overflow-hidden on parent and subtask rows', () => {

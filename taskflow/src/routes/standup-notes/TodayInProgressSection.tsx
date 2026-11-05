@@ -6,7 +6,7 @@
  * with my assigned subtasks nested/indented beneath it (Decision 1).
  *
  * Each row (parent + subtask) shows the shared IssueTimeBar (same as My Tasks):
- * epic-style time bar, tooltip carries the numbers; rows with no time data still
+ * epic-style time bar, caption below, tooltip has the breakdown; rows with no time data still
  * show an empty track.
  *
  * Section degrades per D-03: skeleton while loading, ErrorState on error,
@@ -147,6 +147,7 @@ function IssueRow({
               remaining: issue.fields.timetracking?.remainingEstimateSeconds,
             })}
             className={TODAY_TIME_BAR_WIDTH_CLASS}
+            caption
             testId="standup-time-bar"
           />
           <CachedAvatar

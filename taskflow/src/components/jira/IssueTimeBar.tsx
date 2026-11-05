@@ -15,18 +15,41 @@ interface IssueTimeBarProps {
   testId?: string;
   /** What to render when there is no time data: an empty track, or a blank same-width spacer. */
   empty?: 'track' | 'spacer';
+  /** Show a "logged / estimate" caption under the bar (className then sizes the whole stack). */
+  caption?: boolean;
 }
 
 /**
  * Epic-style time bar + tooltip, shared by every place that shows an issue's time.
  * Same TimeBar as the epic bars: total = logged + remaining, tick at the estimate.
  */
-export function IssueTimeBar({
+export function IssueTimeBar({ caption = false, ...props }: IssueTimeBarProps) {
+  if (!caption) return <TimeBarTrigger {...props} />;
+  const { issue, className = 'w-16' } = props;
+  const est = estimateOf(issue);
+  const logged = loggedOf(issue);
+  if (props.empty === 'spacer' && logged + remainingOf(issue) === 0 && est === 0) {
+    return <TimeBarTrigger {...props} />;
+  }
+  return (
+    <div className={cn('flex shrink-0 flex-col gap-0.5', className)}>
+      <TimeBarTrigger {...props} className="w-full" />
+      <span
+        data-testid="time-bar-caption"
+        className="truncate whitespace-nowrap text-xs tabular-nums text-muted-foreground"
+      >
+        {est > 0 ? `${formatDuration(logged)} / ${formatDuration(est)}` : formatDuration(logged)}
+      </span>
+    </div>
+  );
+}
+
+function TimeBarTrigger({
   issue,
   className = 'w-16',
   testId = 'story-time-bar',
   empty = 'track',
-}: IssueTimeBarProps) {
+}: Omit<IssueTimeBarProps, 'caption'>) {
   const est = estimateOf(issue);
   const logged = loggedOf(issue);
   const remaining = remainingOf(issue);
