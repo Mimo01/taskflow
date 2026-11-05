@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-08-13)
 Phase: 94
 Plan: Not started
 Status: Milestone complete
-Last activity: 2026-11-05 - Completed quick task 261105-low: shared responsive PageHeader (approved)
+Last activity: 2026-11-05 - Completed quick task 261105-m8k: standup split as % + narrow-width Today rows
 
 ## Performance Metrics
 
@@ -132,6 +132,7 @@ None yet.
 | # | Description | Date | Commit | Status | Directory |
 |---|-------------|------|--------|--------|-----------|
 | 261105-low | Shared responsive PageHeader (components/ui/page-header.tsx): one-line header at every width via @container stages — secondary status text hides <52rem, Refresh label icon-only <50rem, other button labels icon-only <44rem, Standup picker drops "Showing:" <30rem, actions wrap under title only as last resort. Standup, Releases, My Tasks, Epics, Worklogs, Test cycles, Backlog migrated (std px-6 py-4 border-border); MR list + Sprint Board left bespoke | 2026-11-05 | 1e1d1d32, 087929dc, 77a7be1e, b6e34371, c8761724 | Approved | [261105-low-standup-notes-page-header-responsive-at-](./quick/261105-low-standup-notes-page-header-responsive-at-/) |
+| 261105-m8k | Standup Notes small screens: split persisted as a ratio (settings v34 resets px width to 50/50; 20–80% clamp, 320px pane floor) so sidebar toggle resizes both panes; panes stack below 40rem split width; Today rows compact by content width (SP <36rem, time bar w-16 <32rem / hidden <28rem, pill compact <24rem / hidden <20rem), titles always visible, avatar kept; verified 800–1920px sidebar open/closed | 2026-11-05 | c86506bc, 26634dc1, 7e1a7aaa | Needs Review | [261105-m8k-fix-standup-notes-layout-on-small-screen](./quick/261105-m8k-fix-standup-notes-layout-on-small-screen/) |
 | 261105-jhg | Epic detail: By person rows ordered by bar length on Count/SP like Time | 2026-11-05 | e350d471 | Approved | [261105-jhg-epic-detail-order-people-graphs-on-all-t](./quick/261105-jhg-epic-detail-order-people-graphs-on-all-t/) |
 | 261105-jlv | Issue detail: removed redundant time bar from Worklog tab (sidebar keeps it) | 2026-11-05 | f8da1c6d | Approved | [261105-jlv-issue-detail-worklog-tab-remove-progress](./quick/261105-jlv-issue-detail-worklog-tab-remove-progress/) |
 | 261105-jq0 | Asset preview: shared zoomable ImageViewer (zoom/pan/pinch/rotate/fit/1:1/keys) for attachments + inline images, text/code font zoom, save-only Download, safe-type Open externally | 2026-11-05 | 7a9418af | Approved | [261105-jq0-asset-preview-zoom-controls](./quick/261105-jq0-asset-preview-zoom-controls/) |
