@@ -148,6 +148,47 @@ describe('timeBarIssues — sources', () => {
     expect(timeBarModel(issues).estimate).toBe(2 * H);
   });
 
+  it('a subtask with an empty nested timetracking uses Jira aggregates (estimate counted)', () => {
+    const s = src(
+      'indeterminate',
+      {},
+      {
+        aggregatetimespent: 1 * H,
+        aggregatetimeoriginalestimate: 3 * H,
+        aggregatetimeestimate: 2 * H,
+      },
+    );
+    const issues = timeBarIssues(s, null, { isSubtask: true });
+    expect(timeBarModel(issues)).toMatchObject({
+      logged: 1 * H,
+      estimate: 3 * H,
+      remaining: 2 * H,
+    });
+  });
+
+  it('a subtask falls back to top-level timeoriginalestimate / timeestimate', () => {
+    const s = src('indeterminate', {}, { timeoriginalestimate: 4 * H, timeestimate: 3 * H });
+    const issues = timeBarIssues(s, null, { isSubtask: true });
+    expect(timeBarModel(issues)).toMatchObject({ estimate: 4 * H, remaining: 3 * H });
+  });
+
+  it('a story total is its own estimate + every subtask estimate (Jira aggregates)', () => {
+    // Story own 2h + subtasks 3h + 1h = 6h aggregate.
+    const story = src(
+      'indeterminate',
+      { est: 2 },
+      { aggregatetimeoriginalestimate: 6 * H, aggregatetimespent: 0 },
+    );
+    const subs = [src('new', { est: 3 }), src('new', { est: 1 })];
+    expect(model(story, subs).estimate).toBe(6 * H);
+  });
+
+  it('a story total is own + subtasks without aggregates too', () => {
+    const story = src('indeterminate', { est: 2, spent: 1 });
+    const subs = [src('new', { est: 3 }), src('done', { est: 1, spent: 1 })];
+    expect(model(story, subs)).toMatchObject({ estimate: 6 * H, logged: 2 * H });
+  });
+
   it('timespent fills in when nested timeSpentSeconds is missing', () => {
     const s: TimedSource = {
       fields: { status: { statusCategory: { key: 'new' } }, timespent: 2 * H },

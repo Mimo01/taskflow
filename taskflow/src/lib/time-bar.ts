@@ -32,6 +32,9 @@ export interface TimedSource {
     aggregatetimeestimate?: number | null;
     /** The issue's own time spent (search/detail top-level field). */
     timespent?: number | null;
+    /** The issue's own original / remaining estimate (top-level fields). */
+    timeoriginalestimate?: number | null;
+    timeestimate?: number | null;
   };
 }
 
@@ -56,8 +59,8 @@ export function ownTimed(src: TimedSource): JiraIssue {
   const tt = src.fields.timetracking;
   return shaped(src, {
     spent: tt?.timeSpentSeconds ?? src.fields.timespent,
-    original: tt?.originalEstimateSeconds,
-    remaining: tt?.remainingEstimateSeconds,
+    original: tt?.originalEstimateSeconds ?? src.fields.timeoriginalestimate,
+    remaining: tt?.remainingEstimateSeconds ?? src.fields.timeestimate,
   });
 }
 
@@ -71,8 +74,9 @@ function hasAggregates(src: TimedSource): boolean {
 
 /**
  * Issues a bar covers. Subtask (or no subtasks known): just the issue, using Jira's aggregate
- * fields for a story when present. Story with subtasks: own time + each subtask, so the bar
- * splits by subtask status.
+ * fields when present (a subtask's aggregates equal its own time, and they are filled even when
+ * the nested `timetracking` object is empty, e.g. Tempo). Story with subtasks: own time + each
+ * subtask, so the bar splits by subtask status and the total is the sum of all.
  */
 export function timeBarIssues(
   issue: TimedSource,
@@ -99,13 +103,15 @@ export function timeBarIssues(
     });
     return [own, ...subs];
   }
-  if (!isSubtask && hasAggregates(issue)) {
+  if (hasAggregates(issue)) {
     const f = issue.fields;
+    const tt = f.timetracking;
     return [
       shaped(issue, {
-        spent: f.aggregatetimespent ?? f.timespent ?? f.timetracking?.timeSpentSeconds,
-        original: f.aggregatetimeoriginalestimate ?? f.timetracking?.originalEstimateSeconds,
-        remaining: f.aggregatetimeestimate ?? f.timetracking?.remainingEstimateSeconds,
+        spent: f.aggregatetimespent ?? f.timespent ?? tt?.timeSpentSeconds,
+        original:
+          f.aggregatetimeoriginalestimate ?? tt?.originalEstimateSeconds ?? f.timeoriginalestimate,
+        remaining: f.aggregatetimeestimate ?? tt?.remainingEstimateSeconds ?? f.timeestimate,
       }),
     ];
   }
