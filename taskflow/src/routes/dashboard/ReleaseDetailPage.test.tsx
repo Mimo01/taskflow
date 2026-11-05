@@ -200,21 +200,69 @@ describe('ReleaseDetailPage', () => {
     expect(screen.getByTestId('release-detail-scroll').className).toMatch(/(^|\s)relative(\s|$)/);
   });
 
-  it('without GitLab: By status takes the MR slot, no milestone fact', () => {
+  it('without GitLab: both donuts render, MR slot says no merge requests yet, no milestone fact', () => {
     renderPage();
-    expect(screen.queryByTestId('release-graph-mrs')).toBeNull();
     expect(screen.getByTestId('release-graph-status')).toBeInTheDocument();
+    expect(screen.getByTestId('release-graph-mrs')).toBeInTheDocument();
+    expect(screen.getByTestId('release-graph-mrs-empty')).toHaveTextContent(
+      'No merge requests yet',
+    );
+    expect(screen.queryByTestId('release-mrs-none')).toBeNull();
     expect(screen.queryByTestId('release-fact-milestone')).toBeNull();
   });
 
-  it('milestone without MRs: By status plus one friendly line, no dashed box', () => {
+  it('union MRs without a milestone still show the MR donut and labels', () => {
+    mockHook.mockReturnValue(
+      fixture({
+        gitlabConfigured: true,
+        gitlabBaseUrl: 'https://gitlab.example.com',
+        activeGitlabProject: 42,
+        mrDonutCounts: { merged: 2, open: 1, draft: 0, closed: 0 },
+        labelSummary: [
+          { label: { name: 'backend', color: '#428BCA', text_color: '#fff' }, count: 1 },
+        ],
+        labelCoverage: { total: 1, labeled: 1, unlabeled: [], allLabeled: true },
+      }) as never,
+    );
+    renderPage();
+    expect(screen.getByTestId('release-mr-donut')).toBeInTheDocument();
+    expect(screen.getByTestId('mr-labels')).toBeInTheDocument();
+  });
+
+  it('milestone with zero union MRs: MR slot is empty, status donut present', () => {
     mockHook.mockReturnValue(gitlabFixture() as never);
     renderPage();
-    expect(screen.queryByTestId('release-graph-mrs')).toBeNull();
-    expect(screen.getByTestId('release-graph-status')).toBeInTheDocument();
-    expect(screen.getByTestId('release-mrs-none')).toHaveTextContent(
-      'No merge requests in this milestone yet',
+    expect(screen.getByTestId('release-graph-mrs-empty')).toHaveTextContent(
+      'No merge requests yet',
     );
+    expect(screen.getByTestId('release-graph-status')).toBeInTheDocument();
+    expect(screen.queryByTestId('release-mrs-none')).toBeNull();
+  });
+
+  it('drift channels in flight with no union MRs: MR slot skeleton', () => {
+    mockHook.mockReturnValue(
+      fixture({
+        gitlabConfigured: true,
+        gitlabBaseUrl: 'https://gitlab.example.com',
+        activeGitlabProject: 42,
+        isLoadingDrift: true,
+      }) as never,
+    );
+    renderPage();
+    expect(screen.getByTestId('release-graph-mrs-skeleton')).toBeInTheDocument();
+  });
+
+  it('unavailable drift channels with no union MRs: MR slot error', () => {
+    mockHook.mockReturnValue(
+      fixture({
+        gitlabConfigured: true,
+        gitlabBaseUrl: 'https://gitlab.example.com',
+        activeGitlabProject: 42,
+        driftUnavailable: true,
+      }) as never,
+    );
+    renderPage();
+    expect(screen.getByTestId('release-graph-mrs-error')).toBeInTheDocument();
   });
 
   // 94-REVIEW CR-01: a rejected milestone-MR fetch (Channel B) leaves
@@ -469,6 +517,7 @@ describe('ReleaseDetailPage', () => {
       ...gitlabFixture(),
       milestoneMRs: [mr],
       releaseMrs: [mr],
+      mrDonutCounts: { merged: 1, open: 0, draft: 0, closed: 0 },
       labelSummary: [
         { label: { name: 'backend', color: '#428BCA', text_color: '#fff' }, count: 1 },
       ],
@@ -496,6 +545,7 @@ describe('ReleaseDetailPage', () => {
       ...gitlabFixture(),
       milestoneMRs: [mr],
       releaseMrs: [mr],
+      mrDonutCounts: { merged: 1, open: 0, draft: 0, closed: 0 },
       labelSummary: [
         { label: { name: 'backend', color: '#428BCA', text_color: '#fff' }, count: 1 },
       ],
@@ -521,7 +571,7 @@ describe('ReleaseDetailPage', () => {
     expect(kids[1].className).not.toContain('pt-5');
   });
 
-  it('shows no label line when By status replaces the MR cell', () => {
+  it('shows no label line when there are no union MRs', () => {
     mockHook.mockReturnValue({
       ...fixture(),
       labelSummary: [
@@ -560,6 +610,7 @@ describe('ReleaseDetailPage', () => {
         ...gitlabFixture(),
         milestoneMRs: [mr],
         releaseMrs: [mr],
+        mrDonutCounts: { merged: 1, open: 0, draft: 0, closed: 0 },
         labelSummary: [
           { label: { name: 'backend', color: '#428BCA', text_color: '#fff' }, count: 1 },
         ],
@@ -581,14 +632,13 @@ describe('ReleaseDetailPage', () => {
       expect(row?.className).not.toContain('flex-wrap');
     });
 
-    it('2x2 grid collapses to 2 columns at 640 and 1 at 440; the band applies from the band width', () => {
+    it('2x2 grid collapses to one column at 640; the band applies from the band width', () => {
       const RealRO = global.ResizeObserver;
       try {
         global.ResizeObserver = withWidth(900);
         const { unmount } = renderPage();
         const grid = screen.getByTestId('release-graph-grid').className;
-        expect(grid).toContain('@max-[640px]/page:grid-cols-2');
-        expect(grid).toContain('@max-[440px]/page:grid-cols-1');
+        expect(grid).toContain('@max-[640px]/page:grid-cols-1');
         unmount();
         global.ResizeObserver = withWidth(1300);
         renderPage();

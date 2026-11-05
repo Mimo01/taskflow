@@ -7,7 +7,7 @@
  */
 
 import { useQueryClient } from '@tanstack/react-query';
-import { GitMerge, PackageOpen } from 'lucide-react';
+import { PackageOpen } from 'lucide-react';
 import { useLayoutEffect, useState } from 'react';
 import { useNavigate, useOutletContext, useParams } from 'react-router-dom';
 import { openExternal } from '@/lib/openExternal';
@@ -22,8 +22,9 @@ import { EditReleaseModal } from './release-detail/EditReleaseModal';
 import { MrLabels } from './release-detail/graphs/MrLabels';
 import { ReleaseAssigneeRows } from './release-detail/graphs/ReleaseAssigneeRows';
 import { ReleaseBurnup } from './release-detail/graphs/ReleaseBurnup';
+import { ReleaseGraphGrid } from './release-detail/graphs/ReleaseGraphGrid';
 import { ReleaseMrDonut } from './release-detail/graphs/ReleaseMrDonut';
-import { ReleaseStatusRows } from './release-detail/graphs/ReleaseStatusRows';
+import { ReleaseStatusDonut } from './release-detail/graphs/ReleaseStatusDonut';
 import { ReleaseTypeWaffle } from './release-detail/graphs/ReleaseTypeWaffle';
 import { ReleaseDetailSkeleton } from './release-detail/ReleaseDetailSkeleton';
 import { releaseFactItems } from './release-detail/ReleaseFacts';
@@ -39,10 +40,7 @@ import { useReleaseDetail } from './release-detail/useReleaseDetail';
 import { useTaskIssueFilters } from './release-detail/useTaskIssueFilters';
 
 /** Container width from which the graphs form one band (like the AIO cycle stats block). */
-const BAND_MIN_WIDTH = 1180;
-/** Graph slot cell; DIVIDER draws the hairline between side-by-side slots (gap-x-4 | line | pl-4). */
-const SLOT_COL = 'flex min-w-0 flex-col';
-const DIVIDER = 'border-l pl-4';
+const BAND_MIN_WIDTH = 1280;
 
 // ---- Main Component ----
 
@@ -91,7 +89,6 @@ export default function ReleaseDetailPage() {
     ownProjectMilestoneList,
     milestoneMRs,
     releaseIssues,
-    releaseMrs,
     primaryRows,
     secondaryRows,
     secondaryKeyTypes,
@@ -273,14 +270,19 @@ export default function ReleaseDetailPage() {
       : 'ready';
   // 94-REVIEW CR-01: a rejected milestone-MR fetch is a failure, not an
   // in-flight load — without this arm the slot showed its skeleton forever.
-  const donutState: 'loading' | 'error' | 'empty' | 'ready' =
-    gitlabMatch.type === 'none' || (milestoneMRs && releaseMrs.length === 0)
-      ? 'empty'
-      : milestoneMrsFailed
+  // The MR donut is always shown. Its state follows the three-channel MR union
+  // (matched before any milestone exists), not the milestone match.
+  const unionMrTotal =
+    mrDonutCounts.merged + mrDonutCounts.open + mrDonutCounts.draft + mrDonutCounts.closed;
+  const donutState: 'loading' | 'error' | 'empty' | 'ready' = !gitlabConfigured
+    ? 'empty'
+    : unionMrTotal > 0
+      ? 'ready'
+      : milestoneMrsFailed || driftUnavailable
         ? 'error'
-        : !milestoneMRs
+        : isLoadingDrift || (gitlabMatch.type !== 'none' && !milestoneMRs)
           ? 'loading'
-          : 'ready';
+          : 'empty';
 
   // Band layout needs the page content width (not the window): measure the scroll
   // wrapper with a callback ref so it works whenever the wrapper mounts.
@@ -301,10 +303,6 @@ export default function ReleaseDetailPage() {
   }, [pageEl]);
   const band = pageWidth >= BAND_MIN_WIDTH;
 
-  const hasMilestone = gitlabConfigured && gitlabMatch.type !== 'none';
-  // The MR donut needs a milestone with MRs; otherwise the slot shows issues by
-  // status so it always carries information.
-  const showDonut = hasMilestone && donutState !== 'empty';
   const statusRows = deriveReleaseStatusRows(releaseIssues);
   const timelineSummary = {
     done: headerBreakdown?.done ?? 0,
@@ -334,32 +332,10 @@ export default function ReleaseDetailPage() {
       showStoryPoints={hasStoryPoints}
       summary={timelineSummary}
       compact
-      className={band ? undefined : '@max-[640px]/page:col-span-full'}
     />
   );
-  const mrSlotEl = showDonut ? (
-    <ReleaseMrDonut counts={mrDonutCounts} state={donutState} compact />
-  ) : (
-    <div className="flex min-w-0 flex-1 flex-col gap-2">
-      <ReleaseStatusRows
-        rows={statusRows}
-        state={issueGraphState}
-        compact
-        className="flex-1"
-        activeValues={issueFilters.statuses}
-        onToggle={(v) => issueFilters.toggle('statuses', v)}
-      />
-      {hasMilestone ? (
-        <p
-          data-testid="release-mrs-none"
-          className="flex items-center gap-1.5 text-xs text-muted-foreground"
-        >
-          <GitMerge className="size-3.5" aria-hidden="true" />
-          No merge requests in this milestone yet
-        </p>
-      ) : null}
-    </div>
-  );
+  const statusEl = <ReleaseStatusDonut rows={statusRows} state={issueGraphState} compact />;
+  const mrEl = <ReleaseMrDonut counts={mrDonutCounts} state={donutState} compact />;
   const assigneeEl = (
     <ReleaseAssigneeRows
       rows={assigneeRows}
@@ -369,7 +345,6 @@ export default function ReleaseDetailPage() {
       maxRows={band ? 5 : 4}
       activeValues={issueFilters.assignees}
       onToggle={(v) => issueFilters.toggle('assignees', v)}
-      className={band ? undefined : '@max-[640px]/page:col-span-full @max-[640px]/page:order-4'}
     />
   );
   const typeEl = (
@@ -378,7 +353,6 @@ export default function ReleaseDetailPage() {
       state={issueGraphState}
       showStoryPoints={hasStoryPoints}
       compact
-      className={undefined}
       activeValues={issueFilters.types}
       onToggle={(v) => issueFilters.toggle('types', v)}
     />
@@ -500,39 +474,16 @@ export default function ReleaseDetailPage() {
                   (burnup fills the row height set by the lists, then MRs/status, type,
                   assignee). Narrower: 2x2, then single column. MR labels
                   follow it. */}
-              {band ? (
-                <div
-                  data-testid="release-graph-grid"
-                  className="mt-1 grid grid-cols-[minmax(220px,1.1fr)_auto_minmax(250px,1.1fr)_minmax(260px,1.1fr)] items-stretch gap-x-4"
-                >
-                  {burnupEl}
-                  <div className={`${SLOT_COL} ${DIVIDER}`}>{mrSlotEl}</div>
-                  <div className={`${SLOT_COL} ${DIVIDER}`}>{typeEl}</div>
-                  <div className={`${SLOT_COL} ${DIVIDER}`}>{assigneeEl}</div>
-                </div>
-              ) : (
-                <div
-                  data-testid="release-graph-grid"
-                  className="mt-1 grid grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] gap-x-4 gap-y-4 @max-[640px]/page:grid-cols-2 @max-[440px]/page:grid-cols-1"
-                >
-                  {burnupEl}
-                  {/* Right column: MRs beside the burnup (which spans the row below 640),
-                      types beside assignees (which drops to its own row below 640). */}
-                  <div
-                    className={`${SLOT_COL} ${DIVIDER} @max-[640px]/page:border-l-0 @max-[640px]/page:pl-0`}
-                  >
-                    {mrSlotEl}
-                  </div>
-                  {assigneeEl}
-                  <div
-                    className={`${SLOT_COL} ${DIVIDER} @max-[440px]/page:border-l-0 @max-[440px]/page:pl-0`}
-                  >
-                    {typeEl}
-                  </div>
-                </div>
-              )}
+              <ReleaseGraphGrid
+                band={band}
+                burnup={burnupEl}
+                status={statusEl}
+                mrs={mrEl}
+                type={typeEl}
+                assignee={assigneeEl}
+              />
               {/* MR labels sit under the graphs (261103-bfx UAT). */}
-              {showDonut && donutState === 'ready' ? (
+              {donutState === 'ready' ? (
                 <MrLabels
                   labelSummary={labelSummary}
                   coverage={labelCoverage}

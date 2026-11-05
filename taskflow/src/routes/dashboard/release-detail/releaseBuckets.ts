@@ -128,8 +128,6 @@ export interface ReleaseStatusRow {
   count: number;
   /** Exact status names this row stands for (table Status filter keys); empty for 'Unknown'. */
   filterValues: string[];
-  /** Set on the single row that stands for several done statuses (fitStatusRows). */
-  mergedStatuses?: number;
 }
 
 /** Issues per exact Jira status name, grouped done, in progress, to do; larger counts first. */
@@ -192,35 +190,6 @@ export function statusDonutSlices(rows: ReleaseStatusRow[]): ChartSlice[] {
   });
 }
 
-/**
- * 94-REVIEW WR-08: fit status rows into `max` slots. Rows sort done first, so
- * when they overflow, several done statuses would fill every slot and push the
- * in-progress and to-do statuses (the actionable ones) out of view. On overflow
- * all done statuses collapse into one "Done" row first; whatever still does not
- * fit is returned as `hidden` for the overflow line's tooltip.
- */
-export function fitStatusRows(
-  rows: ReleaseStatusRow[],
-  max: number,
-): { shown: ReleaseStatusRow[]; hidden: ReleaseStatusRow[] } {
-  if (rows.length <= max) return { shown: rows, hidden: [] };
-  const done = rows.filter((r) => r.cat === 'done');
-  const fitted =
-    done.length > 1
-      ? [
-          {
-            name: 'Done',
-            cat: 'done' as const,
-            count: done.reduce((n, r) => n + r.count, 0),
-            filterValues: done.flatMap((r) => r.filterValues),
-            mergedStatuses: done.length,
-          },
-          ...rows.filter((r) => r.cat !== 'done'),
-        ]
-      : rows;
-  return { shown: fitted.slice(0, max), hidden: fitted.slice(max) };
-}
-
 /** Layout constants of a By type row: name column, blocks, count column. */
 export interface WaffleLayout {
   block: number;
@@ -267,15 +236,4 @@ export function waffleColumns(
   layout: WaffleLayout = WAFFLE_LAYOUT,
 ): number {
   return Math.max(1, Math.min(maxTotal, waffleCapacity(cellWidth, layout)));
-}
-
-/**
- * Width (percent) of a By status bar: the status's share of ALL issues in the
- * release, so a bar only fills the track when one status holds every issue (a
- * bar scaled to the largest status read as 100% progress). A non-empty status
- * keeps a visible minimum so a single issue is never invisible.
- */
-export function statusBarWidth(count: number, total: number): number {
-  if (count <= 0 || total <= 0) return 0;
-  return Math.min(100, Math.max(3, (count / total) * 100));
 }

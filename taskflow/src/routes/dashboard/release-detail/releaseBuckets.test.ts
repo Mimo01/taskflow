@@ -4,12 +4,10 @@ import {
   deriveReleaseAssigneeRows,
   deriveReleaseStatusRows,
   deriveReleaseTypeRows,
-  fitStatusRows,
   mrDonutSlices,
   statusDonutSlices,
   WAFFLE_LAYOUT,
   waffleCapacity,
-  statusBarWidth,
   waffleColumns,
 } from './releaseBuckets';
 
@@ -142,16 +140,6 @@ describe('deriveReleaseStatusRows', () => {
     const rows = deriveReleaseStatusRows([i]);
     expect(rows[0]).toMatchObject({ name: 'Unknown', filterValues: [] });
   });
-  it('fitStatusRows overflow: merged Done row carries every collapsed done status name', () => {
-    const rows = deriveReleaseStatusRows([
-      issue(1, { status: 'Closed', cat: 'done' }),
-      issue(2, { status: 'Released', cat: 'done' }),
-      issue(3, { status: 'In Review', cat: 'indeterminate' }),
-    ]);
-    const { shown } = fitStatusRows(rows, 2);
-    expect(shown[0]).toMatchObject({ name: 'Done', mergedStatuses: 2 });
-    expect([...shown[0].filterValues].sort()).toEqual(['Closed', 'Released']);
-  });
 });
 
 describe('waffleCapacity', () => {
@@ -176,20 +164,6 @@ describe('waffleCapacity', () => {
     expect(Math.ceil(40 / cols)).toBeGreaterThan(1);
     expect(waffleColumns(3, 900)).toBe(3);
     expect(waffleColumns(40, 50)).toBe(1);
-  });
-});
-
-describe('statusBarWidth', () => {
-  it('is the share of all issues, never full unless one status holds everything', () => {
-    // 4,3,4,3,4 of 18: no bar reads as 100%
-    expect(statusBarWidth(4, 18)).toBeCloseTo(22.2, 1);
-    expect(statusBarWidth(3, 18)).toBeCloseTo(16.7, 1);
-    expect(statusBarWidth(18, 18)).toBe(100);
-  });
-  it('keeps a visible minimum for a non-empty status and 0 for none', () => {
-    expect(statusBarWidth(1, 200)).toBe(3);
-    expect(statusBarWidth(0, 10)).toBe(0);
-    expect(statusBarWidth(5, 0)).toBe(0);
   });
 });
 
