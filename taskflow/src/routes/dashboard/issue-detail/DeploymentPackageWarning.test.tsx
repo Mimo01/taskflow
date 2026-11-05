@@ -92,9 +92,14 @@ describe('DeploymentPackageWarning', () => {
     expect(screen.queryByTestId('deployment-package-warning')).toBeNull();
   });
 
-  it('renders nothing for non-Story issue types', () => {
+  it('renders nothing for issue types other than Story and Bug', () => {
     setup({ issueTypeName: 'Epic', fixVersions: [v44] });
     expect(screen.queryByTestId('deployment-package-warning')).toBeNull();
+  });
+
+  it('warns for a Bug just like a Story', async () => {
+    setup({ issueTypeName: 'Bug', fixVersions: [v44] });
+    expect(await screen.findByTestId('deployment-package-warning')).toBeInTheDocument();
   });
 
   it('renders nothing when package and fix version agree', async () => {

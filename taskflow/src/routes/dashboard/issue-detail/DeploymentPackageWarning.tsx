@@ -15,6 +15,7 @@ import {
   extractDeploymentPackageKey,
   indexChildToWeek,
   isPackageFieldUnreadable,
+  isPackageIssueType,
   mergeWeek,
   type PackageFix,
 } from '@/lib/deployment-package';
@@ -57,7 +58,7 @@ export function DeploymentPackageWarning({
   fallback = null,
 }: DeploymentPackageWarningProps) {
   const { enabled: rmEnabled } = useRmWeekIndex();
-  const active = rmEnabled && issueTypeName === 'Story';
+  const active = rmEnabled && isPackageIssueType(issueTypeName);
 
   const versionsQuery = useQuery({
     queryKey: ['jira-fix-versions', projectKey, jiraBaseUrl],

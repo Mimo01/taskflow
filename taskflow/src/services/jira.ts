@@ -23,6 +23,7 @@ import { getJiraLimit } from '../lib/concurrency';
 import {
   extractLinkedIssueKey,
   ISSUE_KEY_RE,
+  PACKAGE_ISSUE_TYPES,
   type PackageEditShape,
   parseWeekRange,
   type RmChild,
@@ -2831,7 +2832,7 @@ export async function fetchStoriesWithPackageNoFixVersion(
   const base = baseUrl.replace(/\/$/, '');
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
   const jql =
-    `project = "${projectKey}" AND issuetype = Story AND fixVersion is EMPTY ` +
+    `project = "${projectKey}" AND issuetype in (${PACKAGE_ISSUE_TYPES.join(', ')}) AND fixVersion is EMPTY ` +
     `AND cf[15725] in (${keys.map((k) => `"${k}"`).join(', ')})`;
   const fields = 'summary,issuetype,project,status,fixVersions,customfield_15725,assignee,reporter';
   try {

@@ -115,6 +115,12 @@ describe('DeploymentPackageSection', () => {
     );
   });
 
+  it('lists drifted Bugs alongside Stories', async () => {
+    renderSection([issue('B-1', 'Bug', null, [v44]), issue('B-2', 'Bug', 'RM-21', [v44])]);
+    expect(await screen.findByText('Summary B-1')).toBeInTheDocument();
+    expect(screen.queryByText('Summary B-2')).toBeNull();
+  });
+
   it('shows the error from a failed fix', async () => {
     applyFix.mockRejectedValue(new Error('Field not on screen'));
     renderSection([issue('S-1', 'Story', null, [v44])]);

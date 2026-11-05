@@ -16,6 +16,7 @@ import {
   extractDeploymentPackageKey,
   findWeekForDate,
   isPackageFieldUnreadable,
+  isPackageIssueType,
   type PackageFix,
   type PackageFixVersion,
   type PackageSyncResult,
@@ -179,7 +180,7 @@ export function DeploymentPackageSection({
   const projectVersions = versionsQuery.data ?? [];
 
   const onlyStories = useMemo(
-    () => stories.filter((s) => s.fields.issuetype?.name === 'Story'),
+    () => stories.filter((s) => isPackageIssueType(s.fields.issuetype?.name)),
     [stories],
   );
   // Children are loaded lazily: only for the weeks of the stories' fix versions, and packages

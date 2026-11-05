@@ -69,6 +69,13 @@ export interface PackageStoryLike {
 
 export const DEPLOYMENT_PACKAGE_FIELD = 'customfield_15725';
 
+/** Issue types whose fix version is matched against their Deployment package. */
+export const PACKAGE_ISSUE_TYPES = ['Story', 'Bug'] as const;
+
+export function isPackageIssueType(name: string | null | undefined): boolean {
+  return !!name && (PACKAGE_ISSUE_TYPES as readonly string[]).includes(name);
+}
+
 export const ISSUE_KEY_RE = /^[A-Z][A-Z0-9_]+-\d+$/;
 const WEEK_RE =
   /WEEK\s*(\d+)\s*\(\s*(\d{1,2})\.(\d{1,2})\.(\d{4})\s*[-–]\s*(\d{1,2})\.(\d{1,2})\.(\d{4})\s*\)/i;
