@@ -33,7 +33,6 @@ import {
   createIssue,
   fetchCreatemeta,
   type JiraIssueDetail,
-  type JiraUser,
   wrapCustomFieldValue,
 } from '@/services/jira';
 import { invalidateGhAllData } from '@/services/jira/greenhopper/useGhAllData';
@@ -195,7 +194,6 @@ function SortableRowItem({
   row,
   rowState,
   creatmetaFields,
-  allAssignees,
   placeholderCtx,
   creating,
   onChange,
@@ -204,7 +202,6 @@ function SortableRowItem({
   row: BulkCreateRow;
   rowState: RowState;
   creatmetaFields?: CreatemetaField[];
-  allAssignees?: JiraUser[];
   placeholderCtx: Parameters<typeof SubtaskTemplateRow>[0]['placeholderCtx'];
   creating: boolean;
   onChange: (patch: Partial<BulkCreateRow>) => void;
@@ -228,7 +225,6 @@ function SortableRowItem({
         onChange={(patch) => onChange(patch as Partial<BulkCreateRow>)}
         onRemove={onRemove}
         creatmetaFields={creatmetaFields}
-        assignees={allAssignees}
         placeholderCtx={placeholderCtx}
         rowState={rowState}
         dragHandleProps={creating ? {} : { ...attributes, ...listeners }}
@@ -369,26 +365,6 @@ export function BulkCreateSubtasksModal({
     }
     return map;
   }, [parentFields, customRequiredFields]);
-
-  // Assignable users for the project
-  const { data: allAssignees = [] } = useQuery<JiraUser[]>({
-    queryKey: ['assignable-users', projectKey, jiraBaseUrl],
-    queryFn: async () => {
-      const token = await readSecret('jira-pat').catch(() => null);
-      if (!token || !jiraBaseUrl || !projectKey) return [];
-      const base = jiraBaseUrl.replace(/\/$/, '');
-      const resp = await apiFetch(
-        'jira',
-        `${base}/rest/api/2/user/assignable/search?project=${projectKey}&maxResults=200`,
-        { headers: { Authorization: `Bearer ${token}` } },
-        'Bulk Create Subtasks',
-      );
-      if (!resp.ok) return [];
-      return (await resp.json()) as JiraUser[];
-    },
-    enabled: open && !!projectKey && !!jiraBaseUrl,
-    staleTime,
-  });
 
   // Placeholder context for chip hints
   const placeholderCtx = {
@@ -713,7 +689,6 @@ export function BulkCreateSubtasksModal({
                       row={row}
                       rowState={rowStates[idx] ?? { status: 'pending' }}
                       creatmetaFields={creatmetaFields}
-                      allAssignees={allAssignees}
                       placeholderCtx={placeholderCtx}
                       creating={creating}
                       onChange={(patch) => handleRowChange(idx, patch)}

@@ -314,26 +314,35 @@ describe('WorklogsPage', () => {
   // ── TEMPO-03: people filter ────────────────────────────────────────────────
 
   describe('TEMPO-03 — people filter', () => {
-    it('shows dropdown options from assignable users (Jira user search)', async () => {
+    const trigger = (getByRole: (r: string, o: { name: string }) => HTMLElement) =>
+      getByRole('button', { name: 'Filter by person' });
+
+    async function selectAlice(getByRole: Parameters<typeof trigger>[0]) {
+      fireEvent.click(trigger(getByRole));
+      return waitFor(() => {
+        const row = Array.from(document.querySelectorAll('button')).find(
+          (b) => b.textContent?.includes('Alice Smith') && b.textContent !== 'Filter by person',
+        );
+        expect(row).toBeTruthy();
+        return row as HTMLElement;
+      });
+    }
+
+    it('shows options from assignable users (Jira user search) in the shared picker', async () => {
       mockAssignableUsersResult = [
         { name: 'alice', displayName: 'Alice Smith' },
         { name: 'bob', displayName: 'Bob Jones' },
       ];
 
-      const { getByRole, container } = await renderPage();
+      const { getByRole } = await renderPage();
+      fireEvent.click(trigger(getByRole));
 
-      // Focus the combobox input to open dropdown
-      const input = getByRole('combobox');
-      fireEvent.focus(input);
-
-      // Both display names should appear in the dropdown <ul>
       await waitFor(() => {
-        const dropdown = container.querySelector('ul');
-        expect(dropdown).toBeTruthy();
-        const buttons = (dropdown as Element).querySelectorAll('button');
-        const labels = Array.from(buttons).map((b) => b.textContent?.trim());
-        expect(labels).toContain('Alice Smith');
-        expect(labels).toContain('Bob Jones');
+        const labels = Array.from(document.querySelectorAll('button')).map((b) =>
+          b.textContent?.trim(),
+        );
+        expect(labels.some((l) => l?.includes('Alice Smith'))).toBe(true);
+        expect(labels.some((l) => l?.includes('Bob Jones'))).toBe(true);
       });
     });
 
@@ -343,23 +352,11 @@ describe('WorklogsPage', () => {
         { name: 'bob', displayName: 'Bob Jones' },
       ];
 
-      const { getByRole, container } = await renderPage();
+      const { getByRole } = await renderPage();
       const { fetchWorklogs } = await import('@/services/tempo');
       await waitFor(() => expect(fetchWorklogs).toHaveBeenCalled());
 
-      const input = getByRole('combobox');
-      fireEvent.focus(input);
-
-      await waitFor(() => {
-        expect(container.querySelector('ul')).toBeTruthy();
-      });
-
-      const dropdown = container.querySelector('ul') as Element;
-      const aliceButton = Array.from(dropdown.querySelectorAll('button')).find(
-        (b) => b.textContent?.trim() === 'Alice Smith',
-      );
-      expect(aliceButton).toBeTruthy();
-      fireEvent.mouseDown(aliceButton as Element);
+      fireEvent.click(await selectAlice(getByRole));
 
       // fetchWorklogs should be called with ['alice'] as usernames
       await waitFor(() => {
@@ -369,30 +366,17 @@ describe('WorklogsPage', () => {
       });
     });
 
-    it('shows the selected person inside the input (no chip)', async () => {
+    it('shows the selected person in the trigger (no chip)', async () => {
       mockAssignableUsersResult = [{ name: 'alice', displayName: 'Alice Smith' }];
 
       const { getByRole, container } = await renderPage();
       const { fetchWorklogs } = await import('@/services/tempo');
       await waitFor(() => expect(fetchWorklogs).toHaveBeenCalled());
 
-      const input = getByRole('combobox');
-      fireEvent.focus(input);
+      fireEvent.click(await selectAlice(getByRole));
 
       await waitFor(() => {
-        expect(container.querySelector('ul')).toBeTruthy();
-      });
-
-      const dropdown = container.querySelector('ul') as Element;
-      const aliceButton = Array.from(dropdown.querySelectorAll('button')).find(
-        (b) => b.textContent?.trim() === 'Alice Smith',
-      );
-      expect(aliceButton).toBeTruthy();
-      fireEvent.mouseDown(aliceButton as Element);
-
-      // After selecting Alice: input value should be 'Alice Smith' (when not focused)
-      await waitFor(() => {
-        expect((input as HTMLInputElement).value).toBe('Alice Smith');
+        expect(trigger(getByRole)).toHaveTextContent('Alice Smith');
       });
 
       // No Badge chip should be in the DOM (Badge uses bg-secondary)
@@ -417,9 +401,8 @@ describe('WorklogsPage', () => {
       const lastCall = calls[calls.length - 1];
       expect(lastCall[2]).toEqual(['jdoe']); // usernames arg
 
-      // Input should display the user's display name when not focused
-      const input = getByRole('combobox') as HTMLInputElement;
-      expect(input.value).toBe('Jane Doe');
+      // Trigger should display the user's display name
+      expect(trigger(getByRole)).toHaveTextContent('Jane Doe');
     });
 
     it('does NOT seed a default when jiraUsername is null', async () => {
@@ -436,71 +419,65 @@ describe('WorklogsPage', () => {
       const lastCall = calls[calls.length - 1];
       expect(lastCall[2]).toEqual([]);
 
-      // Input should be empty with placeholder
-      const input = getByRole('combobox') as HTMLInputElement;
-      expect(input.value).toBe('');
-      expect(input.placeholder).toBe('Filter by person');
+      // Trigger shows the placeholder
+      expect(trigger(getByRole)).toHaveTextContent('Filter by person');
     });
 
-    it('focusing the input clears the displayed selection text and shows the dropdown', async () => {
+    it('opening the picker shows the full list; Escape keeps the selection', async () => {
       mockAssignableUsersResult = [{ name: 'alice', displayName: 'Alice Smith' }];
 
-      const { getByRole, container } = await renderPage();
+      const { getByRole } = await renderPage();
       const { fetchWorklogs } = await import('@/services/tempo');
       await waitFor(() => expect(fetchWorklogs).toHaveBeenCalled());
 
-      const input = getByRole('combobox') as HTMLInputElement;
+      expect(trigger(getByRole)).toHaveTextContent('Jane Doe');
 
-      // Initially shows the authenticated user's display name
-      expect(input.value).toBe('Jane Doe');
-
-      // Focus clears the visible text so the user can type a new query
-      fireEvent.focus(input);
-      expect(input.value).toBe('');
-
-      // Dropdown should open with the full list
+      fireEvent.click(trigger(getByRole));
       await waitFor(() => {
-        const dropdown = container.querySelector('ul');
-        expect(dropdown).toBeTruthy();
-        const buttons = Array.from((dropdown as Element).querySelectorAll('button')).map((b) =>
+        const labels = Array.from(document.querySelectorAll('button')).map((b) =>
           b.textContent?.trim(),
         );
-        expect(buttons).toContain('Alice Smith');
+        expect(labels.some((l) => l?.includes('Alice Smith'))).toBe(true);
       });
 
-      // Blur without selecting — selection should be restored
-      fireEvent.blur(input);
-      await waitFor(
-        () => {
-          expect(input.value).toBe('Jane Doe');
-        },
-        { timeout: 500 },
-      );
+      fireEvent.keyDown(document.querySelector('input[placeholder="Filter users..."]') as Element, {
+        key: 'Escape',
+      });
+      await waitFor(() => {
+        expect(document.querySelector('input[placeholder="Filter users..."]')).toBeNull();
+      });
+      expect(trigger(getByRole)).toHaveTextContent('Jane Doe');
     });
 
-    it('typing in input filters dropdown options', async () => {
+    it('typing in the picker searches Jira with the typed term', async () => {
       mockAssignableUsersResult = [
         { name: 'alice', displayName: 'Alice Smith' },
         { name: 'bob', displayName: 'Bob Jones' },
         { name: 'charlie', displayName: 'Charlie Brown' },
       ];
 
-      const { getByRole, container } = await renderPage();
+      const { getByRole } = await renderPage();
+      const { fetchAssignableUsers } = await import('@/services/jira/users');
 
-      const input = getByRole('combobox');
-      fireEvent.focus(input);
+      fireEvent.click(trigger(getByRole));
+      const input = (await waitFor(() => {
+        const el = document.querySelector('input[placeholder="Filter users..."]');
+        expect(el).toBeTruthy();
+        return el;
+      })) as Element;
       fireEvent.change(input, { target: { value: 'ali' } });
 
-      // Mock filters by query — dropdown should show only Alice
+      // The typed term is sent to the server (mock filters by query)
       await waitFor(() => {
-        const dropdown = container.querySelector('ul');
-        expect(dropdown).toBeTruthy();
-        const buttons = Array.from((dropdown as Element).querySelectorAll('button')).map((b) =>
+        const queries = (fetchAssignableUsers as ReturnType<typeof vi.fn>).mock.calls.map(
+          (c) => c[3],
+        );
+        expect(queries).toContain('ali');
+        const labels = Array.from(document.querySelectorAll('button')).map((b) =>
           b.textContent?.trim(),
         );
-        expect(buttons).toContain('Alice Smith');
-        expect(buttons).not.toContain('Bob Jones');
-        expect(buttons).not.toContain('Charlie Brown');
+        expect(labels.some((l) => l?.includes('Alice Smith'))).toBe(true);
+        expect(labels.some((l) => l?.includes('Bob Jones'))).toBe(false);
       });
     });
   });
@@ -1375,16 +1352,14 @@ describe('WorklogsPage', () => {
 
   // ── CLEAN-01: timer cleanup on unmount ────────────────────────────────────
 
-  describe('CLEAN-01 — timer cleanup on unmount', () => {
-    it('does not fire setOpen after unmount when a close timer is pending', async () => {
+  describe('CLEAN-01 — cleanup on unmount', () => {
+    it('does not update state after unmount while the person picker is open', async () => {
       const { getByRole, unmount } = await renderPage();
       const { fetchWorklogs } = await import('@/services/tempo');
       await waitFor(() => expect(fetchWorklogs).toHaveBeenCalled());
 
-      // Trigger a blur to start the close timer
-      const input = getByRole('combobox');
-      fireEvent.focus(input);
-      fireEvent.blur(input);
+      // Open the picker so its debounce timer is live
+      fireEvent.click(getByRole('button', { name: 'Filter by person' }));
 
       // Suppress expected console.error to catch any unexpected act() warnings
       const originalError = console.error.bind(console);
@@ -1398,11 +1373,10 @@ describe('WorklogsPage', () => {
         }
       };
 
-      // Unmount immediately — cleanup useEffect should cancel the timer
       unmount();
 
       // Give time for any pending timer to fire if cleanup failed
-      await new Promise((r) => setTimeout(r, 200));
+      await new Promise((r) => setTimeout(r, 300));
 
       console.error = originalError;
 

@@ -1,3 +1,4 @@
+import { useQuery } from '@tanstack/react-query';
 import {
   AlertCircle,
   CheckCircle2,
@@ -11,6 +12,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Input } from '@/components/ui/input';
+import { PersonPicker, toPersonValue } from '@/components/ui/person-picker';
 import {
   Select,
   SelectContent,
@@ -18,7 +20,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import type { CreatemetaField, JiraUser } from '@/services/jira';
+import type { CreatemetaField } from '@/services/jira';
+import { fetchJiraUserByName } from '@/services/jira/users';
+import { readSecret } from '@/services/stronghold';
+import { useAuthStore } from '@/stores/auth.store';
 import type { SubtaskTemplateRow as SubtaskTemplateRowType } from '@/stores/subtask-templates.store';
 import type { PlaceholderContext } from '../resolveRowPlaceholders';
 import { resolveAssignee } from '../resolveRowPlaceholders';
@@ -39,7 +44,6 @@ interface SubtaskTemplateRowProps {
   onChange: (patch: Partial<SubtaskTemplateRowType>) => void;
   onRemove: () => void;
   creatmetaFields?: CreatemetaField[];
-  assignees?: JiraUser[];
   placeholderCtx?: PlaceholderContext;
   rowState?: RowState;
   dragHandleProps?: React.HTMLAttributes<HTMLButtonElement>;
@@ -154,7 +158,6 @@ export function SubtaskTemplateRow({
   onChange,
   onRemove,
   creatmetaFields,
-  assignees: _assignees,
   placeholderCtx,
   rowState,
   dragHandleProps,
@@ -174,6 +177,31 @@ export function SubtaskTemplateRow({
   const assigneeHint = placeholderCtx
     ? resolveAssignee(row.assignee, placeholderCtx).displayHint
     : row.assignee;
+
+  const jiraBaseUrl = useAuthStore((s) => s.jiraBaseUrl) ?? '';
+  const activeJiraProject = useAuthStore((s) => s.activeJiraProject) ?? '';
+
+  // Resolve a concrete username to display name + avatar for the trigger (cached forever).
+  const concreteName = isPlaceholder || !row.assignee ? null : row.assignee;
+  const userQuery = useQuery({
+    queryKey: ['jira-user-by-name', jiraBaseUrl, concreteName],
+    queryFn: async () => {
+      const token = await readSecret('jira-pat').catch(() => null);
+      if (!token || !concreteName) return null;
+      return fetchJiraUserByName(jiraBaseUrl, token, concreteName);
+    },
+    enabled: !!concreteName && !!jiraBaseUrl,
+    staleTime: Infinity,
+  });
+  const resolvedUser = userQuery.data ? toPersonValue(userQuery.data) : null;
+
+  const placeholderIds = ['@inherit', '@current', '@unassigned'] as const;
+  const placeholderLabel = (id: (typeof placeholderIds)[number]) =>
+    mode === 'preview' && placeholderCtx ? (
+      <PlaceholderChip value={id} hint={resolveAssignee(id, placeholderCtx).displayHint} />
+    ) : (
+      id
+    );
 
   const titleInvalid = row.title.trim() === '';
 
@@ -227,37 +255,35 @@ export function SubtaskTemplateRow({
           {/* Assignee selector */}
           <div className="flex flex-1 min-w-[8rem] flex-col gap-1">
             <span className="text-xs font-medium text-muted-foreground">Assignee</span>
-            {isPlaceholder && mode === 'preview' && placeholderCtx ? (
-              <div className="flex h-8 min-w-0 items-center">
-                <PlaceholderChip
-                  value={row.assignee as '@inherit' | '@current' | '@unassigned'}
-                  hint={assigneeHint}
-                />
-              </div>
-            ) : isPlaceholder ? (
-              <Select
-                value={row.assignee}
-                onValueChange={(v) => onChange({ assignee: v ?? '@unassigned' })}
-                disabled={isDisabled}
-              >
-                <SelectTrigger className="w-full h-8 text-sm">
-                  <SelectValue placeholder="Assignee" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="@inherit">@inherit</SelectItem>
-                  <SelectItem value="@current">@current</SelectItem>
-                  <SelectItem value="@unassigned">@unassigned</SelectItem>
-                </SelectContent>
-              </Select>
-            ) : (
-              <Input
-                className="w-full h-8 text-sm"
-                value={row.assignee}
-                onChange={(e) => onChange({ assignee: e.target.value })}
-                placeholder="Assignee"
-                disabled={isDisabled}
-              />
-            )}
+            <PersonPicker
+              variant="field"
+              aria-label="Assignee"
+              projectKey={activeJiraProject}
+              jiraBaseUrl={jiraBaseUrl}
+              value={
+                concreteName
+                  ? (resolvedUser ?? { name: concreteName, displayName: concreteName })
+                  : null
+              }
+              extraOptions={placeholderIds.map((id) => ({ id, label: placeholderLabel(id) }))}
+              selectedOptionId={isPlaceholder ? row.assignee : undefined}
+              onSelectOption={(id) => onChange({ assignee: id })}
+              onChange={(user) => user && onChange({ assignee: user.name })}
+              triggerContent={
+                isPlaceholder ? (
+                  mode === 'preview' && placeholderCtx ? (
+                    <PlaceholderChip
+                      value={row.assignee as '@inherit' | '@current' | '@unassigned'}
+                      hint={assigneeHint}
+                    />
+                  ) : (
+                    <span className="truncate">{row.assignee}</span>
+                  )
+                ) : undefined
+              }
+              emptyLabel="Assignee"
+              disabled={isDisabled}
+            />
           </div>
 
           {/* Priority select */}

@@ -40,6 +40,7 @@ import { DatePicker } from '@/components/ui/date-picker';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { PageHeader } from '@/components/ui/page-header';
+import { PersonPicker } from '@/components/ui/person-picker';
 import { Skeleton } from '@/components/ui/skeleton';
 import { apiFetch } from '@/lib/apiFetch';
 import { orderSubtaskKeys } from '@/lib/subtask-order';
@@ -50,7 +51,6 @@ import {
   getThisWeekRange,
   normalizeDatePreset,
 } from '@/lib/worklog-date-ranges';
-import { fetchAssignableUsers } from '@/services/jira/users';
 import { readSecret } from '@/services/stronghold';
 import { fetchUserSchedule, fetchWorklogs, type ScheduleDayType } from '@/services/tempo';
 import type { DatePreset } from '@/services/tempo/types';
@@ -244,11 +244,6 @@ export default function WorklogsPage() {
     if (tableRef.current?.dataset.colHover) delete tableRef.current.dataset.colHover;
   };
 
-  // Combobox state
-  const [query, setQuery] = useState('');
-  const [open, setOpen] = useState(false);
-  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
   // Tempo filters store (TEMPO-04, TEMPO-05)
   const { savedFilters, addFilter, removeFilter, renameFilter, moveFilter } =
     useTempoFiltersStore();
@@ -269,15 +264,6 @@ export default function WorklogsPage() {
       setSelectedDisplayName(jiraUserDisplayName);
     }
   }, [jiraUsername, jiraUserDisplayName]);
-
-  // ─ CLEAN-01: Clear combobox close timer on unmount ───────────────────────
-  useEffect(() => {
-    return () => {
-      if (closeTimer.current) {
-        clearTimeout(closeTimer.current);
-      }
-    };
-  }, []);
 
   // ─ Compute from/to from preset ───────────────────────────────────────────
   const { from, to } = useMemo(() => {
@@ -452,16 +438,6 @@ export default function WorklogsPage() {
   });
   const dayTypeMap = scheduleData ?? new Map<string, ScheduleDayType>();
 
-  // ─ People list (assignable users from Jira, same source as assignee picker) ─
-  const { data: userResults } = useQuery({
-    queryKey: ['jira', 'assignable-users', jiraBaseUrl, activeJiraProject, query],
-    queryFn: () =>
-      fetchAssignableUsers(jiraBaseUrl ?? '', jiraToken ?? '', activeJiraProject ?? '', query),
-    enabled: open && !!jiraBaseUrl && !!jiraToken && !!activeJiraProject,
-    staleTime: 30_000,
-  });
-  const people = userResults ?? [];
-
   // ─ Hierarchy table (TEMPO-08) ─────────────────────────────────────────────
   const { hierarchy, days, dayTotals, grandTotal, resolvedKeys, enrichMap } = useMemo(() => {
     const daysArr = from && to ? enumerateDays(from, to) : [];
@@ -615,30 +591,9 @@ export default function WorklogsPage() {
     epicLinkFieldKey,
   ]);
 
-  // ─ Combobox handlers ──────────────────────────────────────────────────────
-  function handleComboboxFocus() {
-    if (closeTimer.current) clearTimeout(closeTimer.current);
-    // Clear query so the dropdown opens with the full unfiltered list;
-    // the input will display `query` (empty) while focused — selectedDisplayName
-    // is restored on blur via the inputValue computation below.
-    setQuery('');
-    setOpen(true);
-  }
-
-  function handleComboboxBlur() {
-    closeTimer.current = setTimeout(() => setOpen(false), 150);
-  }
-
-  function handleComboboxChange(e: React.ChangeEvent<HTMLInputElement>) {
-    setQuery(e.target.value);
-    setOpen(true);
-  }
-
   function handlePersonSelect(person: { name: string; displayName: string }) {
     setSelectedUsername(person.name);
     setSelectedDisplayName(person.displayName);
-    setQuery('');
-    setOpen(false);
     userTouchedFilter.current = true;
   }
 
@@ -691,8 +646,6 @@ export default function WorklogsPage() {
     }
     setRenamingId(null);
   }
-
-  const filteredPeople = people;
 
   // ─ JSX ────────────────────────────────────────────────────────────────────
   return (
@@ -853,39 +806,23 @@ export default function WorklogsPage() {
         {/* Separator */}
         <div className="w-px h-5 bg-border mx-1" />
 
-        {/* People filter combobox — input IS the selection display (no chip) */}
-        <div className="relative">
-          <label htmlFor="people-filter" className="sr-only">
-            Filter by person
-          </label>
-          <input
+        {/* People filter — shared person picker; trigger shows the selected person */}
+        <div className="w-52">
+          <PersonPicker
+            variant="field"
+            size="sm"
             id="people-filter"
-            role="combobox"
             aria-label="Filter by person"
-            aria-autocomplete="list"
-            aria-expanded={open}
-            value={open ? query : (selectedDisplayName ?? query)}
-            placeholder="Filter by person"
-            onChange={handleComboboxChange}
-            onFocus={handleComboboxFocus}
-            onBlur={handleComboboxBlur}
-            className="rounded border border-border bg-background px-2 py-1 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring w-52"
+            emptyLabel="Filter by person"
+            projectKey={activeJiraProject ?? undefined}
+            jiraBaseUrl={jiraBaseUrl ?? ''}
+            value={
+              selectedUsername
+                ? { name: selectedUsername, displayName: selectedDisplayName ?? selectedUsername }
+                : null
+            }
+            onChange={(u) => u && handlePersonSelect(u)}
           />
-          {open && filteredPeople.length > 0 && (
-            <ul className="absolute z-20 mt-1 w-max min-w-full max-h-48 overflow-y-auto rounded border border-border bg-background shadow-md">
-              {filteredPeople.map((person) => (
-                <li key={person.name}>
-                  <button
-                    type="button"
-                    className="w-full px-3 py-1.5 text-left text-xs hover:bg-accent"
-                    onMouseDown={() => handlePersonSelect(person)}
-                  >
-                    {person.displayName}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
         </div>
 
         {/* Save filter button (TEMPO-04) — creates pill immediately, enters rename mode */}
