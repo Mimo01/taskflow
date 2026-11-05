@@ -187,8 +187,43 @@ describe('ImageViewer', () => {
     setup({ onDownload, onOpenExternal });
     fireEvent.click(screen.getByLabelText('Download'));
     expect(onDownload).toHaveBeenCalledWith('blob:x');
+    // One file action at a time: wait for Download to settle before Open.
+    await waitFor(() =>
+      expect(screen.getByLabelText('Download').getAttribute('aria-busy')).toBe('false'),
+    );
     fireEvent.click(screen.getByLabelText('Open externally'));
     await waitFor(() => expect(screen.getByText('denied by capability')).toBeTruthy());
+  });
+
+  it('Download button shows busy, then a check, and the message floats without shifting layout', async () => {
+    let resolve: (v: string) => void = () => undefined;
+    const onDownload = vi.fn(
+      () =>
+        new Promise<string>((r) => {
+          resolve = r;
+        }),
+    );
+    setup({ onDownload });
+    const btn = screen.getByLabelText('Download');
+    fireEvent.click(btn);
+    expect(btn.getAttribute('aria-busy')).toBe('true');
+    expect(btn.querySelector('.animate-spin')).toBeTruthy();
+    fireEvent.click(btn);
+    expect(onDownload).toHaveBeenCalledTimes(1);
+    await act(async () => resolve('a.png saved to Downloads.'));
+    expect(btn.getAttribute('aria-busy')).toBe('false');
+    expect(btn.querySelector('.text-emerald-300')).toBeTruthy();
+    const msg = screen.getByRole('status');
+    expect(msg.textContent).toBe('a.png saved to Downloads.');
+    expect(msg.className).toContain('absolute');
+  });
+
+  it('Download failure shows a cross on the button and the error', async () => {
+    setup({ onDownload: vi.fn().mockRejectedValue(new Error('HTTP 404')) });
+    const btn = screen.getByLabelText('Download');
+    fireEvent.click(btn);
+    expect(await screen.findByRole('alert')).toHaveProperty('textContent', 'HTTP 404');
+    expect(btn.querySelector('.text-red-300')).toBeTruthy();
   });
 });
 

@@ -204,6 +204,9 @@ describe('AttachmentPreviewModal pdf', () => {
     expect(ev.defaultPrevented).toBe(false);
     fireEvent.click(screen.getByLabelText('Download'));
     expect(props.onDownload).toHaveBeenCalledWith(pdf);
+    await waitFor(() =>
+      expect(screen.getByLabelText('Download').getAttribute('aria-busy')).toBe('false'),
+    );
     fireEvent.click(screen.getByLabelText('Open externally'));
     expect(onOpenExternal).toHaveBeenCalledWith(pdf);
   });

@@ -19,7 +19,8 @@ interface AttachmentPreviewModalProps {
   open: boolean;
   onClose: () => void;
   onNavigate: (index: number) => void;
-  onDownload: (attachment: JiraAttachment) => void;
+  /** Toolbar Download: may return a promise; rejection shows an error on the button. */
+  onDownload: (attachment: JiraAttachment) => unknown;
   /** Resolves to what was done: launched in the default app, or revealed in Finder. */
   onOpenExternal?: (attachment: JiraAttachment) => Promise<'opened' | 'revealed' | undefined>;
 }
@@ -335,9 +336,6 @@ export function AttachmentPreviewModal({
   const downOnBackdrop = useRef(false);
   const [fallback, setFallback] = useState(false);
   const [fontSize, setFontSize] = useState(DEFAULT_FONT_SIZE);
-  const [openStatus, setOpenStatus] = useState<{ text: string; tone: 'error' | 'info' } | null>(
-    null,
-  );
 
   const activeItem = items[currentIndex];
   const activeKind = activeItem && !fallback ? resolvePreviewKind(activeItem) : 'other';
@@ -348,7 +346,6 @@ export function AttachmentPreviewModal({
   useEffect(() => {
     setFallback(false);
     setFontSize(DEFAULT_FONT_SIZE);
-    setOpenStatus(null);
   }, [currentIndex]);
 
   useEffect(() => {
@@ -413,6 +410,20 @@ export function AttachmentPreviewModal({
   const current = items[currentIndex];
   if (!current) return null;
 
+  // In-body Download buttons (oversized/unsupported fallbacks) have no feedback
+  // slot of their own; swallow rejections so they never go unhandled.
+  const bodyDownload = (attachment: JiraAttachment) => {
+    Promise.resolve(onDownload(attachment)).catch(() => undefined);
+  };
+
+  // Run by the toolbar, which shows busy/done/failed on the button and floats any message.
+  const actions = {
+    onDownload: () => onDownload(current),
+    onOpenExternal: onOpenExternal
+      ? async () => ((await onOpenExternal(current)) === 'revealed' ? REVEALED_MESSAGE : undefined)
+      : undefined,
+  };
+
   const kind = fallback ? 'other' : resolvePreviewKind(current);
 
   let body: React.ReactNode;
@@ -423,28 +434,23 @@ export function AttachmentPreviewModal({
           key={current.id}
           src={current.content}
           alt={current.filename}
-          onDownload={() => onDownload(current)}
-          onOpenExternal={
-            onOpenExternal
-              ? async () =>
-                  (await onOpenExternal(current)) === 'revealed' ? REVEALED_MESSAGE : undefined
-              : undefined
-          }
+          onDownload={actions.onDownload}
+          onOpenExternal={actions.onOpenExternal}
         />
       );
       break;
     case 'text':
-      body = <TextPreview attachment={current} onDownload={onDownload} fontSize={fontSize} />;
+      body = <TextPreview attachment={current} onDownload={bodyDownload} fontSize={fontSize} />;
       break;
     case 'code':
-      body = <CodePreview attachment={current} onDownload={onDownload} fontSize={fontSize} />;
+      body = <CodePreview attachment={current} onDownload={bodyDownload} fontSize={fontSize} />;
       break;
     case 'pdf':
       body = (
         <PdfPreview
           attachment={current}
           onFallback={() => setFallback(true)}
-          onDownload={onDownload}
+          onDownload={bodyDownload}
         />
       );
       break;
@@ -453,7 +459,7 @@ export function AttachmentPreviewModal({
         <VideoPreview
           attachment={current}
           onFallback={() => setFallback(true)}
-          onDownload={onDownload}
+          onDownload={bodyDownload}
         />
       );
       break;
@@ -462,37 +468,20 @@ export function AttachmentPreviewModal({
         <AudioPreview
           attachment={current}
           onFallback={() => setFallback(true)}
-          onDownload={onDownload}
+          onDownload={bodyDownload}
         />
       );
       break;
     default:
-      body = <DownloadFallback attachment={current} onDownload={onDownload} />;
+      body = <DownloadFallback attachment={current} onDownload={bodyDownload} />;
       break;
   }
 
-  async function handleOpenExternal() {
-    if (!onOpenExternal) return;
-    setOpenStatus(null);
-    try {
-      const result = await onOpenExternal(current as JiraAttachment);
-      if (result === 'revealed') setOpenStatus({ text: REVEALED_MESSAGE, tone: 'info' });
-    } catch (err) {
-      setOpenStatus({
-        text: err instanceof Error && err.message ? err.message : 'Open externally failed',
-        tone: 'error',
-      });
-    }
-  }
-
-  const actions = {
-    onDownload: () => onDownload(current),
-    onOpenExternal: onOpenExternal ? () => void handleOpenExternal() : undefined,
-  };
   let toolbar: React.ReactNode = null;
   if (fontZoomActive) {
     toolbar = (
       <ViewerToolbar
+        key={current.id}
         aria-label="Text controls"
         zoom={{
           readout: `${fontSize}px`,
@@ -502,20 +491,11 @@ export function AttachmentPreviewModal({
           zoomInDisabled: fontSize >= (FONT_SIZES[FONT_SIZES.length - 1] ?? 24),
         }}
         onFit={() => setFontSize(DEFAULT_FONT_SIZE)}
-        status={openStatus?.text ?? null}
-        statusTone={openStatus?.tone}
         {...actions}
       />
     );
   } else if (kind === 'pdf' || kind === 'video' || kind === 'audio') {
-    toolbar = (
-      <ViewerToolbar
-        aria-label="File actions"
-        status={openStatus?.text ?? null}
-        statusTone={openStatus?.tone}
-        {...actions}
-      />
-    );
+    toolbar = <ViewerToolbar key={current.id} aria-label="File actions" {...actions} />;
   }
 
   return createPortal(

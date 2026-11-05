@@ -4,7 +4,7 @@ import { useAuthBlob } from './issue-detail/useAuthBlob';
 import { useImageViewer } from './useImageViewer';
 import { ViewerToolbar } from './ViewerToolbar';
 
-/** An action may resolve to an info message to show under the image. */
+/** May return a promise; a resolved string is shown as an info message, a rejection as an error. */
 type ViewerAction = (blobUrl: string) => unknown;
 
 interface ImageViewerProps {
@@ -12,10 +12,6 @@ interface ImageViewerProps {
   alt: string;
   onDownload?: ViewerAction;
   onOpenExternal?: ViewerAction;
-}
-
-function errorMessage(err: unknown, fallback: string): string {
-  return err instanceof Error && err.message ? err.message : fallback;
 }
 
 /**
@@ -27,7 +23,6 @@ export function ImageViewer({ src, alt, onDownload, onOpenExternal }: ImageViewe
   const stageRef = useRef<HTMLDivElement>(null);
   const { state, dispatch } = useImageViewer(stageRef);
   const [imgFailed, setImgFailed] = useState(false);
-  const [status, setStatus] = useState<{ text: string; tone: 'error' | 'info' } | null>(null);
 
   const { loaded, scale, tx, ty, rot, naturalW, naturalH } = state;
   const pannable = isPannable(state);
@@ -35,17 +30,6 @@ export function ImageViewer({ src, alt, onDownload, onOpenExternal }: ImageViewe
   const zoomOutDisabled = !loaded || scale <= floor + 1e-3;
   const zoomInDisabled = !loaded || scale >= MAX_SCALE - 1e-3;
   const canClickZoom = loaded && !zoomInDisabled;
-
-  async function run(action: ViewerAction | undefined, label: string) {
-    if (!action || !blobUrl) return;
-    setStatus(null);
-    try {
-      const message = await action(blobUrl);
-      if (typeof message === 'string' && message) setStatus({ text: message, tone: 'info' });
-    } catch (err) {
-      setStatus({ text: errorMessage(err, `${label} failed`), tone: 'error' });
-    }
-  }
 
   const showPlaceholder = !loaded && !error && !imgFailed;
 
@@ -110,17 +94,11 @@ export function ImageViewer({ src, alt, onDownload, onOpenExternal }: ImageViewe
         onFit={() => dispatch({ type: 'fit' })}
         onActual={() => dispatch({ type: 'actual' })}
         onRotate={() => dispatch({ type: 'rotate', dir: 1 })}
-        onDownload={
-          onDownload && blobUrl && !loading ? () => void run(onDownload, 'Download') : undefined
-        }
+        onDownload={onDownload && blobUrl && !loading ? () => onDownload(blobUrl) : undefined}
         onOpenExternal={
-          onOpenExternal && blobUrl && !loading
-            ? () => void run(onOpenExternal, 'Open externally')
-            : undefined
+          onOpenExternal && blobUrl && !loading ? () => onOpenExternal(blobUrl) : undefined
         }
         controlsDisabled={!loaded}
-        status={status?.text ?? null}
-        statusTone={status?.tone}
       />
     </div>
   );

@@ -92,6 +92,20 @@ export function AttachmentsSection({
     }
   }
 
+  // Preview-toolbar Download: the toolbar shows busy/✓/✕ on the button, so this
+  // throws on failure and resolves to the confirmation it floats above the pill.
+  async function handlePreviewDownload(att: JiraAttachment): Promise<string> {
+    let savedPath: string | null;
+    try {
+      savedPath = await fetchAndSave(att);
+    } catch (err) {
+      const reason = err instanceof Error ? err.message : String(err);
+      throw new Error(`Couldn't download ${att.filename}: ${reason}`);
+    }
+    if (!savedPath) throw new Error('No Jira credentials found.');
+    return `${att.filename} saved to Downloads.`;
+  }
+
   // Throws a readable Error so the preview modal can show it.
   async function handleOpenExternal(att: JiraAttachment): Promise<'opened' | 'revealed'> {
     try {
@@ -252,7 +266,7 @@ export function AttachmentsSection({
         open={previewOpen}
         onClose={() => setPreviewOpen(false)}
         onNavigate={setPreviewIndex}
-        onDownload={handleDownload}
+        onDownload={handlePreviewDownload}
         onOpenExternal={handleOpenExternal}
       />
     </section>

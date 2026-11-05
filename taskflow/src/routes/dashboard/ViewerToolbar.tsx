@@ -1,5 +1,34 @@
-import { Download, ExternalLink, Maximize, RotateCw, ZoomIn, ZoomOut } from 'lucide-react';
+import {
+  Check,
+  Download,
+  ExternalLink,
+  Loader2,
+  Maximize,
+  RotateCw,
+  X,
+  ZoomIn,
+  ZoomOut,
+} from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
+
+/**
+ * A file action run by the toolbar. May return a promise; a resolved string is
+ * shown as an info message, a rejection's message as an error.
+ */
+export type ToolbarAction = () => unknown;
+
+type ActionId = 'download' | 'open';
+type ActionPhase = { id: ActionId; phase: 'busy' | 'done' | 'failed' } | null;
+type Message = { text: string; tone: 'error' | 'info' } | null;
+
+const DONE_MS = 1500;
+const INFO_MS = 3000;
+const ERROR_MS = 6000;
+
+function errorText(err: unknown, fallback: string): string {
+  return err instanceof Error && err.message ? err.message : fallback;
+}
 
 interface ViewerToolbarProps {
   'aria-label'?: string;
@@ -14,14 +43,10 @@ interface ViewerToolbarProps {
   onFit?: () => void;
   onActual?: () => void;
   onRotate?: () => void;
-  onDownload?: () => void;
-  onOpenExternal?: () => void;
+  onDownload?: ToolbarAction;
+  onOpenExternal?: ToolbarAction;
   /** Disables the view controls (zoom/fit/actual/rotate), not Download/Open. */
   controlsDisabled?: boolean;
-  /** Status line rendered above the pill. */
-  status?: string | null;
-  /** 'error' (default) renders red as an alert; 'info' renders neutral. */
-  statusTone?: 'error' | 'info';
 }
 
 const BTN = 'text-white/80 hover:text-white hover:bg-white/10';
@@ -39,26 +64,77 @@ export function ViewerToolbar({
   onDownload,
   onOpenExternal,
   controlsDisabled = false,
-  status,
-  statusTone = 'error',
 }: ViewerToolbarProps) {
   const hasView = !!(zoom || onFit || onActual || onRotate);
   const hasActions = !!(onDownload || onOpenExternal);
+  const [action, setAction] = useState<ActionPhase>(null);
+  const [message, setMessage] = useState<Message>(null);
+  const actionTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const messageTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const mounted = useRef(true);
+
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      clearTimeout(actionTimer.current);
+      clearTimeout(messageTimer.current);
+    };
+  }, []);
+
+  function showMessage(next: Message) {
+    clearTimeout(messageTimer.current);
+    setMessage(next);
+    if (next) {
+      messageTimer.current = setTimeout(
+        () => setMessage(null),
+        next.tone === 'error' ? ERROR_MS : INFO_MS,
+      );
+    }
+  }
+
+  async function runAction(id: ActionId, fn: ToolbarAction, label: string) {
+    if (action?.phase === 'busy') return;
+    clearTimeout(actionTimer.current);
+    showMessage(null);
+    setAction({ id, phase: 'busy' });
+    let failed = false;
+    try {
+      const result = await fn();
+      if (!mounted.current) return;
+      if (typeof result === 'string' && result) showMessage({ text: result, tone: 'info' });
+    } catch (err) {
+      if (!mounted.current) return;
+      failed = true;
+      showMessage({ text: errorText(err, `${label} failed`), tone: 'error' });
+    }
+    setAction({ id, phase: failed ? 'failed' : 'done' });
+    actionTimer.current = setTimeout(() => setAction(null), DONE_MS);
+  }
+
+  function actionIcon(id: ActionId, Idle: typeof Download) {
+    if (action?.id !== id) return <Idle className="size-4" />;
+    if (action.phase === 'busy') return <Loader2 className="size-4 animate-spin" />;
+    if (action.phase === 'done') return <Check className="size-4 text-emerald-300" />;
+    return <X className="size-4 text-red-300" />;
+  }
+
   return (
     // Keys are deliberately not stopped: shortcuts/Escape/arrows must reach the window/document listeners.
     // biome-ignore lint/a11y/noStaticElementInteractions: propagation-stopper so toolbar clicks never reach the backdrop close handler
     // biome-ignore lint/a11y/useKeyWithClickEvents: click-only stopper; keyboard is handled by window listeners
-    <div className="flex flex-col items-center gap-1" onClick={(e) => e.stopPropagation()}>
-      {status &&
-        (statusTone === 'error' ? (
-          <p role="alert" className="text-xs text-red-300 bg-black/60 rounded-full px-3 py-1">
-            {status}
-          </p>
-        ) : (
-          <p role="status" className="text-xs text-white/80 bg-black/60 rounded-full px-3 py-1">
-            {status}
-          </p>
-        ))}
+    <div className="relative flex flex-col items-center" onClick={(e) => e.stopPropagation()}>
+      {/* Floats above the pill (out of flow) so showing it never shifts the layout. */}
+      {message && (
+        <p
+          role={message.tone === 'error' ? 'alert' : 'status'}
+          className={`absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 whitespace-nowrap text-xs bg-black/70 rounded-full px-3 py-1 pointer-events-none ${
+            message.tone === 'error' ? 'text-red-300' : 'text-white/90'
+          }`}
+        >
+          {message.text}
+        </p>
+      )}
       <div
         role="toolbar"
         aria-label={ariaLabel}
@@ -143,11 +219,12 @@ export function ViewerToolbar({
             variant="ghost"
             size="icon-sm"
             className={BTN}
-            onClick={onDownload}
+            onClick={() => void runAction('download', onDownload, 'Download')}
             aria-label="Download"
-            title="Download"
+            aria-busy={action?.id === 'download' && action.phase === 'busy'}
+            title="Download to Downloads folder"
           >
-            <Download className="size-4" />
+            {actionIcon('download', Download)}
           </Button>
         )}
         {onOpenExternal && (
@@ -155,11 +232,12 @@ export function ViewerToolbar({
             variant="ghost"
             size="icon-sm"
             className={BTN}
-            onClick={onOpenExternal}
+            onClick={() => void runAction('open', onOpenExternal, 'Open externally')}
             aria-label="Open externally"
+            aria-busy={action?.id === 'open' && action.phase === 'busy'}
             title="Open in external app"
           >
-            <ExternalLink className="size-4" />
+            {actionIcon('open', ExternalLink)}
           </Button>
         )}
       </div>
