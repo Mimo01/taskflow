@@ -2,6 +2,34 @@
 
 All notable changes to Taskflow are documented here.
 
+## [1.14.18] — 2026-11-05
+
+### Added
+
+- **Zoomable previews** — attachment and asset previews share one viewer with zoom controls: Fit fills the window, a single click zooms, and text previews can change font size. Open externally opens the file in its default app, and Download only saves. Toolbar actions show a short floating confirmation.
+- **One person picker everywhere** — assignee and user fields on the issue detail page, Create/Edit issue, subtask templates, the standup watched person and Worklogs all use the same picker, which searches people on the server instead of filtering a short preloaded list.
+- **All my subtasks on Standup Today** — stories under Today list every subtask assigned to you, done ones included. Which stories appear is still decided by active subtasks.
+
+### Changed
+
+- **One time bar design** — My Tasks, standup, the issue sidebar and epic rows use the same time bar: status colours, the Jira remaining estimate (so forecast overruns show), an estimate tick only when the bar runs past it, and a dashed track when there is no estimate. Every bar has a tooltip, and story bars include their subtasks. The issue detail Worklog tab no longer shows a time bar.
+- **Story subtask rows** — subtask rows on a story look like epic Stories rows, with a time bar and tooltip.
+- **Responsive relationship rows** — Stories, Subtasks and Parent rows on the issue detail page drop secondary details step by step as the panel narrows, keeping the key and title readable.
+- **Release detail graphs** — every release uses the same graph layout. By status is three clickable rows (to do, in progress, done) stacked above By type, and the MR donut is always shown in its own slot, filling its column and showing how many tasks have MRs. Small releases stay balanced, and the loading skeleton matches the layout.
+- **Release detail tooltips** — tooltips on the release detail page open instantly.
+- **Page headers** — Standup, Releases, My Tasks, Epics, Worklogs, Test cycles and Backlog share one responsive header. Buttons collapse to icons as the window narrows (Refresh below 50rem), and the release detail header actions collapse sooner so the title keeps room.
+- **Standup in narrow windows** — the two panes stack when the window is narrow, rows compact step by step so Today titles stay visible, and the split is kept as a ratio so both panes resize with the sidebar.
+- **Epic By person** — rows are sorted by bar length on every tab.
+
+### Fixed
+
+- **Deployment package for Bugs** — the Deployment package warning, the release detail mismatch list and the missing-fix-version check now cover Bugs as well as Stories.
+- **Subtask estimates** — subtask time bars take their estimate from Jira's aggregate fields.
+- **Preview layering** — attachment previews and the lightbox are no longer painted over by the sidebar border.
+- **Closing previews** — Escape closes a preview in macOS fullscreen without leaving fullscreen, and clicking the empty space around a preview closes it.
+- **Person picker width** — the picker dropdown matches the width of wide fields.
+- **Worklogs people filter** — the selected person's avatar shows in the filter.
+
 ## [1.14.17] — 2026-11-03
 
 ### Added
