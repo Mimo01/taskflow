@@ -225,6 +225,7 @@ export function MyTaskRow({
 
       {/* Epic-style time bar — fixed 144px width, caption below, tooltip has the breakdown */}
       <IssueTimeBar
+        colorBy="health"
         issue={timedIssue({
           key: issue.key,
           statusCategoryKey,

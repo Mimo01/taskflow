@@ -78,7 +78,12 @@ export function TimeTrackingSummary({
         <span className="text-xs text-muted-foreground">No time logged</span>
       ) : (
         <div className="flex min-w-0 flex-col gap-0.5">
-          <IssueTimeBar issue={issue} className="w-full" testId="sidebar-time-bar" />
+          <IssueTimeBar
+            colorBy="health"
+            issue={issue}
+            className="w-full"
+            testId="sidebar-time-bar"
+          />
           <span className="text-xs text-muted-foreground tabular-nums whitespace-nowrap">
             {timeCaption(logged, est)}
           </span>

@@ -25,7 +25,7 @@ export function WorklogProgressBar({ issue }: WorklogProgressBarProps) {
 
   return (
     <div className="flex flex-col gap-0.5 py-2">
-      <IssueTimeBar issue={timed} className="w-full" testId="worklog-time-bar" />
+      <IssueTimeBar colorBy="health" issue={timed} className="w-full" testId="worklog-time-bar" />
       <span className="text-xs text-muted-foreground tabular-nums whitespace-nowrap">
         {timeCaption(logged, est)}
       </span>

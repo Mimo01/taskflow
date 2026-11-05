@@ -36,15 +36,15 @@ const HATCH = {
     'repeating-linear-gradient(135deg, transparent 0 3px, rgb(255 255 255 / 0.55) 3px 5px)',
 };
 
-function segmentClass(seg: TimeSegment): string {
+function segmentClass(seg: TimeSegment, healthColor?: string): string {
   const over = seg.severe ? 'bg-red-500' : 'bg-amber-500';
   switch (seg.part) {
     case 'logged':
-      return statusCategoryDotClass(seg.cat);
+      return healthColor ?? statusCategoryDotClass(seg.cat);
     case 'loggedOver':
       return over;
     case 'remaining':
-      return cn(statusCategoryDotClass(seg.cat), 'opacity-35');
+      return cn(healthColor ?? statusCategoryDotClass(seg.cat), 'opacity-35');
     case 'remainingOver':
       return cn(over, 'opacity-35');
   }
@@ -66,9 +66,12 @@ export function TimeBar({
   scale,
   className,
   testId,
+  healthColor,
 }: {
   segments: TimeSegment[];
   estimate: number;
+  /** Replaces the status-category colour of the logged / remaining parts (green / amber / red health). */
+  healthColor?: string;
   /** Shared denominator (e.g. the largest person) so rows compare by length. */
   scale?: number;
   className?: string;
@@ -93,7 +96,7 @@ export function TimeBar({
           <span
             key={`${seg.cat}:${seg.part}`}
             data-segment={`${seg.cat}:${seg.part}`}
-            className={cn('h-full flex-none', segmentClass(seg))}
+            className={cn('h-full flex-none', segmentClass(seg, healthColor))}
             style={{
               width: `${inTrack(seg.seconds)}%`,
               ...(seg.part === 'remainingOver' ? HATCH : {}),

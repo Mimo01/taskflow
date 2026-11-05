@@ -2,6 +2,7 @@ import { TriangleAlert } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { TooltipBody, TooltipRow } from '@/components/ui/tooltip-body';
 import { deriveTimeSegments, estimateOf, loggedOf, remainingOf } from '@/lib/epic-progress';
+import { healthClass, isDoneStatus } from '@/lib/time-progress';
 import { cn } from '@/lib/utils';
 import { TimeBar } from '@/routes/dashboard/issue-detail/EpicBands';
 import { MARKER_ICON } from '@/routes/dashboard/issue-detail/epic-markers';
@@ -17,6 +18,8 @@ interface IssueTimeBarProps {
   empty?: 'track' | 'spacer';
   /** Show a "logged / estimate" caption under the bar (className then sizes the whole stack). */
   caption?: boolean;
+  /** `status` (default): bar coloured by status category. `health`: green / amber / red by logged vs estimate. */
+  colorBy?: 'status' | 'health';
 }
 
 /**
@@ -49,6 +52,7 @@ function TimeBarTrigger({
   className = 'w-16',
   testId = 'story-time-bar',
   empty = 'track',
+  colorBy = 'status',
 }: Omit<IssueTimeBarProps, 'caption'>) {
   const est = estimateOf(issue);
   const logged = loggedOf(issue);
@@ -77,6 +81,11 @@ function TimeBarTrigger({
         <TimeBar
           segments={deriveTimeSegments([issue])}
           estimate={est}
+          healthColor={
+            colorBy === 'health'
+              ? healthClass(logged, est, isDoneStatus(issue.fields.status?.statusCategory?.key))
+              : undefined
+          }
           className="h-1.5 rounded-full"
         />
       </TooltipTrigger>

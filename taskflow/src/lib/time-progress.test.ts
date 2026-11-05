@@ -1,16 +1,21 @@
 import { describe, expect, it } from 'vitest';
-import { isDoneStatus, OVERRUN_RED_RATIO } from './time-progress';
+import { healthClass } from './time-progress';
 
-describe('OVERRUN_RED_RATIO', () => {
-  it('is 125%', () => {
-    expect(OVERRUN_RED_RATIO).toBe(1.25);
+describe('healthClass', () => {
+  it('has no colour without an estimate', () => {
+    expect(healthClass(100, 0, false)).toBeUndefined();
   });
-});
-
-describe('isDoneStatus', () => {
-  it('is true only for done', () => {
-    expect(isDoneStatus('done')).toBe(true);
-    expect(isDoneStatus('indeterminate')).toBe(false);
-    expect(isDoneStatus(undefined)).toBe(false);
+  it('is green well under estimate, amber from 75%', () => {
+    expect(healthClass(50, 100, false)).toBe('bg-green-500');
+    expect(healthClass(75, 100, false)).toBe('bg-amber-500');
+  });
+  it('is green when done at or under estimate', () => {
+    expect(healthClass(100, 100, true)).toBe('bg-green-500');
+    expect(healthClass(90, 100, true)).toBe('bg-green-500');
+  });
+  it('is amber over estimate and red past 125%', () => {
+    expect(healthClass(110, 100, true)).toBe('bg-amber-500');
+    expect(healthClass(125, 100, false)).toBe('bg-amber-500');
+    expect(healthClass(126, 100, false)).toBe('bg-red-500');
   });
 });

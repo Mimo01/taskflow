@@ -139,6 +139,7 @@ function IssueRow({
             </div>
           )}
           <IssueTimeBar
+            colorBy="health"
             issue={timedIssue({
               key: issue.key,
               statusCategoryKey: issue.fields.status.statusCategory?.key,
