@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-08-13)
 Phase: 94
 Plan: Not started
 Status: Milestone complete
-Last activity: 2026-11-05 - Completed quick task 261105-g4u: remove the delay on tooltips in release detail
+Last activity: 2026-11-05 - Completed quick task 261105-gbh: always show MR graph on release detail, redo By status as todo/in-progress/done
 
 ## Performance Metrics
 
@@ -258,6 +258,7 @@ Acknowledged and deferred at v1.14 milestone close (2026-08-13) — 111 open art
 | 261105-fkj | My Tasks + Standup (Today/Yesterday): faint divide-border/40 hairline between story groups (story + its shown subtasks); spacing/row height unchanged | 2026-11-05 | d14d6a1f | REVERTED (user disliked separators) | [261105-fkj-story-group-separators](./quick/261105-fkj-story-group-separators/) |
 | 261105-fw7 | My Tasks + Standup Today: story time bar longer by the subtask indent (My Tasks 132px = 96+36, Standup w-32 = 96+32) so story pill/SP sit further left; subtasks render no SP slot; bar right edges + avatar column aligned | 2026-11-05 | 6ad73c69, e633ca27 | REVERTED (user disliked offset layout) | [261105-fw7-story-vs-subtask-right-side-alignment-in](./quick/261105-fw7-story-vs-subtask-right-side-alignment-in/) |
 | 261105-g4u | Release detail: tooltips open instantly — status/type/assignee row tooltips delay 600→0 (ROW_TOOLTIP_DELAY removed), burnup tooltip slide animation off; shared 150ms default untouched | 2026-11-05 | f9ac9f4b | Approved | [261105-g4u-remove-the-delay-on-tooltips-in-release-](./quick/261105-g4u-remove-the-delay-on-tooltips-in-release-/) |
+| 261105-gbh | Release detail: MR donut always shown (state from 3-channel MR union, not milestone); By status redone as permanent To do/In progress/Done ring donut (exact statuses in tooltip) paired with MR donut; ReleaseGraphGrid layout, BAND_MIN_WIDTH 1180→1400; ReleaseStatusRows removed | 2026-11-05 | edeeba5d, 16823db0, 9f6b4402 | Needs Review | [261105-gbh-always-show-mr-graph-on-release-detail-r](./quick/261105-gbh-always-show-mr-graph-on-release-detail-r/) |
 
 ## Session Continuity
 
