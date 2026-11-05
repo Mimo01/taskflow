@@ -1,11 +1,12 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { ReleaseGraphGrid } from './ReleaseGraphGrid';
+import { ReleaseGraphGrid, statusPairing } from './ReleaseGraphGrid';
 
-function renderGrid(band: boolean) {
+function renderGrid(band: boolean, statusWith?: 'type' | 'assignee') {
   return render(
     <ReleaseGraphGrid
       band={band}
+      statusWith={statusWith}
       burnup={<div data-testid="g-burnup" />}
       status={<div data-testid="g-status" />}
       mrs={<div data-testid="g-mrs" />}
@@ -31,7 +32,7 @@ describe('ReleaseGraphGrid', () => {
   it('status and type share one stacked cell in every layout; MRs stay outside it', () => {
     for (const band of [true, false]) {
       const { unmount } = renderGrid(band);
-      const lists = screen.getByTestId('release-graph-lists');
+      const lists = screen.getByTestId('release-graph-type-group');
       expect(lists).toContainElement(screen.getByTestId('g-status'));
       expect(lists).toContainElement(screen.getByTestId('g-type'));
       expect(follows(screen.getByTestId('g-status'), screen.getByTestId('g-type'))).toBe(true);
@@ -54,5 +55,31 @@ describe('ReleaseGraphGrid', () => {
   it('assignee gets no fit height until the neighbours are measured (jsdom has no layout)', () => {
     renderGrid(true);
     expect(screen.getByTestId('g-assignee')).toHaveAttribute('data-fit', 'none');
+  });
+
+  it('band: status can stack on the assignee list instead', () => {
+    renderGrid(true, 'assignee');
+    const group = screen.getByTestId('release-graph-assignee-group');
+    expect(group).toContainElement(screen.getByTestId('g-status'));
+    expect(follows(screen.getByTestId('g-status'), screen.getByTestId('g-assignee'))).toBe(true);
+    expect(screen.getByTestId('release-graph-type-group')).not.toContainElement(
+      screen.getByTestId('g-status'),
+    );
+  });
+
+  it('2x2 always stacks status on type', () => {
+    renderGrid(false, 'assignee');
+    expect(screen.getByTestId('release-graph-type-group')).toContainElement(
+      screen.getByTestId('g-status'),
+    );
+  });
+});
+
+describe('statusPairing', () => {
+  it('stacks status on the shorter list', () => {
+    expect(statusPairing(4, 12)).toBe('type'); // big release
+    expect(statusPairing(4, 4)).toBe('type'); // 80px types vs 96px people
+    expect(statusPairing(3, 2)).toBe('assignee'); // small release
+    expect(statusPairing(1, 1)).toBe('type'); // 20 vs 24
   });
 });

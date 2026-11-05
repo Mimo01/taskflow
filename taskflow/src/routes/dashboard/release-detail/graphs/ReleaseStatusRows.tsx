@@ -15,7 +15,12 @@ import { ROW_TOOLTIP_SIDE, rowToggleProps } from './rowToggle';
 
 // Same row geometry as the compact By type waffle (stacked directly under it):
 // name column, column gap, 12px line, px-1.5 py-1 selection padding.
-const { block: LINE, nameCol: NAME_COL, rowGap: COL_GAP } = WAFFLE_LAYOUT_COMPACT;
+const {
+  block: LINE,
+  nameCol: NAME_COL,
+  countCol: COUNT_COL,
+  rowGap: COL_GAP,
+} = WAFFLE_LAYOUT_COMPACT;
 const ROW_HEIGHT = LINE + 8;
 const ICON: Record<ReleaseStatusCategoryRow['cat'], LucideIcon> = {
   new: Circle,
@@ -95,10 +100,10 @@ export function ReleaseStatusRows({
             style: {
               height: ROW_HEIGHT,
               columnGap: COL_GAP,
-              gridTemplateColumns: `${NAME_COL}px minmax(40px,1fr) 2rem`,
+              gridTemplateColumns: `${NAME_COL}px minmax(40px,1fr) ${COUNT_COL}px`,
             },
           };
-          const rowClass = 'relative z-10 grid max-w-[22rem] items-center rounded px-1.5';
+          const rowClass = 'relative z-10 grid items-center rounded px-1.5';
           if (row.count === 0) {
             return (
               <div key={row.cat} className={rowClass} {...rowProps}>

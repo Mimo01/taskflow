@@ -22,7 +22,7 @@ import { EditReleaseModal } from './release-detail/EditReleaseModal';
 import { MrLabels } from './release-detail/graphs/MrLabels';
 import { ReleaseAssigneeRows } from './release-detail/graphs/ReleaseAssigneeRows';
 import { ReleaseBurnup } from './release-detail/graphs/ReleaseBurnup';
-import { ReleaseGraphGrid } from './release-detail/graphs/ReleaseGraphGrid';
+import { ReleaseGraphGrid, statusPairing } from './release-detail/graphs/ReleaseGraphGrid';
 import { ReleaseMrDonut } from './release-detail/graphs/ReleaseMrDonut';
 import { ReleaseStatusRows } from './release-detail/graphs/ReleaseStatusRows';
 import { ReleaseTypeWaffle } from './release-detail/graphs/ReleaseTypeWaffle';
@@ -478,9 +478,8 @@ export default function ReleaseDetailPage() {
                 loading={headerBreakdownLoading}
                 error={headerBreakdownError}
               />
-              {/* Graph section. Wide containers: ONE band like the AIO cycle stats block
-                  (burnup fills the row height set by the lists, then MRs/status, type,
-                  assignee). Narrower: 2x2, then single column. MR labels
+              {/* Graph section (ReleaseGraphGrid): one band on wide pages, 2x2 / one
+                  column narrower; By status stacks on the shorter list. MR labels
                   follow it. */}
               <ReleaseGraphGrid
                 band={band}
@@ -489,6 +488,7 @@ export default function ReleaseDetailPage() {
                 mrs={mrEl}
                 type={typeEl}
                 assignee={assigneeEl}
+                statusWith={statusPairing(typeRows.length, assigneeRows.length)}
               />
               {/* MR labels sit under the graphs (261103-bfx UAT). */}
               {donutState === 'ready' ? (

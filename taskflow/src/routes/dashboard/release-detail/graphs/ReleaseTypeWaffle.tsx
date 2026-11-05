@@ -51,7 +51,13 @@ export function ReleaseTypeWaffle({
   onToggle?: (values: string[]) => void;
 }) {
   const layout = compact ? WAFFLE_LAYOUT_COMPACT : WAFFLE_LAYOUT;
-  const { block: BLOCK, gap: GAP, nameCol: NAME_COL, rowGap: ROW_GAP } = layout;
+  const {
+    block: BLOCK,
+    gap: GAP,
+    nameCol: NAME_COL,
+    countCol: COUNT_COL,
+    rowGap: ROW_GAP,
+  } = layout;
   const shownRows = compact ? rows.slice(0, MAX_COMPACT_ROWS) : rows;
   const hiddenRows = rows.length - shownRows.length;
   // Callback ref: the cell only mounts once the slot is ready, so an effect on a
@@ -118,7 +124,9 @@ export function ReleaseTypeWaffle({
                 {...toggle.extra}
                 style={{
                   columnGap: ROW_GAP,
-                  gridTemplateColumns: `${NAME_COL}px ${cols * (BLOCK + GAP) - GAP}px auto`,
+                  // Squares start after the name column; the count sits in a fixed column at
+                  // the row's right edge (like By status / By assignee), not after the squares.
+                  gridTemplateColumns: `${NAME_COL}px minmax(${cols * (BLOCK + GAP) - GAP}px,1fr) ${COUNT_COL}px`,
                   maxWidth: '100%',
                 }}
               >
@@ -147,7 +155,7 @@ export function ReleaseTypeWaffle({
                   )}
                 </div>
                 <span
-                  className="text-xs tabular-nums leading-none text-muted-foreground"
+                  className="text-right text-xs tabular-nums leading-none text-muted-foreground"
                   style={{ lineHeight: `${BLOCK}px` }}
                 >
                   {row.done}/{row.total}
