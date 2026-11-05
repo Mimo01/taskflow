@@ -31,6 +31,7 @@ import { ErrorState } from '@/components/ui/error-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { buildMrHealthByKey, resolveMrHealth, selectMrsForHealth } from '@/lib/my-tasks-mr-health';
 import { groupByMyDay, type MyDayBand } from '@/lib/my-tasks-sort';
+import { orderSubtasks } from '@/lib/subtask-order';
 import { cn } from '@/lib/utils';
 import { fetchAuthoredMRs, fetchMRApprovals, fetchMRDiscussions } from '@/services/gitlab';
 import type { JiraIssue } from '@/services/jira';
@@ -40,7 +41,6 @@ import {
   fetchMyTasksHierarchy,
   isIssueFlagged,
 } from '@/services/jira';
-import { orderSubtasks } from '@/lib/subtask-order';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useSettingsStore } from '@/stores/settings.store';
@@ -520,20 +520,30 @@ export default function MyTasksPage() {
   function accumulateTime(parent: JiraIssue, subtasks: JiraIssue[]) {
     function getTracking(issue: JiraIssue) {
       const t = issue.fields.timetracking as
-        | { timeSpentSeconds?: number; originalEstimateSeconds?: number }
+        | {
+            timeSpentSeconds?: number;
+            originalEstimateSeconds?: number;
+            remainingEstimateSeconds?: number;
+          }
         | null
         | undefined;
       return {
         spent: t?.timeSpentSeconds ?? 0,
         estimate: t?.originalEstimateSeconds ?? 0,
+        remaining: t?.remainingEstimateSeconds,
       };
     }
     const parentT = getTracking(parent);
     const subtaskSpent = subtasks.reduce((sum, s) => sum + getTracking(s).spent, 0);
     const subtaskEst = subtasks.reduce((sum, s) => sum + getTracking(s).estimate, 0);
+    const subtaskRem = subtasks.reduce((sum, s) => sum + (getTracking(s).remaining ?? 0), 0);
+    const anyRemaining =
+      parentT.remaining !== undefined ||
+      subtasks.some((s) => getTracking(s).remaining !== undefined);
     return {
       accumulatedSpentSeconds: parentT.spent + subtaskSpent,
       accumulatedEstimateSeconds: parentT.estimate + subtaskEst,
+      accumulatedRemainingSeconds: anyRemaining ? (parentT.remaining ?? 0) + subtaskRem : undefined,
     };
   }
 
@@ -541,10 +551,8 @@ export default function MyTasksPage() {
 
   function renderFlatRows(parent: JiraIssue, subtasks: JiraIssue[], showSubtaskRows = true) {
     // Always accumulate time over the FULL subtask list — display is gated separately.
-    const { accumulatedSpentSeconds, accumulatedEstimateSeconds } = accumulateTime(
-      parent,
-      subtasks,
-    );
+    const { accumulatedSpentSeconds, accumulatedEstimateSeconds, accumulatedRemainingSeconds } =
+      accumulateTime(parent, subtasks);
     return (
       <MyTaskRow
         key={parent.key}
@@ -558,6 +566,7 @@ export default function MyTasksPage() {
         onOpenIssue={handleOpenIssue}
         accumulatedSpentSeconds={accumulatedSpentSeconds}
         accumulatedEstimateSeconds={accumulatedEstimateSeconds}
+        accumulatedRemainingSeconds={accumulatedRemainingSeconds}
       />
     );
   }

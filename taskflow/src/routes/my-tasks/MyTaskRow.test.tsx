@@ -176,6 +176,24 @@ describe('MyTaskRow — responsive container tiers', () => {
     expect(bar).not.toHaveAttribute('style');
   });
 
+  it('time bar: spacer when no data, epic-style bar (no caption) when there is', () => {
+    const { unmount } = render(<MyTaskRow issue={makeIssue('PROJ-7', 'new')} {...BASE_PROPS} />);
+    expect(screen.getByTestId('my-task-time-bar')).toHaveAttribute('aria-hidden', 'true');
+    unmount();
+    render(
+      <MyTaskRow
+        issue={makeIssue('PROJ-8', 'indeterminate', {
+          timetracking: { timeSpentSeconds: 3600, originalEstimateSeconds: 7200 },
+        })}
+        {...BASE_PROPS}
+      />,
+    );
+    const bar = screen.getByTestId('my-task-time-bar');
+    expect(bar).toHaveAttribute('role', 'img');
+    expect(bar).toHaveAttribute('aria-label', 'Logged 1h of 2h');
+    expect(screen.queryByText('1h / 2h')).toBeNull();
+  });
+
   it('LEFT region is overflow-hidden on parent and subtask rows', () => {
     const { unmount } = render(<MyTaskRow issue={makeIssue('PROJ-5', 'new')} {...BASE_PROPS} />);
     expect(screen.getByTestId('my-task-left')).toHaveClass('overflow-hidden');

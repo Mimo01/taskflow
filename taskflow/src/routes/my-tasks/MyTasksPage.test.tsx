@@ -325,9 +325,12 @@ describe('MyTasksPage — DONE parent time rollup (260618-efy)', () => {
     // Subtask row must be ABSENT — suppression still applies
     expect(screen.queryByTestId('my-task-row-SUB-1')).toBeNull();
 
-    // Time caption must reflect COMBINED total: spent 3600+1800=5400s, est 7200+3600=10800s
-    const expectedCaption = `${formatDuration(5400)} / ${formatDuration(10800)}`;
-    expect(within(parentRow).getByText(expectedCaption)).toBeDefined();
+    // Time bar must reflect COMBINED logged time: 3600+1800=5400s. The parent is DONE, so
+    // remaining is 0 and the bar total equals the rolled-up logged time.
+    const bar = within(parentRow).getByTestId('my-task-time-bar');
+    expect(bar.getAttribute('aria-label')).toBe(
+      `Logged ${formatDuration(5400)} of ${formatDuration(5400)}`,
+    );
   });
 });
 

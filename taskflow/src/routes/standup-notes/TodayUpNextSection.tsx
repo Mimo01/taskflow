@@ -9,16 +9,16 @@
  * Each row is a grouped SprintRow: the parent story is the top-level button,
  * with my assigned subtasks nested/indented beneath it (Decision 1).
  *
- * Each row (parent + subtask) shows the shared StackedTimeBar (same as My Tasks):
- * progress track + "spent / estimate" caption; rows with no time data still show
- * an empty track with a "0m" caption.
+ * Each row (parent + subtask) shows the shared IssueTimeBar (same as My Tasks):
+ * epic-style time bar, tooltip carries the numbers; rows with no time data still
+ * show an empty track.
  *
  * Section degrades per D-03: skeleton while loading, ErrorState on error,
  * returns null (hidden) when 0 rows + not loading + not erroring.
  */
 
 import { Coffee, GitBranch } from 'lucide-react';
-import { StackedTimeBar } from '@/components/jira/StackedTimeBar';
+import { IssueTimeBar, timedIssue } from '@/components/jira/IssueTimeBar';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { ErrorState } from '@/components/ui/error-state';
 import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
@@ -26,7 +26,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { doneSummaryClass } from '@/lib/issueDisplayUtils';
 import { statusPillClass } from '@/lib/statusStyles';
-import { isDoneStatus } from '@/lib/time-progress';
 import { cn } from '@/lib/utils';
 import type { JiraIssue } from '@/services/jira';
 import type { SprintRow } from './filterSprintItems';
@@ -143,13 +142,16 @@ function IssueRow({
               </span>
             </div>
           )}
-          <StackedTimeBar
-            spentSeconds={issue.fields.timetracking?.timeSpentSeconds ?? 0}
-            totalSeconds={issue.fields.timetracking?.originalEstimateSeconds}
-            widthClassName={TODAY_TIME_BAR_WIDTH_CLASS}
+          <IssueTimeBar
+            issue={timedIssue({
+              key: issue.key,
+              statusCategoryKey: issue.fields.status.statusCategory?.key,
+              originalEstimate: issue.fields.timetracking?.originalEstimateSeconds,
+              logged: issue.fields.timetracking?.timeSpentSeconds,
+              remaining: issue.fields.timetracking?.remainingEstimateSeconds,
+            })}
+            className={TODAY_TIME_BAR_WIDTH_CLASS}
             testId="standup-time-bar"
-            alwaysShowTrack
-            isDone={isDoneStatus(issue.fields.status.statusCategory?.key)}
           />
           <CachedAvatar
             url={issue.fields.assignee?.avatarUrls?.['48x48'] ?? null}
