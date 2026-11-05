@@ -3,7 +3,7 @@
  *
  * Shows the shared epic-style `IssueTimeBar` (logged vs remaining, tick at the
  * estimate; tooltip carries the full breakdown) at the full width of the value
- * column, with a one-line "{logged} / {estimate}" caption beside it (or
+ * column, with a one-line "{logged} / {estimate}" caption below it (or
  * "{logged} · No estimate" when there is no estimate). The sidebar keeps the
  * caption because the numbers are the field's value.
  *
@@ -77,8 +77,8 @@ export function TimeTrackingSummary({
       {!hasData ? (
         <span className="text-xs text-muted-foreground">No time logged</span>
       ) : (
-        <div className="flex min-w-0 items-center gap-2">
-          <IssueTimeBar issue={issue} className="min-w-0 flex-1" testId="sidebar-time-bar" />
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <IssueTimeBar issue={issue} className="w-full" testId="sidebar-time-bar" />
           <span className="text-xs text-muted-foreground tabular-nums whitespace-nowrap">
             {timeCaption(logged, est)}
           </span>

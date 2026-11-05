@@ -24,8 +24,8 @@ export function WorklogProgressBar({ issue }: WorklogProgressBarProps) {
   if (est <= 0 && logged <= 0 && remainingOf(timed) <= 0) return null;
 
   return (
-    <div className="flex items-center gap-2 py-2">
-      <IssueTimeBar issue={timed} className="min-w-0 flex-1" testId="worklog-time-bar" />
+    <div className="flex flex-col gap-0.5 py-2">
+      <IssueTimeBar issue={timed} className="w-full" testId="worklog-time-bar" />
       <span className="text-xs text-muted-foreground tabular-nums whitespace-nowrap">
         {timeCaption(logged, est)}
       </span>
