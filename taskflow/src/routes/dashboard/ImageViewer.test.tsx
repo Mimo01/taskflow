@@ -108,6 +108,46 @@ describe('ImageViewer', () => {
     expect(Number.parseInt(readout() ?? '0', 10)).toBeGreaterThan(50);
   });
 
+  it('single click on the image zooms in; click again returns; cursor matches', () => {
+    const { img } = setup();
+    expect(readout()).toBe('50%');
+    expect(img.style.cursor).toBe('zoom-in');
+    fireEvent.pointerDown(img, { clientX: 10, clientY: 10 });
+    fireEvent.click(img, { clientX: 10, clientY: 10 });
+    expect(readout()).toBe('100%');
+    expect(img.style.cursor).toBe('grab');
+    fireEvent.pointerDown(img, { clientX: 10, clientY: 10 });
+    fireEvent.click(img, { clientX: 10, clientY: 10 });
+    expect(readout()).toBe('50%');
+  });
+
+  it('a click that ends a drag, or lands on the empty stage, does not zoom', () => {
+    const { img, stage } = setup();
+    fireEvent.pointerDown(img, { clientX: 0, clientY: 0 });
+    fireEvent.click(img, { clientX: 40, clientY: 0 });
+    expect(readout()).toBe('50%');
+    fireEvent.pointerDown(stage, { clientX: 0, clientY: 0 });
+    fireEvent.click(stage, { clientX: 0, clientY: 0 });
+    expect(readout()).toBe('50%');
+  });
+
+  it('Fit and 1:1 differ for an image smaller than the stage', () => {
+    Object.defineProperty(HTMLImageElement.prototype, 'naturalWidth', {
+      configurable: true,
+      get: () => 150,
+    });
+    Object.defineProperty(HTMLImageElement.prototype, 'naturalHeight', {
+      configurable: true,
+      get: () => 100,
+    });
+    setup();
+    expect(readout()).toBe('100%');
+    fireEvent.click(screen.getByLabelText('Fit'));
+    expect(readout()).toBe('400%');
+    fireEvent.click(screen.getByLabelText('Actual size'));
+    expect(readout()).toBe('100%');
+  });
+
   it('disables controls before load and zoom-in at max', () => {
     const utils = render(<ImageViewer src="https://x/a.png" alt="a.png" />);
     expect((screen.getByLabelText('Zoom in') as HTMLButtonElement).disabled).toBe(true);

@@ -25,7 +25,8 @@ export interface ViewerState {
   tx: number;
   ty: number;
   rot: Rotation;
-  mode: 'fit' | 'free';
+  /** rest = opening size (fit, never enlarged); fit = fill the stage (may enlarge); free = user zoom. */
+  mode: 'rest' | 'fit' | 'free';
   loaded: boolean;
 }
 
@@ -57,7 +58,7 @@ export const initialViewerState: ViewerState = {
   tx: 0,
   ty: 0,
   rot: 0,
-  mode: 'fit',
+  mode: 'rest',
   loaded: false,
 };
 
@@ -67,8 +68,8 @@ function rotatedDims(naturalW: number, naturalH: number, rot: number) {
   return rot % 180 === 0 ? { w: naturalW, h: naturalH } : { w: naturalH, h: naturalW };
 }
 
-/** Scale that fits the (rotated) image in the stage. Never upscales past 1. */
-export function fitScale(
+/** Scale at which the (rotated) image exactly fills the stage. May exceed 1. */
+export function fillScale(
   naturalW: number,
   naturalH: number,
   stageW: number,
@@ -77,11 +78,32 @@ export function fitScale(
 ): number {
   const { w, h } = rotatedDims(naturalW, naturalH, rot);
   if (w <= 0 || h <= 0 || stageW <= 0 || stageH <= 0) return 1;
-  return Math.min(1, stageW / w, stageH / h);
+  return Math.min(stageW / w, stageH / h);
+}
+
+/** Opening ("rest") scale: fits the stage but never enlarges past 100%. */
+export function fitScale(
+  naturalW: number,
+  naturalH: number,
+  stageW: number,
+  stageH: number,
+  rot: number,
+): number {
+  return Math.min(1, fillScale(naturalW, naturalH, stageW, stageH, rot));
 }
 
 function currentFit(s: ViewerState): number {
   return fitScale(s.naturalW, s.naturalH, s.stageW, s.stageH, s.rot);
+}
+
+function currentFill(s: ViewerState): number {
+  return fillScale(s.naturalW, s.naturalH, s.stageW, s.stageH, s.rot);
+}
+
+function modeFor(s: ViewerState, scale: number): ViewerState['mode'] {
+  if (Math.abs(scale - currentFit(s)) < EPS) return 'rest';
+  if (Math.abs(scale - currentFill(s)) < EPS) return 'fit';
+  return 'free';
 }
 
 export function minScale(fit: number): number {
@@ -108,12 +130,22 @@ export function clampPan(
   };
 }
 
+/** True when the scaled image overflows the stage, so there is something to pan. */
 export function isPannable(s: ViewerState): boolean {
-  return s.loaded && s.scale > currentFit(s) + EPS;
+  return s.loaded && s.scale > currentFill(s) + EPS;
 }
 
-function fitState(s: ViewerState): ViewerState {
-  return { ...s, scale: currentFit(s), tx: 0, ty: 0, mode: 'fit' };
+function restState(s: ViewerState): ViewerState {
+  return { ...s, scale: currentFit(s), tx: 0, ty: 0, mode: 'rest' };
+}
+
+function fillState(s: ViewerState): ViewerState {
+  return { ...s, scale: clampScale(currentFill(s), currentFit(s)), tx: 0, ty: 0, mode: 'fit' };
+}
+
+/** Scale a click zooms to from a non-overflowing view: actual pixels first, then doubling. */
+export function clickZoomTarget(scale: number): number {
+  return Math.min(MAX_SCALE, scale < 1 - EPS ? 1 : scale * 2);
 }
 
 /** Zoom to `newScale` keeping the image pixel under `point` fixed. */
@@ -124,11 +156,9 @@ export function zoomAt(s: ViewerState, newScale: number, point: Point = CENTER):
   const ratio = next / s.scale;
   const rawX = point.x - (point.x - s.tx) * ratio;
   const rawY = point.y - (point.y - s.ty) * ratio;
-  if (Math.abs(next - fit) < EPS) {
-    return { ...s, scale: fit, tx: 0, ty: 0, mode: 'fit' };
-  }
+  if (Math.abs(next - fit) < EPS) return restState(s);
   const { tx, ty } = clampPan(s, next, rawX, rawY);
-  return { ...s, scale: next, tx, ty, mode: 'free' };
+  return { ...s, scale: next, tx, ty, mode: modeFor(s, next) };
 }
 
 export function nextStop(scale: number): number {
@@ -158,11 +188,12 @@ export function prevFontSize(size: number): number {
 export function viewerReducer(s: ViewerState, a: ViewerAction): ViewerState {
   switch (a.type) {
     case 'loaded':
-      return fitState({ ...s, naturalW: a.naturalW, naturalH: a.naturalH, rot: 0, loaded: true });
+      return restState({ ...s, naturalW: a.naturalW, naturalH: a.naturalH, rot: 0, loaded: true });
     case 'resize': {
       const next = { ...s, stageW: a.stageW, stageH: a.stageH };
       if (!next.loaded) return next;
-      if (next.mode === 'fit') return fitState(next);
+      if (next.mode === 'rest') return restState(next);
+      if (next.mode === 'fit') return fillState(next);
       const fit = currentFit(next);
       const scale = clampScale(next.scale, fit);
       const { tx, ty } = clampPan(next, scale, next.tx, next.ty);
@@ -186,19 +217,19 @@ export function viewerReducer(s: ViewerState, a: ViewerAction): ViewerState {
       return { ...s, tx, ty };
     }
     case 'fit':
-      return s.loaded ? fitState(s) : s;
+      return s.loaded ? fillState(s) : s;
     case 'actual':
       return zoomAt(s, 1, CENTER);
     case 'toggleZoom': {
+      // Click: zoom in toward the point until the image overflows; once it does, return to rest.
       if (!s.loaded) return s;
-      const fit = currentFit(s);
-      if (Math.abs(s.scale - fit) < EPS) return zoomAt(s, fit < 1 - EPS ? 1 : 2, a.point);
-      return fitState(s);
+      if (isPannable(s)) return restState(s);
+      return zoomAt(s, clickZoomTarget(s.scale), a.point);
     }
     case 'rotate': {
       if (!s.loaded) return s;
       const rot = ((s.rot + 90 * a.dir + 360) % 360) as Rotation;
-      return fitState({ ...s, rot });
+      return restState({ ...s, rot });
     }
     default:
       return s;

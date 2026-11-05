@@ -34,6 +34,7 @@ export function ImageViewer({ src, alt, onDownload, onOpenExternal }: ImageViewe
   const floor = minScale(fitScale(naturalW, naturalH, state.stageW, state.stageH, rot));
   const zoomOutDisabled = !loaded || scale <= floor + 1e-3;
   const zoomInDisabled = !loaded || scale >= MAX_SCALE - 1e-3;
+  const canClickZoom = loaded && !zoomInDisabled;
 
   async function run(action: ViewerAction | undefined, label: string) {
     if (!action || !blobUrl) return;
@@ -55,7 +56,6 @@ export function ImageViewer({ src, alt, onDownload, onOpenExternal }: ImageViewe
       <div
         ref={stageRef}
         className="relative overflow-hidden w-[90vw] h-[80vh] select-none touch-none"
-        style={{ cursor: pannable ? 'grab' : loaded ? 'zoom-in' : undefined }}
         data-testid="image-viewer-stage"
         onClick={(e) => e.stopPropagation()}
       >
@@ -82,6 +82,8 @@ export function ImageViewer({ src, alt, onDownload, onOpenExternal }: ImageViewe
               marginTop: loaded ? -naturalH / 2 : undefined,
               transform: `translate(${tx}px, ${ty}px) scale(${scale}) rotate(${rot}deg)`,
               transformOrigin: 'center',
+              // grab = drag to pan (click returns to rest); zoom-in = click zooms toward the cursor.
+              cursor: pannable ? 'grab' : canClickZoom ? 'zoom-in' : 'default',
               opacity: loaded ? 1 : 0,
             }}
             onLoad={(e) => {

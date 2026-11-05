@@ -9,6 +9,8 @@ import {
 } from '@/lib/image-viewer';
 
 const KEY_PAN_PX = 50;
+/** A press that moves further than this is a drag, not a click. */
+const CLICK_SLOP_PX = 4;
 /**
  * A Safari pinch suppresses ctrl+wheel (WebKit may emit both for one pinch).
  * The suppression expires this long after the last gesture event, so a pinch
@@ -29,7 +31,7 @@ function isEditableTarget(target: EventTarget | null): boolean {
 
 /**
  * Wires zoom/pan/rotate input (non-passive wheel, Safari gesture*, pointer
- * drag, dblclick, keyboard) onto a stage element. Listeners are registered
+ * drag, click-to-zoom, keyboard) onto a stage element. Listeners are registered
  * once and only dispatch reducer actions, so they never read stale state.
  */
 export function useImageViewer(
@@ -117,7 +119,12 @@ export function useImageViewer(
       gestureActive = false;
     };
 
+    let downX = Number.NaN;
+    let downY = Number.NaN;
+
     const onPointerDown = (e: PointerEvent) => {
+      downX = e.clientX;
+      downY = e.clientY;
       if (e.button !== 0 || !pannableRef.current) return;
       dragging = true;
       lastX = e.clientX;
@@ -139,8 +146,12 @@ export function useImageViewer(
       delete el.dataset.dragging;
       el.releasePointerCapture?.(e.pointerId);
     };
-    const onDblClick = (e: MouseEvent) => {
-      e.preventDefault();
+    // Single click on the image zooms in toward the cursor, or back to rest when
+    // zoomed. A click that ends a drag (moved > CLICK_SLOP_PX) is ignored.
+    const onClick = (e: MouseEvent) => {
+      if (e.button !== 0 || !(e.target instanceof HTMLImageElement)) return;
+      const moved = Math.hypot(e.clientX - downX, e.clientY - downY);
+      if (moved > CLICK_SLOP_PX) return;
       dispatch({ type: 'toggleZoom', point: toPoint(e.clientX, e.clientY) });
     };
 
@@ -152,7 +163,7 @@ export function useImageViewer(
     el.addEventListener('pointermove', onPointerMove);
     el.addEventListener('pointerup', onPointerUp);
     el.addEventListener('pointercancel', onPointerUp);
-    el.addEventListener('dblclick', onDblClick);
+    el.addEventListener('click', onClick);
     return () => {
       el.removeEventListener('wheel', onWheel);
       el.removeEventListener('gesturestart', onGestureStart);
@@ -162,7 +173,7 @@ export function useImageViewer(
       el.removeEventListener('pointermove', onPointerMove);
       el.removeEventListener('pointerup', onPointerUp);
       el.removeEventListener('pointercancel', onPointerUp);
-      el.removeEventListener('dblclick', onDblClick);
+      el.removeEventListener('click', onClick);
     };
   }, [stageRef, enabled]);
 

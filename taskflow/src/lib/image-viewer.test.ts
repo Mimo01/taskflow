@@ -93,7 +93,7 @@ describe('viewerReducer', () => {
   it('fits on load', () => {
     const s = ready();
     expect(s.scale).toBe(0.5);
-    expect(s.mode).toBe('fit');
+    expect(s.mode).toBe('rest');
     expect(isPannable(s)).toBe(false);
   });
   it('zoom actions are no-ops before load', () => {
@@ -112,7 +112,7 @@ describe('viewerReducer', () => {
     expect(s.mode).toBe('free');
     const b = run([{ type: 'zoomOut' }], s);
     expect(b.scale).toBe(0.5);
-    expect(b.mode).toBe('fit');
+    expect(b.mode).toBe('rest');
   });
   it('actual and fit', () => {
     const s = run([{ type: 'actual' }], ready());
@@ -140,7 +140,7 @@ describe('viewerReducer', () => {
   it('toggleZoom: fit -> 100% -> fit; 2x when fit is 1', () => {
     const s = run([{ type: 'toggleZoom', point: { x: 0, y: 0 } }], ready());
     expect(s.scale).toBe(1);
-    expect(run([{ type: 'toggleZoom', point: { x: 0, y: 0 } }], s).mode).toBe('fit');
+    expect(run([{ type: 'toggleZoom', point: { x: 0, y: 0 } }], s).mode).toBe('rest');
     const small = ready(100, 100);
     expect(run([{ type: 'toggleZoom', point: { x: 0, y: 0 } }], small).scale).toBe(2);
   });
@@ -148,7 +148,7 @@ describe('viewerReducer', () => {
     let s = run([{ type: 'actual' }, { type: 'rotate', dir: 1 }], ready());
     expect(s.rot).toBe(90);
     expect(s.scale).toBeCloseTo(1 / 3);
-    expect(s.mode).toBe('fit');
+    expect(s.mode).toBe('rest');
     s = run(
       [
         { type: 'rotate', dir: -1 },
@@ -157,6 +157,31 @@ describe('viewerReducer', () => {
       s,
     );
     expect(s.rot).toBe(270);
+  });
+  it('opens small images at 100% but Fit fills the stage (differs from 1:1)', () => {
+    const small = ready(150, 100); // fill would be 4x in a 600x400 stage
+    expect(small.scale).toBe(1);
+    const filled = run([{ type: 'fit' }], small);
+    expect(filled.scale).toBe(4);
+    expect(filled.mode).toBe('fit');
+    expect(isPannable(filled)).toBe(false);
+    expect(run([{ type: 'actual' }], filled).scale).toBe(1);
+  });
+  it('Fit tracks resize; rest never enlarges on resize', () => {
+    const filled = run(
+      [{ type: 'fit' }, { type: 'resize', stageW: 300, stageH: 200 }],
+      ready(150, 100),
+    );
+    expect(filled.scale).toBe(2);
+    const rest = run([{ type: 'resize', stageW: 3000, stageH: 2000 }], ready(150, 100));
+    expect(rest.scale).toBe(1);
+  });
+  it('click (toggleZoom) on a filled small image zooms further, then back to rest once panning', () => {
+    const filled = run([{ type: 'fit' }], ready(150, 100));
+    const z = run([{ type: 'toggleZoom', point: { x: 0, y: 0 } }], filled);
+    expect(z.scale).toBe(MAX_SCALE);
+    expect(isPannable(z)).toBe(true);
+    expect(run([{ type: 'toggleZoom', point: { x: 0, y: 0 } }], z).scale).toBe(1);
   });
   it('resize re-fits only in fit mode', () => {
     const fit = run([{ type: 'resize', stageW: 1200, stageH: 800 }], ready());
