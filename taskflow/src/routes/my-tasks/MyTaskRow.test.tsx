@@ -147,14 +147,14 @@ describe('MyTaskRow — peek highlight', () => {
 });
 
 describe('MyTaskRow — responsive container tiers', () => {
-  it('SP slot hides below 1024px on parent and subtask rows', () => {
+  it('SP slot hides below 1024px on parent rows; subtask rows have no SP slot', () => {
     const { unmount } = render(<MyTaskRow issue={makeIssue('PROJ-1', 'new')} {...BASE_PROPS} />);
     expect(screen.getByTestId('my-task-sp-slot')).toHaveClass('@max-[1024px]:hidden');
     unmount();
     render(
       <MyTaskRow issue={makeIssue('PROJ-2', 'new', { subtask: true })} isSubtask {...BASE_PROPS} />,
     );
-    expect(screen.getByTestId('my-task-sp-slot')).toHaveClass('@max-[1024px]:hidden');
+    expect(screen.queryByTestId('my-task-sp-slot')).toBeNull();
   });
 
   it('label chips and the +N chip hide below 1024px', () => {
@@ -169,11 +169,19 @@ describe('MyTaskRow — responsive container tiers', () => {
   it.each([
     ['empty spacer', undefined],
     ['filled bar', { timeSpentSeconds: 3600, originalEstimateSeconds: 7200 }],
-  ])('time bar (%s) is the shared 96px row width and hides below 580px', (_name, timetracking) => {
+  ])('time bar (%s) is the 132px story width and hides below 580px', (_name, timetracking) => {
     render(<MyTaskRow issue={makeIssue('PROJ-4', 'new', { timetracking })} {...BASE_PROPS} />);
     const bar = screen.getByTestId('my-task-time-bar');
-    expect(bar).toHaveClass('w-24', '@max-[580px]:hidden');
+    expect(bar).toHaveClass('w-[132px]', '@max-[580px]:hidden');
+    expect(bar).not.toHaveClass('w-24');
     expect(bar).not.toHaveAttribute('style');
+  });
+
+  it('subtask time bar is the 96px base width and hides below 580px', () => {
+    render(
+      <MyTaskRow issue={makeIssue('PROJ-7', 'new', { subtask: true })} isSubtask {...BASE_PROPS} />,
+    );
+    expect(screen.getByTestId('my-task-time-bar')).toHaveClass('w-24', '@max-[580px]:hidden');
   });
 
   it('LEFT region is overflow-hidden on parent and subtask rows', () => {
