@@ -49,7 +49,7 @@ export function ReleaseGraphGrid({
   return (
     <div
       data-testid="release-graph-grid"
-      className="mt-1 grid grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-4 @max-[640px]/page:grid-cols-1"
+      className="mt-1 grid grid-cols-[minmax(0,1.2fr)_minmax(300px,1fr)] gap-x-4 gap-y-4 @max-[640px]/page:grid-cols-1"
     >
       {burnup}
       <div className={`${SLOT_COL} ${DIVIDER} @max-[640px]/page:border-l-0 @max-[640px]/page:pl-0`}>

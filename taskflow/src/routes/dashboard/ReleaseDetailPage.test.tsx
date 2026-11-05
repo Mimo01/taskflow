@@ -450,7 +450,7 @@ describe('ReleaseDetailPage', () => {
         unobserve() {}
         disconnect() {}
       } as unknown as typeof ResizeObserver;
-    global.ResizeObserver = withWidth(1300);
+    global.ResizeObserver = withWidth(1500);
     const { unmount } = renderPage();
     expect(screen.getByTestId('release-graph-grid').className).toContain('items-stretch');
     unmount();
@@ -469,7 +469,7 @@ describe('ReleaseDetailPage', () => {
       constructor(private cb: ResizeObserverCallback) {}
       observe(target: Element) {
         this.cb(
-          [{ target, contentRect: { width: 1300, height: 400 } } as ResizeObserverEntry],
+          [{ target, contentRect: { width: 1500, height: 400 } } as ResizeObserverEntry],
           this as never,
         );
       }
@@ -640,7 +640,7 @@ describe('ReleaseDetailPage', () => {
         const grid = screen.getByTestId('release-graph-grid').className;
         expect(grid).toContain('@max-[640px]/page:grid-cols-1');
         unmount();
-        global.ResizeObserver = withWidth(1300);
+        global.ResizeObserver = withWidth(1500);
         renderPage();
         expect(screen.getByTestId('release-graph-grid').className).toContain('items-stretch');
       } finally {

@@ -40,7 +40,7 @@ import { useReleaseDetail } from './release-detail/useReleaseDetail';
 import { useTaskIssueFilters } from './release-detail/useTaskIssueFilters';
 
 /** Container width from which the graphs form one band (like the AIO cycle stats block). */
-const BAND_MIN_WIDTH = 1280;
+const BAND_MIN_WIDTH = 1400;
 
 // ---- Main Component ----
 
