@@ -5,16 +5,16 @@
  * Each row is a grouped SprintRow: the parent story is the top-level button,
  * with my assigned subtasks nested/indented beneath it (Decision 1).
  *
- * Each row (parent + subtask) shows the shared IssueTimeBar (same as My Tasks):
- * epic-style time bar, caption below, tooltip has the breakdown; rows with no time data still
- * show an empty track.
+ * Each row (parent + subtask) shows the shared StackedTimeBar (same as My Tasks):
+ * progress track + "spent / estimate" caption; rows with no time data still show
+ * an empty track with a "0m" caption.
  *
  * Section degrades per D-03: skeleton while loading, ErrorState on error,
  * returns null (hidden) when 0 rows + not loading + not erroring.
  */
 
 import { GitBranch } from 'lucide-react';
-import { IssueTimeBar, timedIssueOwn } from '@/components/jira/IssueTimeBar';
+import { StackedTimeBar } from '@/components/jira/StackedTimeBar';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { ErrorState } from '@/components/ui/error-state';
 import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
@@ -22,6 +22,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { doneSummaryClass } from '@/lib/issueDisplayUtils';
 import { statusPillClass } from '@/lib/statusStyles';
+import { isDoneStatus } from '@/lib/time-progress';
 import { cn } from '@/lib/utils';
 import type { JiraIssue } from '@/services/jira';
 import type { SprintRow } from './filterSprintItems';
@@ -68,10 +69,6 @@ interface IssueRowProps {
   indented?: boolean;
   /** Reserve the story-points slot (some row in this section has points). */
   showSp: boolean;
-  /** Parent rows: my nested subtasks, whose time is added to the story's bar. */
-  subtasks?: JiraIssue[];
-  /** All of the story's subtasks (not just mine) for the time bar. */
-  timeSubtasks?: JiraIssue[];
 }
 
 function IssueRow({
@@ -81,10 +78,7 @@ function IssueRow({
   onOpenIssue,
   indented = false,
   showSp,
-  subtasks = [],
-  timeSubtasks = subtasks,
 }: IssueRowProps) {
-  const rollsUp = timeSubtasks.length > 0;
   const issueType = issue.fields.issuetype.name;
   const key = issue.key;
   const summary = issue.fields.summary;
@@ -145,16 +139,13 @@ function IssueRow({
               </span>
             </div>
           )}
-          <IssueTimeBar
-            colorBy={rollsUp ? 'status' : 'health'}
-            issue={
-              rollsUp
-                ? [timedIssueOwn(issue), ...timeSubtasks.map(timedIssueOwn)]
-                : timedIssueOwn(issue)
-            }
-            className={TODAY_TIME_BAR_WIDTH_CLASS}
-            caption
+          <StackedTimeBar
+            spentSeconds={issue.fields.timetracking?.timeSpentSeconds ?? 0}
+            totalSeconds={issue.fields.timetracking?.originalEstimateSeconds}
+            widthClassName={TODAY_TIME_BAR_WIDTH_CLASS}
             testId="standup-time-bar"
+            alwaysShowTrack
+            isDone={isDoneStatus(issue.fields.status.statusCategory?.key)}
           />
           <CachedAvatar
             url={issue.fields.assignee?.avatarUrls?.['48x48'] ?? null}
@@ -244,8 +235,6 @@ export default function TodayInProgressSection({
                 onIssueClick={onIssueClick}
                 onOpenIssue={onOpenIssue}
                 showSp={showSp}
-                subtasks={row.subtasks}
-                timeSubtasks={row.allSubtasks ?? row.subtasks}
               />
               {row.subtasks.map((subtask) => (
                 <IssueRow

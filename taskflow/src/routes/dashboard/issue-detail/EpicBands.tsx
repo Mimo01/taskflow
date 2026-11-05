@@ -36,15 +36,15 @@ const HATCH = {
     'repeating-linear-gradient(135deg, transparent 0 3px, rgb(255 255 255 / 0.55) 3px 5px)',
 };
 
-function segmentClass(seg: TimeSegment, healthColor?: string): string {
+function segmentClass(seg: TimeSegment): string {
   const over = seg.severe ? 'bg-red-500' : 'bg-amber-500';
   switch (seg.part) {
     case 'logged':
-      return healthColor ?? statusCategoryDotClass(seg.cat);
+      return statusCategoryDotClass(seg.cat);
     case 'loggedOver':
       return over;
     case 'remaining':
-      return cn(healthColor ?? statusCategoryDotClass(seg.cat), 'opacity-35');
+      return cn(statusCategoryDotClass(seg.cat), 'opacity-35');
     case 'remainingOver':
       return cn(over, 'opacity-35');
   }
@@ -58,7 +58,7 @@ export function segmentsTotal(segments: TimeSegment[]): number {
 /**
  * Time bar (261103-lcd option 1): status groups done → in progress → to do; inside each, solid =
  * logged, faint = remaining; beyond the estimate amber (red past 125%), striped when forecast.
- * A tick marks the original estimate (hidden when the forecast lands exactly on it). Width denominator = max(total, estimate) unless `scale`.
+ * A tick marks the original estimate. Width denominator = max(total, estimate) unless `scale`.
  */
 export function TimeBar({
   segments,
@@ -66,12 +66,9 @@ export function TimeBar({
   scale,
   className,
   testId,
-  healthColor,
 }: {
   segments: TimeSegment[];
   estimate: number;
-  /** Replaces the status-category colour of the logged / remaining parts (green / amber / red health). */
-  healthColor?: string;
   /** Shared denominator (e.g. the largest person) so rows compare by length. */
   scale?: number;
   className?: string;
@@ -82,8 +79,6 @@ export function TimeBar({
   const extent = Math.max(segmentsTotal(segments), estimate);
   const denom = scale ?? extent;
   const pct = (n: number) => (denom > 0 ? Math.min(n / denom, 1) * 100 : 0);
-  // Forecast lands exactly on the estimate: the tick would sit at the very end and say nothing.
-  const onEstimate = estimate > 0 && Math.abs(segmentsTotal(segments) - estimate) < 1;
   const inTrack = (n: number) => (extent > 0 ? (n / extent) * 100 : 0);
   return (
     // Outer box sizes the bar and hosts the tick; only the inner track clips to the rounding,
@@ -98,7 +93,7 @@ export function TimeBar({
           <span
             key={`${seg.cat}:${seg.part}`}
             data-segment={`${seg.cat}:${seg.part}`}
-            className={cn('h-full flex-none', segmentClass(seg, healthColor))}
+            className={cn('h-full flex-none', segmentClass(seg))}
             style={{
               width: `${inTrack(seg.seconds)}%`,
               ...(seg.part === 'remainingOver' ? HATCH : {}),
@@ -106,7 +101,7 @@ export function TimeBar({
           />
         ))}
       </span>
-      {estimate > 0 && denom > 0 && !onEstimate ? (
+      {estimate > 0 && denom > 0 ? (
         <span
           data-testid="time-estimate-tick"
           data-pct={pct(estimate)}

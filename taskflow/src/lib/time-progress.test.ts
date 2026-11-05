@@ -1,21 +1,66 @@
 import { describe, expect, it } from 'vitest';
-import { healthClass } from './time-progress';
+import { isDoneStatus, timeProgress } from './time-progress';
 
-describe('healthClass', () => {
-  it('has no colour without an estimate', () => {
-    expect(healthClass(100, 0, false)).toBeUndefined();
+const H = 3600;
+const tp = (spent: number, est: number | undefined, isDone: boolean) =>
+  timeProgress({
+    spentSeconds: spent * H,
+    estimateSeconds: est === undefined ? undefined : est * H,
+    isDone,
   });
-  it('is green well under estimate, amber from 75%', () => {
-    expect(healthClass(50, 100, false)).toBe('bg-green-500');
-    expect(healthClass(75, 100, false)).toBe('bg-amber-500');
+
+describe('timeProgress', () => {
+  it('returns no bar without a positive estimate', () => {
+    for (const est of [undefined, 0, -1]) {
+      expect(tp(1, est, false)).toEqual({ fillPct: 0, indicatorClass: undefined, overrun: false });
+    }
   });
-  it('is green when done at or under estimate', () => {
-    expect(healthClass(100, 100, true)).toBe('bg-green-500');
-    expect(healthClass(90, 100, true)).toBe('bg-green-500');
+  it('not done: green below 75%, amber from 75%', () => {
+    expect(tp(1, 4, false)).toMatchObject({ fillPct: 25, indicatorClass: 'bg-green-500' });
+    expect(tp(3, 4, false).indicatorClass).toBe('bg-amber-500');
+    expect(tp(2.9, 4, false).indicatorClass).toBe('bg-green-500');
   });
-  it('is amber over estimate and red past 125%', () => {
-    expect(healthClass(110, 100, true)).toBe('bg-amber-500');
-    expect(healthClass(125, 100, false)).toBe('bg-amber-500');
-    expect(healthClass(126, 100, false)).toBe('bg-red-500');
+  it('not done at/near estimate is amber, not overrun', () => {
+    expect(tp(4, 4, false)).toEqual({
+      fillPct: 100,
+      indicatorClass: 'bg-amber-500',
+      overrun: false,
+    });
+    expect(tp(3.99, 4, false)).toMatchObject({
+      fillPct: 100,
+      indicatorClass: 'bg-amber-500',
+      overrun: false,
+    });
+  });
+  it('done: green under and at estimate', () => {
+    expect(tp(2, 4, true)).toMatchObject({ fillPct: 50, indicatorClass: 'bg-green-500' });
+    expect(tp(3.5, 4, true).indicatorClass).toBe('bg-green-500');
+    expect(tp(4, 4, true)).toMatchObject({ fillPct: 100, indicatorClass: 'bg-green-500' });
+  });
+  it('over estimate up to 125% is amber regardless of status, capped at 100', () => {
+    for (const d of [true, false]) {
+      expect(tp(4.4, 4, d)).toEqual({
+        fillPct: 100,
+        indicatorClass: 'bg-amber-500',
+        overrun: true,
+      });
+      expect(tp(5, 4, d)).toEqual({ fillPct: 100, indicatorClass: 'bg-amber-500', overrun: true });
+    }
+  });
+  it('over 125% of estimate is red regardless of status', () => {
+    for (const d of [true, false]) {
+      expect(tp(5.1, 4, d)).toEqual({ fillPct: 100, indicatorClass: 'bg-red-500', overrun: true });
+    }
+  });
+  it('zero spent is green and empty', () => {
+    expect(tp(0, 4, false)).toMatchObject({ fillPct: 0, indicatorClass: 'bg-green-500' });
+  });
+});
+
+describe('isDoneStatus', () => {
+  it('is true only for done', () => {
+    expect(isDoneStatus('done')).toBe(true);
+    expect(isDoneStatus('indeterminate')).toBe(false);
+    expect(isDoneStatus(undefined)).toBe(false);
   });
 });

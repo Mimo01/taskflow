@@ -32,6 +32,7 @@ import { formatWeekLabel } from '@/lib/deployment-package';
 import { epicColorToTailwind } from '@/lib/epicColors';
 import { invalidateLightweightIssue } from '@/lib/issue-lightweight-cache';
 import { exactDateTime } from '@/lib/relative-time';
+import { isDoneStatus } from '@/lib/time-progress';
 import type { JiraIssue, JiraIssueDetail, JiraPriority } from '@/services/jira';
 import {
   fetchIssuePriorityOptions,
@@ -55,7 +56,6 @@ import StatusPopover from '../StatusPopover';
 import { DeploymentPackageWarning } from './DeploymentPackageWarning';
 import { MetaRow } from './MetaRow';
 import { OverdueBadge } from './OverdueBadge';
-import { useCachedEnrichedSubtasks } from './storyTimeParts';
 import { TimeTrackingSummary } from './TimeTrackingSummary';
 import { extractSprintId, extractSprintName } from './utils';
 import { WatcherToggle } from './WatcherToggle';
@@ -142,11 +142,6 @@ export function FieldsSection({
   onOpenIssue,
 }: FieldsSectionProps) {
   const f = issue.fields;
-  const cachedSubtasks = useCachedEnrichedSubtasks(
-    issueKey,
-    jiraBaseUrl,
-    f.subtasks?.map((st) => st.key),
-  );
   const rmPackage = useRmPackage(extractDeploymentPackage(f.customfield_15725));
   const isEpic = f.issuetype.name === 'Epic';
   const isSubtask = f.issuetype.subtask;
@@ -1277,9 +1272,7 @@ export function FieldsSection({
         aggregatetimeestimate={f.aggregatetimeestimate}
         aggregatetimespent={f.aggregatetimespent}
         timespent={f.timespent}
-        statusCategoryKey={f.status?.statusCategory?.key}
-        issueKey={issueKey}
-        subtasks={cachedSubtasks}
+        isDone={isDoneStatus(f.status?.statusCategory?.key)}
       />
     </>
   );

@@ -217,11 +217,9 @@ describe('TodayColumn', () => {
         </QueryClientProvider>,
       );
 
-      // Epic-style bar: logged 5h (18000s) of 10h (36000s, remaining derived)
-      expect(screen.getByTestId('standup-time-bar')).toHaveAttribute(
-        'aria-label',
-        'Logged 5h of 10h',
-      );
+      // Inline progress caption: "<spent> / <estimate>"
+      // 18000s = 5h, 36000s = 10h
+      expect(screen.getByText(/5h \/ 10h/)).toBeInTheDocument();
     });
 
     it('does NOT render a progress bar when no originalEstimateSeconds', async () => {
@@ -256,8 +254,8 @@ describe('TodayColumn', () => {
         </QueryClientProvider>,
       );
 
-      // No estimate: the bar is an empty track (no time data)
-      expect(screen.getByTestId('standup-time-bar')).toHaveAttribute('data-empty', 'true');
+      // No progress caption in DOM when there is no estimate
+      expect(screen.queryByText(/logged/)).not.toBeInTheDocument();
     });
   });
 

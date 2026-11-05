@@ -29,13 +29,14 @@
  */
 
 import { Flag, GitPullRequest, Tag } from 'lucide-react';
-import { IssueTimeBar, timedIssue, timedIssueOwn } from '@/components/jira/IssueTimeBar';
+import { StackedTimeBar } from '@/components/jira/StackedTimeBar';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
 import { PriorityIcon } from '@/components/ui/priority-icon';
 import { doneSummaryClass } from '@/lib/issueDisplayUtils';
 import { PEEKED_ROW_CLASS } from '@/lib/peek-highlight';
 import { statusPillClass } from '@/lib/statusStyles';
+import { isDoneStatus } from '@/lib/time-progress';
 import { cn } from '@/lib/utils';
 import type { JiraIssue } from '@/services/jira';
 import { isIssueFlagged } from '@/services/jira';
@@ -120,15 +121,7 @@ export interface MyTaskRowProps {
    * When provided, the parent row's time bar uses this instead of the issue's own value.
    */
   accumulatedEstimateSeconds?: number;
-  /**
-   * Accumulated remaining estimate across this story + all its subtasks.
-   * Undefined when none of them has a remaining estimate (the bar then derives it).
-   */
-  accumulatedRemainingSeconds?: number;
 }
-
-/** Time bar width + responsive hide rule for My Tasks rows. */
-const TIME_BAR_WIDTH_CLASS = 'w-[144px] @max-[720px]:w-24 @max-[580px]:hidden';
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
@@ -144,7 +137,6 @@ export function MyTaskRow({
   subtasks = [],
   accumulatedSpentSeconds,
   accumulatedEstimateSeconds,
-  accumulatedRemainingSeconds,
 }: MyTaskRowProps) {
   const isPeeked = useIsPeeked(issue.key);
   const isFlagged = isIssueFlagged(issue, flaggedFieldKey);
@@ -174,18 +166,6 @@ export function MyTaskRow({
     !isSubtask && accumulatedSpentSeconds !== undefined
       ? accumulatedSpentSeconds
       : (timeTracking?.timeSpentSeconds ?? 0);
-  const remainingSeconds =
-    !isSubtask && accumulatedRemainingSeconds !== undefined
-      ? accumulatedRemainingSeconds
-      : timeTracking?.remainingEstimateSeconds;
-
-  // A parent row whose figures include subtasks is an aggregate: status colours, like the epic
-  // bars. A lone issue (subtask, or a story with nothing rolled up) gets green/amber/red health.
-  const rollsUpSubtasks =
-    !isSubtask &&
-    (spentSeconds !== (timeTracking?.timeSpentSeconds ?? 0) ||
-      totalSeconds !== timeTracking?.originalEstimateSeconds ||
-      remainingSeconds !== timeTracking?.remainingEstimateSeconds);
 
   const labels = (issue.fields.labels as string[] | null | undefined) ?? [];
 
@@ -231,24 +211,11 @@ export function MyTaskRow({
         )}
       </span>
 
-      {/* Epic-style time bar — fixed 144px width, caption below, tooltip has the breakdown */}
-      <IssueTimeBar
-        colorBy={rollsUpSubtasks ? 'status' : 'health'}
-        issue={
-          !isSubtask && subtasks.length > 0
-            ? [timedIssueOwn(issue), ...subtasks.map(timedIssueOwn)]
-            : timedIssue({
-                key: issue.key,
-                statusCategoryKey,
-                originalEstimate: totalSeconds,
-                logged: spentSeconds,
-                remaining: remainingSeconds,
-              })
-        }
-        className={TIME_BAR_WIDTH_CLASS}
-        caption
-        testId="my-task-time-bar"
-        empty="spacer"
+      {/* Stacked time bar — fixed 144px width; consistent track + caption */}
+      <StackedTimeBar
+        spentSeconds={spentSeconds}
+        totalSeconds={totalSeconds}
+        isDone={isDoneStatus(statusCategoryKey)}
       />
 
       {/* Assignee avatar */}

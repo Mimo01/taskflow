@@ -316,16 +316,9 @@ describe('IssueDetailContent', () => {
       expect(tick).toHaveAttribute('data-pct', '50');
     });
 
-    it('hides the tick when the forecast lands exactly on the estimate', () => {
-      // 2h estimate, 1h logged, 1h left → tick would sit at 100% and say nothing.
+    it('a tick at the end of the bar sits outside the rounded clip (not cut off)', () => {
+      // 2h estimate, 1h logged, 1h left → tick at 100%.
       renderEpic([epicStory('S-1', 'indeterminate', { est: 7200, spent: 3600, rem: 3600 })]);
-      const bar = screen.getByTestId('story-time-bar');
-      expect(within(bar).queryByTestId('time-estimate-tick')).toBeNull();
-    });
-
-    it('a tick at the end of the bar (under budget) sits outside the rounded clip (not cut off)', () => {
-      // 2h estimate, 1h logged, 30m left → forecast 1h 30m, tick at 100% of the 2h track.
-      renderEpic([epicStory('S-1', 'indeterminate', { est: 7200, spent: 3600, rem: 1800 })]);
       const bar = screen.getByTestId('story-time-bar');
       const tick = within(bar).getByTestId('time-estimate-tick');
       expect(tick).toHaveAttribute('data-pct', '100');
@@ -403,15 +396,15 @@ describe('IssueDetailContent', () => {
       expect(document.querySelector('[data-slot="tooltip-note"]')).toBeNull();
     });
 
-    it('colours by health (solid logged, faint remaining; 25% of estimate = green) with icon markers in the tooltip', async () => {
+    it('colours by status (solid logged, faint remaining) with icon markers in the tooltip', async () => {
       const user = userEvent.setup();
       renderEpic([epicStory('S-1', 'indeterminate', { est: 7200, spent: 1800 })]);
       const bar = screen.getByTestId('story-time-bar');
       const logged = bar.querySelector('[data-segment="indeterminate:logged"]') as HTMLElement;
       const left = bar.querySelector('[data-segment="indeterminate:remaining"]') as HTMLElement;
-      expect(logged.className).toContain('bg-green-500');
+      expect(logged.className).toContain('bg-blue-500');
       expect(logged.className).not.toContain('opacity-35');
-      expect(left.className).toContain('bg-green-500');
+      expect(left.className).toContain('bg-blue-500');
       expect(left.className).toContain('opacity-35');
       await user.hover(bar);
       await waitFor(() => expect(rowTexts().length).toBeGreaterThan(0));

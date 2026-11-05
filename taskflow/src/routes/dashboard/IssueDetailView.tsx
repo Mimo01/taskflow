@@ -582,7 +582,7 @@ export function IssueDetailView({
         </div>
       )}
       {timelineFilter === 'worklog' && issue && (
-        <WorklogProgressBar issue={issue} subtasks={subtaskEnrichmentQuery.data as never} />
+        <WorklogProgressBar issue={issue} subtasks={subtaskEnrichmentQuery.data} />
       )}
 
       {showCommentsSkeleton && !commentsQuery.isError ? (

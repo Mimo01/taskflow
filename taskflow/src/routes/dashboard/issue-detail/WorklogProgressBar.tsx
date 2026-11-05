@@ -1,37 +1,52 @@
 /**
- * WorklogProgressBar — logged-vs-estimate bar for the Worklog view of Issue Detail.
+ * WorklogProgressBar — standup-style logged-vs-estimated progress bar for the
+ * Worklog view of Issue Detail.
  *
- * Uses the shared epic-style `IssueTimeBar` full width, with the same one-line
- * caption as the sidebar Time Tracking field. Numbers come from the issue's own
- * Jira aggregate fields (own + subtasks, computed by Jira), so no subtask data
- * or extra query is needed.
+ * Visual pattern copied verbatim from `TodayInProgressSection.ProgressBar`
+ * (same Progress primitive and caption typography; colour/fill come from the shared
+ * `timeProgress` helper). The
+ * only differences are a full-width container (instead of `w-20`) suited to
+ * the detail pane, and aggregation across subtasks for non-subtask issues.
+ *
+ * Totals come from `aggregateTimeTracking`, fed by the issue's own
+ * `timetracking` plus the already-fetched `subtaskEnrichmentQuery` data —
+ * no new network query is introduced here.
  */
-import { IssueTimeBar, timedIssueFromJiraFields } from '@/components/jira/IssueTimeBar';
-import { estimateOf, loggedOf, remainingOf } from '@/lib/epic-progress';
-import type { JiraIssue, JiraIssueDetail } from '@/services/jira';
-import { storyTimeParts } from './storyTimeParts';
-import { timeCaption } from './TimeTrackingSummary';
+import { Progress } from '@/components/ui/progress';
+import { isDoneStatus, timeProgress } from '@/lib/time-progress';
+import type { JiraIssueDetail } from '@/services/jira';
+import { formatDuration } from '@/services/jira/duration';
+import { aggregateTimeTracking, type SubtaskWithTimeTracking } from './aggregateTimeTracking';
 
 interface WorklogProgressBarProps {
   issue: JiraIssueDetail;
-  /** Enriched subtasks; a story with subtasks shows an aggregate bar split by status. */
-  subtasks?: JiraIssue[];
+  subtasks: SubtaskWithTimeTracking[] | undefined;
 }
 
 export function WorklogProgressBar({ issue, subtasks }: WorklogProgressBarProps) {
   if (issue.fields.issuetype.name === 'Epic') return null;
 
-  const timed = timedIssueFromJiraFields(issue.fields, issue.key);
-  const parts = storyTimeParts(issue.fields, issue.key, subtasks);
-  const est = estimateOf(timed);
-  const logged = loggedOf(timed);
-  if (est <= 0 && logged <= 0 && remainingOf(timed) <= 0) return null;
+  const isDone = isDoneStatus(issue.fields.status?.statusCategory?.key);
+  const isSubtask = issue.fields.issuetype.subtask;
+  const { spentSeconds, estimateSeconds } = aggregateTimeTracking(
+    issue.fields.timetracking,
+    subtasks,
+    { isSubtask, isDone },
+  );
+
+  if (!estimateSeconds || estimateSeconds <= 0) return null;
+
+  const { fillPct, indicatorClass } = timeProgress({
+    spentSeconds,
+    estimateSeconds,
+    isDone,
+  });
 
   return (
-    <div className="flex flex-col gap-0.5 py-2">
-      <IssueTimeBar colorBy="health" issue={parts} className="w-full" testId="worklog-time-bar" />
+    <div className="flex items-center gap-2 py-2">
+      <Progress value={fillPct} className="w-full" indicatorClassName={indicatorClass} />
       <span className="text-xs text-muted-foreground tabular-nums whitespace-nowrap">
-        {timeCaption(logged, est)}
+        {formatDuration(spentSeconds)} / {formatDuration(estimateSeconds)}
       </span>
     </div>
   );
