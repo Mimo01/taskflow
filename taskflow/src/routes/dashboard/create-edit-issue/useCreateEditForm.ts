@@ -1,4 +1,5 @@
 import { useEffect, useReducer } from 'react';
+import type { PersonValue } from '@/components/ui/person-picker';
 import type { JiraAttachment } from '@/services/jira';
 import type { IssueLinkRowValue } from '../IssueLinkRow';
 
@@ -9,6 +10,9 @@ export interface EditInitialValues {
   summary: string;
   description: string;
   assigneeName: string | null;
+  /** Display name + avatar for the assignee picker trigger (falls back to the username). */
+  assigneeDisplayName?: string | null;
+  assigneeAvatarUrl?: string | null;
   priority: string | null;
   storyPoints: number | null;
   epicLinkKey: string | null;
@@ -35,13 +39,11 @@ export interface FormState {
   selectedIssueType: IssueType;
   summary: string;
   description: string;
-  assigneeInputValue: string;
+  /** Person shown in the assignee picker trigger. */
+  selectedAssignee: PersonValue | null;
   selectedAssigneeName: string | null;
   /** True only after the user explicitly picked the "Unassigned" option (edit mode). */
   assigneeUnassignPicked: boolean;
-  /** Label restored into the input on blur when nothing new was picked. */
-  assigneeCommittedLabel: string;
-  showAssigneeResults: boolean;
   timeEstimate: string;
   priority: string | null;
   storyPoints: string;
@@ -65,9 +67,8 @@ export type FormAction =
       defaultParentKey?: string | null;
       initialValues?: EditInitialValues;
     }
-  | { type: 'ASSIGNEE_PICK'; name: string; label: string }
+  | { type: 'ASSIGNEE_PICK'; user: PersonValue }
   | { type: 'ASSIGNEE_PICK_UNASSIGNED' }
-  | { type: 'ASSIGNEE_BLUR'; clearWhenEmpty?: boolean }
   | { type: 'SET_ISSUE_TYPE'; issueType: IssueType }
   | { type: 'SET_CUSTOM_FIELD_VALUE'; fieldId: string; value: string }
   | { type: 'SET_CUSTOM_FIELD_INPUT'; fieldId: string; value: string }
@@ -127,11 +128,15 @@ function buildInitialState(
     selectedIssueType: defaultIssueType ?? 'Story',
     summary: initialValues?.summary ?? '',
     description: initialValues?.description ?? '',
-    assigneeInputValue: initialValues?.assigneeName ?? '',
+    selectedAssignee: initialValues?.assigneeName
+      ? {
+          name: initialValues.assigneeName,
+          displayName: initialValues.assigneeDisplayName ?? initialValues.assigneeName,
+          avatarUrl: initialValues.assigneeAvatarUrl ?? null,
+        }
+      : null,
     selectedAssigneeName: initialValues?.assigneeName ?? null,
     assigneeUnassignPicked: false,
-    assigneeCommittedLabel: initialValues?.assigneeName ?? '',
-    showAssigneeResults: false,
     timeEstimate: '',
     priority: initialValues?.priority ?? null,
     storyPoints: initialValues?.storyPoints != null ? String(initialValues.storyPoints) : '',
@@ -165,37 +170,17 @@ function formReducer(state: FormState, action: FormAction): FormState {
     case 'ASSIGNEE_PICK':
       return {
         ...state,
-        selectedAssigneeName: action.name,
-        assigneeInputValue: action.label,
-        assigneeCommittedLabel: action.label,
+        selectedAssignee: action.user,
+        selectedAssigneeName: action.user.name,
         assigneeUnassignPicked: false,
-        showAssigneeResults: false,
       };
 
     case 'ASSIGNEE_PICK_UNASSIGNED':
       return {
         ...state,
+        selectedAssignee: null,
         selectedAssigneeName: null,
-        assigneeInputValue: 'Unassigned',
-        assigneeCommittedLabel: 'Unassigned',
         assigneeUnassignPicked: true,
-        showAssigneeResults: false,
-      };
-
-    case 'ASSIGNEE_BLUR':
-      // Create mode has no "Unassigned" option, so an emptied field must clear the pick.
-      if (action.clearWhenEmpty && state.assigneeInputValue === '') {
-        return {
-          ...state,
-          selectedAssigneeName: null,
-          assigneeCommittedLabel: '',
-          showAssigneeResults: false,
-        };
-      }
-      return {
-        ...state,
-        assigneeInputValue: state.assigneeCommittedLabel,
-        showAssigneeResults: false,
       };
 
     case 'SET_ISSUE_TYPE':

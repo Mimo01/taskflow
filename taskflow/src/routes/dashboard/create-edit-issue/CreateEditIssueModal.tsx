@@ -4,6 +4,7 @@ import { Loader2, Paperclip, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { PersonPicker, toPersonValue } from '@/components/ui/person-picker';
 import {
   Select,
   SelectContent,
@@ -64,7 +65,6 @@ export function CreateEditIssueModal({
   // ── Description attachments (Task 2: create-mode staging + edit-mode immediate upload) ──
   const descriptionRef = useRef<DescriptionEditorHandle>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const assigneeBlurTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [stagedFiles, setStagedFiles] = useState<File[]>([]);
   const [uploadingName, setUploadingName] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -151,8 +151,6 @@ export function CreateEditIssueModal({
     epics,
     linkTypes,
     linkTypesLoading,
-    allAssignees,
-    assigneeLoading,
   } = useCreateEditQueries({
     open,
     projectKey,
@@ -494,96 +492,25 @@ export function CreateEditIssueModal({
               <label htmlFor="modal-assignee" className="text-sm font-medium">
                 Assignee
               </label>
-              <Input
+              <PersonPicker
+                variant="field"
                 id="modal-assignee"
-                role="combobox"
-                aria-expanded={state.showAssigneeResults}
-                aria-controls="assignee-listbox"
                 aria-label="Assignee"
-                value={state.assigneeInputValue}
-                onChange={(e) => {
-                  dispatch({
-                    type: 'SET_FIELD',
-                    field: 'assigneeInputValue',
-                    value: e.target.value,
-                  });
-                  dispatch({ type: 'SET_FIELD', field: 'showAssigneeResults', value: true });
-                }}
-                onFocus={() => {
-                  if (assigneeBlurTimer.current) clearTimeout(assigneeBlurTimer.current);
-                  // Clear only the visible text so the full list shows; the committed
-                  // selection is untouched so blur without a pick is a no-op.
-                  dispatch({ type: 'SET_FIELD', field: 'assigneeInputValue', value: '' });
-                  dispatch({ type: 'SET_FIELD', field: 'showAssigneeResults', value: true });
-                }}
-                onBlur={() => {
-                  // Deferred so an option's onMouseDown pick lands first; cancelled on refocus.
-                  assigneeBlurTimer.current = setTimeout(
-                    () => dispatch({ type: 'ASSIGNEE_BLUR', clearWhenEmpty: mode === 'create' }),
-                    150,
-                  );
-                }}
-                placeholder="Search assignee..."
+                projectKey={projectKey}
+                jiraBaseUrl={jiraBaseUrl ?? ''}
+                value={state.selectedAssignee}
+                allowUnassign
+                showAssignToMe
                 disabled={isPending}
+                emptyLabel={mode === 'create' ? 'Select assignee (optional)' : 'Unassigned'}
+                onChange={(user) =>
+                  dispatch(
+                    user
+                      ? { type: 'ASSIGNEE_PICK', user: toPersonValue(user) }
+                      : { type: 'ASSIGNEE_PICK_UNASSIGNED' },
+                  )
+                }
               />
-              {state.showAssigneeResults &&
-                (mode === 'edit' || assigneeLoading || allAssignees.length > 0) && (
-                  <div
-                    id="assignee-listbox"
-                    role="listbox"
-                    className="mt-1 rounded-lg border bg-popover shadow-md"
-                  >
-                    {mode === 'edit' && (
-                      <button
-                        type="button"
-                        role="option"
-                        aria-selected={
-                          state.assigneeUnassignPicked ||
-                          (!state.selectedAssigneeName && !initialValues?.assigneeName)
-                        }
-                        className="w-full px-3 py-2 pr-3.5 text-left text-sm italic text-muted-foreground hover:bg-accent"
-                        onMouseDown={() => dispatch({ type: 'ASSIGNEE_PICK_UNASSIGNED' })}
-                      >
-                        Unassigned
-                      </button>
-                    )}
-                    {assigneeLoading && (
-                      <div className="px-3 py-2 text-sm text-muted-foreground">Loading...</div>
-                    )}
-                    {allAssignees
-                      .filter((user) => {
-                        const q = state.assigneeInputValue.toLowerCase();
-                        if (!q) return true;
-                        const fuzzy = (str: string) => {
-                          let i = 0;
-                          for (const ch of str.toLowerCase()) {
-                            if (ch === q[i]) i++;
-                            if (i === q.length) return true;
-                          }
-                          return false;
-                        };
-                        return fuzzy(user.displayName) || fuzzy(user.name);
-                      })
-                      .map((user) => (
-                        <button
-                          key={user.name}
-                          type="button"
-                          role="option"
-                          aria-selected={state.selectedAssigneeName === user.name}
-                          className="w-full px-3 py-2 text-left text-sm hover:bg-accent"
-                          onMouseDown={() =>
-                            dispatch({
-                              type: 'ASSIGNEE_PICK',
-                              name: user.name,
-                              label: user.displayName,
-                            })
-                          }
-                        >
-                          {user.displayName} ({user.name})
-                        </button>
-                      ))}
-                  </div>
-                )}
             </div>
 
             <div className="flex flex-col gap-1">
@@ -653,7 +580,8 @@ export function CreateEditIssueModal({
               creatmetaLoading={creatmetaLoading}
               state={state}
               dispatch={dispatch}
-              allAssignees={allAssignees}
+              projectKey={projectKey}
+              jiraBaseUrl={jiraBaseUrl ?? ''}
               isPending={isPending}
             />
             <LinkRowsSection

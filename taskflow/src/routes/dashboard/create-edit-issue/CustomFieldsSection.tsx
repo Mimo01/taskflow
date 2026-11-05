@@ -1,4 +1,5 @@
 import { Input } from '@/components/ui/input';
+import { PersonPicker, toPersonValue } from '@/components/ui/person-picker';
 import {
   Select,
   SelectContent,
@@ -8,9 +9,9 @@ import {
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { apiFetch } from '@/lib/apiFetch';
-import type { CreatemetaField, JiraUser } from '@/services/jira';
+import type { CreatemetaField } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
-import type { AutoCompleteResult, FormAction, FormState } from './useCreateEditForm';
+import type { FormAction, FormState } from './useCreateEditForm';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -20,42 +21,20 @@ interface CustomFieldsSectionProps {
   creatmetaLoading: boolean;
   state: FormState;
   dispatch: React.Dispatch<FormAction>;
-  allAssignees: JiraUser[];
+  projectKey: string;
+  jiraBaseUrl: string;
   isPending: boolean;
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-function fuzzyMatch(str: string, query: string): boolean {
-  let i = 0;
-  for (const ch of str.toLowerCase()) {
-    if (ch === query[i]) i++;
-    if (i === query.length) return true;
-  }
-  return false;
-}
-
 async function fetchAutoComplete(
   field: CreatemetaField,
   fid: string,
   query: string,
-  allAssignees: JiraUser[],
   dispatch: React.Dispatch<FormAction>,
 ) {
-  const isUserField = field.schema.type === 'user' || field.schema.items === 'user';
-
-  if (isUserField) {
-    const lq = query.toLowerCase();
-    const results: AutoCompleteResult[] = !lq
-      ? allAssignees.map((u) => ({
-          id: u.name,
-          label: `${u.displayName} (${u.name})`,
-        }))
-      : allAssignees
-          .filter((u) => fuzzyMatch(u.displayName, lq) || fuzzyMatch(u.name, lq))
-          .map((u) => ({ id: u.name, label: `${u.displayName} (${u.name})` }));
-    dispatch({ type: 'SET_CUSTOM_FIELD_AUTO_RESULTS', fieldId: fid, results });
-  } else if (field.autoCompleteUrl) {
+  if (field.autoCompleteUrl) {
     const token = await readSecret('jira-pat').catch(() => null);
     if (!token) return;
     const url = field.autoCompleteUrl + encodeURIComponent(query);
@@ -90,7 +69,8 @@ export function CustomFieldsSection({
   creatmetaLoading,
   state,
   dispatch,
-  allAssignees,
+  projectKey,
+  jiraBaseUrl,
   isPending,
 }: CustomFieldsSectionProps) {
   return (
@@ -104,7 +84,8 @@ export function CustomFieldsSection({
       {customRequiredFields.map((field) => {
         const fid = field.fieldId;
         const isUserField = field.schema.type === 'user' || field.schema.items === 'user';
-        const hasAutocomplete = isUserField || !!field.autoCompleteUrl;
+        const hasAutocomplete = !!field.autoCompleteUrl;
+        const userName = state.customFieldValues[fid];
 
         return (
           <div key={fid} className="flex flex-col gap-1">
@@ -129,6 +110,30 @@ export function CustomFieldsSection({
                   ))}
                 </SelectContent>
               </Select>
+            ) : isUserField ? (
+              <PersonPicker
+                variant="field"
+                id={fid}
+                aria-label={field.name}
+                projectKey={projectKey}
+                jiraBaseUrl={jiraBaseUrl}
+                value={
+                  userName
+                    ? {
+                        name: userName,
+                        displayName: state.customFieldInputValues[fid] || userName,
+                      }
+                    : null
+                }
+                emptyLabel={`Select ${field.name}`}
+                disabled={isPending}
+                onChange={(user) => {
+                  if (!user) return;
+                  const p = toPersonValue(user);
+                  dispatch({ type: 'SET_CUSTOM_FIELD_VALUE', fieldId: fid, value: p.name });
+                  dispatch({ type: 'SET_CUSTOM_FIELD_INPUT', fieldId: fid, value: p.displayName });
+                }}
+              />
             ) : hasAutocomplete ? (
               <div className="relative">
                 <Input
@@ -139,12 +144,12 @@ export function CustomFieldsSection({
                     dispatch({ type: 'SET_CUSTOM_FIELD_INPUT', fieldId: fid, value: q });
                     dispatch({ type: 'SET_CUSTOM_FIELD_VALUE', fieldId: fid, value: '' });
                     dispatch({ type: 'SET_CUSTOM_FIELD_SHOW_RESULTS', fieldId: fid, show: true });
-                    void fetchAutoComplete(field, fid, q, allAssignees, dispatch);
+                    void fetchAutoComplete(field, fid, q, dispatch);
                   }}
                   onFocus={() => {
                     dispatch({ type: 'SET_CUSTOM_FIELD_SHOW_RESULTS', fieldId: fid, show: true });
                     if (!state.customFieldAutoResults[fid]?.length)
-                      void fetchAutoComplete(field, fid, '', allAssignees, dispatch);
+                      void fetchAutoComplete(field, fid, '', dispatch);
                   }}
                   onBlur={() =>
                     setTimeout(

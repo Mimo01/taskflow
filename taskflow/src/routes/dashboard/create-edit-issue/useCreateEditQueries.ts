@@ -6,7 +6,6 @@ import {
   fetchIssueLinkTypes,
   type IssueLinkType,
   type JiraIssue,
-  type JiraUser,
 } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
 import type { IssueType } from './useCreateEditForm';
@@ -137,25 +136,6 @@ export function useCreateEditQueries({
     staleTime,
   });
 
-  const { data: allAssignees = [], isLoading: assigneeLoading } = useQuery<JiraUser[]>({
-    queryKey: ['assignable-users', projectKey, jiraBaseUrl],
-    queryFn: async () => {
-      const token = await readSecret('jira-pat').catch(() => null);
-      if (!token || !jiraBaseUrl || !projectKey) return [];
-      const base = jiraBaseUrl.replace(/\/$/, '');
-      const resp = await apiFetch(
-        'jira',
-        `${base}/rest/api/2/user/assignable/search?project=${projectKey}&maxResults=200`,
-        { headers: { Authorization: `Bearer ${token}` } },
-        'Create/Edit Issue',
-      );
-      if (!resp.ok) return [];
-      return (await resp.json()) as JiraUser[];
-    },
-    enabled: open && !!projectKey && !!jiraBaseUrl,
-    staleTime,
-  });
-
   const { data: parentFields } = useQuery<Record<string, unknown>>({
     queryKey: ['parent-fields', parentKey],
     queryFn: async () => {
@@ -185,7 +165,5 @@ export function useCreateEditQueries({
     epics,
     linkTypes,
     linkTypesLoading,
-    allAssignees,
-    assigneeLoading,
   };
 }
