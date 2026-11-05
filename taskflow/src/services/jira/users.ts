@@ -15,6 +15,7 @@ import type { JiraAssignableUser } from './types';
  * @param token - Personal Access Token
  * @param projectKey - Jira project key
  * @param query - Search string (matches displayName and username)
+ * @param opts - `issueKey` scopes to a single issue (instead of the project); `maxResults` caps the page (default 50)
  * @returns Array of matching users, or [] on error
  */
 export async function fetchAssignableUsers(
@@ -22,8 +23,12 @@ export async function fetchAssignableUsers(
   token: string,
   projectKey: string,
   query: string,
+  opts?: { issueKey?: string; maxResults?: number },
 ): Promise<JiraAssignableUser[]> {
-  const url = `${baseUrl.replace(/\/$/, '')}/rest/api/2/user/assignable/search?project=${encodeURIComponent(projectKey)}&username=${encodeURIComponent(query)}`;
+  const scope = opts?.issueKey
+    ? `issueKey=${encodeURIComponent(opts.issueKey)}`
+    : `project=${encodeURIComponent(projectKey)}`;
+  const url = `${baseUrl.replace(/\/$/, '')}/rest/api/2/user/assignable/search?${scope}&username=${encodeURIComponent(query)}&maxResults=${opts?.maxResults ?? 50}`;
 
   try {
     const response = await apiFetch(

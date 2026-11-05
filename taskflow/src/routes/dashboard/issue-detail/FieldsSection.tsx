@@ -1,7 +1,7 @@
 import type { UseMutationResult } from '@tanstack/react-query';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Flag, UserX } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { Flag } from 'lucide-react';
+import { useRef, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { ConfirmSprintMoveDialog } from '@/components/ui/confirm-sprint-move-dialog';
@@ -15,6 +15,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
+import { PersonPicker, toPersonValue } from '@/components/ui/person-picker';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { PriorityIcon } from '@/components/ui/priority-icon';
 import {
@@ -27,7 +28,6 @@ import {
 import { SprintMoveMenuItems } from '@/components/ui/sprint-move-menu-items';
 import { useBoardId } from '@/hooks/useBoardId';
 import { useRmPackage } from '@/hooks/useRmWeekIndex';
-import { apiFetch } from '@/lib/apiFetch';
 import { formatWeekLabel } from '@/lib/deployment-package';
 import { epicColorToTailwind } from '@/lib/epicColors';
 import { invalidateLightweightIssue } from '@/lib/issue-lightweight-cache';
@@ -106,12 +106,6 @@ export function extractDeploymentPackage(field: unknown): string | null {
   return extractOne(field);
 }
 
-interface AssignableUser {
-  displayName: string;
-  name: string;
-  avatarUrls?: { '48x48'?: string };
-}
-
 interface FieldsSectionProps {
   issue: JiraIssueDetail;
   issueKey: string;
@@ -185,18 +179,6 @@ export function FieldsSection({
   const [spInput, setSpInput] = useState('');
   const spOriginal = useRef<number | null>(null);
 
-  // Assignee edit state
-  const [assigneeOpen, setAssigneeOpen] = useState(false);
-  const [assigneeQuery, setAssigneeQuery] = useState('');
-  // Debounced term sent to the server so the assignable-user search filters
-  // across the full user base instead of only the first capped page.
-  const [debouncedAssigneeQuery, setDebouncedAssigneeQuery] = useState('');
-
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedAssigneeQuery(assigneeQuery.trim()), 200);
-    return () => clearTimeout(timer);
-  }, [assigneeQuery]);
-
   // Labels add state
   const [labelInput, setLabelInput] = useState('');
   const [labelAdding, setLabelAdding] = useState(false);
@@ -211,8 +193,6 @@ export function FieldsSection({
   // Fix version edit state
   const [fixVersionOpen, setFixVersionOpen] = useState(false);
   const activeJiraProject = useAuthStore((s) => s.activeJiraProject);
-  const jiraUsername = useAuthStore((s) => s.jiraUsername);
-  const jiraUserDisplayName = useAuthStore((s) => s.jiraUserDisplayName);
   const versionsQuery = useQuery({
     queryKey: ['jira-fix-versions', activeJiraProject, jiraBaseUrl],
     queryFn: async () => {
@@ -270,33 +250,6 @@ export function FieldsSection({
     queryFn: () => fetchSprintList(jiraBaseUrl, jiraToken ?? '', boardId ?? 0),
     enabled: sprintPickerOpen && !!boardId && !!jiraToken,
   });
-
-  // Assignee typeahead: the typed term is sent to the server via `username=` so
-  // Jira filters across the full assignable user base. Previously this fetched a
-  // single capped page (maxResults=50) with no query and filtered client-side, so
-  // any user outside that first page was never selectable (see debug session
-  // assignee-missing-users). `issueKey` scoping keeps results correct for this issue.
-  const assigneeUsersQuery = useQuery({
-    queryKey: ['jira-assignable-users', issueKey, jiraBaseUrl, debouncedAssigneeQuery],
-    queryFn: async () => {
-      const token = await readSecret('jira-pat').catch(() => null);
-      if (!token) return [];
-      const url = `${jiraBaseUrl.replace(/\/$/, '')}/rest/api/2/user/assignable/search?issueKey=${issueKey}&username=${encodeURIComponent(debouncedAssigneeQuery)}&maxResults=50`;
-      const resp = await apiFetch(
-        'jira',
-        url,
-        { headers: { Authorization: `Bearer ${token}` } },
-        'Load Assignees',
-      );
-      if (!resp.ok) return [];
-      return (await resp.json()) as AssignableUser[];
-    },
-    enabled: assigneeOpen,
-    staleTime: 60_000,
-  });
-
-  // Server already filters by the typed term; just cap the displayed count.
-  const filteredAssignees = (assigneeUsersQuery.data ?? []).slice(0, 10);
 
   const filteredVersions = (() => {
     const all = versionsQuery.data;
@@ -564,26 +517,6 @@ export function FieldsSection({
     setSpEditing(false);
   }
 
-  function handleAssigneeSelect(user: AssignableUser) {
-    setAssigneeOpen(false);
-    setAssigneeQuery('');
-    // DC format: { name: username } -- NOT { accountId }
-    mutation.mutate({ fieldName: 'assignee', value: { name: user.name } });
-  }
-
-  function handleUnassign() {
-    setAssigneeOpen(false);
-    setAssigneeQuery('');
-    mutation.mutate({ fieldName: 'assignee', value: null });
-  }
-
-  function handleAssignToMe() {
-    if (!jiraUsername) return;
-    setAssigneeOpen(false);
-    setAssigneeQuery('');
-    mutation.mutate({ fieldName: 'assignee', value: { name: jiraUsername } });
-  }
-
   function handleLabelAdd() {
     const trimmed = labelInput.trim();
     if (!trimmed) return;
@@ -801,95 +734,28 @@ export function FieldsSection({
 
       {/* Assignee -- click to open typeahead popover */}
       <MetaRow label="Assignee">
-        <Popover open={assigneeOpen} onOpenChange={setAssigneeOpen}>
-          <PopoverTrigger
-            data-testid="assignee-edit"
-            className="hover:bg-accent rounded px-1 -ml-1 cursor-pointer text-left text-sm inline-flex items-center gap-1.5"
-            title="Click to change assignee"
-          >
-            {f.assignee ? (
-              <>
-                <CachedAvatar
-                  url={f.assignee.avatarUrls?.['48x48']}
-                  name={f.assignee.displayName}
-                  size={20}
-                />
-                {f.assignee.displayName}
-              </>
-            ) : (
-              <>
-                <CachedAvatar url={null} name="Unassigned" size={20} />
-                Unassigned
-              </>
-            )}
-          </PopoverTrigger>
-          <PopoverContent className="w-80 p-2">
-            {jiraUsername && f.assignee?.name !== jiraUsername && (
-              <>
-                <button
-                  data-testid="assignee-assign-to-me"
-                  type="button"
-                  onClick={handleAssignToMe}
-                  className="text-left px-1 text-xs text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
-                >
-                  Assign to me →
-                  {jiraUserDisplayName && (
-                    <span className="text-muted-foreground ml-1">({jiraUserDisplayName})</span>
-                  )}
-                </button>
-                <div className="border-b border-border/40 my-2" />
-              </>
-            )}
-            <Input
-              placeholder="Filter users..."
-              value={assigneeQuery}
-              onChange={(e) => setAssigneeQuery(e.target.value)}
-              autoFocus
-              className="h-7 text-xs mb-2"
-            />
-            {assigneeUsersQuery.isLoading && (
-              <p className="text-xs text-muted-foreground px-1">Loading users...</p>
-            )}
-            {!assigneeUsersQuery.isLoading && filteredAssignees.length === 0 && (
-              <p className="text-xs text-muted-foreground px-1">
-                {assigneeQuery.trim() ? 'No users match' : 'No assignable users found'}
-              </p>
-            )}
-            {f.assignee && 'unassigned'.includes(assigneeQuery.trim().toLowerCase()) && (
-              <>
-                <button
-                  data-testid="assignee-unassign"
-                  type="button"
-                  onClick={handleUnassign}
-                  className="w-full text-left px-2 py-1.5 text-xs rounded-md flex items-center gap-2 border border-dashed border-border bg-muted/40 text-muted-foreground hover:bg-destructive/10 hover:border-destructive/40 hover:text-destructive transition-colors cursor-pointer"
-                >
-                  <span className="flex size-5 shrink-0 items-center justify-center rounded-full border border-dashed border-current">
-                    <UserX className="size-3" aria-hidden="true" />
-                  </span>
-                  <span className="flex flex-col leading-tight">
-                    <span className="font-medium">Unassign</span>
-                    <span className="text-[11px] opacity-70">Remove {f.assignee.displayName}</span>
-                  </span>
-                </button>
-                <div className="border-b border-border/40 my-2" />
-              </>
-            )}
-            {filteredAssignees.map((user) => (
-              <button
-                key={user.name}
-                type="button"
-                onClick={() => handleAssigneeSelect(user)}
-                className="w-full text-left px-2 py-1 text-xs hover:bg-accent rounded flex items-center gap-2"
-              >
-                <CachedAvatar url={user.avatarUrls?.['48x48']} name={user.displayName} size={20} />
-                {user.displayName}
-              </button>
-            ))}
-            {mutation.isError && (
+        <PersonPicker
+          variant="inline"
+          triggerTestId="assignee-edit"
+          title="Click to change assignee"
+          issueKey={issueKey}
+          jiraBaseUrl={jiraBaseUrl}
+          value={f.assignee ? toPersonValue(f.assignee) : null}
+          allowUnassign
+          showAssignToMe
+          footer={
+            mutation.isError && (
               <p className="text-xs text-destructive mt-1">Save failed — changes reverted</p>
-            )}
-          </PopoverContent>
-        </Popover>
+            )
+          }
+          onChange={(user) =>
+            // DC format: { name: username } -- NOT { accountId }
+            mutation.mutate({
+              fieldName: 'assignee',
+              value: user ? { name: user.name } : null,
+            })
+          }
+        />
       </MetaRow>
 
       <MetaRow label="Reporter">
