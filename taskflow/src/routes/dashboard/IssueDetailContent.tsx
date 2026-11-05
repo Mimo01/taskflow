@@ -8,17 +8,14 @@ import {
   Pencil,
   Pin,
   Plus,
-  TriangleAlert,
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { IssueTimeBar, timedIssue } from '@/components/jira/IssueTimeBar';
 import { Button } from '@/components/ui/button';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { ErrorState } from '@/components/ui/error-state';
 import { LinkContextMenu } from '@/components/ui/link-context-menu';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { TooltipBody, TooltipRow } from '@/components/ui/tooltip-body';
 import { useMentionUserMap } from '@/hooks/useMentionUserMap';
-import { deriveTimeSegments, estimateOf, loggedOf, remainingOf } from '@/lib/epic-progress';
 import { openExternal } from '@/lib/openExternal';
 import { statusPillClass } from '@/lib/statusStyles';
 import { cn } from '@/lib/utils';
@@ -30,16 +27,13 @@ import type {
   JiraIssueLink,
 } from '@/services/jira';
 import { deleteAttachment } from '@/services/jira/attachments';
-import { formatDuration } from '@/services/jira/duration';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useSettingsStore } from '@/stores/settings.store';
 import { BulkCreateSubtasksModal } from './BulkCreateSubtasksModal';
 import type { EditInitialValues } from './CreateEditIssueModal';
 import { AttachmentsSection } from './issue-detail/AttachmentsSection';
-import { TimeBar } from './issue-detail/EpicBands';
 import { EpicProgressSection } from './issue-detail/EpicProgressSection';
-import { MARKER_ICON } from './issue-detail/epic-markers';
 import { LogWorkPopover } from './issue-detail/LogWorkPopover';
 import { SubtasksSkeleton } from './issue-detail/SubtasksSkeleton';
 import type { AttachmentMap } from './WikiRenderer';
@@ -107,94 +101,18 @@ type SubtaskDisplayItem = {
   };
 };
 
-/**
- * Time bar + tooltip shared by the epic Stories rows and the story Subtasks rows.
- * Same TimeBar as the epic bars: total = logged + remaining, tick at the estimate.
- */
-function RowTimeBar({ issue }: { issue: JiraIssue }) {
-  const est = estimateOf(issue);
-  const logged = loggedOf(issue);
-  const remaining = remainingOf(issue);
-  const total = logged + remaining;
-  const overrun = est > 0 && logged > est;
-  const over = est > 0 ? Math.max(total - est, 0) : 0;
-  const under = est > 0 ? Math.max(est - total, 0) : 0;
-  return (
-    <Tooltip>
-      <TooltipTrigger
-        delay={0}
-        render={<span />}
-        data-testid="story-time-bar"
-        role="img"
-        aria-label={
-          total > 0 ? `Logged ${formatDuration(logged)} of ${formatDuration(total)}` : 'No estimate'
-        }
-        data-overrun={overrun ? 'true' : undefined}
-        data-empty={total > 0 ? undefined : 'true'}
-        className="inline-flex w-16 flex-none"
-      >
-        <TimeBar
-          segments={deriveTimeSegments([issue])}
-          estimate={est}
-          className="h-1.5 rounded-full"
-        />
-      </TooltipTrigger>
-      <TooltipContent>
-        <TooltipBody note={est > 0 || remaining > 0 ? undefined : 'No estimate'}>
-          {est > 0 ? (
-            <TooltipRow
-              icon={<MARKER_ICON.estimate className="size-3" />}
-              label="Estimate"
-              value={formatDuration(est)}
-            />
-          ) : null}
-          <TooltipRow
-            icon={<MARKER_ICON.logged className="size-3" />}
-            label="Logged"
-            value={formatDuration(logged)}
-          />
-          {est > 0 || remaining > 0 ? (
-            <TooltipRow
-              icon={<MARKER_ICON.remaining className="size-3" />}
-              label="Remaining"
-              value={formatDuration(remaining)}
-            />
-          ) : null}
-          {over > 0 ? (
-            <TooltipRow
-              icon={<TriangleAlert className="size-3" />}
-              label="Over by"
-              value={formatDuration(over)}
-            />
-          ) : null}
-          {under > 0 ? (
-            <TooltipRow
-              icon={<MARKER_ICON.estimate className="size-3" />}
-              label="Under by"
-              value={
-                <span className="text-green-700 dark:text-green-400">{formatDuration(under)}</span>
-              }
-            />
-          ) : null}
-        </TooltipBody>
-      </TooltipContent>
-    </Tooltip>
-  );
-}
-
 /** Subtask time fields (timetracking seconds) mapped onto the JiraIssue shape the epic helpers read. */
 function subtaskAsTimedIssue(sub: SubtaskDisplayItem): JiraIssue {
   const tt = sub.fields.timetracking;
-  const fields: Record<string, unknown> = { ...sub.fields };
-  if (tt?.originalEstimateSeconds !== undefined) {
-    fields.timeoriginalestimate = tt.originalEstimateSeconds;
-    fields.aggregatetimeoriginalestimate = tt.originalEstimateSeconds;
-  }
-  if (tt?.timeSpentSeconds !== undefined) fields.aggregatetimespent = tt.timeSpentSeconds;
-  if (tt?.remainingEstimateSeconds !== undefined) {
-    fields.aggregatetimeestimate = tt.remainingEstimateSeconds;
-  }
-  return { id: sub.id, key: sub.key, fields } as unknown as JiraIssue;
+  const cat = sub.fields.status.statusCategory as { key?: unknown } | undefined;
+  return timedIssue({
+    id: sub.id,
+    key: sub.key,
+    statusCategoryKey: cat?.key,
+    originalEstimate: tt?.originalEstimateSeconds,
+    logged: tt?.timeSpentSeconds,
+    remaining: tt?.remainingEstimateSeconds,
+  });
 }
 
 function subtaskListContent({
@@ -246,7 +164,7 @@ function subtaskListContent({
                     </span>
                   </div>
                 )}
-                <RowTimeBar issue={subtaskAsTimedIssue(sub)} />
+                <IssueTimeBar issue={subtaskAsTimedIssue(sub)} />
                 <span className={statusPillClass(statusCat?.key)}>{sub.fields.status.name}</span>
               </button>
             </li>
@@ -442,7 +360,7 @@ export function IssueDetailContent({
                           </span>
                         </div>
                       )}
-                      <RowTimeBar issue={story} />
+                      <IssueTimeBar issue={story} />
                       <span className={statusPillClass(story.fields.status.statusCategory?.key)}>
                         {story.fields.status.name}
                       </span>
