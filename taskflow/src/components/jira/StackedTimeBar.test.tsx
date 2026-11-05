@@ -23,34 +23,41 @@ describe('StackedTimeBar', () => {
     expect(screen.getByTestId('bar')).toHaveTextContent('1h / 2h');
   });
 
-  const indicator = (c: HTMLElement) => c.querySelector('[data-slot="progress-indicator"]');
+  const seg = (c: HTMLElement, name: string) => c.querySelector(`[data-segment="${name}"]`);
 
-  it('done issue under estimate is a partial green bar', () => {
+  it('done issue under estimate: solid status-coloured logged part, no remaining', () => {
     const { container } = render(
       <StackedTimeBar spentSeconds={7200} totalSeconds={14400} isDone testId="bar" />,
     );
-    expect(indicator(container)).toHaveClass('bg-green-500');
-    expect(container.querySelector('[role="progressbar"]')).toHaveAttribute('aria-valuenow', '50');
+    expect(seg(container, 'done:logged')).toBeInTheDocument();
+    expect(seg(container, 'done:remaining')).toBeNull();
+    expect(container.querySelector('[data-testid="time-estimate-tick"]')).toBeInTheDocument();
   });
 
-  it('not done with spent == total is amber, not red', () => {
+  it('not done under estimate: logged plus faint remaining up to the estimate', () => {
     const { container } = render(
-      <StackedTimeBar spentSeconds={7200} totalSeconds={7200} testId="bar" />,
+      <StackedTimeBar
+        spentSeconds={3600}
+        totalSeconds={7200}
+        statusCategoryKey="new"
+        testId="bar"
+      />,
     );
-    expect(indicator(container)).toHaveClass('bg-amber-500');
+    expect(seg(container, 'new:logged')).toBeInTheDocument();
+    expect(seg(container, 'new:remaining')).toHaveClass('opacity-35');
   });
 
-  it('spent up to 125% of total is amber', () => {
+  it('spent up to 125% of total is amber beyond the estimate', () => {
     const { container } = render(
       <StackedTimeBar spentSeconds={9000} totalSeconds={7200} testId="bar" />,
     );
-    expect(indicator(container)).toHaveClass('bg-amber-500');
+    expect(seg(container, 'indeterminate:loggedOver')).toHaveClass('bg-amber-500');
   });
 
-  it('spent > 125% of total is red', () => {
+  it('spent > 125% of total is red beyond the estimate', () => {
     const { container } = render(
       <StackedTimeBar spentSeconds={10800} totalSeconds={7200} testId="bar" />,
     );
-    expect(indicator(container)).toHaveClass('bg-red-500');
+    expect(seg(container, 'indeterminate:loggedOver')).toHaveClass('bg-red-500');
   });
 });

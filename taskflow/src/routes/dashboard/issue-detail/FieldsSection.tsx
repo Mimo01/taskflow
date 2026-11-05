@@ -1273,6 +1273,7 @@ export function FieldsSection({
         aggregatetimespent={f.aggregatetimespent}
         timespent={f.timespent}
         isDone={isDoneStatus(f.status?.statusCategory?.key)}
+        statusCategoryKey={f.status?.statusCategory?.key}
       />
     </>
   );

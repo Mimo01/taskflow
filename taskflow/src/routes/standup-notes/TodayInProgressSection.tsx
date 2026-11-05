@@ -146,6 +146,7 @@ function IssueRow({
             testId="standup-time-bar"
             alwaysShowTrack
             isDone={isDoneStatus(issue.fields.status.statusCategory?.key)}
+            statusCategoryKey={issue.fields.status.statusCategory?.key}
           />
           <CachedAvatar
             url={issue.fields.assignee?.avatarUrls?.['48x48'] ?? null}

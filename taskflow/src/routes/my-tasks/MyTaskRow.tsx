@@ -216,6 +216,7 @@ export function MyTaskRow({
         spentSeconds={spentSeconds}
         totalSeconds={totalSeconds}
         isDone={isDoneStatus(statusCategoryKey)}
+        statusCategoryKey={statusCategoryKey}
       />
 
       {/* Assignee avatar */}

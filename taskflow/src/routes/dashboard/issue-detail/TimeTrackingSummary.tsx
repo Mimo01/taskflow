@@ -37,8 +37,7 @@
  * closed issues show a full bar; remaining is only an estimate fallback for
  * not-done issues.
  */
-import { Progress } from '@/components/ui/progress';
-import { timeProgress } from '@/lib/time-progress';
+import { StackedTimeBar } from '@/components/jira/StackedTimeBar';
 import { formatDuration } from '@/services/jira/duration';
 import { MetaRow } from './MetaRow';
 
@@ -63,6 +62,7 @@ interface TimeTrackingSummaryProps {
   timespent?: number | null;
   /** Issue is in the done status category. */
   isDone: boolean;
+  statusCategoryKey?: string;
 }
 
 export function TimeTrackingSummary({
@@ -72,6 +72,7 @@ export function TimeTrackingSummary({
   aggregatetimespent,
   timespent,
   isDone,
+  statusCategoryKey,
 }: TimeTrackingSummaryProps) {
   const spent = aggregatetimespent ?? timespent ?? timetracking?.timeSpentSeconds ?? 0;
   const originalEstimate =
@@ -87,27 +88,20 @@ export function TimeTrackingSummary({
 
   // Bar only makes sense when there's an estimate to measure progress against;
   // omit it entirely otherwise rather than showing a misleading 0%/full bar.
-  const { fillPct, indicatorClass } = timeProgress({
-    spentSeconds: spent,
-    estimateSeconds: estimate,
-    isDone,
-  });
 
   return (
     <MetaRow label="Time Tracking">
       {!hasData ? (
         <span className="text-xs text-muted-foreground">No time logged</span>
       ) : estimate > 0 ? (
-        <div className="flex flex-col gap-0.5">
-          <Progress
-            value={fillPct}
-            className="h-1.5 w-full rounded-full"
-            indicatorClassName={`${indicatorClass} rounded-full`}
-          />
-          <span className="text-xs text-muted-foreground tabular-nums whitespace-nowrap">
-            {formatDuration(spent)} / {formatDuration(estimate)}
-          </span>
-        </div>
+        <StackedTimeBar
+          spentSeconds={spent}
+          totalSeconds={estimate}
+          widthClassName="w-full"
+          testId="time-tracking-bar"
+          isDone={isDone}
+          statusCategoryKey={statusCategoryKey}
+        />
       ) : (
         <div className="space-y-1">
           <span className="text-xs">

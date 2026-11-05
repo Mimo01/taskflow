@@ -1,7 +1,36 @@
-import { Progress } from '@/components/ui/progress';
-import { timeProgress } from '@/lib/time-progress';
+import type { Cat, TimeSegment } from '@/lib/epic-progress';
+import { OVERRUN_RED_RATIO } from '@/lib/time-progress';
 import { cn } from '@/lib/utils';
+import { TimeBar } from '@/routes/dashboard/issue-detail/EpicBands';
 import { formatDuration } from '@/services/jira/duration';
+
+/** Jira status category key -> Cat; undefined for unknown keys. */
+export function toCat(key: string | undefined): Cat | undefined {
+  return key === 'done' || key === 'indeterminate' || key === 'new' ? key : undefined;
+}
+
+/**
+ * Segments for a single spent-vs-estimate bar in the epic/story TimeBar style: solid = logged
+ * (status colour), faint = time left up to the estimate, amber/red beyond it.
+ */
+export function spentSegments(
+  spentSeconds: number,
+  estimateSeconds: number,
+  isDone: boolean,
+  cat?: Cat,
+): TimeSegment[] {
+  const c: Cat = cat ?? (isDone ? 'done' : 'indeterminate');
+  const spent = Math.max(0, spentSeconds);
+  const severe = spent > estimateSeconds * OVERRUN_RED_RATIO;
+  const within = Math.min(spent, estimateSeconds);
+  const out: TimeSegment[] = [];
+  if (within > 0) out.push({ cat: c, part: 'logged', seconds: within, severe });
+  if (spent > estimateSeconds)
+    out.push({ cat: c, part: 'loggedOver', seconds: spent - estimateSeconds, severe });
+  if (!isDone && spent < estimateSeconds)
+    out.push({ cat: c, part: 'remaining', seconds: estimateSeconds - spent, severe });
+  return out;
+}
 
 /** My Tasks default: full-page container breakpoints. Callers in narrower
  *  containers (e.g. the standup Today column) pass their own width rules. */
@@ -18,6 +47,8 @@ interface StackedTimeBarProps {
   alwaysShowTrack?: boolean;
   /** Row's own status is done: fills green at/under estimate instead of amber. */
   isDone?: boolean;
+  /** Status category, so the solid fill matches the status colour (defaults from isDone). */
+  statusCategoryKey?: string;
 }
 
 /**
@@ -31,6 +62,7 @@ export function StackedTimeBar({
   testId = 'my-task-time-bar',
   alwaysShowTrack = false,
   isDone = false,
+  statusCategoryKey,
 }: StackedTimeBarProps) {
   const hasEst = typeof totalSeconds === 'number' && totalSeconds > 0;
   const hasSpent = spentSeconds > 0;
@@ -40,12 +72,6 @@ export function StackedTimeBar({
   }
 
   const est = hasEst ? (totalSeconds as number) : 0;
-  const { fillPct, indicatorClass } = timeProgress({
-    spentSeconds,
-    estimateSeconds: totalSeconds,
-    isDone,
-  });
-  const indicatorColor = indicatorClass ? `${indicatorClass} rounded-full` : undefined;
 
   const caption = hasEst
     ? `${formatDuration(spentSeconds)} / ${formatDuration(est)}`
@@ -53,10 +79,10 @@ export function StackedTimeBar({
 
   return (
     <div className={cn('shrink-0 flex flex-col gap-0.5', widthClassName)} data-testid={testId}>
-      <Progress
-        value={hasEst ? fillPct : 0}
-        className="h-1.5 w-full rounded-full"
-        indicatorClassName={indicatorColor}
+      <TimeBar
+        segments={hasEst ? spentSegments(spentSeconds, est, isDone, toCat(statusCategoryKey)) : []}
+        estimate={est}
+        className="h-1.5 rounded-full"
       />
       <span className="text-xs text-muted-foreground tabular-nums whitespace-nowrap truncate">
         {caption}

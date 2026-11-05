@@ -12,11 +12,12 @@
  * `timetracking` plus the already-fetched `subtaskEnrichmentQuery` data —
  * no new network query is introduced here.
  */
-import { Progress } from '@/components/ui/progress';
-import { isDoneStatus, timeProgress } from '@/lib/time-progress';
+import { spentSegments, toCat } from '@/components/jira/StackedTimeBar';
+import { isDoneStatus } from '@/lib/time-progress';
 import type { JiraIssueDetail } from '@/services/jira';
 import { formatDuration } from '@/services/jira/duration';
 import { aggregateTimeTracking, type SubtaskWithTimeTracking } from './aggregateTimeTracking';
+import { TimeBar } from './EpicBands';
 
 interface WorklogProgressBarProps {
   issue: JiraIssueDetail;
@@ -36,15 +37,18 @@ export function WorklogProgressBar({ issue, subtasks }: WorklogProgressBarProps)
 
   if (!estimateSeconds || estimateSeconds <= 0) return null;
 
-  const { fillPct, indicatorClass } = timeProgress({
-    spentSeconds,
-    estimateSeconds,
-    isDone,
-  });
-
   return (
     <div className="flex items-center gap-2 py-2">
-      <Progress value={fillPct} className="w-full" indicatorClassName={indicatorClass} />
+      <TimeBar
+        segments={spentSegments(
+          spentSeconds,
+          estimateSeconds,
+          isDone,
+          toCat(issue.fields.status?.statusCategory?.key),
+        )}
+        estimate={estimateSeconds}
+        className="h-1.5 w-full rounded-full"
+      />
       <span className="text-xs text-muted-foreground tabular-nums whitespace-nowrap">
         {formatDuration(spentSeconds)} / {formatDuration(estimateSeconds)}
       </span>

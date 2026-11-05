@@ -71,39 +71,32 @@ describe('WorklogProgressBar', () => {
     expect(screen.getByText('2h / 3h')).toBeTruthy();
   });
 
-  it('uses red indicator when spent > 125% of estimate', () => {
+  it('colours the part beyond the estimate red when spent > 125% of estimate', () => {
     const issue = makeIssue({ timeSpentSeconds: 10800, originalEstimateSeconds: 7200 });
     const { container } = render(<WorklogProgressBar issue={issue} subtasks={undefined} />);
-    expect(container.querySelector('.bg-red-500')).toBeTruthy();
+    expect(container.querySelector('[data-segment$=":loggedOver"]')).toHaveClass('bg-red-500');
   });
 
-  it('uses amber indicator when not done and spent == estimate', () => {
-    const issue = makeIssue({ timeSpentSeconds: 7200, originalEstimateSeconds: 7200 });
+  it('colours the part beyond the estimate amber when within 125%', () => {
+    const issue = makeIssue({ timeSpentSeconds: 9000, originalEstimateSeconds: 7200 });
     const { container } = render(<WorklogProgressBar issue={issue} subtasks={undefined} />);
-    expect(container.querySelector('.bg-amber-500')).toBeTruthy();
-    expect(container.querySelector('.bg-red-500')).toBeNull();
+    expect(container.querySelector('[data-segment$=":loggedOver"]')).toHaveClass('bg-amber-500');
   });
 
-  it('done issue spent 2h / original 4h is a 50% green bar', () => {
+  it('done issue spent 2h / original 4h is a solid done-coloured bar', () => {
     const issue = makeIssue({
       timeSpentSeconds: 7200,
       originalEstimateSeconds: 14400,
       statusCategoryKey: 'done',
     });
     const { container } = render(<WorklogProgressBar issue={issue} subtasks={undefined} />);
-    expect(container.querySelector('.bg-green-500')).toBeTruthy();
-    expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '50');
+    expect(container.querySelector('[data-segment="done:logged"]')).toBeTruthy();
+    expect(container.querySelector('[data-segment$=":remaining"]')).toBeNull();
   });
 
-  it('uses amber indicator when fill >= 75%', () => {
-    const issue = makeIssue({ timeSpentSeconds: 5400, originalEstimateSeconds: 7200 });
-    const { container } = render(<WorklogProgressBar issue={issue} subtasks={undefined} />);
-    expect(container.querySelector('.bg-amber-500')).toBeTruthy();
-  });
-
-  it('uses green indicator when fill < 75%', () => {
+  it('under estimate and not done: logged plus faint remaining', () => {
     const issue = makeIssue({ timeSpentSeconds: 1800, originalEstimateSeconds: 7200 });
     const { container } = render(<WorklogProgressBar issue={issue} subtasks={undefined} />);
-    expect(container.querySelector('.bg-green-500')).toBeTruthy();
+    expect(container.querySelector('[data-segment$=":remaining"]')).toBeTruthy();
   });
 });

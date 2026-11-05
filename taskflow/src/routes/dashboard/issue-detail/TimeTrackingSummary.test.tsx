@@ -93,11 +93,11 @@ describe('TimeTrackingSummary', () => {
           }}
         />,
       );
-      expect(screen.getByRole('progressbar')).toBeInTheDocument();
+      expect(screen.getByTestId('time-tracking-bar')).toBeInTheDocument();
       expect(screen.getByText('1h / 8h')).toBeInTheDocument();
     });
 
-    it('closed issue (remaining 0) shows a 50% green bar from spent / original', () => {
+    it('closed issue (remaining 0) shows a done-coloured logged bar from spent / original', () => {
       render(
         <TimeTrackingSummary
           isDone
@@ -107,9 +107,8 @@ describe('TimeTrackingSummary', () => {
           aggregatetimeestimate={0}
         />,
       );
-      const bar = screen.getByRole('progressbar');
-      expect(bar).toHaveAttribute('aria-valuenow', '50');
-      expect(bar.querySelector('[data-slot="progress-indicator"]')).toHaveClass('bg-green-500');
+      const bar = screen.getByTestId('time-tracking-bar');
+      expect(bar.querySelector('[data-segment="done:logged"]')).toBeInTheDocument();
       expect(screen.getByText('2h / 4h')).toBeInTheDocument();
     });
 
@@ -122,35 +121,12 @@ describe('TimeTrackingSummary', () => {
           aggregatetimespent={3600}
         />,
       );
-      expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('time-tracking-bar')).not.toBeInTheDocument();
       expect(screen.getByText(/Spent:/)).toBeInTheDocument();
       expect(screen.getByText('No estimate')).toBeInTheDocument();
     });
 
-    it('not done: spent == original is amber, spent > original is red', () => {
-      const { rerender } = render(
-        <TimeTrackingSummary
-          isDone={false}
-          timetracking={{}}
-          aggregatetimeoriginalestimate={3600}
-          aggregatetimespent={3600}
-        />,
-      );
-      const cls = () =>
-        screen.getByRole('progressbar').querySelector('[data-slot="progress-indicator"]');
-      expect(cls()).toHaveClass('bg-amber-500');
-      rerender(
-        <TimeTrackingSummary
-          isDone={false}
-          timetracking={{}}
-          aggregatetimeoriginalestimate={3600}
-          aggregatetimespent={7200}
-        />,
-      );
-      expect(cls()).toHaveClass('bg-red-500');
-    });
-
-    it('caps the visual fill at 100% on overrun and signals overrun distinctly', () => {
+    it('not done: spent > original is red beyond the estimate', () => {
       render(
         <TimeTrackingSummary
           isDone={false}
@@ -159,21 +135,32 @@ describe('TimeTrackingSummary', () => {
           aggregatetimespent={7200}
         />,
       );
-      const bar = screen.getByRole('progressbar');
-      // base-ui Progress exposes the clamped percent via aria-valuenow.
-      expect(bar).toHaveAttribute('aria-valuenow', '100');
+      expect(
+        screen.getByTestId('time-tracking-bar').querySelector('[data-segment$=":loggedOver"]'),
+      ).toHaveClass('bg-red-500');
+    });
+
+    it('shows the overrun caption', () => {
+      render(
+        <TimeTrackingSummary
+          isDone={false}
+          timetracking={{}}
+          aggregatetimeoriginalestimate={3600}
+          aggregatetimespent={7200}
+        />,
+      );
       expect(screen.getByText('2h / 1h')).toBeInTheDocument();
     });
 
     it('does not render a bar when there is no estimate', () => {
       render(<TimeTrackingSummary isDone={false} timetracking={{ timeSpentSeconds: 3600 }} />);
-      expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('time-tracking-bar')).not.toBeInTheDocument();
     });
 
     it('does not render a bar when nothing has been logged ("No time logged" text state)', () => {
       render(<TimeTrackingSummary isDone={false} timetracking={undefined} />);
       expect(screen.getByText('No time logged')).toBeInTheDocument();
-      expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('time-tracking-bar')).not.toBeInTheDocument();
     });
   });
 });
