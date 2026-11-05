@@ -1,7 +1,9 @@
 import { Calendar, Copy, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
+  headerActionButton,
   headerActionLabel,
+  headerRefreshButton,
   headerRefreshLabel,
   headerSecondaryText,
   PageHeader,
@@ -92,6 +94,7 @@ export default function StandupPageHeader({
             size="sm"
             onClick={onRefresh}
             disabled={isRefreshing}
+            className={headerRefreshButton}
             aria-label="Refresh"
             title={
               syncedMinutesAgo !== null ? `Refresh (synced ${syncedMinutesAgo}m ago)` : 'Refresh'
@@ -104,6 +107,7 @@ export default function StandupPageHeader({
             variant="default"
             size="sm"
             onClick={onCopyMarkdown}
+            className={headerActionButton}
             aria-label={copied ? 'Copied!' : 'Copy markdown'}
             title={copied ? 'Copied!' : 'Copy markdown'}
           >
