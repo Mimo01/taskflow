@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-08-13)
 Phase: 94
 Plan: Not started
 Status: Milestone complete
-Last activity: 2026-11-05 - Completed quick task 261105-fav: standup today shows all my subtasks under shown stories
+Last activity: 2026-11-05 - Completed quick task 261105-fkj: subtle hairline between story groups in My Tasks and Standup
 
 ## Performance Metrics
 
@@ -255,6 +255,7 @@ Acknowledged and deferred at v1.14 milestone close (2026-08-13) — 111 open art
 | 261103-nxu | Unify page header sizes: headers with a subtitle line text-3xl (My Tasks, Standup, Releases, Debug Logs, Dev Tools); headers without one text-2xl (Backlog, MRs (icon dropped), Sprint Board, Epics, Worklogs, Test cycles); no Settings header; subpages text-2xl (Release/AIO cycle/AIO run/MR/Issue page; issue peek sheet stays text-xl). Exceptions: home hero, onboarding, error/update screens | 2026-11-03 | ff901d68, 1cebf9dc, 9c020a5a | Verified (UAT approved) | [261103-nxu-unify-page-header-sizes](./quick/261103-nxu-unify-page-header-sizes/) |
 | 261105-dsl | One readable time bar everywhere (sketch option A): My Tasks, standup, sidebar, Worklog, epic rows | 2026-11-05 | 3a1e96d3 | Verified (UAT approved) | [261105-dsl](./quick/261105-dsl-apply-epic-style-time-progress-bar-to-my/) |
 | 261105-fav | Standup Today: shown stories nest ALL my subtasks (done included, Jira order); story selection + bucket placement unchanged | 2026-11-05 | fed947d1 | Pending UAT | [261105-fav-standup-today-show-all-my-subtasks-under](./quick/261105-fav-standup-today-show-all-my-subtasks-under/) |
+| 261105-fkj | My Tasks + Standup (Today/Yesterday): faint divide-border/40 hairline between story groups (story + its shown subtasks); spacing/row height unchanged | 2026-11-05 | d14d6a1f | Pending UAT | [261105-fkj-story-group-separators](./quick/261105-fkj-story-group-separators/) |
 
 ## Session Continuity
 
