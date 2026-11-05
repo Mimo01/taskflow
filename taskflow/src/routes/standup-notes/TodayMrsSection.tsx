@@ -78,7 +78,8 @@ export default function TodayMrsSection({
             // Future: enrich with fetchMRApprovals per MR to derive "changes requested"
             // (amber) or "approved" (filter out) — too expensive for standup column today.
             const reviewStateLabel = 'awaiting review';
-            const reviewStateLabelClass = 'text-xs text-muted-foreground shrink-0';
+            const reviewStateLabelClass =
+              'text-xs text-muted-foreground shrink-0 @max-[28rem]:hidden';
             // amber path (future enrichment):
             // if (mr.review_state === 'changes_requested') {
             //   reviewStateLabel = 'changes requested';
@@ -94,7 +95,7 @@ export default function TodayMrsSection({
               >
                 <GitBranch className="size-4 shrink-0 text-muted-foreground" />
                 <span className="text-xs text-muted-foreground font-mono shrink-0">!{mr.iid}</span>
-                <span className="flex-1 min-w-0 truncate text-sm">{mr.title}</span>
+                <span className="flex-1 min-w-16 truncate text-sm">{mr.title}</span>
                 <span className={reviewStateLabelClass}>{reviewStateLabel}</span>
               </button>
             );

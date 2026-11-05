@@ -76,13 +76,15 @@ export default function TodayParticipatingSection({
             >
               <MessageSquare className="size-4 shrink-0 text-muted-foreground" />
               <span className="text-xs text-muted-foreground font-mono shrink-0">!{mr.mrIid}</span>
-              <span className="flex-1 min-w-0 truncate text-sm">{mr.title}</span>
+              <span className="flex-1 min-w-16 truncate text-sm">{mr.title}</span>
               {mr.openThreadCount > 0 ? (
-                <span className="text-xs text-muted-foreground shrink-0">
+                <span className="text-xs text-muted-foreground shrink-0 @max-[28rem]:hidden">
                   {mr.openThreadCount} open thread{mr.openThreadCount !== 1 ? 's' : ''}
                 </span>
               ) : (
-                <span className="text-xs text-muted-foreground/60 shrink-0">not approved</span>
+                <span className="text-xs text-muted-foreground/60 shrink-0 @max-[28rem]:hidden">
+                  not approved
+                </span>
               )}
             </button>
           ))}

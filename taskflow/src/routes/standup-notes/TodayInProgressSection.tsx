@@ -28,6 +28,13 @@ import type { JiraIssue } from '@/services/jira';
 import type { SprintRow } from './filterSprintItems';
 import type { NestedMr } from './mrMatching';
 import StandupSectionHeader from './StandupSectionHeader';
+import {
+  TODAY_PILL_COMPACT_CLASS,
+  TODAY_ROW_TAG_CLASS,
+  TODAY_SP_SLOT_CLASS,
+  TODAY_TIME_BAR_WIDTH_CLASS,
+  TODAY_TITLE_CLASS,
+} from './today-row-classes';
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -55,9 +62,6 @@ function LoadingSkeletons() {
     </div>
   );
 }
-
-// Today column is ~half the page: narrower bar, hidden only when the column is cramped.
-const TODAY_TIME_BAR_WIDTH_CLASS = 'w-24 @max-[30rem]:hidden';
 
 // ─── Issue row (reused for parent and subtask) ────────────────────────────────
 
@@ -120,17 +124,23 @@ function IssueRow({
         >
           {key}
         </button>
-        <span className="flex-1 min-w-0 truncate text-sm">{summary}</span>
+        <span className={TODAY_TITLE_CLASS}>{summary}</span>
         {/* Trailing cluster never shrinks; fixed-width slots keep pills/columns aligned
             between rows that do and don't have story points or an estimate. */}
         <div className="flex shrink-0 items-center gap-2">
           <div className="flex shrink-0">
-            <span className={statusPillClass(issue.fields.status.statusCategory?.key)}>
+            <span
+              className={cn(
+                statusPillClass(issue.fields.status.statusCategory?.key),
+                TODAY_PILL_COMPACT_CLASS,
+              )}
+              title={issue.fields.status.name}
+            >
               {issue.fields.status.name}
             </span>
           </div>
           {showSp && (
-            <div className="flex min-w-7 shrink-0 justify-end">
+            <div className={cn('flex min-w-7 shrink-0 justify-end', TODAY_SP_SLOT_CLASS)}>
               <span
                 className={cn(
                   'inline-flex min-w-7 justify-center rounded border border-border bg-muted px-1 py-0.5 text-xs font-medium text-muted-foreground',
@@ -185,8 +195,8 @@ function NestedMrRow({
       >
         <GitBranch className="size-4 shrink-0 text-muted-foreground" />
         <span className="text-xs text-muted-foreground font-mono shrink-0">!{mr.iid}</span>
-        <span className="flex-1 min-w-0 truncate text-sm">{mr.title}</span>
-        <span className="text-xs text-muted-foreground shrink-0">{tag}</span>
+        <span className={TODAY_TITLE_CLASS}>{mr.title}</span>
+        <span className={cn('text-xs text-muted-foreground', TODAY_ROW_TAG_CLASS)}>{tag}</span>
       </button>
     </div>
   );

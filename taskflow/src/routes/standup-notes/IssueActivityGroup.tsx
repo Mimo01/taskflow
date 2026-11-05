@@ -136,7 +136,7 @@ function SubItemList({
             onClick={() => onMRClick(`${item.mrProjectId}/${item.mrIid}`)}
           >
             <SubIcon className="size-4 shrink-0 text-muted-foreground" />
-            <span className="flex-1 min-w-0 truncate text-sm text-foreground">{item.label}</span>
+            <span className="flex-1 min-w-16 truncate text-sm text-foreground">{item.label}</span>
           </button>
         ) : isClickableIssue ? (
           <button
@@ -148,14 +148,14 @@ function SubItemList({
           >
             <SubIcon className="size-4 shrink-0 text-muted-foreground" />
             {item.kind === 'worklog' ? (
-              <span className="flex-1 min-w-0 truncate text-sm text-foreground">
+              <span className="flex-1 min-w-16 truncate text-sm text-foreground">
                 {item.label}
                 {item.description && (
                   <span className="text-muted-foreground"> · {item.description}</span>
                 )}
               </span>
             ) : (
-              <span className="flex-1 min-w-0 truncate text-sm text-foreground">{item.label}</span>
+              <span className="flex-1 min-w-16 truncate text-sm text-foreground">{item.label}</span>
             )}
           </button>
         ) : (
@@ -178,14 +178,14 @@ function SubItemList({
                 </span>
               </div>
             ) : item.kind === 'worklog' ? (
-              <span className="flex-1 min-w-0 truncate text-sm text-foreground">
+              <span className="flex-1 min-w-16 truncate text-sm text-foreground">
                 {item.label}
                 {item.description && (
                   <span className="text-muted-foreground"> · {item.description}</span>
                 )}
               </span>
             ) : (
-              <span className="flex-1 min-w-0 truncate text-sm text-foreground">{item.label}</span>
+              <span className="flex-1 min-w-16 truncate text-sm text-foreground">{item.label}</span>
             )}
           </div>
         );
@@ -235,7 +235,7 @@ function ActivityGroupHeader({
       >
         {issueKey}
       </button>
-      <span className="pointer-events-none relative flex-1 min-w-0 truncate text-sm">
+      <span className="pointer-events-none relative flex-1 min-w-16 truncate text-sm">
         {summary}
       </span>
     </div>

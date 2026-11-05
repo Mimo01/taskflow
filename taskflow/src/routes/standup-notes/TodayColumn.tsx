@@ -304,97 +304,99 @@ export default function TodayColumn({
   const showNotMatchedHint = isWatched && !watchedGitlabUserId && !!gitlabBaseUrl;
 
   return (
-    <div className="@container flex flex-col h-full px-6 py-4">
-      {/* Column heading */}
-      <div className="mb-2 flex items-baseline gap-2">
-        <h2 className="text-2xl font-semibold">Today</h2>
-        <p className="text-xs text-muted-foreground">{formatTodayDate()}</p>
-      </div>
+    <div className="h-full px-6 py-4">
+      <div className="@container flex flex-col h-full">
+        {/* Column heading */}
+        <div className="mb-2 flex items-baseline gap-2">
+          <h2 className="text-2xl font-semibold">Today</h2>
+          <p className="text-xs text-muted-foreground">{formatTodayDate()}</p>
+        </div>
 
-      {/* Watched person without a matched GitLab account — MR sections are hidden. */}
-      {showNotMatchedHint && (
-        <p className="text-xs text-muted-foreground mb-4">
-          GitLab account not matched for {watchedDisplayName ?? 'this person'} — MRs hidden.
-        </p>
-      )}
+        {/* Watched person without a matched GitLab account — MR sections are hidden. */}
+        {showNotMatchedHint && (
+          <p className="text-xs text-muted-foreground mb-4">
+            GitLab account not matched for {watchedDisplayName ?? 'this person'} — MRs hidden.
+          </p>
+        )}
 
-      {/* Summary stat line — mirrors the Yesterday column so both stay vertically aligned */}
-      {hasAnyData && (
-        <p className="text-xs text-muted-foreground mb-4">
-          {inProgress.length} in progress &middot; {upNext.length} up next &middot; {mrCount} MRs
-        </p>
-      )}
+        {/* Summary stat line — mirrors the Yesterday column so both stay vertically aligned */}
+        {hasAnyData && (
+          <p className="text-xs text-muted-foreground mb-4">
+            {inProgress.length} in progress &middot; {upNext.length} up next &middot; {mrCount} MRs
+          </p>
+        )}
 
-      {/* Sections separated by spacing only (no dividers). Hidden entirely when the
+        {/* Sections separated by spacing only (no dividers). Hidden entirely when the
           whole column resolved empty — the full-column empty state takes over so
           Up Next's "nothing up next" doesn't compete with it. */}
-      {!allSettledEmpty && (
-        <div className="flex flex-col gap-6 density-compact:gap-4 density-comfortable:gap-8">
-          {/* Section 1: In Progress (D-01: fixed order) */}
-          <TodayInProgressSection
-            rows={inProgress}
-            mrsByStory={mrsByStory}
-            storyPointsFieldKey={storyPointsFieldKey}
-            isLoading={sprintQuery.isLoading}
-            isError={sprintQuery.isError}
-            error={sprintQuery.error}
-            onRetry={() => void sprintQuery.refetch()}
-            onIssueClick={onIssueClick}
-            onOpenIssue={onOpenIssue}
-            onMRClick={onMRClick}
-          />
+        {!allSettledEmpty && (
+          <div className="flex flex-col gap-6 density-compact:gap-4 density-comfortable:gap-8">
+            {/* Section 1: In Progress (D-01: fixed order) */}
+            <TodayInProgressSection
+              rows={inProgress}
+              mrsByStory={mrsByStory}
+              storyPointsFieldKey={storyPointsFieldKey}
+              isLoading={sprintQuery.isLoading}
+              isError={sprintQuery.isError}
+              error={sprintQuery.error}
+              onRetry={() => void sprintQuery.refetch()}
+              onIssueClick={onIssueClick}
+              onOpenIssue={onOpenIssue}
+              onMRClick={onMRClick}
+            />
 
-          {/* Section 2: Up Next (D-01: fixed order) */}
-          <TodayUpNextSection
-            rows={upNext}
-            mrsByStory={mrsByStory}
-            storyPointsFieldKey={storyPointsFieldKey}
-            isLoading={sprintQuery.isLoading}
-            isError={sprintQuery.isError}
-            error={sprintQuery.error}
-            onRetry={() => void sprintQuery.refetch()}
-            onIssueClick={onIssueClick}
-            onOpenIssue={onOpenIssue}
-            onMRClick={onMRClick}
-          />
+            {/* Section 2: Up Next (D-01: fixed order) */}
+            <TodayUpNextSection
+              rows={upNext}
+              mrsByStory={mrsByStory}
+              storyPointsFieldKey={storyPointsFieldKey}
+              isLoading={sprintQuery.isLoading}
+              isError={sprintQuery.isError}
+              error={sprintQuery.error}
+              onRetry={() => void sprintQuery.refetch()}
+              onIssueClick={onIssueClick}
+              onOpenIssue={onOpenIssue}
+              onMRClick={onMRClick}
+            />
 
-          {/* Section 3: MRs Awaiting You — unmatched only; hidden when GitLab not
+            {/* Section 3: MRs Awaiting You — unmatched only; hidden when GitLab not
               connected (D-02, D-10) or when a watched person has no matched GitLab id
               (the queries are disabled — never show my own MRs; Pitfall 3). */}
-          {!!gitlabBaseUrl && !showNotMatchedHint && (
-            <TodayMrsSection
-              items={unmatchedReviewerMrs}
-              isLoading={reviewerMrsQuery.isLoading}
-              isError={reviewerMrsQuery.isError}
-              error={reviewerMrsQuery.error}
-              onRetry={() => void reviewerMrsQuery.refetch()}
-              onMRClick={onMRClick}
-            />
-          )}
+            {!!gitlabBaseUrl && !showNotMatchedHint && (
+              <TodayMrsSection
+                items={unmatchedReviewerMrs}
+                isLoading={reviewerMrsQuery.isLoading}
+                isError={reviewerMrsQuery.isError}
+                error={reviewerMrsQuery.error}
+                onRetry={() => void reviewerMrsQuery.refetch()}
+                onMRClick={onMRClick}
+              />
+            )}
 
-          {/* Section 4: Participating MRs (unmatched only) — role-independent, hidden
+            {/* Section 4: Participating MRs (unmatched only) — role-independent, hidden
               when GitLab not connected or when watching an unmatched person (Pitfall 3). */}
-          {!!gitlabBaseUrl && !showNotMatchedHint && (
-            <TodayParticipatingSection
-              items={unmatchedParticipatingMrs}
-              isLoading={participatingMrsQuery.isLoading}
-              isError={participatingMrsQuery.isError}
-              error={participatingMrsQuery.error}
-              onRetry={() => void participatingMrsQuery.refetch()}
-              onMRClick={onMRClick}
-            />
-          )}
-        </div>
-      )}
+            {!!gitlabBaseUrl && !showNotMatchedHint && (
+              <TodayParticipatingSection
+                items={unmatchedParticipatingMrs}
+                isLoading={participatingMrsQuery.isLoading}
+                isError={participatingMrsQuery.isError}
+                error={participatingMrsQuery.error}
+                onRetry={() => void participatingMrsQuery.refetch()}
+                onMRClick={onMRClick}
+              />
+            )}
+          </div>
+        )}
 
-      {/* Full-column empty state — only when all sections resolved empty */}
-      {allSettledEmpty && (
-        <EmptyState
-          icon={Clock}
-          title="Nothing planned for today"
-          subtitle="No items in progress, nothing up next, and no MRs awaiting review."
-        />
-      )}
+        {/* Full-column empty state — only when all sections resolved empty */}
+        {allSettledEmpty && (
+          <EmptyState
+            icon={Clock}
+            title="Nothing planned for today"
+            subtitle="No items in progress, nothing up next, and no MRs awaiting review."
+          />
+        )}
+      </div>
     </div>
   );
 }

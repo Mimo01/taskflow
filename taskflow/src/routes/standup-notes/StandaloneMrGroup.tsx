@@ -61,7 +61,7 @@ export default function StandaloneMrGroup({
         label={
           <>
             <span className="text-xs text-muted-foreground font-mono shrink-0">!{iid}</span>
-            <span className="flex-1 min-w-0 truncate text-sm">{title}</span>
+            <span className="flex-1 min-w-16 truncate text-sm">{title}</span>
           </>
         }
         projectId={projectId}
@@ -76,7 +76,7 @@ export default function StandaloneMrGroup({
             <MrRow
               icon={MessageSquare}
               label={
-                <span className="flex-1 min-w-0 truncate text-sm text-foreground">
+                <span className="flex-1 min-w-16 truncate text-sm text-foreground">
                   {commentCount} comment{commentCount === 1 ? '' : 's'} on !{iid}
                 </span>
               }
@@ -89,7 +89,7 @@ export default function StandaloneMrGroup({
             <MrRow
               icon={CheckCircle}
               label={
-                <span className="flex-1 min-w-0 truncate text-sm text-foreground">
+                <span className="flex-1 min-w-16 truncate text-sm text-foreground">
                   Approved !{iid}
                 </span>
               }
