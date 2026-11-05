@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-08-13)
 Phase: 94
 Plan: Not started
 Status: Milestone complete
-Last activity: 2026-11-05 - Completed quick task 261105-mqh: universal PersonPicker everywhere (approved)
+Last activity: 2026-11-05 - Completed quick task 261105-nly: responsive issue-detail subtask/story/parent rows
 
 ## Performance Metrics
 
@@ -266,6 +266,7 @@ Acknowledged and deferred at v1.14 milestone close (2026-08-13) — 111 open art
 | 261105-gbh | Release detail graphs: MR donut always shown (3-channel MR union, no milestone needed) and last in its own 190px+ column; By status always shown as 3 clickable To do/In progress/Done rows stacked on By type (fixed layout for every release; data-driven pairing tried and removed); type/status counts in a right-edge column; lone By assignee fills its tallest neighbour's height (7 rows at 1440 vs 5). UAT rounds: twin donuts + 1400 cutoff rejected → rows → stacked → MR last + fit → small-release pairing (removed: user wants a consistent layout) → polish: Progress fills band, MR ring grows to fill its column (120-160px, no text under it — merged count and task coverage both rejected), loading skeleton mirrors the layout | 2026-11-05 | edeeba5d, 16823db0, 9f6b4402, ab3120e7, 99b687e4, 2000fda0, 96a343cb, 121cae91, 8d8098c0, 31b44a63, 641abf9e | Approved | [261105-gbh-always-show-mr-graph-on-release-detail-r](./quick/261105-gbh-always-show-mr-graph-on-release-detail-r/) |
 | 261105-izi | Release detail header: actions collapse sooner so the title keeps room — Refreshed timestamp hides ≤1024px, Pin/Edit/Open in Jira go icon-only ≤896px (were both ≤640px before the refresh button widened the group) | 2026-11-05 | 9da8254a | Approved | [261105-izi-release-detail-header-buttons-hide-title](./quick/261105-izi-release-detail-header-buttons-hide-title/) |
 | 261105-mqh | Universal PersonPicker: issue-detail assignee picker extracted to components/ui/person-picker.tsx (inline + field triggers, server-side debounced search via useAssignableUserSearch, Unassign/Assign to me); adopted by Create/Edit assignee + user custom fields, subtask template rows, Bulk Create, Standup watched person, Worklogs person; 200-user capped fetches removed | 2026-11-05 | 93f10f80, f03fbf8c, acb38c06, c1358120 | Approved | [261105-mqh-universal-assignee-picker-everywhere](./quick/261105-mqh-universal-assignee-picker-everywhere/) |
+| 261105-nly | Issue-detail relationship rows (Epic→Stories, Story→Subtasks, Subtask→Parent) unified into RelatedIssueRow with container-query staging: time bar hidden <42rem row width, assignee name hidden <36rem (avatar + tooltip always kept, name capped 9rem) so the summary keeps room in narrow panes/PeekPanel | 2026-11-05 | 77fbb932, ae3af774 | Pending UAT | [261105-nly-optimize-issue-detail-subtasks-rows-for-](./quick/261105-nly-optimize-issue-detail-subtasks-rows-for-/) |
 
 ## Session Continuity
 
