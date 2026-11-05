@@ -1,12 +1,11 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { ReleaseGraphGrid, statusPairing } from './ReleaseGraphGrid';
+import { ReleaseGraphGrid } from './ReleaseGraphGrid';
 
-function renderGrid(band: boolean, statusWith?: 'type' | 'assignee') {
+function renderGrid(band: boolean) {
   return render(
     <ReleaseGraphGrid
       band={band}
-      statusWith={statusWith}
       burnup={<div data-testid="g-burnup" />}
       status={<div data-testid="g-status" />}
       mrs={<div data-testid="g-mrs" />}
@@ -57,29 +56,16 @@ describe('ReleaseGraphGrid', () => {
     expect(screen.getByTestId('g-assignee')).toHaveAttribute('data-fit', 'none');
   });
 
-  it('band: status can stack on the assignee list instead', () => {
-    renderGrid(true, 'assignee');
-    const group = screen.getByTestId('release-graph-assignee-group');
-    expect(group).toContainElement(screen.getByTestId('g-status'));
-    expect(follows(screen.getByTestId('g-status'), screen.getByTestId('g-assignee'))).toBe(true);
-    expect(screen.getByTestId('release-graph-type-group')).not.toContainElement(
-      screen.getByTestId('g-status'),
-    );
-  });
-
-  it('2x2 always stacks status on type', () => {
-    renderGrid(false, 'assignee');
-    expect(screen.getByTestId('release-graph-type-group')).toContainElement(
-      screen.getByTestId('g-status'),
-    );
-  });
-});
-
-describe('statusPairing', () => {
-  it('stacks status on the shorter list', () => {
-    expect(statusPairing(4, 12)).toBe('type'); // big release
-    expect(statusPairing(4, 4)).toBe('type'); // 80px types vs 96px people
-    expect(statusPairing(3, 2)).toBe('assignee'); // small release
-    expect(statusPairing(1, 1)).toBe('type'); // 20 vs 24
+  it('every layout stacks status on type; assignee stays on its own', () => {
+    for (const band of [true, false]) {
+      const { unmount } = renderGrid(band);
+      expect(screen.getByTestId('release-graph-type-group')).toContainElement(
+        screen.getByTestId('g-status'),
+      );
+      expect(screen.getByTestId('release-graph-assignee-group')).not.toContainElement(
+        screen.getByTestId('g-status'),
+      );
+      unmount();
+    }
   });
 });
