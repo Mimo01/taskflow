@@ -9,6 +9,7 @@
  *   < 32rem  time bar narrows w-24 -> w-16
  *   < 28rem  time bar hidden
  *   < 24rem  status pill compacts (no min width, capped + truncated)
+ *   < 20rem  status pill hidden (full status stays in its title tooltip on wider rows)
  */
 
 /** Title span: takes the free space but never collapses to zero. */
@@ -19,7 +20,7 @@ export const TODAY_SP_SLOT_CLASS = '@max-[36rem]:hidden';
 export const TODAY_TIME_BAR_WIDTH_CLASS = 'w-24 @max-[32rem]:w-16 @max-[28rem]:hidden';
 
 export const TODAY_PILL_COMPACT_CLASS =
-  '@max-[24rem]:min-w-0 @max-[24rem]:max-w-20 @max-[24rem]:truncate';
+  '@max-[24rem]:min-w-0 @max-[24rem]:max-w-20 @max-[24rem]:truncate @max-[20rem]:hidden';
 
 /** Trailing text label (review state / tag) on MR rows: dropped before the title shrinks. */
 export const TODAY_ROW_TAG_CLASS = 'shrink-0 @max-[28rem]:hidden';
