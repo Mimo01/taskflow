@@ -17,10 +17,11 @@ describe('ReleasesHero', () => {
     );
     const title = screen.getByRole('heading', { level: 1 });
     expect(title.textContent).toBe('Releases');
-    expect(title.className).toBe('text-3xl font-semibold');
+    expect(title.className).toContain('text-3xl');
+    expect(title.className).toContain('font-semibold');
     const header = container.querySelector('header');
     expect(header?.className).toContain('border-b');
-    expect(header?.className).toContain('px-6 py-4');
+    expect(header?.firstElementChild?.className).toContain('px-6 py-4');
   });
 
   it('renders the summary with emphasised count and red overdue', () => {

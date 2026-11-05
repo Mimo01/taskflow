@@ -28,6 +28,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
+import { PageHeader } from '@/components/ui/page-header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { buildMrHealthByKey, resolveMrHealth, selectMrsForHealth } from '@/lib/my-tasks-mr-health';
 import { groupByMyDay, type MyDayBand } from '@/lib/my-tasks-sort';
@@ -722,11 +723,10 @@ export default function MyTasksPage() {
   return (
     <div className="@container flex flex-col h-full overflow-auto">
       {/* ── 1. Hero header ──────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between gap-4 px-6 pt-5 pb-5 border-b border-border/50 shrink-0">
-        {/* Left: title + actionable subtitle */}
-        <div className="flex flex-col gap-1 min-w-0">
-          <h1 className="text-3xl font-semibold text-foreground">My Tasks</h1>
-          <p className="text-xs text-muted-foreground tabular-nums mt-1 truncate">
+      <PageHeader
+        title="My Tasks"
+        subtitle={
+          <span className="tabular-nums">
             <span className="text-slate-600 dark:text-slate-300 font-medium">{openCount} open</span>
             <span className="mx-1">·</span>
             <span className="text-emerald-600 dark:text-emerald-400 font-medium">
@@ -760,80 +760,80 @@ export default function MyTasksPage() {
                 </span>
               </>
             )}
-          </p>
-        </div>
-
-        {/* Right: donut + scope segmented control + New issue */}
-        <div className="flex items-center gap-4 shrink-0">
-          {/* Sprint-progress donut — hidden when the CONTAINER (not viewport) is narrow,
+          </span>
+        }
+        actions={
+          <div className="flex items-center gap-4 shrink-0">
+            {/* Sprint-progress donut — hidden when the CONTAINER (not viewport) is narrow,
               so it also disappears when a drawer shrinks the content area. */}
-          <div className="hidden @[1000px]:flex items-center gap-3">
-            <svg
-              width="56"
-              height="56"
-              viewBox="0 0 60 60"
-              aria-hidden="true"
-              style={{ transform: 'rotate(-90deg)', flexShrink: 0 }}
-            >
-              {/* Track */}
-              <circle
-                cx="30"
-                cy="30"
-                r={DONUT_R}
-                fill="none"
-                className="stroke-muted"
-                strokeWidth="8"
-              />
-              {/* Fill */}
-              <circle
-                cx="30"
-                cy="30"
-                r={DONUT_R}
-                fill="none"
-                stroke="#10b981"
-                strokeWidth="8"
-                strokeLinecap="round"
-                strokeDasharray={DONUT_CIRCUMFERENCE}
-                strokeDashoffset={donutOffset}
-              />
-            </svg>
-            <div className="leading-tight">
-              <div className="text-lg font-semibold tabular-nums text-foreground leading-none">
-                {ptsDone}
-                <span className="text-muted-foreground font-normal">/{ptsTotal}</span>
-              </div>
-              <div className="text-xs text-muted-foreground mt-0.5">pts done</div>
-            </div>
-          </div>
-
-          {/* Scope segmented control */}
-          <fieldset className="inline-flex rounded-lg bg-muted p-0.5 border-0 m-0">
-            <legend className="sr-only">Scope</legend>
-            {(
-              [
-                { value: 'current-sprint', label: 'Current Sprint' },
-                { value: 'all-assigned', label: 'All Assigned' },
-                { value: 'all-reported', label: 'All Reported' },
-              ] as const
-            ).map(({ value, label }) => (
-              <button
-                key={value}
-                type="button"
-                aria-pressed={scope === value}
-                onClick={() => setScope(value)}
-                className={cn(
-                  'px-3 py-1.5 rounded-md text-sm font-medium transition-colors',
-                  scope === value
-                    ? 'bg-foreground text-background shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground',
-                )}
+            <div className="hidden @[1000px]:flex items-center gap-3">
+              <svg
+                width="56"
+                height="56"
+                viewBox="0 0 60 60"
+                aria-hidden="true"
+                style={{ transform: 'rotate(-90deg)', flexShrink: 0 }}
               >
-                {label}
-              </button>
-            ))}
-          </fieldset>
-        </div>
-      </div>
+                {/* Track */}
+                <circle
+                  cx="30"
+                  cy="30"
+                  r={DONUT_R}
+                  fill="none"
+                  className="stroke-muted"
+                  strokeWidth="8"
+                />
+                {/* Fill */}
+                <circle
+                  cx="30"
+                  cy="30"
+                  r={DONUT_R}
+                  fill="none"
+                  stroke="#10b981"
+                  strokeWidth="8"
+                  strokeLinecap="round"
+                  strokeDasharray={DONUT_CIRCUMFERENCE}
+                  strokeDashoffset={donutOffset}
+                />
+              </svg>
+              <div className="leading-tight">
+                <div className="text-lg font-semibold tabular-nums text-foreground leading-none">
+                  {ptsDone}
+                  <span className="text-muted-foreground font-normal">/{ptsTotal}</span>
+                </div>
+                <div className="text-xs text-muted-foreground mt-0.5">pts done</div>
+              </div>
+            </div>
+
+            {/* Scope segmented control */}
+            <fieldset className="inline-flex rounded-lg bg-muted p-0.5 border-0 m-0">
+              <legend className="sr-only">Scope</legend>
+              {(
+                [
+                  { value: 'current-sprint', label: 'Current Sprint' },
+                  { value: 'all-assigned', label: 'All Assigned' },
+                  { value: 'all-reported', label: 'All Reported' },
+                ] as const
+              ).map(({ value, label }) => (
+                <button
+                  key={value}
+                  type="button"
+                  aria-pressed={scope === value}
+                  onClick={() => setScope(value)}
+                  className={cn(
+                    'px-2 py-1 text-xs @[44rem]:px-3 @[44rem]:py-1.5 @[44rem]:text-sm rounded-md font-medium transition-colors',
+                    scope === value
+                      ? 'bg-foreground text-background shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground',
+                  )}
+                >
+                  {label}
+                </button>
+              ))}
+            </fieldset>
+          </div>
+        }
+      />
 
       {/* ── 2. Enriched stat tiles ───────────────────────────────────────────── */}
       <div className="px-6 py-4 border-b border-border/50 shrink-0">
