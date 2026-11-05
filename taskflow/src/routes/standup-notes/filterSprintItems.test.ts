@@ -194,7 +194,7 @@ describe('filterSprintItems — grouped output', () => {
     expect(allKeys).not.toContain('SHOP-5');
   });
 
-  it('does NOT nest a done subtask under an active parent', () => {
+  it('nests a done subtask of mine under an active parent (no duplicates)', () => {
     const parent = makeIssue({
       key: 'SHOP-40',
       statusKey: 'indeterminate',
@@ -220,8 +220,10 @@ describe('filterSprintItems — grouped output', () => {
 
     const row = inProgress.find((r) => r.issue.key === 'SHOP-40');
     expect(row).toBeDefined();
-    expect(row?.subtasks.map((s) => s.key)).toContain('SHOP-40-S2');
-    expect(row?.subtasks.map((s) => s.key)).not.toContain('SHOP-40-S1');
+    const keys = row?.subtasks.map((s) => s.key) ?? [];
+    expect(keys).toContain('SHOP-40-S1');
+    expect(keys).toContain('SHOP-40-S2');
+    expect(new Set(keys).size).toBe(keys.length);
   });
 
   it('resurfaces an active subtask of a DONE parent as a standalone row', () => {
@@ -388,5 +390,83 @@ describe('filterSprintItems — subtask ordering', () => {
     expect(row).toBeDefined();
     expect(upNext.map((r) => r.issue.key)).not.toContain('SHOP-40');
     expect(row?.subtasks.map((s) => s.key)).toEqual(['SHOP-40-S3', 'SHOP-40-S1']);
+  });
+});
+
+describe('filterSprintItems — done subtasks under shown stories (261105-fav)', () => {
+  const sub = (key: string, statusKey: 'new' | 'indeterminate' | 'done', who: string) =>
+    makeIssue({ key, statusKey, isSubtask: true, displayName: who, parentKey: 'SHOP-40' });
+  const setOrder = (parent: JiraIssue, keys: string[]) => {
+    (parent.fields as unknown as { subtasks: Array<{ key: string }> }).subtasks = keys.map(
+      (key) => ({ key }),
+    );
+  };
+
+  it('nests all of my subtasks in Jira order, done included', () => {
+    const parent = makeIssue({
+      key: 'SHOP-40',
+      statusKey: 'indeterminate',
+      isSubtask: false,
+      displayName: ME,
+    });
+    setOrder(parent, ['SHOP-40-S1', 'SHOP-40-S2']);
+    const { inProgress } = filterSprintItems(
+      [parent, sub('SHOP-40-S2', 'new', ME), sub('SHOP-40-S1', 'done', ME)],
+      ME,
+    );
+    expect(inProgress[0]?.subtasks.map((s) => s.key)).toEqual(['SHOP-40-S1', 'SHOP-40-S2']);
+  });
+
+  it("does not nest someone else's done subtask", () => {
+    const parent = makeIssue({
+      key: 'SHOP-40',
+      statusKey: 'indeterminate',
+      isSubtask: false,
+      displayName: ME,
+    });
+    const other = sub('SHOP-40-S1', 'done', OTHER);
+    const { inProgress } = filterSprintItems([parent, other], ME);
+    expect(inProgress[0]?.subtasks).toEqual([]);
+    expect(inProgress[0]?.timeSubtasks?.map((s) => s.key)).toEqual(['SHOP-40-S1']);
+  });
+
+  it('a story with only my done subtask (not assigned to me) does not appear', () => {
+    const parent = makeIssue({
+      key: 'SHOP-40',
+      statusKey: 'indeterminate',
+      isSubtask: false,
+      displayName: OTHER,
+    });
+    const { inProgress, upNext } = filterSprintItems([parent, sub('SHOP-40-S1', 'done', ME)], ME);
+    expect(inProgress).toEqual([]);
+    expect(upNext).toEqual([]);
+  });
+
+  it('placement comes from the active subtask, not a leading done one', () => {
+    const parent = makeIssue({
+      key: 'SHOP-40',
+      statusKey: 'indeterminate',
+      isSubtask: false,
+      displayName: OTHER,
+    });
+    setOrder(parent, ['SHOP-40-S1', 'SHOP-40-S2']);
+    const { inProgress, upNext } = filterSprintItems(
+      [parent, sub('SHOP-40-S1', 'done', ME), sub('SHOP-40-S2', 'new', ME)],
+      ME,
+    );
+    expect(inProgress).toEqual([]);
+    expect(upNext).toHaveLength(1);
+    expect(upNext[0]?.subtasks.map((s) => s.key)).toEqual(['SHOP-40-S1', 'SHOP-40-S2']);
+  });
+
+  it('story assigned to me with only a done subtask of mine still shows it nested', () => {
+    const parent = makeIssue({
+      key: 'SHOP-40',
+      statusKey: 'new',
+      isSubtask: false,
+      displayName: ME,
+    });
+    const { upNext } = filterSprintItems([parent, sub('SHOP-40-S1', 'done', ME)], ME);
+    expect(upNext[0]?.subtasks.map((s) => s.key)).toEqual(['SHOP-40-S1']);
   });
 });

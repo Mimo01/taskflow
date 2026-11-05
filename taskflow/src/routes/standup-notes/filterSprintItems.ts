@@ -12,6 +12,8 @@
  *   Items whose statusCategory.key === 'done' are dropped up front — done parents and
  *   done subtasks never appear. A still-active subtask of a now-excluded done parent
  *   resurfaces as a standalone row (its parent is no longer in the list → orphan).
+ *   Done parents and done subtasks never select or place a row, but once a story row is
+ *   shown, ALL of my subtasks under it (done included) are nested.
  *
  * STATUS PLACEMENT RULE (D-05 — revised):
  *   The row's bucket (inProgress / upNext) is determined by the status of the
@@ -41,7 +43,7 @@ import type { JiraIssue } from '@/services/jira';
 export interface SprintRow {
   /** The parent story or a standalone leaf item (childless task / orphan subtask). */
   issue: JiraIssue;
-  /** My subtasks nested under this parent (empty array for standalone items). */
+  /** My subtasks (any status, done included) nested under this parent (empty array for standalone items). */
   subtasks: JiraIssue[];
   /** EVERY subtask of this parent (any assignee, done included) — the row's time bar covers them all. */
   timeSubtasks?: JiraIssue[];
@@ -97,9 +99,13 @@ export function filterSprintItems(
   //   - parent NOT assigned to me (included only via my subtask) → use my subtask's statusCategory key
   const parentRows: SprintRow[] = includedParents.map((parent) => {
     const mySubtasksForParent = mySubtasks.filter((s) => s.fields.parent?.key === parent.key);
+    // Every subtask of mine under this parent, done included (superset of the active list).
+    const allMySubtasksForParent = (allSubtasksByParent.get(parent.key) ?? []).filter(
+      isAssignedToMe,
+    );
     return {
       issue: parent,
-      subtasks: orderSubtasks(mySubtasksForParent, parent.fields.subtasks),
+      subtasks: orderSubtasks(allMySubtasksForParent, parent.fields.subtasks),
       timeSubtasks: allSubtasksByParent.get(parent.key) ?? [],
       // Attach resolved placement key as a non-enumerated symbol so the
       // filter below can read it without widening SprintRow's public shape.
