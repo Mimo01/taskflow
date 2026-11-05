@@ -20,6 +20,7 @@ import { ErrorState } from '@/components/ui/error-state';
 import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
+import { accumulateTime } from '@/lib/accumulate-time';
 import { doneSummaryClass } from '@/lib/issueDisplayUtils';
 import { statusPillClass } from '@/lib/statusStyles';
 import { cn } from '@/lib/utils';
@@ -68,6 +69,8 @@ interface IssueRowProps {
   indented?: boolean;
   /** Reserve the story-points slot (some row in this section has points). */
   showSp: boolean;
+  /** Parent rows: my nested subtasks, whose time is added to the story's bar. */
+  subtasks?: JiraIssue[];
 }
 
 function IssueRow({
@@ -77,7 +80,10 @@ function IssueRow({
   onOpenIssue,
   indented = false,
   showSp,
+  subtasks = [],
 }: IssueRowProps) {
+  const rollsUp = subtasks.length > 0;
+  const time = accumulateTime(issue, subtasks);
   const issueType = issue.fields.issuetype.name;
   const key = issue.key;
   const summary = issue.fields.summary;
@@ -139,13 +145,19 @@ function IssueRow({
             </div>
           )}
           <IssueTimeBar
-            colorBy="health"
+            colorBy={rollsUp ? 'status' : 'health'}
             issue={timedIssue({
               key: issue.key,
               statusCategoryKey: issue.fields.status.statusCategory?.key,
-              originalEstimate: issue.fields.timetracking?.originalEstimateSeconds,
-              logged: issue.fields.timetracking?.timeSpentSeconds,
-              remaining: issue.fields.timetracking?.remainingEstimateSeconds,
+              originalEstimate: rollsUp
+                ? time.accumulatedEstimateSeconds
+                : issue.fields.timetracking?.originalEstimateSeconds,
+              logged: rollsUp
+                ? time.accumulatedSpentSeconds
+                : issue.fields.timetracking?.timeSpentSeconds,
+              remaining: rollsUp
+                ? time.accumulatedRemainingSeconds
+                : issue.fields.timetracking?.remainingEstimateSeconds,
             })}
             className={TODAY_TIME_BAR_WIDTH_CLASS}
             caption
@@ -239,6 +251,7 @@ export default function TodayInProgressSection({
                 onIssueClick={onIssueClick}
                 onOpenIssue={onOpenIssue}
                 showSp={showSp}
+                subtasks={row.subtasks}
               />
               {row.subtasks.map((subtask) => (
                 <IssueRow

@@ -179,6 +179,14 @@ export function MyTaskRow({
       ? accumulatedRemainingSeconds
       : timeTracking?.remainingEstimateSeconds;
 
+  // A parent row whose figures include subtasks is an aggregate: status colours, like the epic
+  // bars. A lone issue (subtask, or a story with nothing rolled up) gets green/amber/red health.
+  const rollsUpSubtasks =
+    !isSubtask &&
+    (spentSeconds !== (timeTracking?.timeSpentSeconds ?? 0) ||
+      totalSeconds !== timeTracking?.originalEstimateSeconds ||
+      remainingSeconds !== timeTracking?.remainingEstimateSeconds);
+
   const labels = (issue.fields.labels as string[] | null | undefined) ?? [];
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLElement>) {
@@ -225,7 +233,7 @@ export function MyTaskRow({
 
       {/* Epic-style time bar — fixed 144px width, caption below, tooltip has the breakdown */}
       <IssueTimeBar
-        colorBy="health"
+        colorBy={rollsUpSubtasks ? 'status' : 'health'}
         issue={timedIssue({
           key: issue.key,
           statusCategoryKey,

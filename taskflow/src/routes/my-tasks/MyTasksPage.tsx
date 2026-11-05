@@ -29,6 +29,7 @@ import { useNavigate, useOutletContext } from 'react-router-dom';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { Skeleton } from '@/components/ui/skeleton';
+import { accumulateTime } from '@/lib/accumulate-time';
 import { buildMrHealthByKey, resolveMrHealth, selectMrsForHealth } from '@/lib/my-tasks-mr-health';
 import { groupByMyDay, type MyDayBand } from '@/lib/my-tasks-sort';
 import { orderSubtasks } from '@/lib/subtask-order';
@@ -513,38 +514,6 @@ export default function MyTasksPage() {
     } else {
       navigate(`/issue/${key}`);
     }
-  }
-
-  // ── Accumulated time helper ────────────────────────────────────────────────
-
-  function accumulateTime(parent: JiraIssue, subtasks: JiraIssue[]) {
-    function getTracking(issue: JiraIssue) {
-      const t = issue.fields.timetracking as
-        | {
-            timeSpentSeconds?: number;
-            originalEstimateSeconds?: number;
-            remainingEstimateSeconds?: number;
-          }
-        | null
-        | undefined;
-      return {
-        spent: t?.timeSpentSeconds ?? 0,
-        estimate: t?.originalEstimateSeconds ?? 0,
-        remaining: t?.remainingEstimateSeconds,
-      };
-    }
-    const parentT = getTracking(parent);
-    const subtaskSpent = subtasks.reduce((sum, s) => sum + getTracking(s).spent, 0);
-    const subtaskEst = subtasks.reduce((sum, s) => sum + getTracking(s).estimate, 0);
-    const subtaskRem = subtasks.reduce((sum, s) => sum + (getTracking(s).remaining ?? 0), 0);
-    const anyRemaining =
-      parentT.remaining !== undefined ||
-      subtasks.some((s) => getTracking(s).remaining !== undefined);
-    return {
-      accumulatedSpentSeconds: parentT.spent + subtaskSpent,
-      accumulatedEstimateSeconds: parentT.estimate + subtaskEst,
-      accumulatedRemainingSeconds: anyRemaining ? (parentT.remaining ?? 0) + subtaskRem : undefined,
-    };
   }
 
   // ── Render flat parent + subtask rows (subtask collapse handled inside MyTaskRow) ──
