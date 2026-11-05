@@ -70,6 +70,8 @@ interface IssueRowProps {
   showSp: boolean;
   /** Parent rows: my nested subtasks, whose time is added to the story's bar. */
   subtasks?: JiraIssue[];
+  /** All of the story's subtasks (not just mine) for the time bar. */
+  timeSubtasks?: JiraIssue[];
 }
 
 function IssueRow({
@@ -80,8 +82,9 @@ function IssueRow({
   indented = false,
   showSp,
   subtasks = [],
+  timeSubtasks = subtasks,
 }: IssueRowProps) {
-  const rollsUp = subtasks.length > 0;
+  const rollsUp = timeSubtasks.length > 0;
   const issueType = issue.fields.issuetype.name;
   const key = issue.key;
   const summary = issue.fields.summary;
@@ -146,7 +149,7 @@ function IssueRow({
             colorBy={rollsUp ? 'status' : 'health'}
             issue={
               rollsUp
-                ? [timedIssueOwn(issue), ...subtasks.map(timedIssueOwn)]
+                ? [timedIssueOwn(issue), ...timeSubtasks.map(timedIssueOwn)]
                 : timedIssueOwn(issue)
             }
             className={TODAY_TIME_BAR_WIDTH_CLASS}
@@ -242,6 +245,7 @@ export default function TodayInProgressSection({
                 onOpenIssue={onOpenIssue}
                 showSp={showSp}
                 subtasks={row.subtasks}
+                timeSubtasks={row.allSubtasks ?? row.subtasks}
               />
               {row.subtasks.map((subtask) => (
                 <IssueRow

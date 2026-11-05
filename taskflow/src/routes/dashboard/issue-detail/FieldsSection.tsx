@@ -55,6 +55,7 @@ import StatusPopover from '../StatusPopover';
 import { DeploymentPackageWarning } from './DeploymentPackageWarning';
 import { MetaRow } from './MetaRow';
 import { OverdueBadge } from './OverdueBadge';
+import { useCachedEnrichedSubtasks } from './storyTimeParts';
 import { TimeTrackingSummary } from './TimeTrackingSummary';
 import { extractSprintId, extractSprintName } from './utils';
 import { WatcherToggle } from './WatcherToggle';
@@ -141,6 +142,11 @@ export function FieldsSection({
   onOpenIssue,
 }: FieldsSectionProps) {
   const f = issue.fields;
+  const cachedSubtasks = useCachedEnrichedSubtasks(
+    issueKey,
+    jiraBaseUrl,
+    f.subtasks?.map((st) => st.key),
+  );
   const rmPackage = useRmPackage(extractDeploymentPackage(f.customfield_15725));
   const isEpic = f.issuetype.name === 'Epic';
   const isSubtask = f.issuetype.subtask;
@@ -1272,6 +1278,8 @@ export function FieldsSection({
         aggregatetimespent={f.aggregatetimespent}
         timespent={f.timespent}
         statusCategoryKey={f.status?.statusCategory?.key}
+        issueKey={issueKey}
+        subtasks={cachedSubtasks}
       />
     </>
   );

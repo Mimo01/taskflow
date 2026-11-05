@@ -43,6 +43,8 @@ export interface SprintRow {
   issue: JiraIssue;
   /** My subtasks nested under this parent (empty array for standalone items). */
   subtasks: JiraIssue[];
+  /** Every subtask of this parent in the sprint (any assignee, any status) - feeds the time bar only. */
+  allSubtasks?: JiraIssue[];
 }
 
 export interface FilteredSprintItems {
@@ -88,6 +90,9 @@ export function filterSprintItems(
     return {
       issue: parent,
       subtasks: orderSubtasks(mySubtasksForParent, parent.fields.subtasks),
+      allSubtasks: issues.filter(
+        (i) => i.fields.issuetype.subtask && i.fields.parent?.key === parent.key,
+      ),
       // Attach resolved placement key as a non-enumerated symbol so the
       // filter below can read it without widening SprintRow's public shape.
       _placementStatusKey: isAssignedToMe(parent)

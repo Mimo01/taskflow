@@ -19,8 +19,10 @@
  */
 import { IssueTimeBar, timedIssueFromJiraFields } from '@/components/jira/IssueTimeBar';
 import { estimateOf, loggedOf, remainingOf } from '@/lib/epic-progress';
+import type { JiraIssue } from '@/services/jira';
 import { formatDuration } from '@/services/jira/duration';
 import { MetaRow } from './MetaRow';
+import { storyTimeParts } from './storyTimeParts';
 
 interface TimeTrackingData {
   originalEstimate?: string;
@@ -43,6 +45,9 @@ interface TimeTrackingSummaryProps {
   timespent?: number | null;
   /** Status category key of the issue (`done` / `indeterminate` / `new`). */
   statusCategoryKey?: unknown;
+  /** Enriched subtasks (status + own time); a story with subtasks shows an aggregate bar split by status. */
+  subtasks?: JiraIssue[];
+  issueKey?: string;
 }
 
 /** One-line caption shared by the sidebar and the Worklog bar. */
@@ -59,18 +64,22 @@ export function TimeTrackingSummary({
   aggregatetimespent,
   timespent,
   statusCategoryKey,
+  subtasks,
+  issueKey,
 }: TimeTrackingSummaryProps) {
-  const issue = timedIssueFromJiraFields({
+  const fields = {
     status: { statusCategory: { key: statusCategoryKey } },
     timetracking,
     aggregatetimeoriginalestimate,
     aggregatetimeestimate,
     aggregatetimespent,
     timespent,
-  });
-  const est = estimateOf(issue);
-  const logged = loggedOf(issue);
-  const hasData = est > 0 || logged > 0 || remainingOf(issue) > 0;
+  };
+  const total = timedIssueFromJiraFields(fields, issueKey);
+  const issue = storyTimeParts(fields, issueKey, subtasks);
+  const est = estimateOf(total);
+  const logged = loggedOf(total);
+  const hasData = est > 0 || logged > 0 || remainingOf(total) > 0;
 
   return (
     <MetaRow label="Time Tracking">

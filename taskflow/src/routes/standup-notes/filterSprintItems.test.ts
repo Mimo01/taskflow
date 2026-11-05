@@ -390,3 +390,38 @@ describe('filterSprintItems — subtask ordering', () => {
     expect(row?.subtasks.map((s) => s.key)).toEqual(['SHOP-40-S3', 'SHOP-40-S1']);
   });
 });
+
+describe('filterSprintItems — allSubtasks (time bar scope)', () => {
+  it('lists every subtask of the parent (other assignees, done) while subtasks stays mine-only', () => {
+    const parent = makeIssue({
+      key: 'P-1',
+      statusKey: 'indeterminate',
+      isSubtask: false,
+      displayName: ME,
+    });
+    const mine = makeIssue({
+      key: 'P-2',
+      statusKey: 'indeterminate',
+      isSubtask: true,
+      displayName: ME,
+      parentKey: 'P-1',
+    });
+    const theirs = makeIssue({
+      key: 'P-3',
+      statusKey: 'new',
+      isSubtask: true,
+      displayName: OTHER,
+      parentKey: 'P-1',
+    });
+    const done = makeIssue({
+      key: 'P-4',
+      statusKey: 'done',
+      isSubtask: true,
+      displayName: OTHER,
+      parentKey: 'P-1',
+    });
+    const { inProgress } = filterSprintItems([parent, mine, theirs, done], ME);
+    expect(inProgress[0].subtasks.map((s) => s.key)).toEqual(['P-2']);
+    expect(inProgress[0].allSubtasks?.map((s) => s.key).sort()).toEqual(['P-2', 'P-3', 'P-4']);
+  });
+});
