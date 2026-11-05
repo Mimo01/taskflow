@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-08-13)
 Phase: 94
 Plan: Not started
 Status: Milestone complete
-Last activity: 2026-11-05 - Completed quick task 261105-mqh: universal PersonPicker everywhere
+Last activity: 2026-11-05 - Completed quick task 261105-mqh: universal PersonPicker everywhere (approved)
 
 ## Performance Metrics
 
@@ -265,7 +265,7 @@ Acknowledged and deferred at v1.14 milestone close (2026-08-13) — 111 open art
 | 261105-g4u | Release detail: tooltips open instantly — status/type/assignee row tooltips delay 600→0 (ROW_TOOLTIP_DELAY removed), burnup tooltip slide animation off; shared 150ms default untouched | 2026-11-05 | f9ac9f4b | Approved | [261105-g4u-remove-the-delay-on-tooltips-in-release-](./quick/261105-g4u-remove-the-delay-on-tooltips-in-release-/) |
 | 261105-gbh | Release detail graphs: MR donut always shown (3-channel MR union, no milestone needed) and last in its own 190px+ column; By status always shown as 3 clickable To do/In progress/Done rows stacked on By type (fixed layout for every release; data-driven pairing tried and removed); type/status counts in a right-edge column; lone By assignee fills its tallest neighbour's height (7 rows at 1440 vs 5). UAT rounds: twin donuts + 1400 cutoff rejected → rows → stacked → MR last + fit → small-release pairing (removed: user wants a consistent layout) → polish: Progress fills band, MR ring grows to fill its column (120-160px, no text under it — merged count and task coverage both rejected), loading skeleton mirrors the layout | 2026-11-05 | edeeba5d, 16823db0, 9f6b4402, ab3120e7, 99b687e4, 2000fda0, 96a343cb, 121cae91, 8d8098c0, 31b44a63, 641abf9e | Approved | [261105-gbh-always-show-mr-graph-on-release-detail-r](./quick/261105-gbh-always-show-mr-graph-on-release-detail-r/) |
 | 261105-izi | Release detail header: actions collapse sooner so the title keeps room — Refreshed timestamp hides ≤1024px, Pin/Edit/Open in Jira go icon-only ≤896px (were both ≤640px before the refresh button widened the group) | 2026-11-05 | 9da8254a | Approved | [261105-izi-release-detail-header-buttons-hide-title](./quick/261105-izi-release-detail-header-buttons-hide-title/) |
-| 261105-mqh | Universal PersonPicker: issue-detail assignee picker extracted to components/ui/person-picker.tsx (inline + field triggers, server-side debounced search via useAssignableUserSearch, Unassign/Assign to me); adopted by Create/Edit assignee + user custom fields, subtask template rows, Bulk Create, Standup watched person, Worklogs person; 200-user capped fetches removed | 2026-11-05 | 93f10f80, f03fbf8c, acb38c06 | Pending UAT | [261105-mqh-universal-assignee-picker-everywhere](./quick/261105-mqh-universal-assignee-picker-everywhere/) |
+| 261105-mqh | Universal PersonPicker: issue-detail assignee picker extracted to components/ui/person-picker.tsx (inline + field triggers, server-side debounced search via useAssignableUserSearch, Unassign/Assign to me); adopted by Create/Edit assignee + user custom fields, subtask template rows, Bulk Create, Standup watched person, Worklogs person; 200-user capped fetches removed | 2026-11-05 | 93f10f80, f03fbf8c, acb38c06, c1358120 | Approved | [261105-mqh-universal-assignee-picker-everywhere](./quick/261105-mqh-universal-assignee-picker-everywhere/) |
 
 ## Session Continuity
 
