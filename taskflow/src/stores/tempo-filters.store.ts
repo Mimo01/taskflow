@@ -10,6 +10,8 @@ export interface TempoFilter {
   preset: DatePreset;
   username: string | null;
   displayName: string | null;
+  /** Optional: filters saved before this field existed have none. */
+  avatarUrl?: string | null;
 }
 
 interface TempoFiltersState {

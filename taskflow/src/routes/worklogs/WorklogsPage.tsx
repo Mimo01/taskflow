@@ -40,7 +40,7 @@ import { DatePicker } from '@/components/ui/date-picker';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { PageHeader } from '@/components/ui/page-header';
-import { PersonPicker } from '@/components/ui/person-picker';
+import { PersonPicker, type PersonValue, toPersonValue } from '@/components/ui/person-picker';
 import { Skeleton } from '@/components/ui/skeleton';
 import { apiFetch } from '@/lib/apiFetch';
 import { orderSubtaskKeys } from '@/lib/subtask-order';
@@ -200,8 +200,14 @@ const DATE_PRESETS: { id: DatePreset; label: string }[] = [
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function WorklogsPage() {
-  const { jiraBaseUrl, activeJiraProject, jiraUsername, jiraUserDisplayName, jiraUserKey } =
-    useAuthStore();
+  const {
+    jiraBaseUrl,
+    activeJiraProject,
+    jiraUsername,
+    jiraUserDisplayName,
+    jiraUserKey,
+    jiraUserAvatarUrl,
+  } = useAuthStore();
   // IN-01: fine-grained selector avoids re-rendering on unrelated store mutations
   const tempoEnabled = useSettingsStore((s) => s.tempoEnabled);
   const epicLinkFieldKey = useSettingsStore((s) => s.epicLinkFieldKey);
@@ -217,6 +223,7 @@ export default function WorklogsPage() {
   const [customTo, setCustomTo] = useState('');
   const [selectedUsername, setSelectedUsername] = useState<string | null>(null);
   const [selectedDisplayName, setSelectedDisplayName] = useState<string | null>(null);
+  const [selectedAvatarUrl, setSelectedAvatarUrl] = useState<string | null>(null);
   // userTouchedFilter: true once user has manually changed or cleared the person selection
   // prevents the default-me effect from overwriting an intentional user action
   const userTouchedFilter = useRef(false);
@@ -591,9 +598,10 @@ export default function WorklogsPage() {
     epicLinkFieldKey,
   ]);
 
-  function handlePersonSelect(person: { name: string; displayName: string }) {
+  function handlePersonSelect(person: PersonValue) {
     setSelectedUsername(person.name);
     setSelectedDisplayName(person.displayName);
+    setSelectedAvatarUrl(person.avatarUrl ?? null);
     userTouchedFilter.current = true;
   }
 
@@ -608,6 +616,7 @@ export default function WorklogsPage() {
       preset,
       username: selectedUsername,
       displayName: selectedDisplayName,
+      avatarUrl: selectedAvatarUrl,
     });
     setActiveFilterId(newId);
     setRenamingId(newId);
@@ -620,6 +629,7 @@ export default function WorklogsPage() {
     setPreset(normalizeDatePreset(filter.preset));
     setSelectedUsername(filter.username);
     setSelectedDisplayName(filter.displayName);
+    setSelectedAvatarUrl(filter.avatarUrl ?? null);
     setActiveFilterId(filter.id);
   }
 
@@ -818,10 +828,17 @@ export default function WorklogsPage() {
             jiraBaseUrl={jiraBaseUrl ?? ''}
             value={
               selectedUsername
-                ? { name: selectedUsername, displayName: selectedDisplayName ?? selectedUsername }
+                ? {
+                    name: selectedUsername,
+                    displayName: selectedDisplayName ?? selectedUsername,
+                    // Older saved filters carry no avatar; "me" can still use the auth one.
+                    avatarUrl:
+                      selectedAvatarUrl ??
+                      (selectedUsername === jiraUsername ? jiraUserAvatarUrl : null),
+                  }
                 : null
             }
-            onChange={(u) => u && handlePersonSelect(u)}
+            onChange={(u) => u && handlePersonSelect(toPersonValue(u))}
           />
         </div>
 
