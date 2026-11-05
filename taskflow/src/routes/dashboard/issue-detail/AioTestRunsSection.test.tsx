@@ -469,18 +469,18 @@ describe('AioTestRunsSection', () => {
           }),
         ),
       );
-      const { container } = renderSection({ jiraIssueId: JIRA_ISSUE_NUMERIC_ID });
+      renderSection({ jiraIssueId: JIRA_ISSUE_NUMERIC_ID });
       await expandFirstRun();
       await waitFor(() => {
         expect(screen.getByRole('link', { name: /img-a\.png/ })).toBeTruthy();
       });
       const link = screen.getByRole('link', { name: /img-a\.png/ });
       expect(link.getAttribute('href')).toBe(ATTACHMENT_URL);
-      expect(container.querySelector('[role="dialog"]')).toBeNull();
+      expect(document.body.querySelector('[role="dialog"]')).toBeNull();
       const { fireEvent } = await import('@testing-library/react');
       fireEvent.click(link);
       expect(mockOpenUrl).not.toHaveBeenCalled();
-      expect(container.querySelector('[role="dialog"]')).not.toBeNull();
+      expect(document.body.querySelector('[role="dialog"]')).not.toBeNull();
     });
 
     it('renders h4. + *bold* + hard-break (\\\\) cluster as <h4> with <strong> child and <br>', async () => {

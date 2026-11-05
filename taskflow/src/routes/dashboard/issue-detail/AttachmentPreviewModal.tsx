@@ -1,6 +1,7 @@
 import 'highlight.js/styles/github-dark.css';
 import { ChevronLeft, ChevronRight, Download, File, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/button';
 import type { JiraAttachment } from '@/services/jira';
 import { AuthImage } from '../AuthImage';
@@ -414,7 +415,7 @@ export function AttachmentPreviewModal({
       break;
   }
 
-  return (
+  return createPortal(
     <div
       ref={overlayRef}
       className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center"
@@ -486,6 +487,7 @@ export function AttachmentPreviewModal({
           {current.size != null && ` - ${formatFileSize(current.size)}`}
         </p>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

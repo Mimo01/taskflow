@@ -557,7 +557,7 @@ After quote`;
     });
 
     it('renders image-extension [name.png|url] as inline text anchor, click opens lightbox (NOT openUrl) — 54-06 UAT follow-up', () => {
-      const { container } = render(
+      render(
         <WikiRenderer wikiText="[img-a.png|https://jira.other.example/secure/attachment/123/img-a.png]" />,
       );
       // Prose flow preserved: rendered as text <a>, NOT an inline <img> thumbnail.
@@ -566,12 +566,12 @@ After quote`;
         'https://jira.other.example/secure/attachment/123/img-a.png',
       );
       // No lightbox open before click.
-      expect(container.querySelector('[role="dialog"]')).toBeNull();
+      expect(document.body.querySelector('[role="dialog"]')).toBeNull();
       fireEvent.click(link);
       // Click does NOT route to OS browser.
       expect(openUrl).not.toHaveBeenCalled();
       // Click opens the in-app ImageLightbox.
-      expect(container.querySelector('[role="dialog"]')).not.toBeNull();
+      expect(document.body.querySelector('[role="dialog"]')).not.toBeNull();
     });
 
     it('renders non-image external [name|url] link, click calls openUrl exactly once', () => {
@@ -836,7 +836,7 @@ After quote`;
       const { container } = render(<WikiRenderer wikiText={FINDING_1_TWO_ITEM_FIXTURE} />);
 
       // No lightbox open before any click.
-      expect(container.querySelector('[role="dialog"]')).toBeNull();
+      expect(document.body.querySelector('[role="dialog"]')).toBeNull();
 
       const imgALink = Array.from(container.querySelectorAll('a')).find(
         (a) => a.textContent === 'img-a.png',
@@ -844,7 +844,7 @@ After quote`;
       expect(imgALink).toBeDefined();
       fireEvent.click(imgALink as HTMLAnchorElement);
       expect(openUrl).not.toHaveBeenCalled();
-      expect(container.querySelector('[role="dialog"]')).not.toBeNull();
+      expect(document.body.querySelector('[role="dialog"]')).not.toBeNull();
     });
 
     it('Plan 54-09 follow-up — `\\\\` hard-break immediately before `{panel}` (no space) renders panel on a new line', () => {
@@ -1595,7 +1595,7 @@ After quote`;
 
     it('regression: image-extension anchor opens lightbox, does NOT call openUrl or navigate', () => {
       authStoreState.jiraBaseUrl = 'https://jira.example.com';
-      const { container } = render(
+      render(
         <MemoryRouter>
           <WikiRenderer wikiText="[img-a.png|https://jira.example.com/secure/attachment/123/img-a.png]" />
         </MemoryRouter>,
@@ -1605,7 +1605,7 @@ After quote`;
       expect(openUrl).not.toHaveBeenCalled();
       expect(navigateMock).not.toHaveBeenCalled();
       // Lightbox should open.
-      expect(container.querySelector('[role="dialog"]')).not.toBeNull();
+      expect(document.body.querySelector('[role="dialog"]')).not.toBeNull();
     });
   });
 
