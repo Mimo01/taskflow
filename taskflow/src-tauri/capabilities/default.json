@@ -13,6 +13,10 @@
         { "url": "https://*", "app": true }
       ]
     },
+    {
+      "identifier": "opener:allow-open-path",
+      "allow": [{ "path": "$DOWNLOAD/**" }, { "path": "$TEMP/**" }]
+    },
     "stronghold:default",
     "store:default",
     {
