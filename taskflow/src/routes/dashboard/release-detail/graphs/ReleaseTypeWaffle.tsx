@@ -18,7 +18,7 @@ import {
   waffleColumns,
 } from '../releaseBuckets';
 import { GraphSlot, NEW_TONE_CLASS, WAFFLE_SKELETON_ROWS } from './GraphSlot';
-import { MoreRowsPopover, ROW_TOOLTIP_DELAY, ROW_TOOLTIP_SIDE, rowToggleProps } from './rowToggle';
+import { MoreRowsPopover, ROW_TOOLTIP_SIDE, rowToggleProps } from './rowToggle';
 
 const FALLBACK_WIDTH = 640;
 const ROW_PAD_X = 12;
@@ -108,7 +108,7 @@ export function ReleaseTypeWaffle({
           return (
             <Tooltip key={row.typeName}>
               <TooltipTrigger
-                delay={ROW_TOOLTIP_DELAY}
+                delay={0}
                 render={toggle.render}
                 data-testid={`type-row-${row.typeName}`}
                 className={cn(

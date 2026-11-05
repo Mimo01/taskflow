@@ -5,10 +5,9 @@ import { cn } from '@/lib/utils';
 import { isFilterGroupActive } from '../taskTableFilters';
 
 /**
- * Row tooltips wait before opening and sit beside the row, so a quick hover or
- * click on a toggle row is never covered by a neighbour's tooltip (261102-vuw UAT).
+ * Row tooltips open instantly (261105-g4u) and sit beside the row, so they never
+ * cover a neighbouring toggle row (261102-vuw).
  */
-export const ROW_TOOLTIP_DELAY = 600;
 export const ROW_TOOLTIP_SIDE = 'right' as const;
 
 /**

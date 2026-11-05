@@ -6,7 +6,7 @@ import { RELEASE_SEGMENT_CLASS } from '@/lib/release-list';
 import { cn } from '@/lib/utils';
 import { fitStatusRows, type ReleaseStatusRow, statusBarWidth } from '../releaseBuckets';
 import { ASSIGNEE_ROW_HEIGHT, GraphSlot, NEW_TONE_CLASS } from './GraphSlot';
-import { MoreRowsPopover, ROW_TOOLTIP_DELAY, ROW_TOOLTIP_SIDE, rowToggleProps } from './rowToggle';
+import { MoreRowsPopover, ROW_TOOLTIP_SIDE, rowToggleProps } from './rowToggle';
 
 const MAX_ROWS = 6;
 // Same row rhythm and column split as By assignee, so the two read as one family.
@@ -69,7 +69,7 @@ export function ReleaseStatusRows({
           return (
             <Tooltip key={`${row.cat}:${row.name}`}>
               <TooltipTrigger
-                delay={ROW_TOOLTIP_DELAY}
+                delay={0}
                 render={toggle.render}
                 data-testid={`status-row-${row.name}`}
                 className={cn(

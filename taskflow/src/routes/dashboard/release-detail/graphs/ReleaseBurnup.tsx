@@ -331,6 +331,7 @@ export function ReleaseBurnup({
                 />
                 <ChartTooltip
                   cursor={CURSOR}
+                  isAnimationActive={false}
                   wrapperStyle={TOOLTIP_WRAPPER}
                   content={(p) => (
                     <BurnupTooltip

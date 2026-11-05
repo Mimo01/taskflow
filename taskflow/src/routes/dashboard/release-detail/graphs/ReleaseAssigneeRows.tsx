@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils';
 import { SegmentedBar } from '../../releases-list/ReleaseAgendaParts';
 import type { ReleaseAssigneeRow } from '../releaseBuckets';
 import { ASSIGNEE_ROW_HEIGHT, ASSIGNEE_SKELETON_ROWS, GraphSlot } from './GraphSlot';
-import { MoreRowsPopover, ROW_TOOLTIP_DELAY, ROW_TOOLTIP_SIDE, rowToggleProps } from './rowToggle';
+import { MoreRowsPopover, ROW_TOOLTIP_SIDE, rowToggleProps } from './rowToggle';
 
 const COMPACT_ROW_HEIGHT = 24;
 /** Default row cap (band); the rest go to "+K more". Narrower layouts pass a lower `maxRows`. */
@@ -79,7 +79,7 @@ export function ReleaseAssigneeRows({
           return (
             <Tooltip key={row.id}>
               <TooltipTrigger
-                delay={ROW_TOOLTIP_DELAY}
+                delay={0}
                 render={toggle.render}
                 data-testid={`assignee-row-${row.id}`}
                 className={cn(
