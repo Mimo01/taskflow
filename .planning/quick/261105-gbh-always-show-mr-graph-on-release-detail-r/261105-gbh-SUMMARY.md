@@ -64,3 +64,17 @@ Preview files (`src/__preview`, `preview-release-graphs.html`) were deleted befo
 
 ## Self-Check: PASSED
 Commits edeeba5d, 16823db0, 9f6b4402 exist; full vitest, tsc and biome green on each; grep finds no `ReleaseStatusRows`, `fitStatusRows`, `statusBarWidth`, `release-mrs-none` or "in this milestone yet" in src.
+
+## Final state after UAT (approved 2026-11-05)
+
+The donut-pair design above was rejected at UAT ("two plain pie charts", band too tall at the 1400px cutoff) and reworked inline over several rounds. What shipped:
+
+- **Band (from 1180px, BAND_MIN_WIDTH restored):** `[Progress][By status over By type][By assignee][Merge requests]`, identical for every release (data-driven re-pairing was tried in 96a343cb and removed in 121cae91 at the user's request).
+- **By status:** `ReleaseStatusRows` rewritten as 3 rows (To do / In progress / Done) on By type's row geometry (84px name column + muted icons, 12px lines). Hover lists exact statuses (≤4, "+N more"); click toggles the Status filter for every status in the category. `ReleaseStatusDonut` deleted.
+- **By type / By status counts:** fixed right-edge count column, aligned with By assignee.
+- **By assignee:** `fitAssigneeRows` fills the height of the status/type stack (band) or the MR slot (2x2), never fewer than the old cap.
+- **Merge requests:** always shown (state from the three-channel MR union, no milestone needed), last, in its own 190px+ column. In the band the ring grows to fill the column (120–160px, 12px margin, larger centre text from 150px); no text under it (a merged-count line and a task-coverage line were both rejected).
+- **Progress:** in the band the plot fills the row height (`fill`, min 120px).
+- **Loading skeleton:** `ReleaseDetailSkeleton` mirrors the new grid in every layout.
+
+UAT commits: ab3120e7, 99b687e4, 2000fda0, 96a343cb, 121cae91, 8d8098c0, 31b44a63, 641abf9e.
