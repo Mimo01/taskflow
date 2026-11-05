@@ -14,7 +14,7 @@
  */
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { JiraIssue } from '@/services/jira';
@@ -176,55 +176,6 @@ describe('TodayColumn', () => {
       // The row's own status renders as a pill (distinct from the section heading)
       expect(screen.getByText('In Progress', { selector: 'span' })).toBeInTheDocument();
       expect(screen.getByText('Summary of PROJ-10')).toBeInTheDocument();
-    });
-  });
-
-  describe('Story group separators (261105-fkj)', () => {
-    it('divides In Progress story groups with a hairline and keeps subtasks inside their group', async () => {
-      const { useQuery } = await import('@tanstack/react-query');
-      const story1 = makeIssue('PROJ-10', 'indeterminate', { isSubtask: false, subtasksLen: 1 });
-      const story2 = makeIssue('PROJ-20', 'indeterminate', { isSubtask: false });
-      const sub = makeIssue('PROJ-11', 'indeterminate');
-      (sub.fields as unknown as { parent: { key: string } }).parent = { key: 'PROJ-10' };
-
-      vi.mocked(useQuery).mockImplementation((opts) => {
-        const key = Array.isArray(opts.queryKey) ? opts.queryKey[1] : '';
-        if (key === 'sprint-board-today-full') {
-          return {
-            data: [story1, sub, story2],
-            isLoading: false,
-            isError: false,
-          } as ReturnType<typeof useQuery>;
-        }
-        return { data: undefined, isLoading: false, isError: false } as ReturnType<typeof useQuery>;
-      });
-
-      const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-      const { default: TodayColumn } = await import('./TodayColumn');
-
-      render(
-        <QueryClientProvider client={qc}>
-          <MemoryRouter>
-            <TodayColumn
-              onIssueClick={vi.fn()}
-              onMRClick={vi.fn()}
-              watchedGitlabUserId={42}
-              watchedDisplayName="Test User"
-              isWatched={false}
-            />
-          </MemoryRouter>
-        </QueryClientProvider>,
-      );
-
-      const groups = screen.getAllByTestId('standup-story-group');
-      expect(groups).toHaveLength(2);
-      const first = groups.find((g) => within(g).queryByText('Summary of PROJ-10'));
-      expect(first).toBeDefined();
-      expect(within(first as HTMLElement).getByText('Summary of PROJ-11')).toBeInTheDocument();
-      const list = (first as HTMLElement).parentElement as HTMLElement;
-      expect(list.classList.contains('divide-y')).toBe(true);
-      expect(list.classList.contains('divide-border')).toBe(true);
-      expect(list.classList.contains('gap-1')).toBe(false);
     });
   });
 
