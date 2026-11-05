@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { filenameFromSrc, openSavedFile, saveBlobUrl } from '@/lib/save-attachment';
 import { ImageViewer } from './ImageViewer';
+import { stopNonEscape } from './ViewerToolbar';
 
 interface ImageLightboxProps {
   src: string;
@@ -71,7 +72,7 @@ export function ImageLightbox({ src, alt, open, onClose }: ImageLightboxProps) {
         &times;
       </button>
       {/* biome-ignore lint/a11y/noStaticElementInteractions: propagation-stopper to prevent backdrop close when clicking the viewer */}
-      <div onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+      <div onClick={(e) => e.stopPropagation()} onKeyDown={stopNonEscape}>
         <ImageViewer
           key={src}
           src={src}

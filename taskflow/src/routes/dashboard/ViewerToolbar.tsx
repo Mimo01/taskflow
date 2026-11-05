@@ -22,6 +22,11 @@ interface ViewerToolbarProps {
   status?: string | null;
 }
 
+/** Keep keys from reaching ancestor handlers, except Escape which must still close. */
+export function stopNonEscape(e: React.KeyboardEvent) {
+  if (e.key !== 'Escape') e.stopPropagation();
+}
+
 const BTN = 'text-white/80 hover:text-white hover:bg-white/10';
 
 function Divider() {
@@ -46,7 +51,7 @@ export function ViewerToolbar({
     <div
       className="flex flex-col items-center gap-1"
       onClick={(e) => e.stopPropagation()}
-      onKeyDown={(e) => e.stopPropagation()}
+      onKeyDown={stopNonEscape}
     >
       {status && (
         <p role="alert" className="text-xs text-red-300 bg-black/60 rounded-full px-3 py-1">

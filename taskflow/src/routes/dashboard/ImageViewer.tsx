@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { fitScale, isPannable, MAX_SCALE, minScale } from '@/lib/image-viewer';
 import { useAuthBlob } from './issue-detail/useAuthBlob';
 import { useImageViewer } from './useImageViewer';
-import { ViewerToolbar } from './ViewerToolbar';
+import { stopNonEscape, ViewerToolbar } from './ViewerToolbar';
 
 interface ImageViewerProps {
   src: string;
@@ -57,7 +57,7 @@ export function ImageViewer({ src, alt, onDownload, onOpenExternal }: ImageViewe
           // Swallow the click that ends a pan drag.
           if (wasDrag()) e.preventDefault();
         }}
-        onKeyDown={(e) => e.stopPropagation()}
+        onKeyDown={stopNonEscape}
       >
         {(error || imgFailed) && (
           <span className="absolute inset-0 flex items-center justify-center text-white/80 text-sm">

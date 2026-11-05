@@ -3,8 +3,10 @@ import { ChevronLeft, ChevronRight, Download, File, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/button';
+import { DEFAULT_FONT_SIZE, FONT_SIZES, nextFontSize, prevFontSize } from '@/lib/image-viewer';
 import type { JiraAttachment } from '@/services/jira';
-import { AuthImage } from '../AuthImage';
+import { ImageViewer } from '../ImageViewer';
+import { stopNonEscape, ViewerToolbar } from '../ViewerToolbar';
 import { formatFileSize } from './AttachmentFileRow';
 import { highlightCode } from './highlightCode';
 import { resolvePreviewKind } from './resolvePreviewKind';
@@ -17,6 +19,7 @@ interface AttachmentPreviewModalProps {
   onClose: () => void;
   onNavigate: (index: number) => void;
   onDownload: (attachment: JiraAttachment) => void;
+  onOpenExternal?: (attachment: JiraAttachment) => Promise<void>;
 }
 
 // Text/code preview size guard: skip fetching entirely (show DownloadFallback
@@ -78,9 +81,11 @@ function DownloadFallback({
 function TextPreview({
   attachment,
   onDownload,
+  fontSize,
 }: {
   attachment: JiraAttachment;
   onDownload: (attachment: JiraAttachment) => void;
+  fontSize: number;
 }) {
   const oversized = isOversized(attachment, MAX_PREVIEW_FILE_SIZE);
   const { loading, error, getText } = useAuthBlob(attachment.content, { lazy: true });
@@ -121,7 +126,10 @@ function TextPreview({
 
   return (
     <div>
-      <pre className="max-w-[90vw] max-h-[85vh] overflow-auto font-mono text-xs whitespace-pre-wrap bg-white text-black rounded-lg p-4">
+      <pre
+        className="max-w-[90vw] max-h-[75vh] overflow-auto font-mono whitespace-pre-wrap bg-white text-black rounded-lg p-4"
+        style={{ fontSize }}
+      >
         {shown}
       </pre>
       {truncated && <TruncationNotice />}
@@ -132,9 +140,11 @@ function TextPreview({
 function CodePreview({
   attachment,
   onDownload,
+  fontSize,
 }: {
   attachment: JiraAttachment;
   onDownload: (attachment: JiraAttachment) => void;
+  fontSize: number;
 }) {
   const oversized = isOversized(attachment, MAX_PREVIEW_FILE_SIZE);
   const { loading, error, getText } = useAuthBlob(attachment.content, { lazy: true });
@@ -176,7 +186,7 @@ function CodePreview({
 
   return (
     <div>
-      <pre className="max-w-[90vw] max-h-[85vh] overflow-auto rounded-lg p-4 text-xs">
+      <pre className="max-w-[90vw] max-h-[75vh] overflow-auto rounded-lg p-4" style={{ fontSize }}>
         <code
           className="hljs"
           // biome-ignore lint/security/noDangerouslySetInnerHtml: highlighted HTML is hljs-escaped token spans, never raw attachment bytes
@@ -242,7 +252,7 @@ function PdfPreview({
       title={attachment.filename}
       src={dataUrl}
       type="application/pdf"
-      className="w-[90vw] h-[85vh] rounded-lg bg-white"
+      className="w-[90vw] h-[75vh] rounded-lg bg-white"
     />
   );
 }
@@ -274,7 +284,7 @@ function VideoPreview({
     <video
       controls
       src={blobUrl}
-      className="max-w-[90vw] max-h-[85vh] rounded-lg"
+      className="max-w-[90vw] max-h-[75vh] rounded-lg"
       onError={onFallback}
     />
   );
@@ -315,19 +325,56 @@ export function AttachmentPreviewModal({
   onClose,
   onNavigate,
   onDownload,
+  onOpenExternal,
 }: AttachmentPreviewModalProps) {
   const overlayRef = useRef<HTMLDivElement>(null);
+  // Only close when the press also started on the backdrop (a pan drag
+  // released over the backdrop must not dismiss the preview).
+  const downOnBackdrop = useRef(false);
   const [fallback, setFallback] = useState(false);
+  const [fontSize, setFontSize] = useState(DEFAULT_FONT_SIZE);
+  const [openError, setOpenError] = useState<string | null>(null);
+
+  const activeItem = items[currentIndex];
+  const activeKind = activeItem && !fallback ? resolvePreviewKind(activeItem) : 'other';
+  const fontZoomActive = activeKind === 'text' || activeKind === 'code';
 
   // Reset the fallback flag whenever the active attachment changes.
   // biome-ignore lint/correctness/useExhaustiveDependencies: currentIndex is an intentional re-run trigger — the body doesn't reference it but bumping it resets fallback for the newly navigated attachment.
   useEffect(() => {
     setFallback(false);
+    setFontSize(DEFAULT_FONT_SIZE);
+    setOpenError(null);
   }, [currentIndex]);
 
   useEffect(() => {
     if (!open) return;
+    function isEditable(t: EventTarget | null) {
+      return (
+        t instanceof HTMLElement &&
+        (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)
+      );
+    }
     function handleKeyDown(e: KeyboardEvent) {
+      // The image viewer prevents arrows while zoomed (they pan instead).
+      if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && e.defaultPrevented) return;
+      if (fontZoomActive && !isEditable(e.target)) {
+        if (e.key === '+' || e.key === '=') {
+          e.preventDefault();
+          setFontSize(nextFontSize);
+          return;
+        }
+        if (e.key === '-' || e.key === '_') {
+          e.preventDefault();
+          setFontSize(prevFontSize);
+          return;
+        }
+        if (e.key === '0') {
+          e.preventDefault();
+          setFontSize(DEFAULT_FONT_SIZE);
+          return;
+        }
+      }
       if (e.key === 'Escape') {
         onClose();
       } else if (e.key === 'ArrowLeft' && currentIndex > 0) {
@@ -338,7 +385,7 @@ export function AttachmentPreviewModal({
     }
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [open, onClose, onNavigate, currentIndex, items.length]);
+  }, [open, onClose, onNavigate, currentIndex, items.length, fontZoomActive]);
 
   // Auto-focus overlay for keyboard events
   useEffect(() => {
@@ -368,20 +415,20 @@ export function AttachmentPreviewModal({
   switch (kind) {
     case 'image':
       body = (
-        <div className="bg-white rounded-lg">
-          <AuthImage
-            src={current.content}
-            alt={current.filename}
-            className="max-w-[90vw] max-h-[85vh] object-contain rounded-lg"
-          />
-        </div>
+        <ImageViewer
+          key={current.id}
+          src={current.content}
+          alt={current.filename}
+          onDownload={() => onDownload(current)}
+          onOpenExternal={onOpenExternal ? () => onOpenExternal(current) : undefined}
+        />
       );
       break;
     case 'text':
-      body = <TextPreview attachment={current} onDownload={onDownload} />;
+      body = <TextPreview attachment={current} onDownload={onDownload} fontSize={fontSize} />;
       break;
     case 'code':
-      body = <CodePreview attachment={current} onDownload={onDownload} />;
+      body = <CodePreview attachment={current} onDownload={onDownload} fontSize={fontSize} />;
       break;
     case 'pdf':
       body = (
@@ -415,11 +462,52 @@ export function AttachmentPreviewModal({
       break;
   }
 
+  async function handleOpenExternal() {
+    if (!onOpenExternal) return;
+    setOpenError(null);
+    try {
+      await onOpenExternal(current as JiraAttachment);
+    } catch (err) {
+      setOpenError(err instanceof Error && err.message ? err.message : 'Open externally failed');
+    }
+  }
+
+  const actions = {
+    onDownload: () => onDownload(current),
+    onOpenExternal: onOpenExternal ? () => void handleOpenExternal() : undefined,
+  };
+  let toolbar: React.ReactNode = null;
+  if (fontZoomActive) {
+    toolbar = (
+      <ViewerToolbar
+        aria-label="Text controls"
+        zoom={{
+          readout: `${fontSize}px`,
+          onZoomOut: () => setFontSize(prevFontSize),
+          onZoomIn: () => setFontSize(nextFontSize),
+          zoomOutDisabled: fontSize <= (FONT_SIZES[0] ?? 10),
+          zoomInDisabled: fontSize >= (FONT_SIZES[FONT_SIZES.length - 1] ?? 24),
+        }}
+        onFit={() => setFontSize(DEFAULT_FONT_SIZE)}
+        status={openError}
+        {...actions}
+      />
+    );
+  } else if (kind === 'pdf' || kind === 'video' || kind === 'audio') {
+    toolbar = <ViewerToolbar aria-label="File actions" status={openError} {...actions} />;
+  }
+
   return createPortal(
     <div
       ref={overlayRef}
       className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center"
-      onClick={onClose}
+      onPointerDown={(e) => {
+        downOnBackdrop.current = e.target === e.currentTarget;
+      }}
+      onClick={(e) => {
+        if (downOnBackdrop.current && e.target === e.currentTarget) onClose();
+        downOnBackdrop.current = false;
+      }}
       onKeyDown={(e) => {
         if (e.key === 'Escape') onClose();
       }}
@@ -479,9 +567,10 @@ export function AttachmentPreviewModal({
       <div
         className="flex flex-col items-center gap-3"
         onClick={(e) => e.stopPropagation()}
-        onKeyDown={(e) => e.stopPropagation()}
+        onKeyDown={stopNonEscape}
       >
         {body}
+        {toolbar}
         <p className="text-white/80 text-sm">
           {current.filename}
           {current.size != null && ` - ${formatFileSize(current.size)}`}
