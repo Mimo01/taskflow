@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useBoardId } from '@/hooks/useBoardId';
 import { apiFetch } from '@/lib/apiFetch';
+import type { TimedSource } from '@/lib/time-bar';
 import type { JiraIssueDetail } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
@@ -24,6 +25,8 @@ interface IssueDetailSidebarProps {
   omitLinkedIssues?: boolean;
   /** When true, the Merge Requests section is omitted (single-column peek renders it at the bottom instead) */
   omitMergeRequests?: boolean;
+  /** Enriched subtasks for the Time Tracking bar's per-status split. */
+  timeSubtasks?: readonly TimedSource[] | null;
 }
 
 export function IssueDetailSidebar({
@@ -37,6 +40,7 @@ export function IssueDetailSidebar({
   onOpenIssue,
   omitLinkedIssues,
   omitMergeRequests,
+  timeSubtasks,
 }: IssueDetailSidebarProps) {
   const f = issue.fields;
   const isEpic = f.issuetype.name === 'Epic';
@@ -103,6 +107,7 @@ export function IssueDetailSidebar({
         mutation={mutation}
         epicIssue={epicIssue}
         onOpenIssue={onOpenIssue}
+        timeSubtasks={timeSubtasks}
       />
 
       {!omitLinkedIssues && (

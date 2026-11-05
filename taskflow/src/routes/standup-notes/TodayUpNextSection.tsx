@@ -26,7 +26,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { doneSummaryClass } from '@/lib/issueDisplayUtils';
 import { statusPillClass } from '@/lib/statusStyles';
-import { isDoneStatus, timeTotals } from '@/lib/time-progress';
+import { timeBarIssues } from '@/lib/time-bar';
 import { cn } from '@/lib/utils';
 import type { JiraIssue } from '@/services/jira';
 import type { SprintRow } from './filterSprintItems';
@@ -73,6 +73,8 @@ interface IssueRowProps {
   indented?: boolean;
   /** Reserve the story-points slot (some row in this section has points). */
   showSp: boolean;
+  /** Parent rows: every subtask of the story, for the time bar. */
+  timeSubtasks?: JiraIssue[];
 }
 
 function IssueRow({
@@ -82,6 +84,7 @@ function IssueRow({
   onOpenIssue,
   indented = false,
   showSp,
+  timeSubtasks,
 }: IssueRowProps) {
   const issueType = issue.fields.issuetype.name;
   const key = issue.key;
@@ -144,14 +147,10 @@ function IssueRow({
             </div>
           )}
           <StackedTimeBar
-            spentSeconds={timeTotals(issue, indented).spent}
-            totalSeconds={timeTotals(issue, indented).estimate}
+            issues={timeBarIssues(issue, indented ? null : timeSubtasks, { isSubtask: indented })}
             widthClassName={TODAY_TIME_BAR_WIDTH_CLASS}
             testId="standup-time-bar"
             alwaysShowTrack
-            isDone={isDoneStatus(issue.fields.status.statusCategory?.key)}
-            statusCategoryKey={issue.fields.status.statusCategory?.key}
-            withTooltip
           />
           <CachedAvatar
             url={issue.fields.assignee?.avatarUrls?.['48x48'] ?? null}
@@ -247,6 +246,7 @@ export default function TodayUpNextSection({
                 onIssueClick={onIssueClick}
                 onOpenIssue={onOpenIssue}
                 showSp={showSp}
+                timeSubtasks={row.timeSubtasks}
               />
               {row.subtasks.map((subtask) => (
                 <IssueRow

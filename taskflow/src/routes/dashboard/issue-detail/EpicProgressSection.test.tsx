@@ -1279,7 +1279,7 @@ describe('EpicProgressSection unified tabs (261001-rtw)', () => {
       r.children[0].getAttribute('data-marker'),
     );
 
-  it('Time mode person bar is status-grouped with overspend and an estimate tick', () => {
+  it('Time mode person bar is status-grouped with overspend; no tick while under the estimate', () => {
     renderSection(timedSection());
     fireEvent.click(screen.getByRole('button', { name: 'Time' }));
     const row = screen.getByTestId('epic-assignee-row');
@@ -1301,10 +1301,11 @@ describe('EpicProgressSection unified tabs (261001-rtw)', () => {
       'new:remaining',
     ]);
     expect(segs[1].className).toContain('bg-red-500');
-    expect(segs[2].className).toContain('opacity-35');
-    // Scale = max(total 2h 30m, estimate) of the largest person; tick at the person's estimate.
+    expect(segs[2].className).toContain('opacity-40');
+    // Scale = max(total 2h 30m, estimate 3h): the track ends at the estimate, so no tick
+    // (261105-dsl A: the tick only shows when the bar runs past the estimate).
     const total = segs.reduce((n, s) => n + Number.parseFloat(s.style.width), 0);
-    expect(within(row).getByTestId('time-estimate-tick')).toBeInTheDocument();
+    expect(within(row).queryByTestId('time-estimate-tick')).toBeNull();
     expect(total).toBeLessThanOrEqual(100.0001);
   });
 

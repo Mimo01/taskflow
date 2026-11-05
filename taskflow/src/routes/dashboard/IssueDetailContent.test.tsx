@@ -298,6 +298,8 @@ describe('IssueDetailContent', () => {
       expect(bar).not.toHaveAttribute('data-empty');
       // To do, 2h estimate, 1h logged, 1h left: solid logged half, faint remaining half.
       expect(segs(bar)).toEqual({ 'new:logged': 50, 'new:remaining': 50 });
+      // Under the estimate the track itself ends at the estimate: no tick (261105-dsl A).
+      expect(within(bar).queryByTestId('time-estimate-tick')).toBeNull();
       const row = bar.closest('button') as HTMLElement;
       expect(bar.hasAttribute('tabindex')).toBe(false);
       expect(row.querySelectorAll('button')).toHaveLength(0);
@@ -316,12 +318,12 @@ describe('IssueDetailContent', () => {
       expect(tick).toHaveAttribute('data-pct', '50');
     });
 
-    it('a tick at the end of the bar sits outside the rounded clip (not cut off)', () => {
-      // 2h estimate, 1h logged, 1h left → tick at 100%.
-      renderEpic([epicStory('S-1', 'indeterminate', { est: 7200, spent: 3600, rem: 3600 })]);
+    it('the estimate tick sits outside the rounded clip (not cut off)', () => {
+      // 2h estimate, 1h logged, 3h left → forecast 4h, tick at 50%.
+      renderEpic([epicStory('S-1', 'indeterminate', { est: 7200, spent: 3600, rem: 10800 })]);
       const bar = screen.getByTestId('story-time-bar');
       const tick = within(bar).getByTestId('time-estimate-tick');
-      expect(tick).toHaveAttribute('data-pct', '100');
+      expect(tick).toHaveAttribute('data-pct', '50');
       expect(tick.closest('.overflow-hidden')).toBeNull();
     });
 
@@ -345,7 +347,7 @@ describe('IssueDetailContent', () => {
       // 2h estimate, 30m logged, Jira remaining 3h → total 3h 30m, forecast 1h 30m over.
       renderEpic([epicStory('S-1', 'indeterminate', { est: 7200, spent: 1800, rem: 10800 })]);
       const bar = screen.getByTestId('story-time-bar');
-      expect(bar).toHaveAttribute('aria-label', 'Logged 30m of 3h 30m');
+      expect(bar).toHaveAttribute('aria-label', 'Logged 30m of 2h estimate, 3h remaining');
       // Logged 30m (solid blue), remaining up to the estimate 1h 30m (faint blue), forecast
       // overspend 1h 30m (faint striped red: 3h 30m is past 125% of 2h).
       const w = segs(bar);
@@ -359,7 +361,7 @@ describe('IssueDetailContent', () => {
       expect(w['indeterminate:remainingOver']).toBeCloseTo((5400 / 12600) * 100, 3);
       const fc = bar.querySelector('[data-segment="indeterminate:remainingOver"]') as HTMLElement;
       expect(fc.className).toContain('bg-red-500');
-      expect(fc.className).toContain('opacity-35');
+      expect(fc.className).toContain('opacity-45');
       expect(fc.style.backgroundImage).toContain('repeating-linear-gradient');
       const tick = within(bar).getByTestId('time-estimate-tick');
       expect(Number(tick.getAttribute('data-pct'))).toBeCloseTo((7200 / 12600) * 100, 3);
@@ -376,12 +378,13 @@ describe('IssueDetailContent', () => {
       expect(within(bar).queryByTestId('time-estimate-tick')).toBeNull();
     });
 
-    it('no estimate but logged: logged is the whole total, tooltip notes no estimate', async () => {
+    it('no estimate but logged: dashed empty track (never a full bar), tooltip notes no estimate', async () => {
       const user = userEvent.setup();
       renderEpic([epicStory('S-1', 'new', { spent: 1800 })]);
       const bar = screen.getByTestId('story-time-bar');
       expect(bar).not.toHaveAttribute('data-empty');
-      expect(segs(bar)).toEqual({ 'new:logged': 100 });
+      expect(segs(bar)).toEqual({});
+      expect(bar.querySelector('[data-no-estimate="true"]')).not.toBeNull();
       await user.hover(bar);
       expect(await screen.findByText('No estimate')).toBeInTheDocument();
       expect(rowTexts()).toEqual(['Logged30m']);

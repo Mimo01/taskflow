@@ -36,7 +36,7 @@ import { PriorityIcon } from '@/components/ui/priority-icon';
 import { doneSummaryClass } from '@/lib/issueDisplayUtils';
 import { PEEKED_ROW_CLASS } from '@/lib/peek-highlight';
 import { statusPillClass } from '@/lib/statusStyles';
-import { isDoneStatus } from '@/lib/time-progress';
+import { timeBarIssues } from '@/lib/time-bar';
 import { cn } from '@/lib/utils';
 import type { JiraIssue } from '@/services/jira';
 import { isIssueFlagged } from '@/services/jira';
@@ -112,15 +112,10 @@ export interface MyTaskRowProps {
   /** Subtask rows to render beneath this parent (only for parent rows) */
   subtasks?: JiraIssue[];
   /**
-   * Accumulated time-spent across this story + all its subtasks.
-   * When provided, the parent row's time bar uses this instead of the issue's own value.
+   * Every subtask of this story (not just the visible rows), for the time bar: the parent
+   * row's bar covers the story's own time + all of these, split by subtask status.
    */
-  accumulatedSpentSeconds?: number;
-  /**
-   * Accumulated original estimate across this story + all its subtasks.
-   * When provided, the parent row's time bar uses this instead of the issue's own value.
-   */
-  accumulatedEstimateSeconds?: number;
+  timeSubtasks?: JiraIssue[];
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -135,8 +130,7 @@ export function MyTaskRow({
   onOpenPeek,
   onOpenIssue,
   subtasks = [],
-  accumulatedSpentSeconds,
-  accumulatedEstimateSeconds,
+  timeSubtasks,
 }: MyTaskRowProps) {
   const isPeeked = useIsPeeked(issue.key);
   const isFlagged = isIssueFlagged(issue, flaggedFieldKey);
@@ -147,25 +141,7 @@ export function MyTaskRow({
     (issue.fields.customfield_10016 as number | null | undefined) ??
     null;
 
-  const timeTracking = issue.fields.timetracking as
-    | {
-        timeSpentSeconds?: number;
-        remainingEstimateSeconds?: number;
-        originalEstimateSeconds?: number;
-      }
-    | null
-    | undefined;
-
-  // For parent rows, use accumulated values when provided (story + all subtasks).
-  // For subtask rows (isSubtask=true), always use the issue's own values.
-  const totalSeconds =
-    !isSubtask && accumulatedEstimateSeconds !== undefined
-      ? accumulatedEstimateSeconds
-      : timeTracking?.originalEstimateSeconds;
-  const spentSeconds =
-    !isSubtask && accumulatedSpentSeconds !== undefined
-      ? accumulatedSpentSeconds
-      : (timeTracking?.timeSpentSeconds ?? 0);
+  const timeIssues = timeBarIssues(issue, isSubtask ? null : timeSubtasks, { isSubtask });
 
   const labels = (issue.fields.labels as string[] | null | undefined) ?? [];
 
@@ -211,14 +187,7 @@ export function MyTaskRow({
         )}
       </span>
 
-      {/* Stacked time bar — fixed 144px width; consistent track + caption */}
-      <StackedTimeBar
-        spentSeconds={spentSeconds}
-        totalSeconds={totalSeconds}
-        isDone={isDoneStatus(statusCategoryKey)}
-        statusCategoryKey={statusCategoryKey}
-        withTooltip
-      />
+      <StackedTimeBar issues={timeIssues} />
 
       {/* Assignee avatar */}
       <CachedAvatar

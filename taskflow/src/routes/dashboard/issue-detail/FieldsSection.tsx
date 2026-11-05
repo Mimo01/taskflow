@@ -32,7 +32,7 @@ import { formatWeekLabel } from '@/lib/deployment-package';
 import { epicColorToTailwind } from '@/lib/epicColors';
 import { invalidateLightweightIssue } from '@/lib/issue-lightweight-cache';
 import { exactDateTime } from '@/lib/relative-time';
-import { isDoneStatus } from '@/lib/time-progress';
+import type { TimedSource } from '@/lib/time-bar';
 import type { JiraIssue, JiraIssueDetail, JiraPriority } from '@/services/jira';
 import {
   fetchIssuePriorityOptions,
@@ -125,6 +125,8 @@ interface FieldsSectionProps {
   mutation: UseMutationResult<unknown, Error, { fieldName: string; value: unknown }>;
   epicIssue: { fields: { summary: string; [k: string]: unknown } } | null | undefined;
   onOpenIssue?: (key: string) => void;
+  /** Enriched subtasks (time + status) so the Time Tracking bar splits by subtask status. */
+  timeSubtasks?: readonly TimedSource[] | null;
 }
 
 export function FieldsSection({
@@ -140,6 +142,7 @@ export function FieldsSection({
   epicIssue,
   epicNameFieldKey,
   onOpenIssue,
+  timeSubtasks,
 }: FieldsSectionProps) {
   const f = issue.fields;
   const rmPackage = useRmPackage(extractDeploymentPackage(f.customfield_15725));
@@ -1266,15 +1269,7 @@ export function FieldsSection({
 
       <WatcherToggle issueKey={issueKey} jiraBaseUrl={jiraBaseUrl} />
 
-      <TimeTrackingSummary
-        timetracking={f.timetracking}
-        aggregatetimeoriginalestimate={f.aggregatetimeoriginalestimate}
-        aggregatetimeestimate={f.aggregatetimeestimate}
-        aggregatetimespent={f.aggregatetimespent}
-        timespent={f.timespent}
-        isDone={isDoneStatus(f.status?.statusCategory?.key)}
-        statusCategoryKey={f.status?.statusCategory?.key}
-      />
+      <TimeTrackingSummary issue={issue} subtasks={timeSubtasks} />
     </>
   );
 }

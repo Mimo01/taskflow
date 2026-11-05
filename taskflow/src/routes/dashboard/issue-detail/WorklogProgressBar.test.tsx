@@ -41,10 +41,17 @@ describe('WorklogProgressBar', () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it('renders nothing when estimate is 0 or missing', () => {
-    const issue = makeIssue({ timeSpentSeconds: 100 });
+  it('renders nothing when there is no time at all', () => {
+    const issue = makeIssue({});
     const { container } = render(<WorklogProgressBar issue={issue} subtasks={undefined} />);
     expect(container.firstChild).toBeNull();
+  });
+
+  it('logged without an estimate: dashed track + "no estimate" caption', () => {
+    const issue = makeIssue({ timeSpentSeconds: 7200 });
+    const { container } = render(<WorklogProgressBar issue={issue} subtasks={undefined} />);
+    expect(container.querySelector('[data-no-estimate="true"]')).toBeTruthy();
+    expect(screen.getByText('2h · no estimate')).toBeTruthy();
   });
 
   it('renders a bar for a subtask using only its own numbers', () => {

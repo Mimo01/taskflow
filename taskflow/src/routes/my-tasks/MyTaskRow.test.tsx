@@ -169,15 +169,10 @@ describe('MyTaskRow — responsive container tiers', () => {
   it.each([
     ['empty spacer', undefined],
     ['filled bar', { timeSpentSeconds: 3600, originalEstimateSeconds: 7200 }],
-  ])('time bar (%s) narrows below 720px and hides below 580px', (_name, timetracking) => {
+  ])('time bar (%s) is the shared 96px row width and hides below 580px', (_name, timetracking) => {
     render(<MyTaskRow issue={makeIssue('PROJ-4', 'new', { timetracking })} {...BASE_PROPS} />);
-    // Filled bars carry a tooltip, so the width/hide classes sit on the trigger wrapper.
-    const inner = screen.getByTestId('my-task-time-bar');
-    const bar =
-      inner.parentElement?.contains(inner) && inner.className.includes('w-full')
-        ? inner.parentElement
-        : inner;
-    expect(bar).toHaveClass('w-[144px]', '@max-[720px]:w-24', '@max-[580px]:hidden');
+    const bar = screen.getByTestId('my-task-time-bar');
+    expect(bar).toHaveClass('w-24', '@max-[580px]:hidden');
     expect(bar).not.toHaveAttribute('style');
   });
 

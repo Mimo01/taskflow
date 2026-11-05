@@ -49,28 +49,3 @@ export function timeProgress({
 export function isDoneStatus(statusCategoryKey: unknown): boolean {
   return statusCategoryKey === 'done';
 }
-
-interface TimedFields {
-  fields: {
-    timetracking?: { timeSpentSeconds?: number; originalEstimateSeconds?: number } | null;
-    aggregatetimespent?: number | null;
-    aggregatetimeoriginalestimate?: number | null;
-  };
-}
-
-/**
- * Spent / estimate for a row's time bar. A story (non-subtask) shows Jira's aggregate over the
- * story + ALL its subtasks when present; subtasks (and issues without aggregates) use their own.
- */
-export function timeTotals(
-  issue: TimedFields,
-  isSubtask: boolean,
-): { spent: number; estimate: number | undefined } {
-  const t = issue.fields.timetracking;
-  const aggSpent = isSubtask ? null : issue.fields.aggregatetimespent;
-  const aggEst = isSubtask ? null : issue.fields.aggregatetimeoriginalestimate;
-  return {
-    spent: aggSpent ?? t?.timeSpentSeconds ?? 0,
-    estimate: aggEst != null && aggEst > 0 ? aggEst : t?.originalEstimateSeconds,
-  };
-}

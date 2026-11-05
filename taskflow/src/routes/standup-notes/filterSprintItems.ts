@@ -43,6 +43,8 @@ export interface SprintRow {
   issue: JiraIssue;
   /** My subtasks nested under this parent (empty array for standalone items). */
   subtasks: JiraIssue[];
+  /** EVERY subtask of this parent (any assignee, done included) — the row's time bar covers them all. */
+  timeSubtasks?: JiraIssue[];
 }
 
 export interface FilteredSprintItems {
@@ -56,6 +58,16 @@ export function filterSprintItems(
 ): FilteredSprintItems {
   const isAssignedToMe = (issue: JiraIssue): boolean =>
     issue.fields.assignee?.displayName === jiraUserDisplayName;
+
+  // All subtasks by parent key, before any filtering — the parent row's time bar covers them all.
+  const allSubtasksByParent = new Map<string, JiraIssue[]>();
+  for (const i of issues) {
+    const pk = i.fields.issuetype.subtask ? i.fields.parent?.key : undefined;
+    if (!pk) continue;
+    const list = allSubtasksByParent.get(pk);
+    if (list) list.push(i);
+    else allSubtasksByParent.set(pk, [i]);
+  }
 
   // Drop done items up front — done tasks (parents and subtasks) never show.
   const active = issues.filter((i) => i.fields.status.statusCategory?.key !== 'done');
@@ -88,6 +100,7 @@ export function filterSprintItems(
     return {
       issue: parent,
       subtasks: orderSubtasks(mySubtasksForParent, parent.fields.subtasks),
+      timeSubtasks: allSubtasksByParent.get(parent.key) ?? [],
       // Attach resolved placement key as a non-enumerated symbol so the
       // filter below can read it without widening SprintRow's public shape.
       _placementStatusKey: isAssignedToMe(parent)

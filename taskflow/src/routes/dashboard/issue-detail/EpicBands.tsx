@@ -36,17 +36,22 @@ const HATCH = {
     'repeating-linear-gradient(135deg, transparent 0 3px, rgb(255 255 255 / 0.55) 3px 5px)',
 };
 
+/** To Do logged time: darker than the gray-400 status dot so it reads on the grey track. */
+const TODO_LOGGED = 'bg-slate-500 dark:bg-slate-400';
+
 function segmentClass(seg: TimeSegment): string {
   const over = seg.severe ? 'bg-red-500' : 'bg-amber-500';
   switch (seg.part) {
     case 'logged':
-      return statusCategoryDotClass(seg.cat);
+      return seg.cat === 'new' ? TODO_LOGGED : statusCategoryDotClass(seg.cat);
     case 'loggedOver':
       return over;
     case 'remaining':
-      return cn(statusCategoryDotClass(seg.cat), 'opacity-35');
+      return seg.cat === 'new'
+        ? cn(TODO_LOGGED, 'opacity-40')
+        : cn(statusCategoryDotClass(seg.cat), 'opacity-35');
     case 'remainingOver':
-      return cn(over, 'opacity-35');
+      return cn(over, 'opacity-45');
   }
 }
 
@@ -56,9 +61,12 @@ export function segmentsTotal(segments: TimeSegment[]): number {
 }
 
 /**
- * Time bar (261103-lcd option 1): status groups done → in progress → to do; inside each, solid =
- * logged, faint = remaining; beyond the estimate amber (red past 125%), striped when forecast.
- * A tick marks the original estimate. Width denominator = max(total, estimate) unless `scale`.
+ * Time bar (261103-lcd option 1, tuned in 261105-dsl option A): status groups done → in
+ * progress → to do; inside each, solid = logged, faint = remaining; beyond the estimate amber
+ * (red past 125%), striped when forecast. Width denominator = max(total, estimate) unless
+ * `scale`. The estimate tick shows only when the bar runs past it (under estimate the track
+ * itself ends at the estimate). `dashedWhenNoEstimate`: an unestimated bar is an empty dashed
+ * track, so logged time without an estimate never reads as a full bar.
  */
 export function TimeBar({
   segments,
@@ -66,6 +74,7 @@ export function TimeBar({
   scale,
   className,
   testId,
+  dashedWhenNoEstimate = false,
 }: {
   segments: TimeSegment[];
   estimate: number;
@@ -73,13 +82,27 @@ export function TimeBar({
   scale?: number;
   className?: string;
   testId?: string;
+  dashedWhenNoEstimate?: boolean;
 }) {
+  if (dashedWhenNoEstimate && !(estimate > 0)) {
+    return (
+      <span data-testid={testId} className={cn('relative flex w-full rounded', className)}>
+        <span
+          data-testid="time-track"
+          data-no-estimate="true"
+          className="h-full w-full rounded-[inherit] border border-dashed border-muted-foreground/50"
+        />
+      </span>
+    );
+  }
+  const total = segmentsTotal(segments);
   // This bar's own extent; with a shared `scale` the track stops there, so blank space past
   // it means "someone else has more work", never planned or remaining time.
-  const extent = Math.max(segmentsTotal(segments), estimate);
+  const extent = Math.max(total, estimate);
   const denom = scale ?? extent;
   const pct = (n: number) => (denom > 0 ? Math.min(n / denom, 1) * 100 : 0);
   const inTrack = (n: number) => (extent > 0 ? (n / extent) * 100 : 0);
+  const showTick = estimate > 0 && denom > 0 && total > estimate;
   return (
     // Outer box sizes the bar and hosts the tick; only the inner track clips to the rounding,
     // so a tick at either end is never cut off by the rounded corners.
@@ -101,7 +124,7 @@ export function TimeBar({
           />
         ))}
       </span>
-      {estimate > 0 && denom > 0 ? (
+      {showTick ? (
         <span
           data-testid="time-estimate-tick"
           data-pct={pct(estimate)}

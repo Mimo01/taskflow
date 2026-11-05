@@ -523,7 +523,7 @@ export async function fetchSprintIssues(
   const spFields = [
     ...new Set(['customfield_10016', 'customfield_10028', storyPointsFieldKey]),
   ].join(',');
-  const fields = `summary,status,assignee,issuetype,project,labels,${spFields},${epicLinkFieldKey},parent,subtasks,timetracking,aggregatetimespent,aggregatetimeoriginalestimate,duedate`;
+  const fields = `summary,status,assignee,issuetype,project,labels,${spFields},${epicLinkFieldKey},parent,subtasks,timetracking,duedate`;
   const jql = encodeURIComponent(
     `project = ${projectKey} AND sprint in openSprints()${assigneeClause} AND issuetype not in subtaskIssueTypes() ORDER BY rank ASC`,
   );

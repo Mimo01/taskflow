@@ -1,148 +1,161 @@
+/**
+ * The one per-issue time bar (261105-dsl, sketch option A): My Tasks, standup Today rows,
+ * issue sidebar, Worklog, epic Stories / story Subtasks rows. Draws the epic `TimeBar`
+ * (status-coloured logged, faint remaining, amber/red beyond the estimate, tick only when past
+ * it, dashed when unestimated) from `timeBarModel`, with an optional caption and a hover
+ * tooltip (Estimate / Logged / Remaining / Over or Under by).
+ */
 import { TriangleAlert } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { TooltipBody, TooltipRow } from '@/components/ui/tooltip-body';
-import type { Cat, TimeSegment } from '@/lib/epic-progress';
-import { OVERRUN_RED_RATIO } from '@/lib/time-progress';
+import { type TimeBarModel, timeBarModel } from '@/lib/time-bar';
 import { cn } from '@/lib/utils';
 import { TimeBar } from '@/routes/dashboard/issue-detail/EpicBands';
 import { MARKER_ICON } from '@/routes/dashboard/issue-detail/epic-markers';
+import type { JiraIssue } from '@/services/jira';
 import { formatDuration } from '@/services/jira/duration';
 
-/** Jira status category key -> Cat; undefined for unknown keys. */
-export function toCat(key: string | undefined): Cat | undefined {
-  return key === 'done' || key === 'indeterminate' || key === 'new' ? key : undefined;
-}
-
-/**
- * Segments for a single spent-vs-estimate bar in the epic/story TimeBar style: solid = logged
- * (status colour), faint = time left up to the estimate, amber/red beyond it.
- */
-export function spentSegments(
-  spentSeconds: number,
-  estimateSeconds: number,
-  isDone: boolean,
-  cat?: Cat,
-): TimeSegment[] {
-  const c: Cat = cat ?? (isDone ? 'done' : 'indeterminate');
-  const spent = Math.max(0, spentSeconds);
-  const severe = spent > estimateSeconds * OVERRUN_RED_RATIO;
-  const within = Math.min(spent, estimateSeconds);
-  const out: TimeSegment[] = [];
-  if (within > 0) out.push({ cat: c, part: 'logged', seconds: within, severe });
-  if (spent > estimateSeconds)
-    out.push({ cat: c, part: 'loggedOver', seconds: spent - estimateSeconds, severe });
-  if (!isDone && spent < estimateSeconds)
-    out.push({ cat: c, part: 'remaining', seconds: estimateSeconds - spent, severe });
-  return out;
-}
-
-/** My Tasks default: full-page container breakpoints. Callers in narrower
- *  containers (e.g. the standup Today column) pass their own width rules. */
-export const TIME_BAR_WIDTH_CLASS = 'w-[144px] @max-[720px]:w-24 @max-[580px]:hidden';
+/** Row bars everywhere: 96px, hidden on very narrow My Tasks containers. */
+export const TIME_BAR_WIDTH_CLASS = 'w-24 @max-[580px]:hidden';
 
 interface StackedTimeBarProps {
-  spentSeconds: number;
-  totalSeconds: number | undefined;
-  /** Width + responsive-hide classes; shared by the spacer and filled branches. */
+  /** Issues the bar covers, from `timeBarIssues` (one issue, or a story + its subtasks). */
+  issues: readonly JiraIssue[];
+  /** Width + responsive-hide classes (row bars); panes pass `w-full`. */
   widthClassName?: string;
+  /** Bar height: rows h-1.5, detail panes h-2. */
+  barClassName?: string;
   testId?: string;
-  /** Render an empty track + "0m" caption instead of a blank spacer when there
-   *  is no time data, so every row shows a bar (standup Today rows). */
+  /** Caption under the bar, beside it (Worklog), or none (epic rows). */
+  caption?: 'below' | 'right' | 'none';
+  /** Render a dashed track + "No estimate" instead of a blank spacer when there is no time data. */
   alwaysShowTrack?: boolean;
-  /** Row's own status is done: fills green at/under estimate instead of amber. */
-  isDone?: boolean;
-  /** Status category, so the solid fill matches the status colour (defaults from isDone). */
-  statusCategoryKey?: string;
-  /** Hover tooltip with Estimate / Logged / Remaining / Over-Under (issue sidebar). */
-  withTooltip?: boolean;
 }
 
-/**
- * Progress track with a "spent / estimate" caption underneath. Renders an
- * equal-width empty spacer when there is no time data so rows stay aligned.
- */
-export function StackedTimeBar({
-  spentSeconds,
-  totalSeconds,
-  widthClassName = TIME_BAR_WIDTH_CLASS,
-  testId = 'my-task-time-bar',
-  alwaysShowTrack = false,
-  isDone = false,
-  statusCategoryKey,
-  withTooltip = false,
-}: StackedTimeBarProps) {
-  const hasEst = typeof totalSeconds === 'number' && totalSeconds > 0;
-  const hasSpent = spentSeconds > 0;
+const OVER_TEXT = {
+  none: undefined,
+  amber: 'font-medium text-amber-700 dark:text-amber-400',
+  red: 'font-medium text-red-600 dark:text-red-400',
+} as const;
 
-  if (!hasEst && !hasSpent && !alwaysShowTrack) {
+function Caption({ m, className }: { m: TimeBarModel; className?: string }) {
+  return (
+    <span
+      data-testid="time-bar-caption"
+      className={cn(
+        'text-xs text-muted-foreground tabular-nums whitespace-nowrap truncate',
+        className,
+      )}
+    >
+      {m.estimate > 0 && m.loggedOverrun !== 'none' ? (
+        // Over: only the logged figure is coloured (amber, red past 125%).
+        <>
+          <span className={OVER_TEXT[m.loggedOverrun]} data-overrun={m.loggedOverrun}>
+            {formatDuration(m.logged)}
+          </span>
+          {` / ${formatDuration(m.estimate)}`}
+        </>
+      ) : m.estimate > 0 ? (
+        `${formatDuration(m.logged)} / ${formatDuration(m.estimate)}`
+      ) : m.logged > 0 ? (
+        `${formatDuration(m.logged)} · no estimate`
+      ) : (
+        'No estimate'
+      )}
+    </span>
+  );
+}
+
+function Breakdown({ m }: { m: TimeBarModel }) {
+  return (
+    <TooltipBody note={m.estimate > 0 ? undefined : 'No estimate'}>
+      {m.estimate > 0 ? (
+        <TooltipRow
+          icon={<MARKER_ICON.estimate className="size-3" />}
+          label="Estimate"
+          value={formatDuration(m.estimate)}
+        />
+      ) : null}
+      <TooltipRow
+        icon={<MARKER_ICON.logged className="size-3" />}
+        label="Logged"
+        value={formatDuration(m.logged)}
+      />
+      {m.estimate > 0 || m.remaining > 0 ? (
+        <TooltipRow
+          icon={<MARKER_ICON.remaining className="size-3" />}
+          label="Remaining"
+          value={formatDuration(m.remaining)}
+        />
+      ) : null}
+      {m.over > 0 ? (
+        <TooltipRow
+          icon={<TriangleAlert className="size-3" />}
+          label="Over by"
+          value={formatDuration(m.over)}
+        />
+      ) : m.under > 0 ? (
+        <TooltipRow
+          icon={<MARKER_ICON.estimate className="size-3" />}
+          label="Under by"
+          value={
+            <span className="text-green-700 dark:text-green-400">{formatDuration(m.under)}</span>
+          }
+        />
+      ) : null}
+    </TooltipBody>
+  );
+}
+
+export function StackedTimeBar({
+  issues,
+  widthClassName = TIME_BAR_WIDTH_CLASS,
+  barClassName = 'h-1.5',
+  testId = 'my-task-time-bar',
+  caption = 'below',
+  alwaysShowTrack = false,
+}: StackedTimeBarProps) {
+  const m = timeBarModel(issues);
+  const empty = m.estimate <= 0 && m.logged <= 0 && m.remaining <= 0;
+
+  if (empty && !alwaysShowTrack) {
     return <div className={cn('shrink-0', widthClassName)} data-testid={testId} aria-hidden />;
   }
 
-  const est = hasEst ? (totalSeconds as number) : 0;
+  const label =
+    m.estimate > 0
+      ? `Logged ${formatDuration(m.logged)} of ${formatDuration(m.estimate)} estimate, ${formatDuration(m.remaining)} remaining`
+      : `Logged ${formatDuration(m.logged)}, no estimate`;
 
-  const caption = hasEst
-    ? `${formatDuration(spentSeconds)} / ${formatDuration(est)}`
-    : formatDuration(spentSeconds);
-
-  const bar = (
-    <div
-      className={cn('flex flex-col gap-0.5', withTooltip ? 'w-full' : ['shrink-0', widthClassName])}
-      data-testid={testId}
-    >
-      <TimeBar
-        segments={hasEst ? spentSegments(spentSeconds, est, isDone, toCat(statusCategoryKey)) : []}
-        estimate={est}
-        className="h-1.5 rounded-full"
-      />
-      <span className="text-xs text-muted-foreground tabular-nums whitespace-nowrap truncate">
-        {caption}
-      </span>
-    </div>
-  );
-  if (!withTooltip || !hasEst) return bar;
-
-  const remaining = isDone ? 0 : Math.max(est - spentSeconds, 0);
-  const over = Math.max(spentSeconds - est, 0);
-  const under = isDone ? Math.max(est - spentSeconds, 0) : 0;
   return (
     <Tooltip>
-      <TooltipTrigger delay={0} render={<div className={cn('block shrink-0', widthClassName)} />}>
-        {bar}
+      <TooltipTrigger
+        delay={0}
+        // A span: epic Stories / Subtasks rows render the bar inside a <button>.
+        render={<span />}
+        data-testid={testId}
+        role="img"
+        aria-label={label}
+        data-overrun={m.over > 0 ? 'true' : undefined}
+        data-empty={empty ? 'true' : undefined}
+        className={cn(
+          'flex shrink-0 min-w-0',
+          caption === 'right' ? 'flex-row items-center gap-2' : 'flex-col gap-0.5',
+          widthClassName,
+        )}
+      >
+        <TimeBar
+          segments={m.segments}
+          estimate={m.estimate}
+          className={cn('rounded-full', barClassName, caption === 'right' && 'flex-1')}
+          dashedWhenNoEstimate
+        />
+        {caption === 'none' ? null : (
+          <Caption m={m} className={caption === 'right' ? 'flex-none' : undefined} />
+        )}
       </TooltipTrigger>
       <TooltipContent>
-        <TooltipBody>
-          <TooltipRow
-            icon={<MARKER_ICON.estimate className="size-3" />}
-            label="Estimate"
-            value={formatDuration(est)}
-          />
-          <TooltipRow
-            icon={<MARKER_ICON.logged className="size-3" />}
-            label="Logged"
-            value={formatDuration(spentSeconds)}
-          />
-          <TooltipRow
-            icon={<MARKER_ICON.remaining className="size-3" />}
-            label="Remaining"
-            value={formatDuration(remaining)}
-          />
-          {over > 0 ? (
-            <TooltipRow
-              icon={<TriangleAlert className="size-3" />}
-              label="Over by"
-              value={formatDuration(over)}
-            />
-          ) : null}
-          {under > 0 ? (
-            <TooltipRow
-              icon={<MARKER_ICON.estimate className="size-3" />}
-              label="Under by"
-              value={
-                <span className="text-green-700 dark:text-green-400">{formatDuration(under)}</span>
-              }
-            />
-          ) : null}
-        </TooltipBody>
+        <Breakdown m={m} />
       </TooltipContent>
     </Tooltip>
   );

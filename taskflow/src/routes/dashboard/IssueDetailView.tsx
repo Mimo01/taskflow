@@ -652,6 +652,7 @@ export function IssueDetailView({
       onOpenIssue={onOpenIssue}
       omitLinkedIssues={layout === 'single-column'}
       omitMergeRequests={layout === 'single-column'}
+      timeSubtasks={subtaskEnrichmentQuery.data}
     />
   );
 
