@@ -85,11 +85,31 @@ export function GraphSlot({
 }
 
 /** Centre of a release donut: total over a muted caption; shared so the pair stays identical. */
-export function DonutCentre({ total, caption }: { total: number; caption: string }) {
+export function DonutCentre({
+  total,
+  caption,
+  large = false,
+}: {
+  total: number;
+  caption: string;
+  /** Larger type for a grown ring (band fill). */
+  large?: boolean;
+}) {
   return (
     <>
-      <span className="text-lg font-semibold leading-6 tabular-nums">{total}</span>
-      <span className="text-xs leading-4 text-muted-foreground">{caption}</span>
+      <span
+        className={cn(
+          'font-semibold tabular-nums',
+          large ? 'text-2xl leading-8' : 'text-lg leading-6',
+        )}
+      >
+        {total}
+      </span>
+      <span
+        className={cn('text-muted-foreground', large ? 'text-sm leading-5' : 'text-xs leading-4')}
+      >
+        {caption}
+      </span>
     </>
   );
 }

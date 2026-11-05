@@ -33,40 +33,12 @@ describe('ReleaseMrDonut', () => {
     expect(screen.queryByText(/^merged$/i)).toBeNull();
   });
 
-  it('shows task coverage and MRs not on a task under the ring', () => {
-    render(
-      <ReleaseMrDonut
-        counts={counts}
-        state="ready"
-        coverage={{ tasksWithMr: 17, tasks: 21, uncoveredMrs: 3 }}
-      />,
-    );
-    expect(screen.getByTestId('release-mr-coverage')).toHaveTextContent(
-      '17 of 21 tasks have an MR',
-    );
-    expect(screen.getByTestId('release-mr-uncovered')).toHaveTextContent('3 MRs not on a task');
-  });
-
-  it('singular wording, no warning line when every MR is on a task', () => {
-    render(
-      <ReleaseMrDonut
-        counts={counts}
-        state="ready"
-        coverage={{ tasksWithMr: 1, tasks: 1, uncoveredMrs: 0 }}
-      />,
-    );
-    expect(screen.getByTestId('release-mr-coverage')).toHaveTextContent('1 of 1 task has an MR');
-    expect(screen.queryByTestId('release-mr-uncovered')).toBeNull();
-  });
-
-  it('singular MR warning', () => {
-    render(
-      <ReleaseMrDonut
-        counts={counts}
-        state="ready"
-        coverage={{ tasksWithMr: 0, tasks: 2, uncoveredMrs: 1 }}
-      />,
-    );
-    expect(screen.getByTestId('release-mr-uncovered')).toHaveTextContent('1 MR not on a task');
+  it('fill: the ring sits in a stretching box, at least the compact size', () => {
+    render(<ReleaseMrDonut counts={counts} state="ready" compact fill />);
+    // jsdom has no real layout, so only the floor and the cap are asserted.
+    const size = Number.parseFloat(screen.getByTestId('release-mr-donut').style.width);
+    expect(size).toBeGreaterThanOrEqual(120);
+    expect(size).toBeLessThanOrEqual(160);
+    expect(screen.queryByText(/tasks? ha(s|ve) an MR/)).toBeNull();
   });
 });

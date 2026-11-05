@@ -345,19 +345,12 @@ export default function ReleaseDetailPage() {
   );
   // Band: the MR slot and the burnup fill the row the stacked lists set, so the
   // donut centres in it and the plot uses the height instead of leaving a gap.
-  // Under the ring: release tasks with a live MR (closed ones never ship) and live
-  // MRs no release task covers (the "Not covered by tasks" callout's rows).
-  const mrCoverage = {
-    tasksWithMr: primaryRows.filter((r) => r.mrs.some((d) => d.mr.state !== 'closed')).length,
-    tasks: primaryRows.length,
-    uncoveredMrs: secondaryRows.length,
-  };
   const mrEl = (
     <ReleaseMrDonut
       counts={mrDonutCounts}
       state={donutState}
-      coverage={mrCoverage}
       compact
+      fill={band}
       className={band ? 'flex-1' : undefined}
     />
   );
