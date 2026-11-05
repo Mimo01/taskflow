@@ -10,14 +10,11 @@ import {
   Plus,
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { StackedTimeBar } from '@/components/jira/StackedTimeBar';
 import { Button } from '@/components/ui/button';
-import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { ErrorState } from '@/components/ui/error-state';
 import { LinkContextMenu } from '@/components/ui/link-context-menu';
 import { useMentionUserMap } from '@/hooks/useMentionUserMap';
 import { openExternal } from '@/lib/openExternal';
-import { statusPillClass } from '@/lib/statusStyles';
 import { timeBarIssues } from '@/lib/time-bar';
 import { cn } from '@/lib/utils';
 import type {
@@ -36,6 +33,7 @@ import type { EditInitialValues } from './CreateEditIssueModal';
 import { AttachmentsSection } from './issue-detail/AttachmentsSection';
 import { EpicProgressSection } from './issue-detail/EpicProgressSection';
 import { LogWorkPopover } from './issue-detail/LogWorkPopover';
+import { RelatedIssueRow } from './issue-detail/RelatedIssueRow';
 import { SubtasksSkeleton } from './issue-detail/SubtasksSkeleton';
 import type { AttachmentMap } from './WikiRenderer';
 import { WikiRenderer } from './WikiRenderer';
@@ -102,19 +100,6 @@ type SubtaskDisplayItem = {
   };
 };
 
-/** Epic Stories rows and story Subtasks rows: the shared time bar, no caption (tooltip has it). */
-function RowTimeBar({ issues }: { issues: JiraIssue[] }) {
-  return (
-    <StackedTimeBar
-      issues={issues}
-      widthClassName="w-24"
-      caption="none"
-      testId="story-time-bar"
-      alwaysShowTrack
-    />
-  );
-}
-
 function subtaskListContent({
   enrichedSubtasks,
   subtasks,
@@ -142,31 +127,15 @@ function subtaskListContent({
           const statusCat = sub.fields.status.statusCategory as { key?: string } | undefined;
           return (
             <li key={sub.id}>
-              <button
-                type="button"
+              <RelatedIssueRow
+                issueKey={sub.key}
+                summary={sub.fields.summary}
+                assignee={sub.fields.assignee}
+                statusName={sub.fields.status.name}
+                statusCategoryKey={statusCat?.key}
+                timeBarIssues={timeBarIssues(sub, null, { isSubtask: true })}
                 onClick={() => onOpenIssue?.(sub.key)}
-                className="w-full flex items-center gap-2 px-2 py-1.5 density-compact:py-1 density-comfortable:py-2.5 rounded hover:bg-accent text-sm text-left cursor-pointer"
-              >
-                <span className="font-mono text-xs text-muted-foreground shrink-0">{sub.key}</span>
-                <span className="flex-1 truncate">{sub.fields.summary}</span>
-                {sub.fields.assignee && (
-                  <div
-                    className="flex items-center gap-1.5 shrink-0"
-                    title={sub.fields.assignee.displayName}
-                  >
-                    <CachedAvatar
-                      url={sub.fields.assignee.avatarUrls?.['48x48']}
-                      name={sub.fields.assignee.displayName}
-                      size={20}
-                    />
-                    <span className="text-xs text-muted-foreground">
-                      {sub.fields.assignee.displayName}
-                    </span>
-                  </div>
-                )}
-                <RowTimeBar issues={timeBarIssues(sub, null, { isSubtask: true })} />
-                <span className={statusPillClass(statusCat?.key)}>{sub.fields.status.name}</span>
-              </button>
+              />
             </li>
           );
         })}
@@ -336,35 +305,15 @@ export function IssueDetailContent({
               {epicStories.map((story) => {
                 return (
                   <li key={story.key}>
-                    <button
-                      type="button"
+                    <RelatedIssueRow
+                      issueKey={story.key}
+                      summary={story.fields.summary}
+                      assignee={story.fields.assignee}
+                      statusName={story.fields.status.name}
+                      statusCategoryKey={story.fields.status.statusCategory?.key}
+                      timeBarIssues={timeBarIssues(story)}
                       onClick={() => onOpenIssue?.(story.key)}
-                      className="w-full flex items-center gap-2 px-2 py-1.5 density-compact:py-1 density-comfortable:py-2.5 rounded hover:bg-accent text-sm text-left cursor-pointer"
-                    >
-                      <span className="font-mono text-xs text-muted-foreground shrink-0">
-                        {story.key}
-                      </span>
-                      <span className="flex-1 truncate">{story.fields.summary}</span>
-                      {story.fields.assignee && (
-                        <div
-                          className="flex items-center gap-1.5 shrink-0"
-                          title={story.fields.assignee.displayName}
-                        >
-                          <CachedAvatar
-                            url={story.fields.assignee.avatarUrls?.['48x48']}
-                            name={story.fields.assignee.displayName}
-                            size={20}
-                          />
-                          <span className="text-xs text-muted-foreground">
-                            {story.fields.assignee.displayName}
-                          </span>
-                        </div>
-                      )}
-                      <RowTimeBar issues={timeBarIssues(story)} />
-                      <span className={statusPillClass(story.fields.status.statusCategory?.key)}>
-                        {story.fields.status.name}
-                      </span>
-                    </button>
+                    />
                   </li>
                 );
               })}
@@ -427,33 +376,16 @@ export function IssueDetailContent({
       {isSubtask && parent && (
         <section>
           <h3 className="text-sm font-medium text-muted-foreground mb-2">Parent</h3>
-          <button
-            type="button"
-            aria-label={`Open parent issue ${parent.key}`}
+          <RelatedIssueRow
+            issueKey={parent.key}
+            summary={parent.fields.summary}
+            assignee={parentAssignee}
+            statusName={parentStatus?.name}
+            statusCategoryKey={parentStatus?.statusCategory?.key}
+            ariaLabel={`Open parent issue ${parent.key}`}
+            buttonClassName="py-2 density-compact:py-1 density-comfortable:py-3"
             onClick={() => onOpenIssue?.(parent.key)}
-            className="w-full flex items-center gap-2 px-2 py-2 density-compact:py-1 density-comfortable:py-3 rounded hover:bg-accent text-sm text-left cursor-pointer"
-          >
-            <span className="font-mono text-xs text-muted-foreground shrink-0">{parent.key}</span>
-            <span className="flex-1 truncate">{parent.fields.summary}</span>
-            {parentAssignee && (
-              <div
-                className="flex items-center gap-1.5 shrink-0"
-                title={parentAssignee.displayName}
-              >
-                <CachedAvatar
-                  url={parentAssignee.avatarUrls?.['48x48']}
-                  name={parentAssignee.displayName}
-                  size={20}
-                />
-                <span className="text-xs text-muted-foreground">{parentAssignee.displayName}</span>
-              </div>
-            )}
-            {parentStatus?.name && (
-              <span className={statusPillClass(parentStatus.statusCategory?.key)}>
-                {parentStatus.name}
-              </span>
-            )}
-          </button>
+          />
         </section>
       )}
 
