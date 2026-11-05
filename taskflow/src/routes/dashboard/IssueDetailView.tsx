@@ -48,7 +48,6 @@ import { CommentsSkeleton } from './issue-detail/CommentsSkeleton';
 import { LinkedIssuesSection } from './issue-detail/LinkedIssuesSection';
 import { MergeRequestsSection } from './issue-detail/MergeRequestsSection';
 import { useLinkedMRs } from './issue-detail/useLinkedMRs';
-import { WorklogProgressBar } from './issue-detail/WorklogProgressBar';
 import type { AttachmentMap, UserMap } from './WikiRenderer';
 import { WikiRenderer } from './WikiRenderer';
 
@@ -581,10 +580,6 @@ export function IssueDetailView({
           />
         </div>
       )}
-      {timelineFilter === 'worklog' && issue && (
-        <WorklogProgressBar issue={issue} subtasks={subtaskEnrichmentQuery.data} />
-      )}
-
       {showCommentsSkeleton && !commentsQuery.isError ? (
         <CommentsSkeleton />
       ) : (
