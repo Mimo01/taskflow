@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-08-13)
 Phase: 94
 Plan: Not started
 Status: Milestone complete
-Last activity: 2026-11-05 - Completed quick task 261105-jlv: issue detail Worklog tab time bar removed
+Last activity: 2026-11-05 - Completed quick task 261105-jq0: asset preview zoom controls (awaiting hardware UAT)
 
 ## Performance Metrics
 
@@ -133,6 +133,7 @@ None yet.
 |---|-------------|------|--------|--------|-----------|
 | 261105-jhg | Epic detail: By person rows ordered by bar length on Count/SP like Time | 2026-11-05 | e350d471 | Approved | [261105-jhg-epic-detail-order-people-graphs-on-all-t](./quick/261105-jhg-epic-detail-order-people-graphs-on-all-t/) |
 | 261105-jlv | Issue detail: removed redundant time bar from Worklog tab (sidebar keeps it) | 2026-11-05 | f8da1c6d | Approved | [261105-jlv-issue-detail-worklog-tab-remove-progress](./quick/261105-jlv-issue-detail-worklog-tab-remove-progress/) |
+| 261105-jq0 | Asset preview: shared zoomable ImageViewer (zoom/pan/pinch/rotate/fit/1:1/keys) for attachments + inline images, text/code font zoom, save-only Download, safe-type Open externally | 2026-11-05 | f1e38c55 | Needs Review | [261105-jq0-asset-preview-zoom-controls](./quick/261105-jq0-asset-preview-zoom-controls/) |
 | 261102-pk9 | Issue detail: exact date+time on hover for Created/Updated, comment time/(edited), worklog + changelog (shared exactDateTime) | 2026-11-02 | 6ef21fb1 | Verified (UAT approved) | [261102-pk9-date-hover-exact-time](./quick/261102-pk9-date-hover-exact-time/) |
 | 261102-h1i | Release detail Issues table: search + Status/Type/Assignee filters + sortable Key/Summary/Assignee/Status (shared FilterPopover/SortableHeader extracted from AIO Defects) | 2026-11-02 | 702b512a | Verified (UAT approved) | [261102-h1i-release-detail-table-filter-sort](./quick/261102-h1i-release-detail-table-filter-sort/) |
 | 261102-gyd | AIO cycle detail: stop assignee names wrapping (not-sr-only undid truncate) + wider assignee col ≥1024px | 2026-11-02 | 8a10caef | Verified (UAT approved) | [261102-gyd-allocate-more-space-for-assignee-in-aio-](./quick/261102-gyd-allocate-more-space-for-assignee-in-aio-/) |
