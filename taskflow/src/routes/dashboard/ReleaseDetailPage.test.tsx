@@ -163,9 +163,10 @@ describe('ReleaseDetailPage', () => {
       'release-detail-header',
       'release-done-bar',
       'release-graph-burnup',
-      'release-graph-mrs',
-      'release-graph-assignees',
+      'release-graph-status',
       'release-graph-types',
+      'release-graph-assignees',
+      'release-graph-mrs',
       'task-column-header',
     ];
     const els = ids.map((id) => screen.getByTestId(id));
@@ -452,11 +453,11 @@ describe('ReleaseDetailPage', () => {
       } as unknown as typeof ResizeObserver;
     global.ResizeObserver = withWidth(1500);
     const { unmount } = renderPage();
-    expect(screen.getByTestId('release-graph-grid').className).toContain('items-stretch');
+    expect(screen.getByTestId('release-graph-grid').className).toContain('items-start');
     unmount();
     global.ResizeObserver = withWidth(900);
     renderPage();
-    expect(screen.getByTestId('release-graph-grid').className).not.toContain('items-stretch');
+    expect(screen.getByTestId('release-graph-grid').className).not.toContain('items-start');
     global.ResizeObserver = RealRO;
   });
 
@@ -501,7 +502,7 @@ describe('ReleaseDetailPage', () => {
       );
       await waitFor(() => expect(firstGridClass).not.toBeNull());
       await new Promise((r) => setTimeout(r, 20));
-      expect(firstGridClass).toContain('items-stretch');
+      expect(firstGridClass).toContain('items-start');
     } finally {
       mo.disconnect();
       root.unmount();
@@ -638,12 +639,12 @@ describe('ReleaseDetailPage', () => {
         global.ResizeObserver = withWidth(900);
         const { unmount } = renderPage();
         const grid = screen.getByTestId('release-graph-grid').className;
-        expect(grid).toContain('@max-[640px]/page:grid-cols-[auto_minmax(0,1fr)]');
+        expect(grid).toContain('@max-[640px]/page:grid-cols-[minmax(0,1fr)_auto]');
         expect(grid).toContain('@max-[440px]/page:grid-cols-1');
         unmount();
         global.ResizeObserver = withWidth(1500);
         renderPage();
-        expect(screen.getByTestId('release-graph-grid').className).toContain('items-stretch');
+        expect(screen.getByTestId('release-graph-grid').className).toContain('items-start');
       } finally {
         global.ResizeObserver = RealRO;
       }

@@ -14,6 +14,27 @@ import { MoreRowsPopover, ROW_TOOLTIP_SIDE, rowToggleProps } from './rowToggle';
 const COMPACT_ROW_HEIGHT = 24;
 /** Default row cap (band); the rest go to "+K more". Narrower layouts pass a lower `maxRows`. */
 const MAX_ROWS = 5;
+/** Slot heading (20px line + 8px gap) and the "+K more" line, for fitting rows to a height. */
+const SLOT_HEADER_HEIGHT = 28;
+const MORE_LINE_HEIGHT = 16;
+
+/**
+ * Rows to show so the list fits `fitHeight` (the tallest neighbour in the graph
+ * row), never fewer than `minRows`; the "+K more" line is reserved only when
+ * rows overflow.
+ */
+export function fitAssigneeRows(
+  total: number,
+  fitHeight: number | undefined,
+  rowHeight: number,
+  minRows: number,
+): number {
+  if (!fitHeight) return minRows;
+  const all = Math.floor((fitHeight - SLOT_HEADER_HEIGHT) / rowHeight);
+  if (total <= all) return Math.max(minRows, total);
+  const withMore = Math.floor((fitHeight - SLOT_HEADER_HEIGHT - MORE_LINE_HEIGHT) / rowHeight);
+  return Math.max(minRows, withMore);
+}
 const ROW_GRID =
   'grid grid-cols-[22px_minmax(70px,1fr)_minmax(60px,1.2fr)_40px] items-center gap-2';
 const ROW_GRID_COMPACT =
@@ -26,6 +47,7 @@ export function ReleaseAssigneeRows({
   showStoryPoints,
   compact = false,
   maxRows = MAX_ROWS,
+  fitHeight,
   className,
   activeValues,
   onToggle,
@@ -35,15 +57,17 @@ export function ReleaseAssigneeRows({
   showStoryPoints: boolean;
   /** Band mode: 24px rows and a 20px avatar. */
   compact?: boolean;
-  /** Rows shown before "+K more". */
+  /** Rows shown before "+K more" (the minimum when `fitHeight` is given). */
   maxRows?: number;
+  /** Height of the tallest neighbouring graph: show as many rows as fit it. */
+  fitHeight?: number;
   className?: string;
   activeValues?: Set<string>;
   /** Toggle the table filter values this row stands for (261102-vuw). */
   onToggle?: (values: string[]) => void;
 }) {
   const rowHeight = compact ? COMPACT_ROW_HEIGHT : ASSIGNEE_ROW_HEIGHT;
-  const shown = rows.slice(0, maxRows);
+  const shown = rows.slice(0, fitAssigneeRows(rows.length, fitHeight, rowHeight, maxRows));
   const hidden = rows.slice(shown.length);
   return (
     <GraphSlot

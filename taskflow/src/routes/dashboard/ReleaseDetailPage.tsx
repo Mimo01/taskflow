@@ -343,13 +343,14 @@ export default function ReleaseDetailPage() {
     />
   );
   const mrEl = <ReleaseMrDonut counts={mrDonutCounts} state={donutState} compact />;
-  const assigneeEl = (
+  const assigneeEl = (fitHeight: number | undefined) => (
     <ReleaseAssigneeRows
       rows={assigneeRows}
       state={issueGraphState}
       showStoryPoints={hasStoryPoints}
       compact
       maxRows={band ? 5 : 4}
+      fitHeight={fitHeight}
       activeValues={issueFilters.assignees}
       onToggle={(v) => issueFilters.toggle('assignees', v)}
     />

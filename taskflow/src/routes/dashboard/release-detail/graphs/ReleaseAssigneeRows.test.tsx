@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { UNASSIGNED_FILTER } from '@/lib/assignee-filter';
 import type { ReleaseAssigneeRow } from '../releaseBuckets';
 import { GRAPH_ERROR_TEXT } from './GraphSlot';
-import { ReleaseAssigneeRows } from './ReleaseAssigneeRows';
+import { fitAssigneeRows, ReleaseAssigneeRows } from './ReleaseAssigneeRows';
 
 vi.mock('@/components/ui/cached-avatar', () => ({
   CachedAvatar: ({ name, size }: { name: string; size: number }) => (
@@ -186,5 +186,23 @@ describe('ReleaseAssigneeRows', () => {
       await userEvent.click(await screen.findByRole('button', { name: /Person 6/ }));
       expect(onToggle).toHaveBeenLastCalledWith([UNASSIGNED_FILTER]);
     });
+  });
+});
+
+describe('fitAssigneeRows', () => {
+  it('keeps the minimum until a fit height is known', () => {
+    expect(fitAssigneeRows(12, undefined, 24, 5)).toBe(5);
+  });
+
+  it('fills the neighbour height, reserving the +K more line only on overflow', () => {
+    // 212px: 28 heading, (212-28-16)/24 = 7 rows + "+5 more"
+    expect(fitAssigneeRows(12, 212, 24, 5)).toBe(7);
+    // everyone fits without the more line: (212-28)/24 = 7.6 -> all 7
+    expect(fitAssigneeRows(7, 212, 24, 5)).toBe(7);
+  });
+
+  it('never drops below the minimum', () => {
+    expect(fitAssigneeRows(12, 148, 24, 5)).toBe(5);
+    expect(fitAssigneeRows(3, 400, 24, 4)).toBe(4);
   });
 });

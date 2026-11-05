@@ -10,7 +10,7 @@ function renderGrid(band: boolean) {
       status={<div data-testid="g-status" />}
       mrs={<div data-testid="g-mrs" />}
       type={<div data-testid="g-type" />}
-      assignee={<div data-testid="g-assignee" />}
+      assignee={(h) => <div data-testid="g-assignee" data-fit={h ?? 'none'} />}
     />,
   );
 }
@@ -19,13 +19,13 @@ const follows = (a: HTMLElement, b: HTMLElement) =>
   !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
 
 describe('ReleaseGraphGrid', () => {
-  it('band: burnup, MRs, status over type, assignee in order', () => {
+  it('band: burnup, status over type, assignee, MRs last', () => {
     renderGrid(true);
-    const ids = ['g-burnup', 'g-mrs', 'g-status', 'g-type', 'g-assignee'].map((i) =>
+    const ids = ['g-burnup', 'g-status', 'g-type', 'g-assignee', 'g-mrs'].map((i) =>
       screen.getByTestId(i),
     );
     for (let i = 0; i < ids.length - 1; i++) expect(follows(ids[i], ids[i + 1])).toBe(true);
-    expect(screen.getByTestId('release-graph-grid').className).toContain('items-stretch');
+    expect(screen.getByTestId('release-graph-grid').className).toContain('items-start');
   });
 
   it('status and type share one stacked cell in every layout; MRs stay outside it', () => {
@@ -40,20 +40,19 @@ describe('ReleaseGraphGrid', () => {
     }
   });
 
-  it('non-band: burnup | MRs then assignee | lists; MRs beside lists under 640, one column under 440', () => {
+  it('non-band: burnup | lists then assignee | MRs; one column under 440', () => {
     renderGrid(false);
     const grid = screen.getByTestId('release-graph-grid');
-    expect(grid.className).not.toContain('items-stretch');
-    expect(grid.className).toContain('@max-[640px]/page:grid-cols-[auto_minmax(0,1fr)]');
+    expect(grid.className).toContain('@max-[640px]/page:grid-cols-[minmax(0,1fr)_auto]');
     expect(grid.className).toContain('@max-[440px]/page:grid-cols-1');
-    expect(follows(screen.getByTestId('g-burnup'), screen.getByTestId('g-mrs'))).toBe(true);
-    expect(follows(screen.getByTestId('g-mrs'), screen.getByTestId('g-assignee'))).toBe(true);
-    expect(follows(screen.getByTestId('g-assignee'), screen.getByTestId('g-status'))).toBe(true);
-    expect(screen.getByTestId('release-graph-lists').parentElement?.className).toContain(
-      '@max-[640px]/page:order-3',
+    const order = ['g-burnup', 'g-status', 'g-type', 'g-assignee', 'g-mrs'].map((i) =>
+      screen.getByTestId(i),
     );
-    expect(screen.getByTestId('g-assignee').parentElement?.className).toContain(
-      '@max-[640px]/page:order-4',
-    );
+    for (let i = 0; i < order.length - 1; i++) expect(follows(order[i], order[i + 1])).toBe(true);
+  });
+
+  it('assignee gets no fit height until the neighbours are measured (jsdom has no layout)', () => {
+    renderGrid(true);
+    expect(screen.getByTestId('g-assignee')).toHaveAttribute('data-fit', 'none');
   });
 });
