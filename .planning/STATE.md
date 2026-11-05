@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-08-13)
 Phase: 94
 Plan: Not started
 Status: Milestone complete
-Last activity: 2026-11-03 - Completed quick task 261103-nxu: unify page header sizes
+Last activity: 2026-11-05 - Completed quick task 261105-fav: standup today shows all my subtasks under shown stories
 
 ## Performance Metrics
 
@@ -254,6 +254,7 @@ Acknowledged and deferred at v1.14 milestone close (2026-08-13) — 111 open art
 | 261103-lcd | Epic detail Time mode: Completed % = done work (closed stories + time logged on open ones) / (logged + remaining); Remaining = Jira remaining estimate (aggregatetimeestimate, fetched but unused before), fallback estimate − logged; Tempo-only stories no longer "unestimated"; burnup final gap == Remaining tile; Stories row tooltip shares remainingOf. Count/SP unchanged | 2026-11-03 | 060758a3, 3a5e5b47, 9cd19387, 715fb2d4, c70a2b91, 10f4ff73, 64ddf774, f37c765a, b2f5a934, fb5a17e9 | UAT round 3: status-grouped TimeBar (solid logged / faint remaining, amber/red overspend, striped forecast, estimate tick) on hero, persons, Stories rows; round 4: person chips logged·left·estimate·over + per-status time tooltips; round 5: under-budget (− green) + Time By person attributes logged to worklog author (non-assignee loggers listed); wider chips, unclipped estimate tick, person track ends at own work — Verified (UAT approved) | [261103-lcd-epic-detail-time-numbers-consider-remain](./quick/261103-lcd-epic-detail-time-numbers-consider-remain/) |
 | 261103-nxu | Unify page header sizes: headers with a subtitle line text-3xl (My Tasks, Standup, Releases, Debug Logs, Dev Tools); headers without one text-2xl (Backlog, MRs (icon dropped), Sprint Board, Epics, Worklogs, Test cycles); no Settings header; subpages text-2xl (Release/AIO cycle/AIO run/MR/Issue page; issue peek sheet stays text-xl). Exceptions: home hero, onboarding, error/update screens | 2026-11-03 | ff901d68, 1cebf9dc, 9c020a5a | Verified (UAT approved) | [261103-nxu-unify-page-header-sizes](./quick/261103-nxu-unify-page-header-sizes/) |
 | 261105-dsl | One readable time bar everywhere (sketch option A): My Tasks, standup, sidebar, Worklog, epic rows | 2026-11-05 | 3a1e96d3 | Verified (UAT approved) | [261105-dsl](./quick/261105-dsl-apply-epic-style-time-progress-bar-to-my/) |
+| 261105-fav | Standup Today: shown stories nest ALL my subtasks (done included, Jira order); story selection + bucket placement unchanged | 2026-11-05 | fed947d1 | Pending UAT | [261105-fav-standup-today-show-all-my-subtasks-under](./quick/261105-fav-standup-today-show-all-my-subtasks-under/) |
 
 ## Session Continuity
 
