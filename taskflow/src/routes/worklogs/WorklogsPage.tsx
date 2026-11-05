@@ -39,6 +39,7 @@ import {
 import { DatePicker } from '@/components/ui/date-picker';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
+import { PageHeader } from '@/components/ui/page-header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { apiFetch } from '@/lib/apiFetch';
 import { orderSubtaskKeys } from '@/lib/subtask-order';
@@ -697,9 +698,7 @@ export default function WorklogsPage() {
   return (
     <div className="flex flex-col h-full">
       {/* Page header */}
-      <header className="px-6 py-4 border-b border-border">
-        <h1 className="text-2xl font-semibold">Worklogs</h1>
-      </header>
+      <PageHeader title="Worklogs" />
 
       {/* Saved filters row — D-03: separate row above filter bar, hidden when empty */}
       {savedFilters.length > 0 && (

@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
+import { PageHeader } from '@/components/ui/page-header';
 import { PriorityIcon } from '@/components/ui/priority-icon';
 import { StaleDataBanner } from '@/components/ui/stale-data-banner';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
@@ -251,16 +252,18 @@ export default function EpicsPage() {
   return (
     <div className="flex flex-col h-full">
       {/* Page header */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-border flex-shrink-0">
-        <h1 className="text-2xl font-semibold">Epics</h1>
-        <button
-          type="button"
-          onClick={() => setCreateOpen(true)}
-          className="rounded border border-border bg-background px-3 py-1.5 text-sm hover:bg-accent transition-colors"
-        >
-          + Create Epic
-        </button>
-      </div>
+      <PageHeader
+        title="Epics"
+        actions={
+          <button
+            type="button"
+            onClick={() => setCreateOpen(true)}
+            className="rounded border border-border bg-background px-3 py-1.5 text-sm hover:bg-accent transition-colors"
+          >
+            + Create Epic
+          </button>
+        }
+      />
 
       {/* Content */}
       <div className="flex-1 overflow-auto">

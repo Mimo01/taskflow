@@ -59,12 +59,14 @@ import { Button } from '@/components/ui/button';
 import { ConfirmSprintMoveDialog } from '@/components/ui/confirm-sprint-move-dialog';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
+import { headerSecondaryText, PageHeader } from '@/components/ui/page-header';
 import { StaleDataBanner } from '@/components/ui/stale-data-banner';
 import { useBoardId } from '@/hooks/useBoardId';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { useListNavigation } from '@/hooks/useListNavigation';
 import { buildAssigneeOptions, matchesAssigneeFilter } from '@/lib/assignee-filter';
 import { buildStoryPointOptions, matchesStoryPointsFilter } from '@/lib/story-points-filter';
+import { cn } from '@/lib/utils';
 import type { JiraIssue } from '@/services/jira';
 import {
   addIssuesToSprint,
@@ -1316,39 +1318,43 @@ export default function BacklogPage() {
   return (
     <div className="flex flex-col h-full overflow-hidden" data-testid="backlog-page">
       {/* Page header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b flex-shrink-0">
-        <h1 className="text-2xl font-semibold">Backlog</h1>
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground hidden sm:inline">{lastRefreshed}</span>
-          {/* Plan 05 — D-07 inline aria-live feedback span (mirrors SprintBoardTab). */}
-          <span
-            role="status"
-            aria-live="polite"
-            className="text-xs text-muted-foreground hidden sm:inline"
-          >
-            {reloadStatus ?? ''}
-          </span>
-          <button
-            type="button"
-            onClick={() => {
-              void handleReloadBacklog();
-            }}
-            disabled={backlogFetching}
-            className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-            aria-label="Reload backlog"
-            title="Reload backlog"
-          >
-            <RefreshCw className={backlogFetching ? 'size-3 animate-spin' : 'size-3'} />
-          </button>
-          <button
-            type="button"
-            onClick={() => openCreateStory()}
-            className="rounded border border-border bg-background px-3 py-1.5 text-sm hover:bg-accent transition-colors"
-          >
-            + Create Story
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title="Backlog"
+        actions={
+          <>
+            <span className={cn('text-xs text-muted-foreground', headerSecondaryText)}>
+              {lastRefreshed}
+            </span>
+            {/* Plan 05 — D-07 inline aria-live feedback span (mirrors SprintBoardTab). */}
+            <span
+              role="status"
+              aria-live="polite"
+              className={cn('text-xs text-muted-foreground', headerSecondaryText)}
+            >
+              {reloadStatus ?? ''}
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                void handleReloadBacklog();
+              }}
+              disabled={backlogFetching}
+              className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="Reload backlog"
+              title="Reload backlog"
+            >
+              <RefreshCw className={backlogFetching ? 'size-3 animate-spin' : 'size-3'} />
+            </button>
+            <button
+              type="button"
+              onClick={() => openCreateStory()}
+              className="rounded border border-border bg-background px-3 py-1.5 text-sm hover:bg-accent transition-colors"
+            >
+              + Create Story
+            </button>
+          </>
+        }
+      />
 
       {/* Sprint move confirmation dialogs (context-menu initiated — keep default "Cancel") */}
       <ConfirmSprintMoveDialog

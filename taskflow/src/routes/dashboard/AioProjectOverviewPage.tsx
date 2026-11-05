@@ -2,12 +2,14 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { RefreshCw } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { headerSecondaryText, PageHeader } from '@/components/ui/page-header';
 import { useAioCredentials } from '@/hooks/useAioCredentials';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { aggregateCycleScope, aggregateFolderCounts } from '@/lib/aio-cycle-list';
 import { refreshAioCycleList } from '@/lib/aio-refresh';
 import { initializeAioStatusMap } from '@/lib/aioUtils';
 import { toLocalDateString } from '@/lib/local-date';
+import { cn } from '@/lib/utils';
 import {
   fetchAioCycleSummaries,
   fetchAioCyclesInFolders,
@@ -348,25 +350,31 @@ export default function AioProjectOverviewPage() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex flex-shrink-0 items-baseline gap-3 border-b border-border px-6 py-4">
-        <h1 className="text-2xl font-semibold">Test cycles</h1>
-        <span className="font-mono text-sm text-muted-foreground">{projectKey ?? ''}</span>
-        <div className="ml-auto flex items-center gap-2 self-center">
-          <span className="text-xs text-muted-foreground hidden sm:inline">{lastRefreshed}</span>
-          <button
-            type="button"
-            onClick={() => {
-              void handleRefresh();
-            }}
-            disabled={refreshing}
-            className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-            aria-label="Refresh cycles"
-            title="Refresh cycles"
-          >
-            <RefreshCw className={refreshing ? 'size-3 animate-spin' : 'size-3'} />
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title="Test cycles"
+        titleAside={
+          <span className="font-mono text-sm text-muted-foreground">{projectKey ?? ''}</span>
+        }
+        actions={
+          <>
+            <span className={cn('text-xs text-muted-foreground', headerSecondaryText)}>
+              {lastRefreshed}
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                void handleRefresh();
+              }}
+              disabled={refreshing}
+              className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="Refresh cycles"
+              title="Refresh cycles"
+            >
+              <RefreshCw className={refreshing ? 'size-3 animate-spin' : 'size-3'} />
+            </button>
+          </>
+        }
+      />
 
       <div className="flex flex-1 flex-row overflow-hidden">
         <AioFolderPanel
