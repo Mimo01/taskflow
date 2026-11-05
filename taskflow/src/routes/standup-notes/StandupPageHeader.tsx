@@ -1,5 +1,6 @@
 import { Calendar, Copy, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { headerActionLabel, headerSecondaryText, PageHeader } from '@/components/ui/page-header';
 import { cn } from '@/lib/utils';
 import type { JiraAssignableUser } from '@/services/jira/types';
 import WatchedPersonPicker from './WatchedPersonPicker';
@@ -58,38 +59,54 @@ export default function StandupPageHeader({
   onSelectWatched,
 }: StandupPageHeaderProps) {
   return (
-    <header className="shrink-0 gap-4 px-6 py-4 border-b border-border flex items-center justify-between">
-      {/* Left: title + date */}
-      <div className="min-w-0">
-        <h1 className="text-3xl font-semibold">Standup notes</h1>
-        <p className="mt-1 flex items-center gap-1.5 text-xs leading-none text-muted-foreground">
+    <PageHeader
+      title="Standup notes"
+      subtitle={
+        <span className="inline-flex items-center gap-1.5">
           <Calendar className="size-3.5 shrink-0" />
           {dateLabel}
-        </p>
-      </div>
-
-      {/* Right: watched-person picker + sync status + Refresh + Copy markdown */}
-      <div className="flex items-center gap-2">
-        <WatchedPersonPicker
-          value={watchedUser}
-          meDisplayName={meDisplayName}
-          meAvatarUrl={meAvatarUrl}
-          jiraBaseUrl={jiraBaseUrl}
-          projectKey={projectKey}
-          onSelect={onSelectWatched}
-        />
-        {syncedMinutesAgo !== null && (
-          <span className="text-xs text-muted-foreground">• synced {syncedMinutesAgo}m ago</span>
-        )}
-        <Button variant="ghost" size="sm" onClick={onRefresh} disabled={isRefreshing}>
-          <RefreshCw className={cn(isRefreshing && 'animate-spin')} />
-          Refresh
-        </Button>
-        <Button variant="default" size="sm" onClick={onCopyMarkdown}>
-          <Copy />
-          {copied ? 'Copied!' : 'Copy markdown'}
-        </Button>
-      </div>
-    </header>
+        </span>
+      }
+      actions={
+        <>
+          <WatchedPersonPicker
+            value={watchedUser}
+            meDisplayName={meDisplayName}
+            meAvatarUrl={meAvatarUrl}
+            jiraBaseUrl={jiraBaseUrl}
+            projectKey={projectKey}
+            onSelect={onSelectWatched}
+          />
+          {syncedMinutesAgo !== null && (
+            <span className={cn('text-xs text-muted-foreground', headerSecondaryText)}>
+              • synced {syncedMinutesAgo}m ago
+            </span>
+          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onRefresh}
+            disabled={isRefreshing}
+            aria-label="Refresh"
+            title={
+              syncedMinutesAgo !== null ? `Refresh (synced ${syncedMinutesAgo}m ago)` : 'Refresh'
+            }
+          >
+            <RefreshCw className={cn(isRefreshing && 'animate-spin')} />
+            <span className={headerActionLabel}>Refresh</span>
+          </Button>
+          <Button
+            variant="default"
+            size="sm"
+            onClick={onCopyMarkdown}
+            aria-label={copied ? 'Copied!' : 'Copy markdown'}
+            title={copied ? 'Copied!' : 'Copy markdown'}
+          >
+            <Copy />
+            <span className={headerActionLabel}>{copied ? 'Copied!' : 'Copy markdown'}</span>
+          </Button>
+        </>
+      }
+    />
   );
 }

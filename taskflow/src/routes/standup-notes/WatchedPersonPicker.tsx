@@ -85,8 +85,12 @@ export default function WatchedPersonPicker({
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger className="group/watched flex items-center gap-1 text-xs text-muted-foreground cursor-pointer">
-        <span>Showing: {triggerLabel}</span>
+      <PopoverTrigger
+        aria-label={`Showing: ${triggerLabel}`}
+        className="group/watched flex min-w-0 items-center gap-1 text-xs text-muted-foreground cursor-pointer"
+      >
+        <span className="hidden @[30rem]:inline">Showing:&nbsp;</span>
+        <span className="max-w-28 truncate @[30rem]:max-w-48">{triggerLabel}</span>
         <ChevronDown className="size-3.5 opacity-0 transition-opacity group-hover/watched:opacity-60" />
       </PopoverTrigger>
       <PopoverContent className="w-80 p-1">
