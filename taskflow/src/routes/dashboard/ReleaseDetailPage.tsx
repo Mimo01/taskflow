@@ -332,6 +332,7 @@ export default function ReleaseDetailPage() {
       showStoryPoints={hasStoryPoints}
       summary={timelineSummary}
       compact
+      fill={band}
     />
   );
   const statusEl = (
@@ -342,7 +343,16 @@ export default function ReleaseDetailPage() {
       onToggle={(v) => issueFilters.toggle('statuses', v)}
     />
   );
-  const mrEl = <ReleaseMrDonut counts={mrDonutCounts} state={donutState} compact />;
+  // Band: the MR slot and the burnup fill the row the stacked lists set, so the
+  // donut centres in it and the plot uses the height instead of leaving a gap.
+  const mrEl = (
+    <ReleaseMrDonut
+      counts={mrDonutCounts}
+      state={donutState}
+      compact
+      className={band ? 'flex-1' : undefined}
+    />
+  );
   const assigneeEl = (fitHeight: number | undefined) => (
     <ReleaseAssigneeRows
       rows={assigneeRows}

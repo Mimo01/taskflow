@@ -7,6 +7,7 @@ import { ChartContainer, ChartTooltip } from '@/components/ui/chart';
 import { EmptyState } from '@/components/ui/empty-state';
 import { TOOLTIP_SURFACE, TooltipBody, TooltipRow } from '@/components/ui/tooltip-body';
 import { dateKeyMs, formatDateKey, timeTicks } from '@/lib/epic-progress';
+import { cn } from '@/lib/utils';
 import { Y_AXIS_WIDTH } from '../../issue-detail/EpicChartZoom';
 import type { BurnupAxis, BurnupPoint } from '../releaseBurnup';
 import {
@@ -158,6 +159,7 @@ export function ReleaseBurnup({
   showStoryPoints,
   summary,
   compact = false,
+  fill = false,
   className,
 }: {
   axis: BurnupAxis | null;
@@ -171,6 +173,11 @@ export function ReleaseBurnup({
    * slot matches the band row instead of driving or following its height.
    */
   compact?: boolean;
+  /**
+   * Band only: the compact body stretches to the row height (set by the stacked
+   * lists) instead of staying at COMPACT_BODY_H, never shorter than it.
+   */
+  fill?: boolean;
   className?: string;
 }) {
   // 94-REVIEW WR-01: callback ref (as in ReleaseTypeWaffle). The plot only mounts
@@ -267,12 +274,18 @@ export function ReleaseBurnup({
       height={compact ? COMPACT_BODY_H : BURNUP_HEIGHT}
       emptyLabel="No issues"
       testId="release-graph-burnup"
-      className={className}
+      className={cn(fill && 'flex-1', className)}
     >
       <div
         data-testid="release-burnup-body"
-        className={compact ? 'flex flex-none flex-col' : 'flex min-h-0 flex-1 flex-col'}
-        style={compact ? { height: COMPACT_BODY_H } : undefined}
+        className={compact && !fill ? 'flex flex-none flex-col' : 'flex min-h-0 flex-1 flex-col'}
+        style={
+          compact && fill
+            ? { minHeight: COMPACT_BODY_H }
+            : compact
+              ? { height: COMPACT_BODY_H }
+              : undefined
+        }
       >
         {!enough || !axis ? (
           // Too little history for a chart (a future release, or one whose window

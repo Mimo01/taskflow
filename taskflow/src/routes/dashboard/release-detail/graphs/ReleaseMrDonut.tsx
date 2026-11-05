@@ -26,6 +26,8 @@ export function ReleaseMrDonut({
 }) {
   const slices = mrDonutSlices(counts);
   const total = ORDER.reduce((n, k) => n + counts[k], 0);
+  const live = total - counts.closed;
+  const pending = counts.open + counts.draft;
   const label = `Merge requests: ${ORDER.filter((k) => counts[k] > 0)
     .map((k) => `${counts[k]} ${k}`)
     .join(', ')}`;
@@ -45,7 +47,7 @@ export function ReleaseMrDonut({
         </div>
       }
     >
-      <div className="my-auto flex justify-center">
+      <div className="my-auto flex flex-col items-center gap-2">
         {/* No legend: slice counts come from the hover tooltip and the aria-label. */}
         <AioDonut
           slices={slices}
@@ -54,6 +56,14 @@ export function ReleaseMrDonut({
           ariaLabel={label}
           center={<DonutCentre total={total} caption="MRs" />}
         />
+        {/* One-line takeaway under the ring (closed MRs never ship, so they are not counted). */}
+        <p
+          data-testid="release-mr-summary"
+          className="text-center text-xs tabular-nums text-muted-foreground"
+        >
+          <span className="font-medium text-foreground">{counts.merged}</span> of {live} merged
+          {pending > 0 ? ` · ${pending} open` : ''}
+        </p>
       </div>
     </GraphSlot>
   );

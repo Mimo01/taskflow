@@ -44,16 +44,14 @@ export function ReleaseGraphGrid({
   /** Rendered with the height to fit (undefined = use the default cap). */
   assignee: (fitHeight: number | undefined) => ReactNode;
 }) {
-  const [burnupEl, setBurnupEl] = useState<HTMLDivElement | null>(null);
   const [typeGroupEl, setTypeGroupEl] = useState<HTMLDivElement | null>(null);
   const [mrsEl, setMrsEl] = useState<HTMLDivElement | null>(null);
-  const burnupH = useHeight(burnupEl);
   const typeGroupH = useHeight(typeGroupEl);
   const mrsH = useHeight(mrsEl);
-  // Band: one row, so the tallest of burnup and the type group (the MR slot
-  // stretches to centre its donut, so it is not a height source). 2x2: the MR
-  // slot beside it, at its natural height.
-  const fit = (band ? Math.max(burnupH, typeGroupH) : mrsH) || undefined;
+  // Band: the status/type stack sets the row height (burnup and the MR slot
+  // stretch to fill it, so they are not height sources: measuring a stretched
+  // cell would ratchet the row). 2x2: the MR slot beside it, at its natural height.
+  const fit = (band ? typeGroupH : mrsH) || undefined;
 
   const typeGroup = (
     <div
@@ -81,9 +79,7 @@ export function ReleaseGraphGrid({
         data-testid="release-graph-grid"
         className="mt-1 grid grid-cols-[minmax(200px,1fr)_minmax(300px,1.1fr)_minmax(270px,1.1fr)_minmax(190px,0.8fr)] items-start gap-x-4"
       >
-        <div ref={setBurnupEl} className={SLOT_COL}>
-          {burnup}
-        </div>
+        <div className={`${SLOT_COL} self-stretch`}>{burnup}</div>
         <div className={`${SLOT_COL} ${DIVIDER} self-stretch`}>{typeGroup}</div>
         <div className={`${SLOT_COL} ${DIVIDER} self-stretch`}>{assigneeGroup}</div>
         <div className={`${SLOT_COL} ${DIVIDER} self-stretch`}>{mrsSlot}</div>

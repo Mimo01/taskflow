@@ -32,4 +32,14 @@ describe('ReleaseMrDonut', () => {
     expect(screen.queryByTestId('release-mr-legend')).toBeNull();
     expect(screen.queryByText(/^merged$/i)).toBeNull();
   });
+
+  it('summarises merged of live MRs under the ring, closed excluded', () => {
+    render(<ReleaseMrDonut counts={{ merged: 11, open: 3, draft: 1, closed: 2 }} state="ready" />);
+    expect(screen.getByTestId('release-mr-summary')).toHaveTextContent('11 of 15 merged · 4 open');
+  });
+
+  it('drops the open part when everything is merged', () => {
+    render(<ReleaseMrDonut counts={{ merged: 5, open: 0, draft: 0, closed: 0 }} state="ready" />);
+    expect(screen.getByTestId('release-mr-summary')).toHaveTextContent(/^5 of 5 merged$/);
+  });
 });

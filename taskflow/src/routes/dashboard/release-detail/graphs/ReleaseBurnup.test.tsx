@@ -337,4 +337,23 @@ describe('ReleaseBurnup compact height', () => {
       unmount();
     }
   });
+
+  it('fill: the body stretches with the row, never shorter than the compact height', () => {
+    render(
+      <ReleaseBurnup
+        axis={axis}
+        points={points}
+        state="ready"
+        showStoryPoints={false}
+        summary={summary}
+        compact
+        fill
+      />,
+    );
+    const body = screen.getByTestId('release-burnup-body');
+    expect(body.className).toContain('flex-1');
+    expect(body.style.minHeight).toBe(`${COMPACT_BODY_H}px`);
+    expect(body.style.height).toBe('');
+    expect(screen.getByTestId('release-graph-burnup').className).toContain('flex-1');
+  });
 });
