@@ -223,7 +223,7 @@ describe('TodayColumn', () => {
       expect(within(first as HTMLElement).getByText('Summary of PROJ-11')).toBeInTheDocument();
       const list = (first as HTMLElement).parentElement as HTMLElement;
       expect(list.classList.contains('divide-y')).toBe(true);
-      expect(list.classList.contains('divide-border/40')).toBe(true);
+      expect(list.classList.contains('divide-border')).toBe(true);
       expect(list.classList.contains('gap-1')).toBe(false);
     });
   });

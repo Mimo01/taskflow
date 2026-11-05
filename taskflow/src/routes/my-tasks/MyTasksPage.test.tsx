@@ -537,7 +537,7 @@ describe('MyTasksPage — story group separators (261105-fkj)', () => {
     expect(within(second as HTMLElement).queryByTestId('my-task-row-SUB-1')).toBeNull();
     const container = (first as HTMLElement).parentElement as HTMLElement;
     expect(container.classList.contains('divide-y')).toBe(true);
-    expect(container.classList.contains('divide-border/40')).toBe(true);
+    expect(container.classList.contains('divide-border')).toBe(true);
     expect(container.classList.contains('space-y-0.5')).toBe(false);
   });
 });

@@ -769,7 +769,7 @@ export default function YesterdayColumn({
           {issueGroups.length > 0 && (
             <div>
               <StandupSectionHeader label="Worked On" count={issueGroups.length} />
-              <div className="flex flex-col divide-y divide-border/40">
+              <div className="flex flex-col divide-y divide-border">
                 {issueGroups.map((group) => (
                   <IssueActivityGroup
                     key={group.issueKey}

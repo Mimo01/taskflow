@@ -227,7 +227,7 @@ export default function TodayInProgressSection({
       ) : isError ? (
         <ErrorState error={error} onRetry={onRetry} viewName="In Progress items" />
       ) : (
-        <div className="flex flex-col divide-y divide-border/40">
+        <div className="flex flex-col divide-y divide-border">
           {rows.map((row) => (
             <div
               key={row.issue.key}

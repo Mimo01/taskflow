@@ -586,7 +586,7 @@ export default function MyTasksPage() {
                 dotClass={MY_DAY_BAND_DOT[band]}
                 sectionPts={sectionPts}
               />
-              <div className="divide-y divide-border/40">
+              <div className="divide-y divide-border">
                 {sortedParents.map((parent) => {
                   const isParentDone = parent.fields.status.statusCategory?.key === 'done';
                   return renderFlatRows(parent, subtasksByKey.get(parent.key) ?? [], !isParentDone);
@@ -680,7 +680,7 @@ export default function MyTasksPage() {
                 dotClass={meta ? SPRINT_STATE_DOT[meta.state] : 'bg-muted-foreground/40'}
                 sectionPts={sectionPts}
               />
-              <div className="divide-y divide-border/40">
+              <div className="divide-y divide-border">
                 {groupParents.map((parent) =>
                   renderFlatRows(parent, subtasksByParent.get(parent.key) ?? []),
                 )}
