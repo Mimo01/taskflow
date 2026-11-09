@@ -2523,6 +2523,34 @@ describe('jira service', () => {
     });
   });
 
+  // ── All-assigned / All-reported story time bars ───────────────────────────
+  // These scopes fetch stories without their subtasks, so the time bar must use Jira's
+  // aggregate fields (story + subtasks) — own timetracking alone omits subtask time.
+  describe.each([
+    ['fetchAllAssignedHierarchy', fetchAllAssignedHierarchy],
+    ['fetchAllReportedHierarchy', fetchAllReportedHierarchy],
+  ])('%s time fields', (_name, fetcher) => {
+    it('requests the aggregate time-tracking fields', async () => {
+      vi.mocked(mockFetch).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ issues: [], total: 0, startAt: 0, maxResults: 200 }),
+      } as Response);
+
+      await fetcher(BASE, TOKEN, 'PROJ');
+
+      const url = new URL(vi.mocked(mockFetch).mock.calls[0][0] as string);
+      const fields = (url.searchParams.get('fields') ?? '').split(',');
+      expect(fields).toEqual(
+        expect.arrayContaining([
+          'aggregatetimespent',
+          'aggregatetimeoriginalestimate',
+          'aggregatetimeestimate',
+        ]),
+      );
+    });
+  });
+
   // ── fetchAllReportedHierarchy (E2) ────────────────────────────────────────
   describe('fetchAllReportedHierarchy', () => {
     it('E2: JQL uses reporter = currentUser() (not assignee)', async () => {

@@ -778,6 +778,11 @@ export async function fetchAllAssignedHierarchy(
     'parent',
     'subtasks',
     'timetracking',
+    // Subtasks aren't fetched in this scope, so the story time bar needs Jira's aggregates
+    // (story + subtasks); own timetracking alone omits all subtask time.
+    'aggregatetimespent',
+    'aggregatetimeoriginalestimate',
+    'aggregatetimeestimate',
     'duedate',
     flaggedFieldKey,
   ].join(',');
@@ -848,6 +853,11 @@ export async function fetchAllReportedHierarchy(
     'parent',
     'subtasks',
     'timetracking',
+    // Subtasks aren't fetched in this scope, so the story time bar needs Jira's aggregates
+    // (story + subtasks); own timetracking alone omits all subtask time.
+    'aggregatetimespent',
+    'aggregatetimeoriginalestimate',
+    'aggregatetimeestimate',
     'duedate',
     flaggedFieldKey,
   ].join(',');
