@@ -18,6 +18,7 @@ import { DatePicker } from '@/components/ui/date-picker';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Textarea } from '@/components/ui/textarea';
+import { cn } from '@/lib/utils';
 import { parseDuration } from '@/services/jira/duration';
 import { createWorklog } from '@/services/jira/worklogs';
 import { readSecret } from '@/services/stronghold';
@@ -31,6 +32,10 @@ interface LogWorkPopoverProps {
   initialDate?: string;
   /** Override the trigger button label. Defaults to "Log Work". */
   triggerLabel?: string;
+  /** Extra classes merged onto the trigger button (e.g. responsive icon-only sizing). */
+  triggerClassName?: string;
+  /** When set, the label is wrapped in a span with these classes (e.g. `sr-only @[600px]:not-sr-only`). */
+  triggerLabelClassName?: string;
 }
 
 function todayString(): string {
@@ -44,6 +49,8 @@ export function LogWorkPopover({
   onSuccess,
   initialDate,
   triggerLabel = 'Log Work',
+  triggerClassName,
+  triggerLabelClassName,
 }: LogWorkPopoverProps) {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
@@ -112,9 +119,16 @@ export function LogWorkPopover({
         if (o) resetForm();
       }}
     >
-      <PopoverTrigger className={buttonVariants({ variant: 'outline', size: 'sm' })}>
+      <PopoverTrigger
+        className={cn(buttonVariants({ variant: 'outline', size: 'sm' }), triggerClassName)}
+        title={triggerLabel}
+      >
         <Clock className="size-3.5" />
-        {triggerLabel}
+        {triggerLabelClassName ? (
+          <span className={triggerLabelClassName}>{triggerLabel}</span>
+        ) : (
+          triggerLabel
+        )}
       </PopoverTrigger>
       <PopoverContent className="w-72 p-4">
         <div className="space-y-3">

@@ -396,8 +396,11 @@ export function IssueDetailContent({
         </section>
       )}
 
-      {/* Refresh + Pin + Edit + Log Work + Open in Jira + Copy Jira link */}
-      <div className="flex items-center justify-end gap-2">
+      {/* Refresh + Pin + Edit + Log Work + Open in Jira + Copy Jira link.
+          The row is its own @container: below 600px of row width the secondary
+          actions collapse to square icon buttons (label kept as sr-only text +
+          tooltip); Open in Jira always keeps its full label. */}
+      <div className="@container flex items-center justify-end gap-2">
         {onRefresh && (
           <Button
             variant="outline"
@@ -406,10 +409,10 @@ export function IssueDetailContent({
             disabled={refreshing}
             aria-label="Refresh issue"
             title="Refresh issue"
-            className="gap-1.5 text-xs"
+            className={cn('gap-1.5 text-xs', COMPACT_ACTION_CLASS)}
           >
             <RefreshCw className={cn('size-3.5', refreshing && 'animate-spin')} />
-            Refresh
+            <span className={COMPACT_LABEL_CLASS}>Refresh</span>
           </Button>
         )}
         <Button
@@ -418,15 +421,17 @@ export function IssueDetailContent({
           onClick={() => onTogglePin?.(issueKey)}
           aria-label={isPinned ? `Unpin issue ${issueKey}` : `Pin issue ${issueKey}`}
           title={isPinned ? 'Unpin from tabs' : 'Pin to tabs'}
-          className="gap-1.5 text-xs"
+          className={cn('gap-1.5 text-xs', COMPACT_ACTION_CLASS)}
         >
           <Pin className={cn('size-3.5', isPinned && 'fill-current text-primary')} />
-          {isPinned ? 'Unpin' : 'Pin'}
+          <span className={COMPACT_LABEL_CLASS}>{isPinned ? 'Unpin' : 'Pin'}</span>
         </Button>
         <LogWorkPopover
           issueKey={issueKey}
           jiraBaseUrl={jiraBaseUrl}
           onSuccess={handleLogWorkSuccess}
+          triggerClassName={COMPACT_ACTION_CLASS}
+          triggerLabelClassName={COMPACT_LABEL_CLASS}
         />
         <Button
           variant="outline"
@@ -452,10 +457,11 @@ export function IssueDetailContent({
               attachments: issue.fields.attachment ?? [],
             });
           }}
-          className="gap-1.5 text-xs"
+          title="Edit issue"
+          className={cn('gap-1.5 text-xs', COMPACT_ACTION_CLASS)}
         >
           <Pencil className="size-3.5" />
-          Edit
+          <span className={COMPACT_LABEL_CLASS}>Edit</span>
         </Button>
         <Button
           variant="outline"
@@ -478,11 +484,12 @@ export function IssueDetailContent({
               })),
             })
           }
-          className="gap-1.5 text-xs"
+          className={cn('gap-1.5 text-xs', COMPACT_ACTION_CLASS)}
           aria-label="Clone issue"
+          title="Clone issue"
         >
           <Copy className="size-3.5" />
-          Clone
+          <span className={COMPACT_LABEL_CLASS}>Clone</span>
         </Button>
         <div className="inline-flex items-stretch">
           {/* `LinkContextMenu`'s default trigger is `span.contents` (no box), so this
@@ -517,5 +524,10 @@ export function IssueDetailContent({
     </div>
   );
 }
+
+/** Secondary action buttons: square icon-only (size-7, like `icon-sm`) below a 600px row, full `sm` above. */
+const COMPACT_ACTION_CLASS = 'w-7 px-0 @[600px]:w-auto @[600px]:px-2.5';
+/** Action label: screen-reader-only below a 600px row (accessible name kept), visible above. */
+const COMPACT_LABEL_CLASS = 'sr-only @[600px]:not-sr-only';
 
 export { relativeTime } from '@/lib/relative-time';
