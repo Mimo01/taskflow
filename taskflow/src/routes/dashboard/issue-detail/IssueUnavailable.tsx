@@ -44,14 +44,11 @@ export function IssueUnavailable({
   };
 
   const Icon = unavailable ? Lock : AlertCircle;
-  // Jira's own reason leads when present; the hint covers what Jira won't say
-  // (it answers "no permission" for deleted/non-existent keys too).
-  const jiraReason = info.jiraMessages.join(' ');
   const explanation = unavailable
-    ? jiraReason
-      ? `${jiraReason} It may also have been deleted or moved, or the key may be wrong.`
-      : `You may not have permission to see it, it may have been deleted or moved, or the key may be wrong.${info.status === 401 ? ' Your Jira session may also have expired.' : ''}`
-    : jiraReason || "Jira didn't respond as expected. Check your connection and try again.";
+    ? info.status === 401
+      ? 'Your Jira session may have expired.'
+      : "You don't have access, or it no longer exists."
+    : 'Check your connection and try again.';
 
   const openButton = jiraBaseUrl ? (
     <Button
