@@ -2161,6 +2161,25 @@ export async function fetchEnrichedSubtasks(
   });
 }
 
+/** Best-effort read of Jira's errorMessages/errors (body may be HTML/empty on proxies). */
+async function readJiraErrorMessages(response: Response): Promise<string[]> {
+  const messages: string[] = [];
+  try {
+    const body = (await response.json()) as { errorMessages?: unknown; errors?: unknown } | null;
+    if (Array.isArray(body?.errorMessages)) {
+      for (const m of body.errorMessages) if (typeof m === 'string' && m.trim()) messages.push(m);
+    }
+    if (body?.errors && typeof body.errors === 'object') {
+      for (const m of Object.values(body.errors)) {
+        if (typeof m === 'string' && m.trim()) messages.push(m);
+      }
+    }
+  } catch {
+    // non-JSON body
+  }
+  return [...new Set(messages)];
+}
+
 export async function fetchIssueDetail(
   baseUrl: string,
   token: string,
@@ -2192,29 +2211,12 @@ export async function fetchIssueDetail(
     'Load Issue Detail',
   );
   if (!response.ok) {
-    // Best-effort read of Jira's error body (may be HTML/empty on proxies).
-    const messages: string[] = [];
-    try {
-      const body = (await response.json()) as {
-        errorMessages?: unknown;
-        errors?: unknown;
-      } | null;
-      if (Array.isArray(body?.errorMessages)) {
-        for (const m of body.errorMessages) if (typeof m === 'string' && m.trim()) messages.push(m);
-      }
-      if (body?.errors && typeof body.errors === 'object') {
-        for (const m of Object.values(body.errors)) {
-          if (typeof m === 'string' && m.trim()) messages.push(m);
-        }
-      }
-    } catch {
-      // non-JSON body
-    }
+    const messages = await readJiraErrorMessages(response);
     throw new ApiError(
       `Failed to fetch issue ${issueKey}: ${response.status}`,
       response.status,
       'jira',
-      [...new Set(messages)],
+      messages,
     );
   }
   const issue = (await response.json()) as JiraIssueDetail;
@@ -2242,29 +2244,12 @@ export async function fetchIssueSummary(
     'Load Issue Detail',
   );
   if (!response.ok) {
-    // Best-effort read of Jira's error body (may be HTML/empty on proxies).
-    const messages: string[] = [];
-    try {
-      const body = (await response.json()) as {
-        errorMessages?: unknown;
-        errors?: unknown;
-      } | null;
-      if (Array.isArray(body?.errorMessages)) {
-        for (const m of body.errorMessages) if (typeof m === 'string' && m.trim()) messages.push(m);
-      }
-      if (body?.errors && typeof body.errors === 'object') {
-        for (const m of Object.values(body.errors)) {
-          if (typeof m === 'string' && m.trim()) messages.push(m);
-        }
-      }
-    } catch {
-      // non-JSON body
-    }
+    const messages = await readJiraErrorMessages(response);
     throw new ApiError(
       `Failed to fetch issue ${issueKey}: ${response.status}`,
       response.status,
       'jira',
-      [...new Set(messages)],
+      messages,
     );
   }
   return response.json();

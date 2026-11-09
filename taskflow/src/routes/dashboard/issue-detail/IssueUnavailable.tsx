@@ -82,8 +82,7 @@ export function IssueUnavailable({
     <div className="flex flex-1 items-center justify-center p-6">
       <div className="flex max-w-sm flex-col items-center text-center">
         <Icon className="mb-3 size-8 text-muted-foreground" />
-        <p className="font-mono text-xs text-muted-foreground">{issueKey}</p>
-        <h2 className="mt-1 text-sm font-medium text-foreground">
+        <h2 className="text-sm font-medium text-foreground">
           {unavailable ? "You can't view " : "Couldn't load "}
           <span className="font-mono">{issueKey}</span>
         </h2>
