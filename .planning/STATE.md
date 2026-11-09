@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-08-13)
 Phase: 94
 Plan: Not started
 Status: Milestone complete
-Last activity: 2026-11-05 - Completed quick task 261105-nly: responsive issue-detail subtask/story/parent rows
+Last activity: 2026-11-09 - Completed quick task 261109-hy1: releases-repo README redesign + template-driven CI step
 
 ## Performance Metrics
 
@@ -267,6 +267,7 @@ Acknowledged and deferred at v1.14 milestone close (2026-08-13) — 111 open art
 | 261105-izi | Release detail header: actions collapse sooner so the title keeps room — Refreshed timestamp hides ≤1024px, Pin/Edit/Open in Jira go icon-only ≤896px (were both ≤640px before the refresh button widened the group) | 2026-11-05 | 9da8254a | Approved | [261105-izi-release-detail-header-buttons-hide-title](./quick/261105-izi-release-detail-header-buttons-hide-title/) |
 | 261105-mqh | Universal PersonPicker: issue-detail assignee picker extracted to components/ui/person-picker.tsx (inline + field triggers, server-side debounced search via useAssignableUserSearch, Unassign/Assign to me); adopted by Create/Edit assignee + user custom fields, subtask template rows, Bulk Create, Standup watched person, Worklogs person; 200-user capped fetches removed | 2026-11-05 | 93f10f80, f03fbf8c, acb38c06, c1358120 | Approved | [261105-mqh-universal-assignee-picker-everywhere](./quick/261105-mqh-universal-assignee-picker-everywhere/) |
 | 261105-nly | Issue-detail relationship rows (Epic→Stories, Story→Subtasks, Subtask→Parent) unified into RelatedIssueRow with container-query staging: time bar hidden <42rem row width, assignee name hidden <36rem (avatar + tooltip always kept, name capped 9rem) so the summary keeps room in narrow panes/PeekPanel | 2026-11-05 | 77fbb932, ae3af774 | Approved | [261105-nly-optimize-issue-detail-subtasks-rows-for-](./quick/261105-nly-optimize-issue-detail-subtasks-rows-for-/) |
+| 261109-hy1 | Releases-repo README redesign: template (taskflow/scripts/releases-readme.template.md) + render-releases-readme.sh with --assets link validation; CI step renders from template, fails before PUT on broken links (fixes wrong Linux AppImage/.deb links), ensures assets/taskflow-icon.png | 2026-11-09 | 1cfea74a, e0e0cb1e | Needs Review | [261109-hy1-update-releases-repo-readme-and-release-](./quick/261109-hy1-update-releases-repo-readme-and-release-/) |
 
 ## Session Continuity
 
