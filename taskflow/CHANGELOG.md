@@ -2,6 +2,25 @@
 
 All notable changes to Taskflow are documented here.
 
+## [1.14.19] — 2026-11-09
+
+### Added
+
+- **Issue unavailable panel** — issues you can't open (no permission, deleted or moved) show a clear panel with the issue key, a short explanation and Open in Jira, Copy key and Try again actions, instead of a generic error. Access errors are no longer retried.
+- **No access in Recent** — Recent items you can no longer open show a lock, a muted title and "No access" in the status column.
+- **Refresh on issue detail** — the issue detail action row has a Refresh button, styled like Pin, Edit and Clone, that reloads the issue and its related data.
+
+### Changed
+
+- **Compact issue actions** — when the action row is narrow, Refresh, Pin, Log Work, Edit and Clone collapse to icon buttons with tooltips. Open in Jira keeps its label.
+- **Square row selection** — My Tasks and Standup rows use straight-edged selection and hover bands, matching other lists.
+
+### Fixed
+
+- **Story time in All assigned / All reported** — story time bars in these My Tasks scopes include subtask time.
+- **Peek highlight on Standup** — Yesterday activity rows and Today In Progress / Up Next rows highlight the issue open in the peek panel, and a click no longer overrides the highlight.
+- **Download links** — the Linux download links on the releases page are correct, and broken links stop the release before the page is updated.
+
 ## [1.14.18] — 2026-11-05
 
 ### Added
