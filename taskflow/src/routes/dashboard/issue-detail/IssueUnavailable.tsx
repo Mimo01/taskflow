@@ -88,12 +88,13 @@ export function IssueUnavailable({
         </h2>
         <p className="mt-1 text-sm text-muted-foreground">{explanation}</p>
         {info.jiraMessages.map((m) => (
-          <blockquote
+          <p
             key={m}
-            className="mt-3 w-full border-l-2 pl-3 text-left text-xs text-muted-foreground"
+            className="mt-3 w-full rounded-md bg-muted/60 px-3 py-2 text-xs text-muted-foreground"
           >
-            {m}
-          </blockquote>
+            <span className="mr-1.5 font-medium text-foreground/70">Jira</span>
+            <span>{m}</span>
+          </p>
         ))}
         <div className="mt-4 flex flex-wrap justify-center gap-2">
           {unavailable
