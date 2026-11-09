@@ -8,6 +8,7 @@ import {
   Pencil,
   Pin,
   Plus,
+  RefreshCw,
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -57,6 +58,10 @@ interface IssueDetailContentProps {
   titleClassName?: string;
   isPinned?: boolean;
   onTogglePin?: (key: string) => void;
+  /** Refetch the issue and all its sections; renders the Refresh button when set. */
+  onRefresh?: () => void;
+  /** True while a refresh is in flight (spins and disables the button). */
+  refreshing?: boolean;
   /** Enriched subtasks from independent query (undefined = pending, [] = empty/loaded) */
   enrichedSubtasks?: Array<{
     id: string;
@@ -157,6 +162,8 @@ export function IssueDetailContent({
   epicStories,
   isPinned,
   onTogglePin,
+  onRefresh,
+  refreshing,
   enrichedSubtasks,
   showSubtasksSkeleton,
   subtaskError,
@@ -389,8 +396,20 @@ export function IssueDetailContent({
         </section>
       )}
 
-      {/* Pin + Edit + Log Work + Open in Jira + Copy Jira link */}
-      <div className="flex justify-end gap-2">
+      {/* Refresh + Pin + Edit + Log Work + Open in Jira + Copy Jira link */}
+      <div className="flex items-center justify-end gap-2">
+        {onRefresh && (
+          <button
+            type="button"
+            onClick={onRefresh}
+            disabled={refreshing}
+            aria-label="Refresh issue"
+            title="Refresh issue"
+            className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <RefreshCw className={refreshing ? 'size-3 animate-spin' : 'size-3'} />
+          </button>
+        )}
         <Button
           variant="outline"
           size="sm"

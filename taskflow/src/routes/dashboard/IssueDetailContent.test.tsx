@@ -121,6 +121,47 @@ const rowTexts = () =>
   [...document.querySelectorAll('[data-slot="tooltip-row"]')].map((r) => r.textContent);
 
 describe('IssueDetailContent', () => {
+  describe('refresh button', () => {
+    const base = {
+      issue: makeSubtaskIssue(),
+      issueKey: 'PROJ-10',
+      jiraBaseUrl: 'https://jira.example.com',
+      storyPointsFieldKey: 'story_points',
+      sprintFieldKey: 'sprint',
+      epicLinkFieldKey: 'epic_link',
+    };
+
+    it('renders before Pin and calls onRefresh on click', async () => {
+      const onRefresh = vi.fn();
+      render(<IssueDetailContent {...base} onTogglePin={vi.fn()} onRefresh={onRefresh} />, {
+        wrapper,
+      });
+      const btn = screen.getByRole('button', { name: 'Refresh issue' });
+      const pin = screen.getByRole('button', { name: /Pin issue PROJ-10/ });
+      expect(btn.compareDocumentPosition(pin) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      await userEvent.click(btn);
+      expect(onRefresh).toHaveBeenCalledTimes(1);
+    });
+
+    it('spins and disables while refreshing', () => {
+      const { rerender } = render(<IssueDetailContent {...base} onRefresh={vi.fn()} refreshing />, {
+        wrapper,
+      });
+      const btn = screen.getByRole('button', { name: 'Refresh issue' });
+      expect(btn).toBeDisabled();
+      expect(btn.querySelector('svg')).toHaveClass('animate-spin');
+      rerender(<IssueDetailContent {...base} onRefresh={vi.fn()} refreshing={false} />);
+      expect(
+        screen.getByRole('button', { name: 'Refresh issue' }).querySelector('svg'),
+      ).not.toHaveClass('animate-spin');
+    });
+
+    it('is absent without onRefresh', () => {
+      render(<IssueDetailContent {...base} />, { wrapper });
+      expect(screen.queryByRole('button', { name: 'Refresh issue' })).toBeNull();
+    });
+  });
+
   it('title defaults to text-xl and honours titleClassName', () => {
     const props = {
       issue: makeSubtaskIssue(),

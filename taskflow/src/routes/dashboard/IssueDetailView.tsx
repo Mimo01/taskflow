@@ -19,6 +19,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { useMentionUserMap } from '@/hooks/useMentionUserMap';
 import { useResizable } from '@/hooks/useResizable';
+import { refreshIssueDetail } from '@/lib/issue-detail-refresh';
 import type { JiraComment, JiraIssue, TimelineFilter } from '@/services/jira';
 import {
   deleteComment,
@@ -309,6 +310,14 @@ export function IssueDetailView({
 
   // ─── Comment edit/delete mutations ──────────────────────────────────────────
   const queryClient = useQueryClient();
+  const [refreshing, setRefreshing] = useState(false);
+  const handleRefresh = () => {
+    if (!issueKey) return;
+    setRefreshing(true);
+    void refreshIssueDetail(queryClient, { issueKey, jiraBaseUrl }).finally(() =>
+      setRefreshing(false),
+    );
+  };
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editText, setEditText] = useState('');
   const [editError, setEditError] = useState<string | null>(null);
@@ -509,6 +518,8 @@ export function IssueDetailView({
 
   const issueDetailContentNode = issue && (
     <IssueDetailContent
+      onRefresh={handleRefresh}
+      refreshing={refreshing}
       titleClassName={layout === 'two-column' ? 'text-2xl' : undefined}
       issue={issue}
       issueKey={issueKey}
