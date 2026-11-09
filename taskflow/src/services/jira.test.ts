@@ -1120,6 +1120,68 @@ describe('jira service', () => {
     });
   });
 
+  describe('fetchIssueDetail errors', () => {
+    const cf = {
+      epicLinkFieldKey: 'customfield_10014',
+      epicNameFieldKey: 'customfield_10015',
+      sprintFieldKey: 'customfield_10020',
+      storyPointsFieldKey: 'customfield_10016',
+    };
+    const run = async (resp: Partial<Response>) => {
+      vi.mocked(mockFetch).mockResolvedValue(resp as Response);
+      const { fetchIssueDetail } = await import('./jira');
+      return fetchIssueDetail('https://jira.example.com', 'token', 'ABC-1', cf).catch(
+        (e: unknown) => e,
+      );
+    };
+
+    it('403 carries status and Jira errorMessages', async () => {
+      const msg = 'You do not have the permission to see the specified issue.';
+      const err = (await run({
+        ok: false,
+        status: 403,
+        json: async () => ({ errorMessages: [msg], errors: {} }),
+      })) as import('@/lib/api-error').ApiError;
+      expect(err.name).toBe('ApiError');
+      expect(err.status).toBe(403);
+      expect(err.source).toBe('jira');
+      expect(err.jiraMessages).toEqual([msg]);
+      expect(err.message).toContain('Failed to fetch issue ABC-1');
+    });
+
+    it('404 is now an ApiError with status', async () => {
+      const err = (await run({
+        ok: false,
+        status: 404,
+        json: async () => ({ errorMessages: ['Issue does not exist'] }),
+      })) as import('@/lib/api-error').ApiError;
+      expect(err.name).toBe('ApiError');
+      expect(err.status).toBe(404);
+      expect(err.jiraMessages).toEqual(['Issue does not exist']);
+    });
+
+    it('401 stays an ApiError', async () => {
+      const err = (await run({
+        ok: false,
+        status: 401,
+        json: async () => ({}),
+      })) as import('@/lib/api-error').ApiError;
+      expect(err.status).toBe(401);
+    });
+
+    it('500 with a non-JSON body yields empty jiraMessages', async () => {
+      const err = (await run({
+        ok: false,
+        status: 500,
+        json: async () => {
+          throw new SyntaxError('bad json');
+        },
+      })) as import('@/lib/api-error').ApiError;
+      expect(err.status).toBe(500);
+      expect(err.jiraMessages).toEqual([]);
+    });
+  });
+
   describe('ISSUE-03: updateIssueField', () => {
     it('calls PUT /rest/api/2/issue/{key} with correct body', async () => {
       vi.mocked(mockFetch).mockResolvedValue({

@@ -1,7 +1,8 @@
 /**
  * ApiError — preserves HTTP status and source service for auth detection.
  *
- * Used by jira.ts and gitlab.ts to throw structured errors on 401/403.
+ * Used by jira.ts and gitlab.ts to throw structured errors on 401/403, and by
+ * Jira issue detail for any non-ok status (404/5xx) plus Jira's errorMessages.
  * Consumed by ErrorState component to auto-detect auth failures and
  * render the appropriate Reconnect CTA.
  */
@@ -9,12 +10,19 @@
 export class ApiError extends Error {
   status: number;
   source: 'jira' | 'gitlab';
+  jiraMessages: string[];
 
-  constructor(message: string, status: number, source: 'jira' | 'gitlab') {
+  constructor(
+    message: string,
+    status: number,
+    source: 'jira' | 'gitlab',
+    jiraMessages: string[] = [],
+  ) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
     this.source = source;
+    this.jiraMessages = jiraMessages;
   }
 }
 

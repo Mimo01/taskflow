@@ -2192,10 +2192,30 @@ export async function fetchIssueDetail(
     'Load Issue Detail',
   );
   if (!response.ok) {
-    if (response.status === 401 || response.status === 403) {
-      throw new ApiError(`Failed to fetch issue ${issueKey}`, response.status, 'jira');
+    // Best-effort read of Jira's error body (may be HTML/empty on proxies).
+    const messages: string[] = [];
+    try {
+      const body = (await response.json()) as {
+        errorMessages?: unknown;
+        errors?: unknown;
+      } | null;
+      if (Array.isArray(body?.errorMessages)) {
+        for (const m of body.errorMessages) if (typeof m === 'string' && m.trim()) messages.push(m);
+      }
+      if (body?.errors && typeof body.errors === 'object') {
+        for (const m of Object.values(body.errors)) {
+          if (typeof m === 'string' && m.trim()) messages.push(m);
+        }
+      }
+    } catch {
+      // non-JSON body
     }
-    throw new Error(`Failed to fetch issue ${issueKey}: ${response.status}`);
+    throw new ApiError(
+      `Failed to fetch issue ${issueKey}: ${response.status}`,
+      response.status,
+      'jira',
+      [...new Set(messages)],
+    );
   }
   const issue = (await response.json()) as JiraIssueDetail;
 
@@ -2222,10 +2242,30 @@ export async function fetchIssueSummary(
     'Load Issue Detail',
   );
   if (!response.ok) {
-    if (response.status === 401 || response.status === 403) {
-      throw new ApiError(`Failed to fetch issue ${issueKey}`, response.status, 'jira');
+    // Best-effort read of Jira's error body (may be HTML/empty on proxies).
+    const messages: string[] = [];
+    try {
+      const body = (await response.json()) as {
+        errorMessages?: unknown;
+        errors?: unknown;
+      } | null;
+      if (Array.isArray(body?.errorMessages)) {
+        for (const m of body.errorMessages) if (typeof m === 'string' && m.trim()) messages.push(m);
+      }
+      if (body?.errors && typeof body.errors === 'object') {
+        for (const m of Object.values(body.errors)) {
+          if (typeof m === 'string' && m.trim()) messages.push(m);
+        }
+      }
+    } catch {
+      // non-JSON body
     }
-    throw new Error(`Failed to fetch issue ${issueKey}: ${response.status}`);
+    throw new ApiError(
+      `Failed to fetch issue ${issueKey}: ${response.status}`,
+      response.status,
+      'jira',
+      [...new Set(messages)],
+    );
   }
   return response.json();
 }
