@@ -468,40 +468,83 @@ jobs:
           RELEASES_TOKEN: ${{ secrets.RELEASES_REPO_PAT }}
         shell: bash
         run: |
+          set -euo pipefail
           VERSION="${{ steps.version.outputs.bare }}"
+          RELEASE_ID="${{ steps.release.outputs.id }}"
+          API_BASE="https://api.github.com/repos/Mimo01/taskflow-releases/releases"
           RELEASES_API="https://api.github.com/repos/Mimo01/taskflow-releases"
 
-          README_CONTENT="# Taskflow
+          if [ -z "$RELEASE_ID" ]; then
+            echo "ERROR: release id is empty; cannot validate README links" >&2
+            exit 1
+          fi
 
-          ## Download
-
-          ### macOS
-          - [Taskflow_${VERSION}_universal.dmg](https://github.com/Mimo01/taskflow-releases/releases/latest/download/Taskflow_${VERSION}_universal.dmg)
-          - [Taskflow.app.tar.gz](https://github.com/Mimo01/taskflow-releases/releases/latest/download/Taskflow.app.tar.gz) (for updater)
-
-          ### Linux
-          - [taskflow_${VERSION}_amd64.AppImage.tar.gz](https://github.com/Mimo01/taskflow-releases/releases/latest/download/taskflow_${VERSION}_amd64.AppImage.tar.gz) (AppImage)
-          - [taskflow_${VERSION}_amd64.deb](https://github.com/Mimo01/taskflow-releases/releases/latest/download/taskflow_${VERSION}_amd64.deb) (Debian/Ubuntu)
-
-          ### Windows
-          - [Taskflow_${VERSION}_x64-setup.exe](https://github.com/Mimo01/taskflow-releases/releases/latest/download/Taskflow_${VERSION}_x64-setup.exe) (NSIS installer)
-          - [Taskflow_${VERSION}_x64_en-US.msi](https://github.com/Mimo01/taskflow-releases/releases/latest/download/Taskflow_${VERSION}_x64_en-US.msi) (MSI)
-
-          ---
-          _Latest release: v${VERSION}_
+          # 1. List the assets the release actually has
+          curl -sSf -H "Authorization: token $RELEASES_TOKEN" \
+            "$API_BASE/$RELEASE_ID/assets?per_page=100" > /tmp/assets.json
+          python3 -c "
+          import json
+          data = json.load(open('/tmp/assets.json'), strict=False)
+          open('/tmp/asset-names.txt', 'w').write(''.join(a['name'] + '\n' for a in data))
           "
+          echo "Release assets:"
+          cat /tmp/asset-names.txt
 
-          README_B64=$(printf '%s' "$README_CONTENT" | base64 -w 0)
+          # 2. Render the README from the template; fails here (before any PUT)
+          #    if a download link names an asset the release does not have
+          bash taskflow/scripts/render-releases-readme.sh "$VERSION" --assets /tmp/asset-names.txt > /tmp/README.md
 
+          # 3. Ensure the README icon exists in the releases repo
+          ICON_STATUS=$(curl -s -o /dev/null -w '%{http_code}' \
+            -H "Authorization: token $RELEASES_TOKEN" \
+            "$RELEASES_API/contents/assets/taskflow-icon.png")
+          if [ "$ICON_STATUS" = "404" ]; then
+            echo "Icon missing in releases repo; uploading..."
+            python3 -c "
+          import base64, json
+          b64 = base64.b64encode(open('taskflow/src-tauri/icons/128x128@2x.png', 'rb').read()).decode()
+          json.dump({'message': 'docs: add README icon', 'content': b64}, open('/tmp/icon-body.json', 'w'))
+          "
+            ICON_RESPONSE=$(curl -s -X PUT \
+              -H "Authorization: token $RELEASES_TOKEN" \
+              -H "Content-Type: application/json" \
+              "$RELEASES_API/contents/assets/taskflow-icon.png" \
+              --data-binary @/tmp/icon-body.json)
+            python3 -c "
+          import sys, json
+          data = json.loads(sys.argv[1], strict=False)
+          if 'content' not in data:
+              print('Error uploading icon:', json.dumps(data, indent=2), file=sys.stderr)
+              sys.exit(1)
+          print('Icon uploaded.')
+          " "$ICON_RESPONSE"
+          elif [ "$ICON_STATUS" = "200" ]; then
+            echo "icon present"
+          else
+            echo "Unexpected status checking icon: $ICON_STATUS" >&2
+            exit 1
+          fi
+
+          # 4. PUT the README
           SHA=$(curl -s -H "Authorization: token $RELEASES_TOKEN" \
             "$RELEASES_API/contents/README.md" \
             | python3 -c "import sys,json; print(json.loads(sys.stdin.read(), strict=False).get('sha', ''))")
+
+          python3 -c "
+          import base64, json, sys
+          path, version, sha = sys.argv[1], sys.argv[2], sys.argv[3]
+          b64 = base64.b64encode(open(path, 'rb').read()).decode()
+          body = {'message': f'docs: update README for v{version}', 'content': b64}
+          if sha:
+              body['sha'] = sha
+          json.dump(body, open('/tmp/readme-body.json', 'w'))
+          " /tmp/README.md "$VERSION" "$SHA"
 
           UPDATE_RESPONSE=$(curl -s -X PUT \
             -H "Authorization: token $RELEASES_TOKEN" \
             -H "Content-Type: application/json" \
             "$RELEASES_API/contents/README.md" \
-            -d "{\"message\": \"docs: update download links to v${VERSION}\", \"content\": \"${README_B64}\", \"sha\": \"${SHA}\"}")
+            --data-binary @/tmp/readme-body.json)
 
           python3 -c "
           import sys, json
