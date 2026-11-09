@@ -1,7 +1,14 @@
+import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import type { SearchEntry } from '@/lib/global-search';
 import type { RecentItem } from '@/stores/recent-items.store';
-import { buildRecentRows, type RecentIssueSources, recentKeysToFetch } from './RecentItemRow';
+import {
+  buildRecentRows,
+  type RecentIssueSources,
+  RecentItemRow,
+  recentKeysToFetch,
+  resolveRecentIssue,
+} from './RecentItemRow';
 
 function entry(key: string, parentKey: string | null = null): SearchEntry {
   return {
@@ -133,5 +140,42 @@ describe('recentKeysToFetch', () => {
       { type: 'gitlab', id: '1/5', timestamp: 1 },
     ];
     expect(recentKeysToFetch(items)).toEqual(['P-1', 'X-9', 'X-10', 'X-2']);
+  });
+});
+
+describe('unavailable recent issues', () => {
+  const fetched = (missing: string[]) => ({
+    issues: new Map(),
+    epicNames: new Map<string, string>(),
+    epicLinkFieldKey: 'customfield_10014',
+    missing: new Set(missing),
+    isLoading: false,
+  });
+  const emptyIndex = { entries: [], byKey: new Map() } as never;
+
+  it('flags a key the batch fetch left out, case-insensitively', () => {
+    const src = resolveRecentIssue('shop-2', emptyIndex, fetched(['SHOP-2']), () => undefined);
+    expect(src.unavailable).toBe(true);
+    expect(
+      resolveRecentIssue('SHOP-3', emptyIndex, fetched(['SHOP-2']), () => undefined),
+    ).toMatchObject({ unavailable: false });
+  });
+
+  it('carries the flag onto the row model', () => {
+    const rows = buildRecentRows([jira('SHOP-2')], () => ({ entry: null, unavailable: true }));
+    expect(rows[0].unavailable).toBe(true);
+  });
+
+  it('renders a lock and a "No access" label with the persisted title', () => {
+    render(
+      <RecentItemRow
+        item={{ ...jira('SHOP-2'), title: 'Secret thing' }}
+        entry={null}
+        unavailable
+      />,
+    );
+    expect(screen.getByLabelText('No access')).toBeInTheDocument();
+    expect(screen.getByText('No access')).toBeInTheDocument();
+    expect(screen.getByText('Secret thing')).toBeInTheDocument();
   });
 });

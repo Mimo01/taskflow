@@ -36,6 +36,8 @@ export interface RecentItemRowProps {
   issue?: JiraIssue | null;
   /** Cached MR title for GitLab items. */
   mrTitle?: string;
+  /** Jira won't return this issue to the user (no permission, deleted or moved). */
+  unavailable?: boolean;
   dimmed?: boolean;
   indent?: boolean;
   onKeyClick?: (e: React.MouseEvent, issueKey: string) => void;
@@ -44,6 +46,8 @@ export interface RecentItemRowProps {
 export interface RecentIssueSources {
   entry: SearchEntry | null;
   issue?: JiraIssue | null;
+  /** The batch fetch left this key out: the user can't see it (any more). */
+  unavailable?: boolean;
 }
 
 export interface RecentRowModel {
@@ -53,6 +57,7 @@ export interface RecentRowModel {
   item: RecentItem;
   entry: SearchEntry | null;
   issue?: JiraIssue | null;
+  unavailable?: boolean;
   isParent: boolean;
   dimmed: boolean;
   indent: boolean;
@@ -113,6 +118,7 @@ export function buildRecentRows(
         },
         entry: p.entry,
         issue: p.issue,
+        unavailable: p.unavailable,
         isParent: true,
         dimmed: true,
         indent: false,
@@ -126,6 +132,7 @@ export function buildRecentRows(
       item,
       entry: src.entry,
       issue: src.issue,
+      unavailable: src.unavailable,
       isParent: false,
       dimmed: false,
       indent: !!parent,
@@ -194,7 +201,11 @@ export function resolveRecentIssue(
     }
     return { entry };
   }
-  return { entry: null, issue: cached(key) ?? null };
+  return {
+    entry: null,
+    issue: cached(key) ?? null,
+    unavailable: fetched.missing.has(key.toUpperCase()),
+  };
 }
 
 /**
@@ -249,6 +260,7 @@ export function RecentItemRow({
   entry,
   issue,
   mrTitle,
+  unavailable,
   dimmed,
   indent,
   onKeyClick,
@@ -278,6 +290,21 @@ export function RecentItemRow({
         showEpic={!entry.isSubtask && !entry.isEpic}
         assigneeName={entry.assigneeName}
         avatarUrl={entry.avatarUrl}
+        dimmed={dimmed}
+        indent={indent}
+        onKeyClick={onKeyClick}
+      />
+    );
+  }
+
+  if (unavailable) {
+    // Title from the store/cache when we ever saw it; no status, type or assignee to show.
+    return (
+      <SearchResultRow
+        issueKey={item.id}
+        title={issue?.fields?.summary ?? item.title ?? ''}
+        showEpic={false}
+        unavailable
         dimmed={dimmed}
         indent={indent}
         onKeyClick={onKeyClick}

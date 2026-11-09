@@ -90,6 +90,7 @@ function PopoverRecentRow({
         item={item}
         entry={row.entry}
         issue={row.issue}
+        unavailable={row.unavailable}
         mrTitle={mrTitle}
         dimmed={row.dimmed}
         indent={row.indent}

@@ -61,4 +61,18 @@ describe('useRecentIssues', () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(fetchIssuesByKeys).not.toHaveBeenCalled();
   });
+
+  it('reports keys the batch search left out as missing (no access / deleted)', async () => {
+    vi.mocked(readSecret).mockResolvedValue('tok');
+    vi.mocked(fetchIssuesByKeys).mockResolvedValue([
+      { key: 'SHOP-1', fields: { summary: 'Visible' } } as never,
+    ]);
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const keys = ['SHOP-1', 'shop-2'];
+    const { result } = renderHook(() => useRecentIssues(true, keys), {
+      wrapper: makeWrapper(qc),
+    });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await waitFor(() => expect([...result.current.missing]).toEqual(['SHOP-2']));
+  });
 });

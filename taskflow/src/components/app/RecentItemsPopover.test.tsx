@@ -32,6 +32,7 @@ vi.mock('@/hooks/useRecentIssues', () => ({
     issues: mockFetched.map,
     epicNames: mockFetched.epicNames,
     epicLinkFieldKey: 'customfield_10014',
+    missing: new Set<string>(),
     isLoading: false,
   })),
 }));

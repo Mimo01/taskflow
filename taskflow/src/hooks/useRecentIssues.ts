@@ -21,6 +21,11 @@ export interface RecentIssuesData {
   /** Epic key -> summary for epics referenced by the fetched issues. */
   epicNames: Map<string, string>;
   epicLinkFieldKey: string;
+  /**
+   * Upper-cased keys the batch search left out: Jira silently omits issues the user can't
+   * see (no permission, deleted or moved). Empty until the current key set's fetch settles.
+   */
+  missing: Set<string>;
   /** True until the first fetch for an open list settles (render once, no flash). */
   isLoading: boolean;
 }
@@ -63,6 +68,15 @@ export function useRecentIssues(open: boolean, keys: string[]): RecentIssuesData
     for (const issue of query.data?.issues ?? []) issues.set(issue.key, issue);
     const epicNames = new Map<string, string>();
     for (const e of query.data?.epics ?? []) epicNames.set(e.key, e.fields?.summary ?? e.key);
-    return { issues, epicNames, epicLinkFieldKey, isLoading };
-  }, [query.data, epicLinkFieldKey, isLoading]);
+    const missing = new Set<string>();
+    // Placeholder data belongs to the previous key set, so it can't prove a key is missing.
+    if (query.data && !query.isPlaceholderData) {
+      const returned = new Set([...issues.keys()].map((k) => k.toUpperCase()));
+      for (const k of sortedKeys) {
+        const up = k.toUpperCase();
+        if (!returned.has(up)) missing.add(up);
+      }
+    }
+    return { issues, epicNames, epicLinkFieldKey, missing, isLoading };
+  }, [query.data, query.isPlaceholderData, sortedKeys, epicLinkFieldKey, isLoading]);
 }

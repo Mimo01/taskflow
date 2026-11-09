@@ -1,4 +1,4 @@
-import { Clock, FileText, MessageSquare, TextSearch } from 'lucide-react';
+import { Clock, FileText, Lock, MessageSquare, TextSearch } from 'lucide-react';
 import type React from 'react';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
@@ -33,6 +33,8 @@ export interface SearchResultRowProps {
   matchTag?: MatchTag | null;
   /** Context-only parent row: same layout and size as any row, only faded (opacity-40). */
   dimmed?: boolean;
+  /** Issue the user can't open (Jira 403/404): lock icon, muted title, "No access" label. */
+  unavailable?: boolean;
   indent?: boolean;
   /** When omitted the key renders as plain text (e.g. inside a parent <button>). */
   onKeyClick?: (e: React.MouseEvent, issueKey: string) => void;
@@ -88,6 +90,7 @@ export function SearchResultRow({
   snippet,
   matchTag,
   dimmed,
+  unavailable,
   indent,
   onKeyClick,
 }: SearchResultRowProps) {
@@ -105,12 +108,16 @@ export function SearchResultRow({
           dimmed && 'opacity-40',
         )}
       >
-        {icon ??
+        {unavailable ? (
+          <Lock className="size-3.5 shrink-0 text-muted-foreground" aria-label="No access" />
+        ) : (
+          (icon ??
           (typeName !== undefined ? (
             <IssueTypeIcon typeName={typeName} className="size-3.5 shrink-0" />
           ) : (
             <Clock className="size-3.5 shrink-0 text-muted-foreground" />
-          ))}
+          )))
+        )}
         {onKeyClick ? (
           <button
             type="button"
@@ -131,7 +138,10 @@ export function SearchResultRow({
         <HighlightedText
           text={title}
           ranges={dimmed ? undefined : titleRanges}
-          className="truncate text-sm min-w-0 flex-[0_1_auto]"
+          className={cn(
+            'truncate text-sm min-w-0 flex-[0_1_auto]',
+            unavailable && 'text-muted-foreground',
+          )}
         />
         <span className="flex-1" />
         {epic && epicColor && (
@@ -144,6 +154,12 @@ export function SearchResultRow({
             title={`${epic.key}: ${epic.name}`}
           >
             <span className="truncate">{epic.name}</span>
+          </span>
+        )}
+        {unavailable && (
+          // Status column: plain muted text, not a coloured pill (colour = Jira status only).
+          <span className="inline-flex min-w-[4.5rem] shrink-0 justify-center text-xs leading-4 text-muted-foreground">
+            No access
           </span>
         )}
         {statusName && (

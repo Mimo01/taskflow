@@ -527,6 +527,7 @@ export default function CommandPalette({
                           item={item}
                           entry={row.entry}
                           issue={row.issue}
+                          unavailable={row.unavailable}
                           mrTitle={
                             item.type === 'gitlab'
                               ? allMRs.find((mr) => recentMrMatches(item.id, mr))?.title

@@ -60,6 +60,7 @@ const mockRecentIssues = vi.hoisted(() => ({
   issues: new Map(),
   epicNames: new Map(),
   epicLinkFieldKey: 'customfield_10014',
+  missing: new Set<string>(),
   isLoading: false,
 }));
 vi.mock('@/hooks/useRecentIssues', () => ({
