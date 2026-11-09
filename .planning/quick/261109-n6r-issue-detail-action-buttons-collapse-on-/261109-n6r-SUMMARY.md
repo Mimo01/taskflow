@@ -11,4 +11,4 @@ Issue detail action row is now its own `@container`. Under 600px of row width, R
 - `IssueDetailContent.tsx`: `COMPACT_ACTION_CLASS` (`w-7 px-0 @[600px]:w-auto @[600px]:px-2.5`) + `COMPACT_LABEL_CLASS` (`sr-only @[600px]:not-sr-only`); Edit/Clone gained titles.
 - `LogWorkPopover.tsx`: optional `triggerClassName`, `triggerLabelClassName`; trigger has `title`. WorklogCellPopover usage unchanged.
 
-Verification: tsc clean, biome clean on touched files, full vitest suite (pre-commit) 4534 passed. Executed inline (no planner/executor subagents — single-file trivial change). Not visually screenshotted — needs UAT at narrow widths; 600px breakpoint is an estimate of full-label row width.
+Verification: tsc clean, biome clean on touched files, full vitest suite (pre-commit) 4534 passed. Executed inline (no planner/executor subagents — single-file trivial change). UAT: approved by user 2026-11-09 (600px breakpoint kept).
