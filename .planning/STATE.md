@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-08-13)
 Phase: 94
 Plan: Not started
 Status: Milestone complete
-Last activity: 2026-11-09 - Completed quick task 261109-mmg: issue detail refresh button
+Last activity: 2026-11-09 - Completed quick task 261109-n6r: issue detail action buttons collapse on small screens
 
 ## Performance Metrics
 
@@ -213,6 +213,7 @@ None yet.
 | 261102-euc | Release detail: filter tasks by MR label (click label pill) | 2026-11-02 | 31b4d7d0 | Verified (inline) | [261102-euc-on-release-detail-filter-tasks-based-on-](./quick/261102-euc-on-release-detail-filter-tasks-based-on-/) |
 | 261102-fy2 | Standup notes: density/text-size pass + status pill + SP + time bar on Today rows, My Tasks layout (not Yesterday) | 2026-11-02 | cb81f97b | Verified (UAT) | [261102-fy2-polish-standup-notes-page-density-text-s](./quick/261102-fy2-polish-standup-notes-page-density-text-s/) |
 | 261102-gqt | Standup notes: resizable Yesterday/Today divider (drag + arrow keys, persisted, dbl-click resets 50/50) | 2026-11-02 | be93f5b2 | Verified (UAT) | [261102-gqt-make-the-divider-in-standup-notes-page-r](./quick/261102-gqt-make-the-divider-in-standup-notes-page-r/) |
+| 261109-n6r | Issue detail action row collapses on narrow widths: row is @container; <600px Refresh/Pin/Log Work/Edit/Clone become square icon buttons (sr-only label + title); Open in Jira keeps full label | 2026-11-09 | fb7a6b21 | | [261109-n6r-issue-detail-action-buttons-collapse-on-](./quick/261109-n6r-issue-detail-action-buttons-collapse-on-/) |
 
 ## Deferred Items
 
