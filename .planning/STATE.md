@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-08-13)
 Phase: 94
 Plan: Not started
 Status: Milestone complete
-Last activity: 2026-11-09 - Completed quick task 261109-lg8: nice info page for issues that can't be opened
+Last activity: 2026-11-09 - Completed quick task 261109-mmg: issue detail refresh button
 
 ## Performance Metrics
 
@@ -271,6 +271,7 @@ Acknowledged and deferred at v1.14 milestone close (2026-08-13) — 111 open art
 | 261109-jzm | My Tasks rows: dropped rounded-md from story + subtask row containers so peek selection/hover are straight-edged like other lists | 2026-11-09 | 4c8ed6f9 | Approved | [261109-jzm-remove-rounded-selection-on-my-tasks-sto](./quick/261109-jzm-remove-rounded-selection-on-my-tasks-sto/) |
 | 261109-kt6 | Standup Notes: Yesterday activity headers + Today In Progress/Up Next rows highlight the peeked issue (useIsPeeked + PEEKED_ROW_CLASS), square-edged | 2026-11-09 | 1e2461a9 | Approved | [261109-kt6-highlight-peeked-task-in-standup-notes-m](./quick/261109-kt6-highlight-peeked-task-in-standup-notes-m/) |
 | 261109-lg8 | Issue unavailable panel: 401/403/404 show "You can't view KEY", Open in Jira / Copy key / Try again; fetchIssueDetail keeps status, no retry on 4xx; Recent items mark no-access issues (lock + "No access") | 2026-11-09 | b5bce9f3 | Approved | [261109-lg8-nice-info-page-for-issues-that-can-t-be-](./quick/261109-lg8-nice-info-page-for-issues-that-can-t-be-/) |
+| 261109-mmg | Issue detail Refresh button (left of Pin, full page + peek): ReleaseHeader/CycleHeader icon style, spins while refreshing; refreshIssueDetail invalidates issue first, then comments/changelog/worklogs/subtasks/parent/epic/transitions/AIO/linked MRs | 2026-11-09 | 16941d35 | Needs Review | [261109-mmg-issue-detail-refresh-button](./quick/261109-mmg-issue-detail-refresh-button/) |
 
 ## Session Continuity
 
