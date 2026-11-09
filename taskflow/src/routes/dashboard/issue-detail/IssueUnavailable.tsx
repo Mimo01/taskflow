@@ -44,9 +44,14 @@ export function IssueUnavailable({
   };
 
   const Icon = unavailable ? Lock : AlertCircle;
+  // Jira's own reason leads when present; the hint covers what Jira won't say
+  // (it answers "no permission" for deleted/non-existent keys too).
+  const jiraReason = info.jiraMessages.join(' ');
   const explanation = unavailable
-    ? `You may not have permission to see it, it may have been deleted or moved, or the key may be wrong.${info.status === 401 ? ' Your Jira session may also have expired.' : ''}`
-    : "Jira didn't respond as expected. Check your connection and try again.";
+    ? jiraReason
+      ? `${jiraReason} It may also have been deleted or moved, or the key may be wrong.`
+      : `You may not have permission to see it, it may have been deleted or moved, or the key may be wrong.${info.status === 401 ? ' Your Jira session may also have expired.' : ''}`
+    : jiraReason || "Jira didn't respond as expected. Check your connection and try again.";
 
   const openButton = jiraBaseUrl ? (
     <Button
@@ -86,15 +91,7 @@ export function IssueUnavailable({
           {unavailable ? "You can't view " : "Couldn't load "}
           <span className="font-mono">{issueKey}</span>
         </h2>
-        <p className="mt-1 text-sm text-muted-foreground">{explanation}</p>
-        {info.jiraMessages.map((m) => (
-          <p
-            key={m}
-            className="mt-2 text-xs text-muted-foreground/70 before:content-['“'] after:content-['”']"
-          >
-            {m}
-          </p>
-        ))}
+        <p className="mt-1 text-balance text-sm text-muted-foreground">{explanation}</p>
         <div className="mt-4 flex flex-wrap justify-center gap-2">
           {unavailable
             ? [openButton, copyButton, retryButton]
