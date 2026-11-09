@@ -27,3 +27,9 @@ One-liner: Issue detail now shows a centred "You can't view KEY" / "Couldn't loa
 None.
 
 ## Self-Check: PASSED
+
+## Follow-ups (inline, after UAT)
+
+- 352c77d3: shared readJiraErrorMessages helper in jira.ts; issue key shown once.
+- 8a13e4b5 → bb6c6b09: panel polish rounds. Final: first-design generic explanation, Jira's errorMessages NOT shown, title text-base (matches EmptyState).
+- Recent items: useRecentIssues reports keys the batch search omitted (`missing`); those rows render a lock icon, muted title and a plain "No access" label in the status column (SearchResultRow `unavailable`).
