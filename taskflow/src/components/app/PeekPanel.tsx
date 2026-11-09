@@ -25,6 +25,7 @@ import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
 import { useResizable } from '@/hooks/useResizable';
 import type { EditInitialValues } from '@/routes/dashboard/CreateEditIssueModal';
 import { IssueDetailView } from '@/routes/dashboard/IssueDetailView';
+import { getIssueUnavailableInfo } from '@/routes/dashboard/issue-detail/unavailable-info';
 import { fetchIssueDetail } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
@@ -95,6 +96,7 @@ export function PeekPanel({
       });
     },
     staleTime: 30_000,
+    retry: (count, err) => getIssueUnavailableInfo(err).kind === 'error' && count < 1,
     enabled: !!issueKey && !!jiraBaseUrl && !!jiraConnected,
   });
 

@@ -45,8 +45,10 @@ import { IssueDetailSidebar } from './IssueDetailSidebar';
 import { ActivityTimeline } from './issue-detail/ActivityTimeline';
 import { AioTestRunsSection } from './issue-detail/AioTestRunsSection';
 import { CommentsSkeleton } from './issue-detail/CommentsSkeleton';
+import { IssueUnavailable } from './issue-detail/IssueUnavailable';
 import { LinkedIssuesSection } from './issue-detail/LinkedIssuesSection';
 import { MergeRequestsSection } from './issue-detail/MergeRequestsSection';
+import { getIssueUnavailableInfo } from './issue-detail/unavailable-info';
 import { useLinkedMRs } from './issue-detail/useLinkedMRs';
 import type { AttachmentMap, UserMap } from './WikiRenderer';
 import { WikiRenderer } from './WikiRenderer';
@@ -109,7 +111,13 @@ export function IssueDetailView({
   const mr = useLinkedMRs(issueKey);
 
   // Fetch issue detail — same query key as IssueDetailPage (cache-sharing, RESEARCH Pitfall 4)
-  const { data: issue, isLoading } = useQuery({
+  const {
+    data: issue,
+    isLoading,
+    error: issueError,
+    isFetching: issueFetching,
+    refetch: refetchIssue,
+  } = useQuery({
     queryKey: ['jira-issue-detail', issueKey, jiraBaseUrl],
     queryFn: async () => {
       const token = await readSecret('jira-pat').catch(() => null);
@@ -123,6 +131,7 @@ export function IssueDetailView({
       });
     },
     staleTime: 30_000,
+    retry: (count, err) => getIssueUnavailableInfo(err).kind === 'error' && count < 1,
     enabled: !!issueKey && !!jiraBaseUrl && !!jiraConnected,
   });
 
@@ -658,17 +667,13 @@ export function IssueDetailView({
       return <IssueDetailSkeleton />;
     }
     return (
-      <div className="p-6">
-        <ErrorState
-          error={new Error('Failed to load issue')}
-          onRetry={() =>
-            void queryClient.invalidateQueries({
-              queryKey: ['jira-issue-detail', issueKey, jiraBaseUrl],
-            })
-          }
-          viewName="issue"
-        />
-      </div>
+      <IssueUnavailable
+        issueKey={issueKey ?? ''}
+        jiraBaseUrl={jiraBaseUrl ?? ''}
+        error={issueError}
+        onRetry={() => void refetchIssue()}
+        retrying={issueFetching}
+      />
     );
   }
 
