@@ -17,7 +17,10 @@ import {
   PlusCircle,
 } from 'lucide-react';
 import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
+import { PEEKED_ROW_CLASS } from '@/lib/peek-highlight';
 import { statusPillClass } from '@/lib/statusStyles';
+import { cn } from '@/lib/utils';
+import { useIsPeeked } from '@/stores/peek.store';
 
 export type SubItemKind =
   | 'worklog'
@@ -216,12 +219,20 @@ function ActivityGroupHeader({
   onBodyClick?: () => void;
   onKeyClick?: () => void;
 }) {
+  const isPeeked = useIsPeeked(issueKey);
   return (
-    <div className="relative flex w-full items-center gap-2 rounded px-2 py-1.5 density-compact:py-1 density-comfortable:py-2.5 hover:bg-muted/50 focus-within:bg-muted/50">
+    <div
+      className={cn(
+        'relative flex w-full items-center gap-2 px-2 py-1.5 density-compact:py-1 density-comfortable:py-2.5 hover:bg-muted/50',
+        // focus-within outranks the plain peek tint; the overlay keeps focus after a click
+        isPeeked ? PEEKED_ROW_CLASS : 'focus-within:bg-muted/50',
+      )}
+      data-peeked={isPeeked ? 'true' : undefined}
+    >
       <button
         type="button"
         aria-label={`Open ${issueKey} ${summary}`}
-        className="absolute inset-0 rounded cursor-pointer focus-visible:ring-2 focus-visible:ring-ring"
+        className="absolute inset-0 cursor-pointer focus-visible:ring-2 focus-visible:ring-ring"
         onClick={onBodyClick}
       />
       <IssueTypeIcon

@@ -25,10 +25,12 @@ import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { doneSummaryClass } from '@/lib/issueDisplayUtils';
+import { PEEKED_ROW_CLASS } from '@/lib/peek-highlight';
 import { statusPillClass } from '@/lib/statusStyles';
 import { timeBarIssues } from '@/lib/time-bar';
 import { cn } from '@/lib/utils';
 import type { JiraIssue } from '@/services/jira';
+import { useIsPeeked } from '@/stores/peek.store';
 import type { SprintRow } from './filterSprintItems';
 import type { NestedMr } from './mrMatching';
 import StandupSectionHeader from './StandupSectionHeader';
@@ -96,6 +98,7 @@ function IssueRow({
   const rawSp = issue.fields[storyPointsFieldKey];
   const sp = typeof rawSp === 'number' ? rawSp : null;
 
+  const isPeeked = useIsPeeked(key);
   const handleBody = () => (onOpenIssue ?? onIssueClick)(key);
 
   return (
@@ -104,7 +107,11 @@ function IssueRow({
       <div
         role="button"
         tabIndex={0}
-        className="w-full flex items-center gap-2 rounded px-2 py-1.5 density-compact:py-1 density-comfortable:py-2.5 text-left hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+        className={cn(
+          'w-full flex items-center gap-2 px-2 py-1.5 density-compact:py-1 density-comfortable:py-2.5 text-left hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring cursor-pointer',
+          isPeeked && PEEKED_ROW_CLASS,
+        )}
+        data-peeked={isPeeked ? 'true' : undefined}
         onClick={handleBody}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
