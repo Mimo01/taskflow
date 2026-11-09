@@ -399,16 +399,18 @@ export function IssueDetailContent({
       {/* Refresh + Pin + Edit + Log Work + Open in Jira + Copy Jira link */}
       <div className="flex items-center justify-end gap-2">
         {onRefresh && (
-          <button
-            type="button"
+          <Button
+            variant="outline"
+            size="sm"
             onClick={onRefresh}
             disabled={refreshing}
             aria-label="Refresh issue"
             title="Refresh issue"
-            className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
+            className="gap-1.5 text-xs"
           >
-            <RefreshCw className={refreshing ? 'size-3 animate-spin' : 'size-3'} />
-          </button>
+            <RefreshCw className={cn('size-3.5', refreshing && 'animate-spin')} />
+            Refresh
+          </Button>
         )}
         <Button
           variant="outline"
