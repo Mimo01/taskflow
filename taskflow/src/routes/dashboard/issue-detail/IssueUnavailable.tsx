@@ -45,10 +45,8 @@ export function IssueUnavailable({
 
   const Icon = unavailable ? Lock : AlertCircle;
   const explanation = unavailable
-    ? info.status === 401
-      ? 'Your Jira session may have expired.'
-      : "You don't have access, or it no longer exists."
-    : 'Check your connection and try again.';
+    ? `You may not have permission to see it, it may have been deleted or moved, or the key may be wrong.${info.status === 401 ? ' Your Jira session may also have expired.' : ''}`
+    : "Jira didn't respond as expected. Check your connection and try again.";
 
   const openButton = jiraBaseUrl ? (
     <Button
@@ -88,7 +86,7 @@ export function IssueUnavailable({
           {unavailable ? "You can't view " : "Couldn't load "}
           <span className="font-mono">{issueKey}</span>
         </h2>
-        <p className="mt-1 text-balance text-sm text-muted-foreground">{explanation}</p>
+        <p className="mt-1 text-sm text-muted-foreground">{explanation}</p>
         <div className="mt-4 flex flex-wrap justify-center gap-2">
           {unavailable
             ? [openButton, copyButton, retryButton]

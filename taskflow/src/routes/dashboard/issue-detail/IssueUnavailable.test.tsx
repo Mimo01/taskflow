@@ -47,7 +47,8 @@ describe('IssueUnavailable', () => {
       />,
     );
     expect(screen.getByRole('heading', { name: "You can't view ABC-123" })).toBeInTheDocument();
-    expect(screen.getByText("You don't have access, or it no longer exists.")).toBeInTheDocument();
+    expect(screen.getByText(/permission to see it/)).toBeInTheDocument();
+    expect(screen.queryByText(MSG)).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /Open in Jira/ }));
     expect(openExternal).toHaveBeenCalledWith('https://jira.example.com/browse/ABC-123');
