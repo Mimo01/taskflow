@@ -170,6 +170,15 @@ export function isSystemNote(item: NotificationItem): boolean {
 
 const LIST_RE = /^([^:\n]+):\s*(.*)$/;
 
+/** "a, b" -> "+a +b": one signed token per label so each renders as its own chip. */
+function prefixList(sign: string, value: string): string {
+  return value
+    .split(/,\s*/)
+    .filter(Boolean)
+    .map((v) => `${sign}${v.replace(/\s+/g, '\u00A0')}`)
+    .join(' ');
+}
+
 /** Parse one line produced by the service's parseSystemNote into a change line. */
 export function parseGitlabSystemLine(raw: string): ChangeLine | null {
   const line = raw.trim();
@@ -193,9 +202,9 @@ export function parseGitlabSystemLine(raw: string): ChangeLine | null {
     case 'review removed':
       return { field: 'review', text: `\u2212${value}`, action: 'unreview' };
     case 'labels added':
-      return { field: 'labels', text: `+${value}`, action: 'labels' };
+      return { field: 'labels', text: prefixList('+', value), action: 'labels' };
     case 'labels removed':
-      return { field: 'labels', text: `\u2212${value}`, action: 'labels' };
+      return { field: 'labels', text: prefixList('\u2212', value), action: 'labels' };
     case 'assigned':
       return { field: 'assignee', to: value, action: 'assignee' };
     case 'unassigned':
@@ -341,8 +350,14 @@ function changesParts(actor: string | undefined, changes: ChangeLine[]): EventPa
   }
   if (changes.length === 1) {
     const first = changes[0];
+    // Value-less events ("merged", "marked as draft") are the phrase itself; "edited" reads as a verb.
+    const phraseOnly = !first.from && !first.to && !first.text;
     return {
-      verb: isStateAction(first) ? first.field : `changed ${first.field}`,
+      verb: phraseOnly
+        ? first.field
+        : first.text === 'edited'
+          ? `edited ${first.field}`
+          : `changed ${first.field}`,
       actor,
       snippet: '',
       changes,
@@ -584,8 +599,7 @@ export function describeEntryParts(items: NotificationItem[]): EventParts {
   const promoted = items.some(isMention);
   return {
     ...latest,
-    verb: promoted ? 'mentioned you' : `commented ${n} times`,
-    verbSuffix: promoted ? `${n} comments` : undefined,
+    verb: promoted ? `mentioned you in ${n} comments` : `commented ${n} times`,
     promoted,
     count: n,
     comments: items.map((i) => ({

@@ -357,7 +357,7 @@ describe('GitLab system notes', () => {
       ['State: closed \u2192 reopened', { field: 'reopened', action: 'reopened' }],
       ['Review requested: ana, ben', { field: 'review', to: 'ana, ben', action: 'review' }],
       ['Review removed: ana', { field: 'review', text: '\u2212ana', action: 'unreview' }],
-      ['Labels added: x, y', { field: 'labels', text: '+x, y', action: 'labels' }],
+      ['Labels added: x, y', { field: 'labels', text: '+x +y', action: 'labels' }],
       ['Labels removed: x', { field: 'labels', text: '\u2212x', action: 'labels' }],
       ['Assigned: ana', { field: 'assignee', to: 'ana', action: 'assignee' }],
       ['Unassigned: ana', { field: 'assignee', text: '\u2212ana', action: 'unassigned' }],
@@ -564,7 +564,7 @@ describe('merging', () => {
       com('c2', 'PROJ-1', 'Ben', 8, 10, 'comment-mention'),
     ])[0];
     const p = describeEntryParts((e as { items: NotificationItem[] }).items);
-    expect(p).toMatchObject({ verb: 'mentioned you', verbSuffix: '2 comments', promoted: true });
+    expect(p).toMatchObject({ verb: 'mentioned you in 2 comments', promoted: true });
     expect(p.comments?.map((c) => c.mention)).toEqual([true, false]);
     expect(eventStyleFor((e as { item: NotificationItem }).item, p).kind).toBe('mention');
   });

@@ -103,7 +103,7 @@ describe('NotificationRow', () => {
     });
     const line = container.querySelector('[data-line="detail"]') as HTMLElement;
     expect(line.dataset.detail).toBe('changes');
-    expect(line.textContent).toBe('Jane Smith priority Minor \u2192 Major');
+    expect(line.textContent).toBe('Jane Smith changed priority Minor \u2192 Major');
     unmount();
     const multi = setup({
       item: makeItem('jira', {
@@ -132,7 +132,7 @@ describe('NotificationRow', () => {
       }),
     });
     expect(container.querySelector('[data-line="detail"]')?.textContent).toBe(
-      'Jane Smith description edited',
+      'Jane Smith edited description',
     );
   });
 
@@ -215,7 +215,7 @@ describe('NotificationRow', () => {
       }),
     });
     expect(due.container.querySelector('[data-avatar-tile="due"]')).not.toBeNull();
-    expect(due.container.querySelector('[data-line="detail"]')?.textContent).toBe('due tomorrow');
+    expect(due.container.querySelector('[data-line="detail"]')?.textContent).toBe('Due tomorrow');
   });
 
   it('renders the verb in the event colour', () => {
@@ -231,7 +231,7 @@ describe('NotificationRow', () => {
       }),
     });
     expect(container.querySelector('[data-line="detail"]')?.textContent).toBe(
-      'Jane Smith status To Do \u2192 In Review',
+      'Jane Smith changed status To Do \u2192 In Review',
     );
     expect(screen.getByText('To Do').className).toContain('rounded');
     expect(screen.getByText('To Do')).toBeInTheDocument();
@@ -348,7 +348,7 @@ describe('NotificationRow', () => {
       }),
     });
     expect(container.querySelector('[data-line="detail"]')?.textContent).toBe(
-      'pipeline failed #4821 on feature/burnup',
+      'Pipeline failed #4821 on feature/burnup',
     );
   });
 
@@ -391,9 +391,9 @@ describe('NotificationRow', () => {
       ['State: opened \u2192 merged', 'merged', 'merged'],
       ['State: opened \u2192 closed', 'closed', 'closed'],
       ['State: closed \u2192 reopened', 'reopened', 'reopened'],
-      ['Review requested: ana, ben', 'review', 'review \u2192 ana, ben'],
-      ['Labels added: x, y', 'labels', 'labels +x, y'],
-      ['Target branch: a \u2192 b', 'branch', 'target branch a \u2192 b'],
+      ['Review requested: ana, ben', 'review', 'changed review \u2192 ana, ben'],
+      ['Labels added: x, y', 'labels', 'changed labels +x +y'],
+      ['Target branch: a \u2192 b', 'branch', 'changed target branch a \u2192 b'],
       ['Labels added: x\nMilestone: v1', 'multi', 'updated 2 fields'],
     ];
     for (const [body, kind, line] of cases) {
@@ -451,9 +451,9 @@ describe('NotificationRow', () => {
       const rows = [...container.querySelectorAll('[data-change-row]')];
       expect(rows).toHaveLength(3);
       expect(rows.map((r) => r.textContent)).toEqual([
-        'statusTo Do\u2192In Progress',
-        'assigneeBen\u2192Cara',
-        'priorityMinor\u2192Major',
+        'statusTo Do \u2192 In Progress',
+        'assigneeBen \u2192 Cara',
+        'priorityMinor \u2192 Major',
       ]);
       expect(container.querySelector('[data-change-more]')?.textContent).toBe('+3 more changes');
       expect(screen.getByText('To Do').className).toContain('rounded');
@@ -515,7 +515,7 @@ describe('NotificationRow', () => {
       const { container } = setup({ item: withMention[0], items: withMention });
       expect(container.querySelector('[data-event-badge="mention"]')).not.toBeNull();
       expect(container.querySelector('[data-line="detail"]')?.textContent).toContain(
-        'mentioned you3 comments',
+        'Ben Carter mentioned you in 3 comments',
       );
     });
 
@@ -554,7 +554,7 @@ describe('NotificationRow', () => {
       }),
     });
     const pill = screen.getByText('In Review');
-    expect(pill.className).toContain('py-0.5');
+    expect(pill.className).toContain('h-4');
     expect(pill.className).toContain('px-1.5');
     expect(container.querySelector('[data-line="detail"]')?.className).toContain('h-5');
   });
@@ -563,5 +563,88 @@ describe('NotificationRow', () => {
     const { container } = setup();
     const slot = container.querySelector('[data-event-kind] > div');
     expect(slot?.className).toContain('[&>*]:size-full!');
+  });
+
+  describe('consistent card grammar', () => {
+    const issue = (body: string) =>
+      makeItem('jira', { notificationType: 'issue-update', bodyPreview: body });
+
+    it('uses the same ValueChange renderer inline (single change) and in list rows', () => {
+      const single = setup({ item: issue('Priority: Minor \u2192 Major') });
+      const inline = single.container.querySelector('[data-line="detail"] [data-value-change]');
+      expect(inline?.textContent).toBe('Minor \u2192 Major');
+      single.unmount();
+      const multi = setup({ item: issue('Priority: Minor \u2192 Major\nSprint: S12 \u2192 S13') });
+      const rows = multi.container.querySelectorAll('[data-change-row] [data-value-change]');
+      expect(rows).toHaveLength(2);
+      expect(rows[0].textContent).toBe('Minor \u2192 Major');
+      expect(rows[0].className).toBe(inline?.className);
+    });
+
+    it('status pills and label chips share one chip geometry, inline and in lists', () => {
+      const a = setup({ item: issue('Status: To Do \u2192 In Review') });
+      const pills = [...a.container.querySelectorAll('[data-chip]')];
+      a.unmount();
+      const b = setup({ item: issue('Status: To Do \u2192 Done\nLabels: a \u2192 a perf') });
+      const all = [...pills, ...b.container.querySelectorAll('[data-chip]')];
+      expect(all.length).toBeGreaterThanOrEqual(5);
+      for (const chip of all) {
+        for (const c of ['h-4', 'rounded', 'px-1.5', 'text-[11px]', 'font-medium']) {
+          expect(chip.className).toContain(c);
+        }
+      }
+    });
+
+    it('change rows and comment rows share the list-row geometry and the more-row indent', () => {
+      const ch = setup({
+        item: issue('A: 1 \u2192 2\nB: 1 \u2192 2\nC: 1 \u2192 2\nD: 1 \u2192 2'),
+      });
+      const row = ch.container.querySelector('[data-change-row]') as HTMLElement;
+      const more = ch.container.querySelector('[data-change-more]') as HTMLElement;
+      expect(row.hasAttribute('data-list-row')).toBe(true);
+      expect(row.className).toContain('h-5');
+      expect(row.className).toContain('text-[11px]');
+      expect(more.className).toContain('pl-[1.125rem]');
+      ch.unmount();
+      const mk = (id: string, t: string) =>
+        makeItem('jira', { id, bodyPreview: t, createdAt: '2026-03-11T10:00:00.000Z' });
+      const list = [mk('c1', 'one'), mk('c2', 'two'), mk('c3', 'three'), mk('c4', 'four')];
+      const cm = setup({ item: list[0], items: list });
+      const crow = cm.container.querySelector('[data-comment-row]') as HTMLElement;
+      expect(crow.className).toBe(row.className);
+      expect(cm.container.querySelector('[data-comment-more]')?.className).toBe(more.className);
+    });
+
+    it('keeps the unread dot inside the card padding', () => {
+      const { container } = setup();
+      const dot = container.querySelector('[data-unread]') as HTMLElement;
+      expect(dot.className).toMatch(/(^|\s)left-1\.5(\s|$)/);
+      const card = container.querySelector('[data-card]') as HTMLElement;
+      expect(card.className).toContain('pl-4');
+    });
+
+    it('read vs unread only toggles tint, border, title style and dot visibility', () => {
+      const strip = (el: Element | null) =>
+        (el?.className ?? '')
+          .split(/\s+/)
+          .filter(
+            (c) =>
+              !/^(bg-primary|dark:bg-primary|bg-card|border-border|font-|text-foreground|text-muted-foreground|opacity-0)/.test(
+                c,
+              ),
+          )
+          .join(' ');
+      const unread = setup({ isUnread: true });
+      const u = {
+        card: strip(unread.container.querySelector('[data-card]')),
+        detail: unread.container.querySelector('[data-line="detail"]')?.outerHTML,
+        dot: strip(unread.container.querySelector('[data-unread]')),
+      };
+      unread.unmount();
+      const read = setup({ isUnread: false });
+      expect(strip(read.container.querySelector('[data-card]'))).toBe(u.card);
+      expect(read.container.querySelector('[data-line="detail"]')?.outerHTML).toBe(u.detail);
+      expect(strip(read.container.querySelector('[data-unread]'))).toBe(u.dot);
+    });
   });
 });

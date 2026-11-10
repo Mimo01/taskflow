@@ -4,7 +4,7 @@
  * Fixed pixel sizing (CachedAvatar / explicit size classes) so WebKit never
  * collapses the slot to 0 width.
  */
-import { CalendarClock, GitBranch } from 'lucide-react';
+import { CalendarClock, GitBranch, User } from 'lucide-react';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { cn } from '@/lib/utils';
 import type { NotificationItem } from '../../stores/notifications.store';
@@ -37,6 +37,15 @@ export default function NotificationAvatar({ item, style }: NotificationAvatarPr
         className="flex size-9 flex-none items-center justify-center rounded-lg bg-amber-500/15 density-compact:size-8 density-comfortable:size-10"
       >
         <CalendarClock aria-hidden="true" className="size-4 text-amber-600 dark:text-amber-400" />
+      </span>
+    );
+  } else if (!item.author?.trim() && !item.authorAvatarUrl) {
+    lead = (
+      <span
+        data-avatar-tile="anon"
+        className="flex size-9 flex-none items-center justify-center rounded-full bg-muted ring-1 ring-foreground/15 density-compact:size-8 density-comfortable:size-10"
+      >
+        <User aria-hidden="true" className="size-4 text-muted-foreground" />
       </span>
     );
   } else {

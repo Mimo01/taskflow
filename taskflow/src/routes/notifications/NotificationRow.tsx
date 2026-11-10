@@ -1,9 +1,29 @@
 /**
  * NotificationRow — a rounded notification card (Phase 95).
  *
- *   [avatar + action badge]  line 1: KEY  parent > title                       time
- *                            line 2: coloured action + comment / single change
- *                            lines 3+: change list (multi-field updates) or "+N earlier comments"
+ * STYLE CONTRACT (one rule per element; every card obeys it):
+ *  A. Skeleton: [unread-dot slot, inside the card padding, centred on line 1] [36px lead:
+ *     avatar circle or system tile, same box + badge position] [content column]. Content:
+ *     line 1 (key, parent > title, time), line 2, optional list. Line 2 and list rows start
+ *     at the same x as the key.
+ *  B. Line 2 grammar: Actor (foreground, medium) + action phrase (action colour, medium) +
+ *     optional detail = comment text (muted) or a value change. System events omit the actor.
+ *  C. Value changes use ONE component (ValueChange), inline for a single change and in every
+ *     list row: old (muted) -> new (foreground, medium); status = status pill; labels = chips.
+ *  D. Single change: "Cara changed priority  Minor -> Major"; several: "Cara updated 3 fields"
+ *     + list. Phrase = "changed <field>" (state events / description: "merged", "edited description").
+ *  E. List rows (changes + comments) share ListRow: 12px coloured icon, gap-1.5, h-5, 11px.
+ *     Change rows: field name column sized to the widest field in that card (<= 5.5rem).
+ *     Comment rows: text right after the icon. "+N more" rows align with the row text.
+ *  F. Chips (status pill, label chip) share CHIP_CLASS: h-4, rounded, px-1.5, 11px medium.
+ *  G. Type scale: title 12px; key, time, line 2, lists, chips 11px. Single ellipsis at the end
+ *     of whatever overflows; lines are h-5 so nothing clips vertically.
+ *  H. Read vs unread changes ONLY: title weight/colour, card tint + border, dot visibility.
+ *  I. Merged and single cards share the skeleton; merged only adds the list.
+ *  J. The hover tray sits in the time slot of line 1 (right-0, centred) in every card.
+ *  K. Densities scale padding / gaps / lead size; grammar is identical.
+ *  L. Key column: min-w 5rem (fits PROJ-1234 / !1234); longer keys extend, never wrap.
+ *
  * - One card may stand for several merged notifications (same actor, same entity, <= 60 min apart);
  *   read / done / open act on all of them.
  * - An absolute inset-0 overlay <button> is the primary target; the key and tray
@@ -22,7 +42,13 @@ import { cn } from '@/lib/utils';
 import { useIsPeeked } from '@/stores/peek.store';
 import type { NotificationItem } from '../../stores/notifications.store';
 import NotificationAvatar from './NotificationAvatar';
-import { ACTION_STYLE, EVENT_STYLE, MENTION_STYLE, UPDATE_STYLE } from './notification-colours';
+import {
+  ACTION_STYLE,
+  EVENT_STYLE,
+  type EventStyle,
+  MENTION_STYLE,
+  UPDATE_STYLE,
+} from './notification-colours';
 import {
   type ChangeLine,
   type CommentLine,
@@ -110,18 +136,35 @@ export function NotificationTrayButton({
   );
 }
 
-/* ── line 2 ─────────────────────────────────────────── */
+/* ── chips, value changes, list rows ────────────────── */
+
+/** ONE chip geometry for every pill / tag (status, label); only colour differs. */
+export const CHIP_CLASS =
+  'inline-flex h-4 items-center whitespace-nowrap rounded px-1.5 align-middle text-[11px] font-medium leading-none';
 
 function StatusPill({ name }: { name: string }) {
   return (
     <span
-      className={cn(
-        'inline-flex items-center whitespace-nowrap rounded px-1.5 py-0.5 leading-none',
-        statusCategoryBadgeClass(statusCategoryGuess(name)),
-      )}
+      data-chip="status"
+      className={cn(CHIP_CLASS, statusCategoryBadgeClass(statusCategoryGuess(name)))}
     >
       {name}
     </span>
+  );
+}
+
+function LabelChips({ text }: { text: string }) {
+  return (
+    <>
+      {text.split(' ').map((tok, i) => (
+        <span key={tok}>
+          {i > 0 ? ' ' : null}
+          <span data-chip="label" className={cn(CHIP_CLASS, 'bg-foreground/10 text-foreground')}>
+            {tok}
+          </span>
+        </span>
+      ))}
+    </>
   );
 }
 
@@ -131,72 +174,66 @@ const ARROW = (
   </span>
 );
 
-function Value({ field, name }: { field: string; name: string }) {
-  if (field === 'status') return <StatusPill name={name} />;
-  return <span className="text-foreground">{name}</span>;
-}
-
-/** One change inline: coloured field label, then "old → new" / preformatted text. */
-function ChangeInline({ change }: { change: ChangeLine }) {
-  const colour = (change.action ? ACTION_STYLE[change.action] : UPDATE_STYLE).text;
-  let tail: ReactNode = null;
+/**
+ * THE value-change renderer: old (muted) -> new (foreground, medium). Used inline on line 2
+ * (single change) and in every change-list row. Inline-level only, so one ellipsis ends the line.
+ */
+export function ValueChange({ change }: { change: ChangeLine }) {
   if (change.text) {
-    tail = <span className="text-foreground">{change.text}</span>;
-  } else if (change.from || change.to) {
-    tail = (
-      <>
-        {change.from ? <Value field={change.field} name={change.from} /> : null}
-        {change.from ? ' ' : null}
-        {ARROW}{' '}
-        {change.to ? (
-          <Value field={change.field} name={change.to} />
-        ) : (
-          <span className="text-muted-foreground">none</span>
-        )}
-      </>
+    if (change.field === 'labels') return <LabelChips text={change.text} />;
+    return change.text === 'edited' ? (
+      <span className="text-muted-foreground">{change.text}</span>
+    ) : (
+      <span className="font-medium text-foreground">{change.text}</span>
     );
   }
+  if (!change.from && !change.to) return null;
+  const status = change.field === 'status';
   return (
-    <>
-      <span className={cn('font-medium', colour)}>{change.field}</span>
-      {tail ? <> {tail}</> : null}
-    </>
+    <span data-value-change>
+      {change.from ? (
+        <>
+          {status ? (
+            <StatusPill name={change.from} />
+          ) : (
+            <span className="text-muted-foreground">{change.from}</span>
+          )}{' '}
+        </>
+      ) : null}
+      {ARROW}{' '}
+      {change.to ? (
+        status ? (
+          <StatusPill name={change.to} />
+        ) : (
+          <span className="font-medium text-foreground">{change.to}</span>
+        )
+      ) : (
+        <span className="text-muted-foreground">none</span>
+      )}
+    </span>
   );
 }
 
-/** Line 2: one truncating block of inline runs, so a single ellipsis ends the whole line. */
+/** Whether a change has something to show after its phrase ("merged", "edited description" do not). */
+function hasValue(c: ChangeLine): boolean {
+  return c.text !== 'edited' && Boolean(c.text || c.from || c.to);
+}
+
+/** Line 2: Actor + coloured action phrase + optional detail; one truncating block, one ellipsis. */
 export function NotificationDetailLine({
   parts,
   colour,
-  unread,
   actor,
 }: {
   parts: EventParts;
   colour: string;
-  unread: boolean;
   /** Who did it (full display name); omitted for system events (pipeline, due). */
   actor?: string;
 }) {
-  let content: ReactNode;
-  let kind: string;
-  if (parts.changes && parts.changes.length === 1) {
-    kind = 'changes';
-    content = <ChangeInline change={parts.changes[0]} />;
-  } else {
-    const text = parts.commentText || parts.detail;
-    kind = parts.commentText ? 'comment' : parts.detail ? 'text' : 'verb';
-    content = (
-      <>
-        <span className={cn('font-medium', colour, !unread && 'opacity-80')}>{parts.verb}</span>
-        {parts.verbSuffix ? (
-          <span className="mx-1 rounded bg-foreground/10 px-1 text-foreground/80">
-            {parts.verbSuffix}
-          </span>
-        ) : null}
-        {text && !parts.comments ? <span className="text-muted-foreground"> {text}</span> : null}
-      </>
-    );
-  }
+  const single = parts.changes && parts.changes.length === 1 ? parts.changes[0] : null;
+  const kind = single ? 'changes' : parts.commentText ? 'comment' : parts.detail ? 'text' : 'verb';
+  const text = parts.commentText || parts.detail;
+  const verb = actor ? parts.verb : parts.verb.charAt(0).toUpperCase() + parts.verb.slice(1);
   return (
     <span
       data-line="detail"
@@ -208,122 +245,126 @@ export function NotificationDetailLine({
           {actor}{' '}
         </span>
       ) : null}
-      {content}
+      <span className={cn('font-medium', colour)}>{verb}</span>
+      {single && hasValue(single) ? (
+        <>
+          {' '}
+          <ValueChange change={single} />
+        </>
+      ) : !single && text && !parts.comments ? (
+        <span className="text-muted-foreground"> {text}</span>
+      ) : null}
     </span>
   );
 }
 
 export const MAX_LISTED_CHANGES = 3;
 
-function LabelChips({ text }: { text: string }) {
+/** ONE list-row geometry for change AND comment lists: 12px icon, optional field column, value. */
+function ListRow({
+  rowAttr,
+  Icon,
+  iconClass,
+  label,
+  labelWidth,
+  children,
+}: {
+  rowAttr: string;
+  Icon: EventStyle['Icon'];
+  iconClass: string;
+  label?: string;
+  labelWidth?: string;
+  children: ReactNode;
+}) {
   return (
-    <>
-      {text.split(' ').map((tok) => (
-        <span key={tok} className="rounded bg-foreground/10 px-1 text-foreground">
-          {tok}
+    <li
+      {...{ [rowAttr]: true }}
+      data-list-row
+      className="flex h-5 items-center gap-1.5 text-[11px] leading-5"
+    >
+      <Icon aria-hidden="true" className={cn('size-3 flex-none', iconClass)} />
+      {label != null ? (
+        <span
+          data-list-field
+          style={{ width: labelWidth }}
+          className="flex-none truncate text-muted-foreground"
+        >
+          {label}
         </span>
-      ))}
-    </>
+      ) : null}
+      <span data-list-value className="min-w-0 flex-1 truncate">
+        {children}
+      </span>
+    </li>
   );
 }
 
-function ChangeValue({ change }: { change: ChangeLine }) {
-  if (change.text) {
-    return change.field === 'labels' ? (
-      <LabelChips text={change.text} />
-    ) : (
-      <span className="font-medium text-foreground">{change.text}</span>
-    );
-  }
+function MoreRow({ attr, text }: { attr: string; text: string }) {
   return (
-    <>
-      {change.from ? (
-        <>
-          {change.field === 'status' ? (
-            <StatusPill name={change.from} />
-          ) : (
-            <span className="truncate text-muted-foreground">{change.from}</span>
-          )}
-          {ARROW}
-        </>
-      ) : (
-        ARROW
-      )}
-      {change.to ? (
-        change.field === 'status' ? (
-          <StatusPill name={change.to} />
-        ) : (
-          <span className="truncate font-medium text-foreground">{change.to}</span>
-        )
-      ) : (
-        <span className="text-muted-foreground">none</span>
-      )}
-    </>
+    <li
+      {...{ [attr]: true }}
+      data-list-more
+      className="h-5 pl-[1.125rem] text-[11px] leading-5 text-muted-foreground"
+    >
+      {text}
+    </li>
   );
 }
 
-/** Compact change list for multi-field updates: icon, fixed-width field name, old → new; max 3 + "+N more". */
+const LIST_CLASS = 'pointer-events-none relative mt-1 flex flex-col gap-1';
+
+/** Compact change list for multi-field updates: icon, field column (widest field in the card, <= 5.5rem), value change. */
 export function NotificationChangeList({ changes }: { changes: ChangeLine[] }) {
   const shown = changes.slice(0, MAX_LISTED_CHANGES);
   const hidden = changes.length - shown.length;
+  const widest = Math.max(...shown.map((c) => c.field.length));
+  const labelWidth = `min(5.5rem, ${widest + 1}ch)`;
   return (
-    <ul data-change-list className="pointer-events-none relative mt-1 flex flex-col gap-1">
+    <ul data-change-list className={LIST_CLASS}>
       {shown.map((c) => {
         const style = c.action ? ACTION_STYLE[c.action] : UPDATE_STYLE;
-        const Icon = style.Icon;
         return (
-          <li
+          <ListRow
             key={`${c.field}|${c.action ?? ''}|${c.text ?? c.to ?? ''}`}
-            data-change-row
-            className="flex h-5 items-center gap-1.5 text-[11px] leading-5"
+            rowAttr="data-change-row"
+            Icon={style.Icon}
+            iconClass={style.text}
+            label={c.field}
+            labelWidth={labelWidth}
           >
-            <Icon aria-hidden="true" className={cn('size-3 flex-none', style.text)} />
-            <span className="w-[6.5rem] flex-none truncate text-muted-foreground">{c.field}</span>
-            <span className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden whitespace-nowrap">
-              <ChangeValue change={c} />
-            </span>
-          </li>
+            <ValueChange change={c} />
+          </ListRow>
         );
       })}
       {hidden > 0 ? (
-        <li
-          data-change-more
-          className="h-5 pl-[1.125rem] text-[11px] leading-5 text-muted-foreground"
-        >
-          +{hidden} more change{hidden === 1 ? '' : 's'}
-        </li>
+        <MoreRow
+          attr="data-change-more"
+          text={`+${hidden} more change${hidden === 1 ? '' : 's'}`}
+        />
       ) : null}
     </ul>
   );
 }
 
-/** Merged conversation: one line per comment (icon, text), newest first; max 3 + "+N more". */
+/** Merged conversation: one row per comment (icon, text), newest first; max 3 + "+N more". */
 export function NotificationCommentList({ comments }: { comments: CommentLine[] }) {
   const shown = comments.slice(0, MAX_LISTED_CHANGES);
   const hidden = comments.length - shown.length;
   return (
-    <ul data-comment-list className="pointer-events-none relative mt-1 flex flex-col gap-1">
+    <ul data-comment-list className={LIST_CLASS}>
       {shown.map((c) => {
         const style = c.mention ? MENTION_STYLE : EVENT_STYLE['jira-comment'];
-        const Icon = style.Icon;
         return (
-          <li
-            key={c.id}
-            data-comment-row
-            className="flex h-5 items-center gap-1.5 text-[11px] leading-5"
-          >
-            <Icon aria-hidden="true" className={cn('size-3 flex-none', style.text)} />
-            <span className="min-w-0 flex-1 truncate text-foreground/90">{c.text}</span>
-          </li>
+          <ListRow key={c.id} rowAttr="data-comment-row" Icon={style.Icon} iconClass={style.text}>
+            <span className="text-muted-foreground">{c.text}</span>
+          </ListRow>
         );
       })}
       {hidden > 0 ? (
-        <li
-          data-comment-more
-          className="h-5 pl-[1.125rem] text-[11px] leading-5 text-muted-foreground"
-        >
-          +{hidden} more comment{hidden === 1 ? '' : 's'}
-        </li>
+        <MoreRow
+          attr="data-comment-more"
+          text={`+${hidden} more comment${hidden === 1 ? '' : 's'}`}
+        />
       ) : null}
     </ul>
   );
@@ -393,7 +434,7 @@ export default function NotificationRow({
       data-card
       data-unread-card={isUnread ? 'true' : 'false'}
       className={cn(
-        'group/row relative flex items-start gap-3 rounded-xl border px-3 py-2.5 text-xs transition-colors density-compact:gap-2.5 density-compact:px-2.5 density-compact:py-1.5 density-comfortable:gap-3.5 density-comfortable:px-3.5 density-comfortable:py-3.5 hover:bg-accent hover:shadow-sm focus-within:bg-accent',
+        'group/row relative flex items-start gap-3 rounded-xl border py-2.5 pr-3 pl-4 text-xs transition-colors density-compact:gap-2.5 density-compact:py-1.5 density-compact:pr-2.5 density-compact:pl-3.5 density-comfortable:gap-3.5 density-comfortable:py-3.5 density-comfortable:pr-3.5 density-comfortable:pl-5 hover:bg-accent hover:shadow-sm focus-within:bg-accent',
         isUnread
           ? 'border-border bg-primary/[0.03] dark:bg-primary/[0.07]'
           : 'border-border/60 bg-card',
@@ -438,7 +479,7 @@ export default function NotificationRow({
       <span
         data-unread={isUnread ? 'true' : 'false'}
         className={cn(
-          'pointer-events-none absolute top-3.5 left-1 size-1.5 rounded-full bg-primary',
+          'pointer-events-none absolute top-[17px] left-1.5 size-1.5 rounded-full bg-primary density-compact:top-[13px] density-compact:left-1 density-comfortable:top-[21px] density-comfortable:left-2',
           !isUnread && 'opacity-0',
         )}
       />
@@ -455,7 +496,7 @@ export default function NotificationRow({
                 e.stopPropagation();
                 onOpen();
               }}
-              className="relative z-10 min-w-[5rem] flex-none cursor-pointer whitespace-nowrap text-left font-mono text-[11px] text-muted-foreground hover:underline @max-[22rem]:hidden"
+              className="relative z-10 min-w-[5rem] flex-none cursor-pointer pr-1 whitespace-nowrap text-left font-mono text-[11px] text-muted-foreground hover:underline @max-[22rem]:hidden"
             >
               {ref}
             </button>
@@ -507,7 +548,6 @@ export default function NotificationRow({
         <NotificationDetailLine
           parts={parts}
           colour={style.text}
-          unread={isUnread}
           actor={
             item.notificationType === 'pipeline-failure' ||
             item.notificationType === 'due-date-reminder'
