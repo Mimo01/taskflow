@@ -2,16 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.14
 milestone_name: MVP
-status: milestone_complete
-last_updated: 2026-10-30T17:32:58.765Z
-last_activity: 2026-10-30
+status: planning
+last_updated: "2026-11-10T09:46:52.869Z"
+last_activity: "2026-11-10 - Completed quick task 261110-ccz: release detail task tables show priority icon"
 progress:
   total_phases: 2
   completed_phases: 1
   total_plans: 11
   completed_plans: 19
   percent: 50
-stopped_at: Milestone complete (Phase 94 was final phase)
 ---
 
 # Project State
@@ -25,9 +24,9 @@ See: .planning/PROJECT.md (updated 2026-08-13)
 
 ## Current Position
 
-Phase: 94
+Phase: 95
 Plan: Not started
-Status: Milestone complete
+Status: Ready to plan
 Last activity: 2026-11-10 - Completed quick task 261110-ccz: release detail task tables show priority icon
 
 ## Performance Metrics
@@ -76,6 +75,7 @@ Last activity: 2026-11-10 - Completed quick task 261110-ccz: release detail task
 - Phase 92 added: Advanced Global Search — ranked, cache-backed, grouped results with highlighting
 - Phase 93 added: Releases list and detail redesign (fix-version-driven list, drop milestones/branch, app-consistent styling, fast; detail keeps full info, restyled to match)
 - Phase 94 added: Release detail redesign — nicer professional page with more release graphs, keeps all current info, easy access to existing actions
+- Phase 95 added: Notifications redesign — research-driven visual redesign, polish, UI/UX improvements
 
 ### Decisions
 
@@ -277,9 +277,9 @@ Acknowledged and deferred at v1.14 milestone close (2026-08-13) — 111 open art
 
 ## Session Continuity
 
-Last session: 2026-10-30T10:51:20.053Z
-Stopped at: Phase 94 UI-SPEC approved
-Resume file: .planning/phases/94-release-detail-redesign-nicer-professional-page-with-more-re/94-UI-SPEC.md
+Last session: 2026-11-10T09:46:52.863Z
+Stopped at: Phase 95 context gathered
+Resume file: .planning/phases/95-notifications-redesign-research-driven-visual-redesign-polis/95-CONTEXT.md
 
 ## Operator Next Steps
 
