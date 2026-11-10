@@ -169,10 +169,13 @@ export function NotificationDetailLine({
   parts,
   colour,
   unread,
+  actor,
 }: {
   parts: EventParts;
   colour: string;
   unread: boolean;
+  /** Who did it (full display name); omitted for system events (pipeline, due). */
+  actor?: string;
 }) {
   let content: ReactNode;
   let kind: string;
@@ -200,6 +203,11 @@ export function NotificationDetailLine({
       data-detail={kind}
       className="pointer-events-none relative block h-5 truncate text-[11px] leading-5"
     >
+      {actor ? (
+        <span data-actor className="font-medium text-foreground">
+          {actor}{' '}
+        </span>
+      ) : null}
       {content}
     </span>
   );
@@ -289,14 +297,8 @@ export function NotificationChangeList({ changes }: { changes: ChangeLine[] }) {
   );
 }
 
-/** Merged conversation: one line per comment (icon, time, text), newest first; max 3 + "+N more". */
-export function NotificationCommentList({
-  comments,
-  now,
-}: {
-  comments: CommentLine[];
-  now: number;
-}) {
+/** Merged conversation: one line per comment (icon, text), newest first; max 3 + "+N more". */
+export function NotificationCommentList({ comments }: { comments: CommentLine[] }) {
   const shown = comments.slice(0, MAX_LISTED_CHANGES);
   const hidden = comments.length - shown.length;
   return (
@@ -311,9 +313,6 @@ export function NotificationCommentList({
             className="flex h-5 items-center gap-1.5 text-[11px] leading-5"
           >
             <Icon aria-hidden="true" className={cn('size-3 flex-none', style.text)} />
-            <span className="w-8 flex-none tabular-nums text-muted-foreground">
-              {relTime(c.createdAt, now)}
-            </span>
             <span className="min-w-0 flex-1 truncate text-foreground/90">{c.text}</span>
           </li>
         );
@@ -505,10 +504,20 @@ export default function NotificationRow({
             </NotificationTrayButton>
           </span>
         </div>
-        <NotificationDetailLine parts={parts} colour={style.text} unread={isUnread} />
+        <NotificationDetailLine
+          parts={parts}
+          colour={style.text}
+          unread={isUnread}
+          actor={
+            item.notificationType === 'pipeline-failure' ||
+            item.notificationType === 'due-date-reminder'
+              ? undefined
+              : item.author || undefined
+          }
+        />
         {listChanges ? <NotificationChangeList changes={listChanges} /> : null}
         {parts.comments && parts.comments.length > 1 ? (
-          <NotificationCommentList comments={parts.comments} now={now} />
+          <NotificationCommentList comments={parts.comments} />
         ) : null}
       </div>
     </div>

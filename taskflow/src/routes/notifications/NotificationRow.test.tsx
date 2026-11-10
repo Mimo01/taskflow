@@ -52,7 +52,7 @@ describe('NotificationRow', () => {
     expect(screen.getByText('Fix login bug')).toBeInTheDocument();
     expect(screen.getByText('commented')).toBeInTheDocument();
     const line2 = container.querySelector('[data-line="detail"]') as HTMLElement;
-    expect(line2.textContent).toBe('commented The issue was caused by a race condition');
+    expect(line2.textContent).toBe('Jane Smith commented The issue was caused by a race condition');
     expect(line2.className).toContain('truncate');
     expect(screen.getByText('2h')).toBeInTheDocument();
   });
@@ -103,7 +103,7 @@ describe('NotificationRow', () => {
     });
     const line = container.querySelector('[data-line="detail"]') as HTMLElement;
     expect(line.dataset.detail).toBe('changes');
-    expect(line.textContent).toBe('priority Minor \u2192 Major');
+    expect(line.textContent).toBe('Jane Smith priority Minor \u2192 Major');
     unmount();
     const multi = setup({
       item: makeItem('jira', {
@@ -114,7 +114,7 @@ describe('NotificationRow', () => {
       }),
     });
     expect(multi.container.querySelector('[data-line="detail"]')?.textContent).toBe(
-      'updated 4 fields',
+      'Jane Smith updated 4 fields',
     );
     expect(
       screen.getByRole('button', {
@@ -131,7 +131,9 @@ describe('NotificationRow', () => {
         bodyPreview: 'Description: updated',
       }),
     });
-    expect(container.querySelector('[data-line="detail"]')?.textContent).toBe('description edited');
+    expect(container.querySelector('[data-line="detail"]')?.textContent).toBe(
+      'Jane Smith description edited',
+    );
   });
 
   it('is a flat row: no group chrome (rail, chevron, count bubble, avatar stack)', () => {
@@ -229,7 +231,7 @@ describe('NotificationRow', () => {
       }),
     });
     expect(container.querySelector('[data-line="detail"]')?.textContent).toBe(
-      'status To Do \u2192 In Review',
+      'Jane Smith status To Do \u2192 In Review',
     );
     expect(screen.getByText('To Do').className).toContain('rounded');
     expect(screen.getByText('To Do')).toBeInTheDocument();
@@ -373,7 +375,7 @@ describe('NotificationRow', () => {
     });
     expect(screen.getByText('Add export')).toBeInTheDocument();
     expect(container.querySelector('[data-line="detail"]')?.textContent).toBe(
-      'commented Please rename this',
+      'Jane Smith commented Please rename this',
     );
   });
 
@@ -397,7 +399,9 @@ describe('NotificationRow', () => {
     for (const [body, kind, line] of cases) {
       const { container, unmount } = setup({ item: sys(body) });
       expect(container.querySelector(`[data-event-badge="${kind}"]`), body).not.toBeNull();
-      expect(container.querySelector('[data-line="detail"]')?.textContent, body).toBe(line);
+      expect(container.querySelector('[data-line="detail"]')?.textContent, body).toBe(
+        `Jane Smith ${line}`,
+      );
       expect(container.textContent).not.toContain('commented');
       unmount();
     }
@@ -427,7 +431,7 @@ describe('NotificationRow', () => {
     });
     const d = container.querySelector('[data-line="detail"]') as HTMLElement;
     expect(d.dataset.detail).toBe('verb');
-    expect(d.textContent).toBe('assigned you');
+    expect(d.textContent).toBe('Jane Smith assigned you');
   });
 
   describe('multi-change card', () => {
@@ -441,7 +445,9 @@ describe('NotificationRow', () => {
     it('shows "updated N fields", the generic badge and a 3-row ordered change list', () => {
       const { container } = setup({ item: six });
       expect(container.querySelector('[data-event-badge="multi"]')).not.toBeNull();
-      expect(container.querySelector('[data-line="detail"]')?.textContent).toBe('updated 6 fields');
+      expect(container.querySelector('[data-line="detail"]')?.textContent).toBe(
+        'Jane Smith updated 6 fields',
+      );
       const rows = [...container.querySelectorAll('[data-change-row]')];
       expect(rows).toHaveLength(3);
       expect(rows.map((r) => r.textContent)).toEqual([
@@ -485,7 +491,7 @@ describe('NotificationRow', () => {
       const { container } = setup({ item: items[0], items });
       expect(screen.getByText('commented 3 times')).toBeInTheDocument();
       expect(container.querySelector('[data-line="detail"]')?.textContent).toBe(
-        'commented 3 times',
+        'Ben Carter commented 3 times',
       );
       const rows = [...container.querySelectorAll('[data-comment-row]')].map((r) => r.textContent);
       expect(rows).toHaveLength(3);
@@ -493,6 +499,10 @@ describe('NotificationRow', () => {
       expect(rows[1]).toContain('Middle');
       expect(rows[2]).toContain('First');
       expect(container.querySelector('[data-comment-more]')).toBeNull();
+      // one timestamp for the card (line 1), none per comment
+      for (const r of container.querySelectorAll('[data-comment-row]')) {
+        expect(r.textContent).not.toMatch(/\d+[mhdw]\b/);
+      }
       expect(
         screen.getByRole('button', {
           name: 'Unread. Ben commented 3 times on PROJ-123 Fix login bug: Latest comment',
@@ -519,6 +529,21 @@ describe('NotificationRow', () => {
       expect(container.querySelectorAll('[data-comment-row]')).toHaveLength(3);
       expect(container.querySelector('[data-comment-more]')?.textContent).toBe('+2 more comments');
     });
+  });
+
+  it('names the actor on line 2 (avatars alone do not say who)', () => {
+    const { container } = setup();
+    expect(container.querySelector('[data-actor]')?.textContent?.trim()).toBe('Jane Smith');
+  });
+
+  it('system events (pipeline, due) carry no actor name', () => {
+    for (const notificationType of ['pipeline-failure', 'due-date-reminder'] as const) {
+      const { container, unmount } = setup({
+        item: makeItem('jira', { notificationType, bodyPreview: 'Due tomorrow' }),
+      });
+      expect(container.querySelector('[data-actor]'), notificationType).toBeNull();
+      unmount();
+    }
   });
 
   it('status pills get real padding (not squashed into the line)', () => {
