@@ -218,3 +218,19 @@ Plans:
 **Wave 4** *(blocked on Wave 3 completion)*
 
 - [x] 94-08-PLAN.md — Visual verification against the sketch + user approval (checkpoint)
+
+### Phase 95: Notifications redesign — research-driven visual redesign, polish, and UI/UX improvements to the notifications experience
+
+**Goal:** Notifications already work; redesign them visually and polish the UI/UX. Research notification best practices (grouping, read/unread, triage, density, actions, empty states) and pick what fits taskflow's existing design language. Details are left to research/discuss — the user deferred specifics.
+**Requirements**: NOTIF-01, NOTIF-02, NOTIF-03, NOTIF-04, NOTIF-05, NOTIF-06, NOTIF-07, NOTIF-08 (reworded per D-13: full-page navigation, no peek), NOTIF-09, NOTIF-10
+**Depends on:** Phase 94
+**Plans:** 6 plans
+
+Plans:
+
+- [ ] 95-01-PLAN.md — Store hygiene: readIds pruning, capped dismissed tombstones, due-date id, bulk triage actions (wave 1)
+- [ ] 95-02-PLAN.md — Pure view-model (entity key, time buckets, grouping, filters) + useNow (wave 1, TDD)
+- [ ] 95-03-PLAN.md — One-line NotificationRow rewrite + NotificationGroupHeader (wave 2)
+- [ ] 95-04-PLAN.md — NotificationList virtualizer + popover-scoped keyboard triage (wave 2)
+- [ ] 95-05-PLAN.md — Popover shell: header, filter bar, banners, states, click wiring, settings link (wave 3)
+- [ ] 95-06-PLAN.md — Screenshot matrix via preview harness + human Tauri verification (wave 4, checkpoint)

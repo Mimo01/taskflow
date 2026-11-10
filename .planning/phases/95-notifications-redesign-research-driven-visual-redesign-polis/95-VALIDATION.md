@@ -38,16 +38,16 @@ created: 2026-11-10
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| TBD | TBD | TBD | NOTIF-01 | — | N/A | component | `npx vitest run src/routes/notifications/NotificationRow.test.tsx` | rewrite | ⬜ pending |
-| TBD | TBD | TBD | NOTIF-02 | — | N/A | unit | `npx vitest run src/routes/notifications/notification-view.test.ts` | ❌ W0 | ⬜ pending |
-| TBD | TBD | TBD | NOTIF-03 | — | N/A | component | `npx vitest run src/routes/notifications/NotificationRow.test.tsx` | rewrite | ⬜ pending |
-| TBD | TBD | TBD | NOTIF-04 | — | N/A | store+component | `npx vitest run src/stores/notifications.store.test.ts src/routes/notifications/NotificationPopover.test.tsx` | extend | ⬜ pending |
-| TBD | TBD | TBD | NOTIF-05 | — | N/A | component | `npx vitest run src/routes/notifications/NotificationPopover.test.tsx` | ❌ W0 | ⬜ pending |
-| TBD | TBD | TBD | NOTIF-06 | — | N/A | component | `npx vitest run src/routes/notifications/NotificationPopover.test.tsx` | extend | ⬜ pending |
-| TBD | TBD | TBD | NOTIF-07 | — | N/A | component | `npx vitest run src/routes/notifications/NotificationPopover.test.tsx` | extend | ⬜ pending |
-| TBD | TBD | TBD | NOTIF-08 | T-95-02 | url opened only if http(s) | component | `npx vitest run src/routes/notifications/NotificationPopover.test.tsx` | extend | ⬜ pending |
-| TBD | TBD | TBD | NOTIF-09 | — | N/A | store | `npx vitest run src/stores/notifications.store.test.ts` | extend | ⬜ pending |
-| TBD | TBD | TBD | NOTIF-10 | — | N/A | component | `npx vitest run src/components/app/TopBar.test.tsx` | ✅ | ⬜ pending |
+| 95-03-T1, 95-06-T1 | 03, 06 | 2, 4 | NOTIF-01 | — | N/A | component | `npx vitest run src/routes/notifications/NotificationRow.test.tsx` | rewrite | ⬜ pending |
+| 95-02-T1, 95-04-T1 | 02, 04 | 1, 2 | NOTIF-02 | — | N/A | unit | `npx vitest run src/routes/notifications/notification-view.test.ts` | ❌ W0 | ⬜ pending |
+| 95-03-T1/T2 | 03 | 2 | NOTIF-03 | — | N/A | component | `npx vitest run src/routes/notifications/NotificationRow.test.tsx` | rewrite | ⬜ pending |
+| 95-01-T1, 95-05-T1/T2 | 01, 05 | 1, 3 | NOTIF-04 | — | N/A | store+component | `npx vitest run src/stores/notifications.store.test.ts src/routes/notifications/NotificationPopover.test.tsx` | extend | ⬜ pending |
+| 95-04-T2, 95-05-T1 | 04, 05 | 2, 3 | NOTIF-05 | — | N/A | component | `npx vitest run src/routes/notifications/NotificationList.test.tsx src/routes/notifications/NotificationPopover.test.tsx` | ❌ W0 | ⬜ pending |
+| 95-05-T2 | 05 | 3 | NOTIF-06 | — | N/A | component | `npx vitest run src/routes/notifications/NotificationPopover.test.tsx` | extend | ⬜ pending |
+| 95-05-T2 | 05 | 3 | NOTIF-07 | — | N/A | component | `npx vitest run src/routes/notifications/NotificationPopover.test.tsx` | extend | ⬜ pending |
+| 95-05-T1 | 05 | 3 | NOTIF-08 | T-95-02 | url opened only if http(s) | component | `npx vitest run src/routes/notifications/NotificationPopover.test.tsx` | extend | ⬜ pending |
+| 95-01-T1/T2 | 01 | 1 | NOTIF-09 | — | N/A | store | `npx vitest run src/stores/notifications.store.test.ts` | extend | ⬜ pending |
+| 95-05-T2, 95-06-T2 | 05, 06 | 3, 4 | NOTIF-10 | — | N/A | component | `npx vitest run src/components/app/TopBar.test.tsx` | ✅ | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky* — Task IDs filled in by the planner.
 
