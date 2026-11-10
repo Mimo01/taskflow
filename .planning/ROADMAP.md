@@ -224,7 +224,7 @@ Plans:
 **Goal:** Notifications already work; redesign them visually and polish the UI/UX. Research notification best practices (grouping, read/unread, triage, density, actions, empty states) and pick what fits taskflow's existing design language. Details are left to research/discuss — the user deferred specifics.
 **Requirements**: NOTIF-01, NOTIF-02, NOTIF-03, NOTIF-04, NOTIF-05, NOTIF-06, NOTIF-07, NOTIF-08 (reworded per D-13: full-page navigation, no peek), NOTIF-09, NOTIF-10
 **Depends on:** Phase 94
-**Plans:** 5/6 plans executed
+**Plans:** 6/6 plans complete
 
 Plans:
 
@@ -244,4 +244,4 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 95-06-PLAN.md — Screenshot matrix via preview harness + human Tauri verification (wave 4, checkpoint)
+- [x] 95-06-PLAN.md — Screenshot matrix via preview harness + human Tauri verification (wave 4, checkpoint)
