@@ -116,7 +116,7 @@ function PersonCell({
 // icon at 520. Summary and Fix split the leftover width 2:1 (Fix 7rem–280px,
 // truncating), so neither starves and a row never overflows.
 const COL_ICON = 'size-3.5 flex-none @max-[640px]:hidden';
-const COL_PRIORITY = 'w-[1.125rem] flex-none @max-[640px]:hidden';
+const COL_PRIORITY = 'w-[1.125rem] flex-none @max-[860px]:hidden';
 const COL_KEY = 'w-[5.5rem] flex-none whitespace-nowrap @max-[520px]:w-[5rem]';
 const COL_STATE = 'w-[84px] flex-none @max-[520px]:w-7';
 const COL_ASSIGNEE = 'w-[6.75rem] flex-none min-w-0 @max-[860px]:w-9';
