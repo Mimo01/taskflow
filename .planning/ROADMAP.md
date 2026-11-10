@@ -224,7 +224,7 @@ Plans:
 **Goal:** Notifications already work; redesign them visually and polish the UI/UX. Research notification best practices (grouping, read/unread, triage, density, actions, empty states) and pick what fits taskflow's existing design language. Details are left to research/discuss — the user deferred specifics.
 **Requirements**: NOTIF-01, NOTIF-02, NOTIF-03, NOTIF-04, NOTIF-05, NOTIF-06, NOTIF-07, NOTIF-08 (reworded per D-13: full-page navigation, no peek), NOTIF-09, NOTIF-10
 **Depends on:** Phase 94
-**Plans:** 4/6 plans executed
+**Plans:** 5/6 plans executed
 
 Plans:
 
@@ -240,7 +240,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 95-05-PLAN.md — Popover shell: header, filter bar, banners, states, click wiring, settings link (wave 3)
+- [x] 95-05-PLAN.md — Popover shell: header, filter bar, banners, states, click wiring, settings link (wave 3)
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
