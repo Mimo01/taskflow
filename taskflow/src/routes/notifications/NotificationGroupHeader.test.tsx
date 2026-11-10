@@ -56,12 +56,12 @@ function setup(group: GroupEntry = makeGroup()) {
 }
 
 describe('NotificationGroupHeader', () => {
-  it('renders ref, title, +N chip, newest author avatar and relative time', () => {
+  it('renders ref, title, +N chip and relative time', () => {
     setup();
     expect(screen.getByText('PROJ-123')).toBeInTheDocument();
     expect(screen.getByText('Fix login bug')).toBeInTheDocument();
     expect(screen.getByText('+1')).toBeInTheDocument();
-    expect(screen.getByText('JS')).toBeInTheDocument();
+    expect(screen.queryByText('JS')).not.toBeInTheDocument();
     expect(screen.getByText('2h')).toBeInTheDocument();
   });
 

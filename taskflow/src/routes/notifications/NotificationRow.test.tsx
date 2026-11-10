@@ -46,12 +46,12 @@ function setup(props?: Partial<React.ComponentProps<typeof NotificationRow>>) {
 }
 
 describe('NotificationRow', () => {
-  it('renders ref, description and injected-now relative time', () => {
+  it('renders ref, entity title, verb tail and injected-now relative time', () => {
     setup();
     expect(screen.getByText('PROJ-123')).toBeInTheDocument();
-    expect(
-      screen.getByText('Jane Smith commented: The issue was caused by a race condition'),
-    ).toBeInTheDocument();
+    expect(screen.getByText('Fix login bug')).toBeInTheDocument();
+    expect(screen.getByText('commented \u00b7 Jane')).toBeInTheDocument();
+    expect(screen.queryByText(/race condition/)).not.toBeInTheDocument();
     expect(screen.getByText('2h')).toBeInTheDocument();
   });
 
@@ -63,9 +63,22 @@ describe('NotificationRow', () => {
     expect(screen.queryByText(/Parent story/)).not.toBeInTheDocument();
   });
 
-  it('renders the author avatar and an initials fallback', () => {
-    setup({ item: makeItem('jira', { authorAvatarUrl: undefined }) });
-    expect(screen.getByText('JS')).toBeInTheDocument();
+  it('has no per-row avatar and an informative aria label', () => {
+    setup({ item: makeItem('jira', { notificationType: 'issue-assignment' }) });
+    expect(screen.queryByText('JS')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {
+        name: 'Unread. PROJ-123 Fix login bug \u2014 assigned by Jane',
+      }),
+    ).toBeInTheDocument();
+  });
+
+  it('nested rows hide key and title and show the snippet after the tail', () => {
+    setup({ nested: true });
+    expect(screen.queryByText('PROJ-123')).not.toBeInTheDocument();
+    expect(screen.queryByText('Fix login bug')).not.toBeInTheDocument();
+    expect(screen.getByText('commented \u00b7 Jane')).toBeInTheDocument();
+    expect(screen.getByText('The issue was caused by a race condition')).toBeInTheDocument();
   });
 
   it('renders GitLab MR ref as !iid', () => {

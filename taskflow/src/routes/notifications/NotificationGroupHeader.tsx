@@ -1,17 +1,16 @@
 /**
  * NotificationGroupHeader — one-line entity group header (Phase 95 D-06, D-09).
  *
- * [dot][chevron][avatar][KEY][title][+N chip][state pill][time] with a hover/focus
+ * [dot][chevron][KEY][title][+N chip][state pill][time] with a hover/focus
  * tray for group-wide Mark read/unread and Done. Same overlay-button pattern as
  * NotificationRow: the primary button is absolute inset-0, everything interactive
  * else is a relative z-10 sibling.
  */
 import { Check, ChevronRight, Mail, MailOpen } from 'lucide-react';
-import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { TooltipBody } from '@/components/ui/tooltip-body';
 import { PEEKED_ROW_CLASS } from '@/lib/peek-highlight';
-import { statusPillClass } from '@/lib/statusStyles';
+import { statusCategoryBadgeClass } from '@/lib/statusStyles';
 import { cn } from '@/lib/utils';
 import { useIsPeeked } from '@/stores/peek.store';
 import { NotificationTrayButton } from './NotificationRow';
@@ -111,14 +110,8 @@ export default function NotificationGroupHeader({
         <ChevronRight className={cn('size-3.5', expanded && 'rotate-90')} />
       </button>
 
-      <span className="relative size-5 flex-none">
-        {newest.author ? (
-          <CachedAvatar url={newest.authorAvatarUrl} name={newest.author} size={20} />
-        ) : null}
-      </span>
-
       {ref ? (
-        <span className="pointer-events-none relative flex-none font-mono text-[11px] text-muted-foreground @max-[22rem]:hidden">
+        <span className="pointer-events-none relative min-w-[3.75rem] flex-none text-left font-mono text-[11px] text-muted-foreground @max-[22rem]:hidden">
           {ref}
         </span>
       ) : null}
@@ -143,7 +136,14 @@ export default function NotificationGroupHeader({
 
       {pill ? (
         <div className="pointer-events-none relative flex flex-none">
-          <span className={statusPillClass(pill.cat)}>{pill.label}</span>
+          <span
+            className={cn(
+              'whitespace-nowrap rounded px-1 text-[11px]',
+              statusCategoryBadgeClass(pill.cat),
+            )}
+          >
+            {pill.label}
+          </span>
         </div>
       ) : null}
 

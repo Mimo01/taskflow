@@ -129,33 +129,62 @@ export function isSafeHttpUrl(url: string | undefined): boolean {
   }
 }
 
-/** Single-line plain-text description of an event. Never returns HTML. */
-export function describeEvent(item: NotificationItem): string {
-  const author = item.author;
+export interface EventParts {
+  /** Short lowercase verb, e.g. "assigned", "status \u2192 Done", "pipeline failed". */
+  verb: string;
+  /** First name (or display name when it has no space); absent for system events. */
+  actor?: string;
+  /** Single-line body snippet; shown only in nested rows and the tooltip. */
+  snippet: string;
+}
+
+function actorName(author: string): string | undefined {
+  const a = author.trim();
+  if (!a) return undefined;
+  const first = a.split(/\s+/)[0];
+  return first || undefined;
+}
+
+/** Structured, plain-text description of an event. Never returns HTML. */
+export function describeEventParts(item: NotificationItem): EventParts {
   const snippet = item.bodyPreview.replace(/\s+/g, ' ').trim();
-  const line = (() => {
-    switch (item.notificationType) {
-      case 'mr-note':
-      case 'jira-comment':
-        return `${author} commented: ${snippet}`;
-      case 'comment-mention':
-      case 'gitlab-mention':
-        return `${author} mentioned you: ${snippet}`;
-      case 'issue-assignment':
-        return `${author} assigned you`;
-      case 'mr-approval':
-        return `${author} approved`;
-      case 'pipeline-failure':
-        return `Pipeline failed: ${snippet}`;
-      case 'due-date-reminder':
-        return snippet;
-      case 'issue-update':
-        return `${author} updated: ${snippet}`;
-      default:
-        return `${author}: ${snippet}`;
+  const actor = actorName(item.author);
+  switch (item.notificationType) {
+    case 'mr-note':
+    case 'jira-comment':
+      return { verb: 'commented', actor, snippet };
+    case 'comment-mention':
+    case 'gitlab-mention':
+      return { verb: 'mentioned', actor, snippet };
+    case 'issue-assignment':
+      return { verb: 'assigned', actor, snippet: '' };
+    case 'mr-approval':
+      return { verb: 'approved', actor, snippet: '' };
+    case 'pipeline-failure':
+      return { verb: 'pipeline failed', snippet };
+    case 'due-date-reminder': {
+      const m = snippet.match(/^due\s+(.+)$/i);
+      return { verb: m ? `due ${m[1].toLowerCase()}` : 'due', snippet: '' };
     }
-  })();
-  return line.replace(/\s+/g, ' ').trim();
+    case 'issue-update': {
+      const m = item.bodyPreview.match(/^Status:.*\u2192\s*(.+)$/m);
+      return m
+        ? { verb: `status \u2192 ${m[1].trim()}`, actor, snippet: '' }
+        : { verb: 'updated', actor, snippet };
+    }
+    default:
+      return { verb: 'updated', actor, snippet };
+  }
+}
+
+/** "verb \u00b7 Actor" tail text. */
+export function formatEventTail(parts: EventParts): string {
+  return parts.actor ? `${parts.verb} \u00b7 ${parts.actor}` : parts.verb;
+}
+
+/** Aria-friendly phrase: "assigned by Ben". */
+export function describeEventAria(parts: EventParts): string {
+  return parts.actor ? `${parts.verb} by ${parts.actor}` : parts.verb;
 }
 
 function ts(item: NotificationItem): number {

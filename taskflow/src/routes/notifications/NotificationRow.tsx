@@ -1,7 +1,8 @@
 /**
  * NotificationRow — one-line, neutral event row (Phase 95 D-02..D-05, D-08, D-14).
  *
- * Layout: [unread dot][type glyph][avatar][KEY][action + snippet][time]
+ * Layout: [unread dot][type glyph][KEY][entity title][verb \u00b7 actor][time]
+ * Nested (grouped) rows: [dot][glyph][verb \u00b7 actor][muted snippet][time]
  * - An absolute inset-0 overlay <button> is the primary target; the key and tray
  *   buttons are SIBLINGS (relative z-10), never nested inside it.
  * - Unread vs read only changes class strings / the aria prefix, never the tree (D-05).
@@ -21,7 +22,6 @@ import {
   XCircle,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { LinkContextMenu } from '@/components/ui/link-context-menu';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { TooltipBody } from '@/components/ui/tooltip-body';
@@ -30,8 +30,10 @@ import { cn } from '@/lib/utils';
 import { useIsPeeked } from '@/stores/peek.store';
 import type { NotificationItem } from '../../stores/notifications.store';
 import {
-  describeEvent,
+  describeEventAria,
+  describeEventParts,
   formatAbsoluteTime,
+  formatEventTail,
   getEntityRef,
   getEntityTitle,
   getJiraKey,
@@ -169,11 +171,12 @@ export default function NotificationRow({
 }: NotificationRowProps) {
   const ref = getEntityRef(item);
   const title = getEntityTitle(item);
-  const text = describeEvent(item);
+  const parts = describeEventParts(item);
+  const tail = formatEventTail(parts);
   const peeked = useIsPeeked(getJiraKey(item) ?? '');
   const typeLabel = (item.notificationType && TYPE_LABEL[item.notificationType]) || 'Notification';
   const sourceLabel = item.source === 'jira' ? 'Jira' : 'GitLab';
-  const ariaLabel = `${isUnread ? 'Unread. ' : ''}${ref ? `${ref} ` : ''}${title}: ${text}`;
+  const ariaLabel = `${isUnread ? 'Unread. ' : ''}${ref ? `${ref} ` : ''}${title} \u2014 ${describeEventAria(parts)}`;
 
   return (
     <div
@@ -223,34 +226,48 @@ export default function NotificationRow({
 
       <NotificationTypeGlyph item={item} />
 
-      <span className="relative size-5 flex-none">
-        {item.author ? (
-          <CachedAvatar url={item.authorAvatarUrl} name={item.author} size={20} />
-        ) : null}
-      </span>
-
-      {!nested && ref ? (
-        <button
-          type="button"
-          tabIndex={-1}
-          onClick={(e) => {
-            e.stopPropagation();
-            onOpen();
-          }}
-          className="relative z-10 flex-none cursor-pointer font-mono text-[11px] text-muted-foreground hover:underline @max-[22rem]:hidden"
-        >
-          {ref}
-        </button>
-      ) : null}
-
-      <span
-        className={cn(
-          'pointer-events-none relative min-w-0 flex-1 truncate',
-          isUnread ? 'font-medium text-foreground' : 'font-normal text-muted-foreground',
-        )}
-      >
-        {text}
-      </span>
+      {nested ? (
+        <>
+          <span
+            className={cn(
+              'pointer-events-none relative flex-none',
+              isUnread ? 'font-medium text-foreground' : 'text-muted-foreground',
+            )}
+          >
+            {tail}
+          </span>
+          <span className="pointer-events-none relative min-w-0 flex-1 truncate text-muted-foreground">
+            {parts.snippet}
+          </span>
+        </>
+      ) : (
+        <>
+          {ref ? (
+            <button
+              type="button"
+              tabIndex={-1}
+              onClick={(e) => {
+                e.stopPropagation();
+                onOpen();
+              }}
+              className="relative z-10 min-w-[3.75rem] flex-none text-left cursor-pointer font-mono text-[11px] text-muted-foreground hover:underline @max-[22rem]:hidden"
+            >
+              {ref}
+            </button>
+          ) : null}
+          <span
+            className={cn(
+              'pointer-events-none relative min-w-0 flex-1 truncate pr-0.5',
+              isUnread ? 'font-medium text-foreground' : 'font-normal text-muted-foreground',
+            )}
+          >
+            {title}
+          </span>
+          <span className="pointer-events-none relative max-w-[40%] flex-none truncate pr-0.5 text-muted-foreground">
+            {tail}
+          </span>
+        </>
+      )}
 
       <span className="pointer-events-none relative w-12 flex-none text-right text-[11px] tabular-nums text-muted-foreground group-hover:opacity-0 group-focus-within:opacity-0">
         {relTime(item.createdAt, now)}

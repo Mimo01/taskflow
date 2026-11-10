@@ -3,10 +3,12 @@ import type { NotificationItem } from '../../stores/notifications.store';
 import {
   bucketOf,
   buildEntries,
-  describeEvent,
+  describeEventAria,
+  describeEventParts,
   entryItemIds,
   filterItems,
   formatAbsoluteTime,
+  formatEventTail,
   getEntityKey,
   getEntityRef,
   getEntityTitle,
@@ -93,23 +95,42 @@ describe('relTime / formatAbsoluteTime / isSafeHttpUrl', () => {
   });
 });
 
-describe('describeEvent', () => {
-  const d = (notificationType: NotificationItem['notificationType'], bodyPreview = 'Hello') =>
-    describeEvent(makeItem({ id: 'a', author: 'Ann', notificationType, bodyPreview }));
-  it('describes each type', () => {
-    expect(d('jira-comment')).toBe('Ann commented: Hello');
-    expect(d('mr-note')).toBe('Ann commented: Hello');
-    expect(d('comment-mention')).toBe('Ann mentioned you: Hello');
-    expect(d('gitlab-mention')).toBe('Ann mentioned you: Hello');
-    expect(d('issue-assignment')).toBe('Ann assigned you');
-    expect(d('mr-approval')).toBe('Ann approved');
-    expect(d('pipeline-failure')).toBe('Pipeline failed: Hello');
-    expect(d('due-date-reminder', 'Due today')).toBe('Due today');
-    expect(d('issue-update')).toBe('Ann updated: Hello');
-    expect(d(undefined)).toBe('Ann: Hello');
+describe('describeEventParts', () => {
+  const d = (
+    notificationType: NotificationItem['notificationType'],
+    bodyPreview = 'Hello',
+    author = 'Ann Lee',
+  ) => describeEventParts(makeItem({ id: 'a', author, notificationType, bodyPreview }));
+  const tail = (...a: Parameters<typeof d>) => formatEventTail(d(...a));
+  it('describes each type as short verb + first-name actor', () => {
+    expect(tail('jira-comment')).toBe('commented \u00b7 Ann');
+    expect(tail('mr-note')).toBe('commented \u00b7 Ann');
+    expect(tail('comment-mention')).toBe('mentioned \u00b7 Ann');
+    expect(tail('gitlab-mention')).toBe('mentioned \u00b7 Ann');
+    expect(tail('issue-assignment')).toBe('assigned \u00b7 Ann');
+    expect(tail('mr-approval')).toBe('approved \u00b7 Ann');
+    expect(tail('pipeline-failure')).toBe('pipeline failed');
+    expect(tail('due-date-reminder', 'Due tomorrow', '')).toBe('due tomorrow');
+    expect(tail('due-date-reminder', 'whatever', '')).toBe('due');
+    expect(tail('issue-update', 'Priority: A \u2192 B')).toBe('updated \u00b7 Ann');
+    expect(tail(undefined)).toBe('updated \u00b7 Ann');
   });
-  it('is single line', () => {
-    expect(d('jira-comment', 'a\nb\n\n c')).not.toMatch(/\n/);
+  it('shows the new status for status changes', () => {
+    expect(tail('issue-update', 'Status: To Do \u2192 In Progress')).toBe(
+      'status \u2192 In Progress \u00b7 Ann',
+    );
+  });
+  it('keeps single-word names and drops empty actors', () => {
+    expect(d('jira-comment', 'x', 'J.Smith').actor).toBe('J.Smith');
+    expect(d('jira-comment', 'x', '').actor).toBeUndefined();
+  });
+  it('keeps snippets only for comment-like events, on one line', () => {
+    expect(d('jira-comment', 'a\nb\n\n c').snippet).toBe('a b c');
+    expect(d('issue-assignment').snippet).toBe('');
+  });
+  it('builds an aria phrase', () => {
+    expect(describeEventAria(d('issue-assignment'))).toBe('assigned by Ann');
+    expect(describeEventAria(d('pipeline-failure'))).toBe('pipeline failed');
   });
 });
 
