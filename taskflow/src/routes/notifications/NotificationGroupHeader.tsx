@@ -13,8 +13,11 @@ import { PEEKED_ROW_CLASS } from '@/lib/peek-highlight';
 import { statusCategoryBadgeClass } from '@/lib/statusStyles';
 import { cn } from '@/lib/utils';
 import { useIsPeeked } from '@/stores/peek.store';
+import NotificationAvatar from './NotificationAvatar';
 import { NotificationTrayButton } from './NotificationRow';
 import {
+  describeEventParts,
+  eventStyleFor,
   formatAbsoluteTime,
   type GroupEntry,
   getEntityRef,
@@ -52,6 +55,7 @@ export default function NotificationGroupHeader({
   const unread = unreadCount > 0;
   const more = items.length - 1;
   const peeked = useIsPeeked(getJiraKey(newest) ?? '');
+  const newestStyle = eventStyleFor(newest, describeEventParts(newest));
   const pill = newest.entityState ? STATE_PILL[newest.entityState] : undefined;
   const refLabel = ref ?? title;
   const ariaLabel = `${unread ? 'Unread. ' : ''}${ref ? `${ref} ` : ''}${title}, ${items.length} updates`;
@@ -109,6 +113,8 @@ export default function NotificationGroupHeader({
       >
         <ChevronRight className={cn('size-3.5', expanded && 'rotate-90')} />
       </button>
+
+      <NotificationAvatar item={newest} style={newestStyle} />
 
       {ref ? (
         <span className="pointer-events-none relative min-w-[3.75rem] flex-none text-left font-mono text-[11px] text-muted-foreground @max-[22rem]:hidden">

@@ -1,3 +1,4 @@
+import { EVENT_STYLE } from './notification-colours';
 import { describe, expect, it } from 'vitest';
 import type { NotificationItem } from '../../stores/notifications.store';
 import {
@@ -8,7 +9,8 @@ import {
   entryItemIds,
   filterItems,
   formatAbsoluteTime,
-  formatEventTail,
+  eventStyleFor,
+  statusCategoryGuess,
   getEntityKey,
   getEntityRef,
   getEntityTitle,
@@ -101,24 +103,27 @@ describe('describeEventParts', () => {
     bodyPreview = 'Hello',
     author = 'Ann Lee',
   ) => describeEventParts(makeItem({ id: 'a', author, notificationType, bodyPreview }));
-  const tail = (...a: Parameters<typeof d>) => formatEventTail(d(...a));
-  it('describes each type as short verb + first-name actor', () => {
-    expect(tail('jira-comment')).toBe('commented \u00b7 Ann');
-    expect(tail('mr-note')).toBe('commented \u00b7 Ann');
-    expect(tail('comment-mention')).toBe('mentioned \u00b7 Ann');
-    expect(tail('gitlab-mention')).toBe('mentioned \u00b7 Ann');
-    expect(tail('issue-assignment')).toBe('assigned \u00b7 Ann');
-    expect(tail('mr-approval')).toBe('approved \u00b7 Ann');
-    expect(tail('pipeline-failure')).toBe('pipeline failed');
-    expect(tail('due-date-reminder', 'Due tomorrow', '')).toBe('due tomorrow');
-    expect(tail('due-date-reminder', 'whatever', '')).toBe('due');
-    expect(tail('issue-update', 'Priority: A \u2192 B')).toBe('updated \u00b7 Ann');
-    expect(tail(undefined)).toBe('updated \u00b7 Ann');
+  const verb = (...a: Parameters<typeof d>) => d(...a).verb;
+  it('describes each type as a short verb phrase (actor kept separately)', () => {
+    expect(verb('jira-comment')).toBe('commented');
+    expect(verb('mr-note')).toBe('commented');
+    expect(verb('comment-mention')).toBe('mentioned you');
+    expect(verb('gitlab-mention')).toBe('mentioned you');
+    expect(verb('issue-assignment')).toBe('assigned you');
+    expect(verb('mr-approval')).toBe('approved');
+    expect(verb('pipeline-failure')).toBe('pipeline failed');
+    expect(verb('due-date-reminder', 'Due tomorrow', '')).toBe('due tomorrow');
+    expect(verb('due-date-reminder', 'whatever', '')).toBe('due');
+    expect(verb('issue-update', 'Priority: A \u2192 B')).toBe('updated');
+    expect(verb(undefined)).toBe('updated');
+    expect(d('jira-comment').actor).toBe('Ann');
   });
-  it('shows the new status for status changes', () => {
-    expect(tail('issue-update', 'Status: To Do \u2192 In Progress')).toBe(
-      'status \u2192 In Progress \u00b7 Ann',
-    );
+  it('extracts old and new status for status changes', () => {
+    const p = d('issue-update', 'Status: To Do \u2192 In Progress');
+    expect(p).toMatchObject({ verb: 'changed status', from: 'To Do', to: 'In Progress' });
+    const q = d('issue-update', 'Status: \u2192 Done');
+    expect(q.from).toBeUndefined();
+    expect(q.to).toBe('Done');
   });
   it('keeps single-word names and drops empty actors', () => {
     expect(d('jira-comment', 'x', 'J.Smith').actor).toBe('J.Smith');
@@ -128,9 +133,59 @@ describe('describeEventParts', () => {
     expect(d('jira-comment', 'a\nb\n\n c').snippet).toBe('a b c');
     expect(d('issue-assignment').snippet).toBe('');
   });
-  it('builds an aria phrase', () => {
-    expect(describeEventAria(d('issue-assignment'))).toBe('assigned by Ann');
-    expect(describeEventAria(d('pipeline-failure'))).toBe('pipeline failed');
+  it('builds an aria phrase with the actor', () => {
+    expect(describeEventAria(d('issue-assignment'))).toBe('Ann assigned you');
+    expect(describeEventAria(d('comment-mention'))).toBe('Ann mentioned you');
+    expect(describeEventAria(d('pipeline-failure'))).toBe('Pipeline failed');
+    expect(describeEventAria(d('issue-update', 'Status: To Do \u2192 Done'))).toBe(
+      'Ann changed status from To Do to Done',
+    );
+  });
+});
+
+describe('event colour map', () => {
+  const types = [
+    'comment-mention',
+    'issue-update',
+    'mr-note',
+    'gitlab-mention',
+    'jira-comment',
+    'mr-approval',
+    'pipeline-failure',
+    'issue-assignment',
+    'due-date-reminder',
+  ] as const;
+  it('covers every notification type with a glyph, badge and light+dark text colour', () => {
+    for (const t of types) {
+      const st = EVENT_STYLE[t];
+      expect(st, t).toBeDefined();
+      expect(st.Icon).toBeTruthy();
+      expect(st.badge).toMatch(/^bg-/);
+      expect(st.text).toMatch(/dark:text-/);
+    }
+  });
+  it('maps the chosen hues', () => {
+    expect(EVENT_STYLE['comment-mention'].badge).toContain('violet');
+    expect(EVENT_STYLE['jira-comment'].badge).toContain('blue');
+    expect(EVENT_STYLE['issue-assignment'].badge).toContain('teal');
+    expect(EVENT_STYLE['mr-approval'].badge).toContain('emerald');
+    expect(EVENT_STYLE['pipeline-failure'].badge).toContain('red');
+    expect(EVENT_STYLE['due-date-reminder'].badge).toContain('amber');
+  });
+  it('upgrades status changes to the amber status style', () => {
+    const item = makeItem({
+      id: 's',
+      notificationType: 'issue-update',
+      bodyPreview: 'Status: A \u2192 B',
+    });
+    expect(eventStyleFor(item, describeEventParts(item)).kind).toBe('status');
+    const plain = makeItem({ id: 'p', notificationType: 'issue-update', bodyPreview: 'x' });
+    expect(eventStyleFor(plain, describeEventParts(plain)).kind).toBe('update');
+  });
+  it('guesses status categories', () => {
+    expect(statusCategoryGuess('Done')).toBe('done');
+    expect(statusCategoryGuess('To Do')).toBe('new');
+    expect(statusCategoryGuess('In Review')).toBe('indeterminate');
   });
 });
 

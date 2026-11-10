@@ -51,17 +51,19 @@ function setup(group: GroupEntry = makeGroup()) {
     onToggleRead: vi.fn(),
     onDone: vi.fn(),
   };
-  render(<NotificationGroupHeader group={group} now={NOW} {...h} />);
-  return h;
+  const { container } = render(<NotificationGroupHeader group={group} now={NOW} {...h} />);
+  return { ...h, container };
 }
 
 describe('NotificationGroupHeader', () => {
   it('renders ref, title, +N chip and relative time', () => {
-    setup();
+    const { container } = setup();
     expect(screen.getByText('PROJ-123')).toBeInTheDocument();
     expect(screen.getByText('Fix login bug')).toBeInTheDocument();
     expect(screen.getByText('+1')).toBeInTheDocument();
-    expect(screen.queryByText('JS')).not.toBeInTheDocument();
+    // Newest actor's avatar with the newest event's badge leads the header.
+    expect(container.querySelector('[data-event-kind]')).not.toBeNull();
+    expect(container.querySelector('[data-event-badge]')).not.toBeNull();
     expect(screen.getByText('2h')).toBeInTheDocument();
   });
 

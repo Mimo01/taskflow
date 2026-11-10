@@ -50,7 +50,7 @@ describe('NotificationRow', () => {
     setup();
     expect(screen.getByText('PROJ-123')).toBeInTheDocument();
     expect(screen.getByText('Fix login bug')).toBeInTheDocument();
-    expect(screen.getByText('commented \u00b7 Jane')).toBeInTheDocument();
+    expect(screen.getByText('commented')).toBeInTheDocument();
     expect(screen.queryByText(/race condition/)).not.toBeInTheDocument();
     expect(screen.getByText('2h')).toBeInTheDocument();
   });
@@ -63,12 +63,15 @@ describe('NotificationRow', () => {
     expect(screen.queryByText(/Parent story/)).not.toBeInTheDocument();
   });
 
-  it('has no per-row avatar and an informative aria label', () => {
-    setup({ item: makeItem('jira', { notificationType: 'issue-assignment' }) });
-    expect(screen.queryByText('JS')).not.toBeInTheDocument();
+  it('shows the actor avatar and an aria label naming actor, event and entity', () => {
+    const { container } = setup({
+      item: makeItem('jira', { notificationType: 'issue-assignment' }),
+    });
+    expect(screen.getByRole('img', { name: 'Jane Smith' })).toBeInTheDocument();
+    expect(container.querySelector('[data-event-badge="assignment"]')).not.toBeNull();
     expect(
       screen.getByRole('button', {
-        name: 'Unread. PROJ-123 Fix login bug \u2014 assigned by Jane',
+        name: 'Unread. Jane assigned you on PROJ-123 Fix login bug',
       }),
     ).toBeInTheDocument();
   });
@@ -77,7 +80,7 @@ describe('NotificationRow', () => {
     setup({ nested: true });
     expect(screen.queryByText('PROJ-123')).not.toBeInTheDocument();
     expect(screen.queryByText('Fix login bug')).not.toBeInTheDocument();
-    expect(screen.getByText('commented \u00b7 Jane')).toBeInTheDocument();
+    expect(screen.getByText('commented')).toBeInTheDocument();
     expect(screen.getByText('The issue was caused by a race condition')).toBeInTheDocument();
   });
 
@@ -95,7 +98,7 @@ describe('NotificationRow', () => {
 
   it('marks unread via aria prefix and dot; read has neither', () => {
     const { container, rerender, ...h } = setup();
-    expect(screen.getByRole('button', { name: /^Unread\. PROJ-123/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Unread\. .* on PROJ-123/ })).toBeInTheDocument();
     expect(container.querySelector('[data-unread="true"]')).not.toBeNull();
     rerender(
       <NotificationRow
@@ -111,31 +114,57 @@ describe('NotificationRow', () => {
     expect(container.querySelector('[data-unread="false"]')).not.toBeNull();
   });
 
-  it('only pipeline-failure, mr-approval and due-date-reminder glyphs are status-toned', () => {
-    const status = ['pipeline-failure', 'mr-approval', 'due-date-reminder'] as const;
-    const neutral = [
-      'comment-mention',
-      'jira-comment',
-      'gitlab-mention',
-      'mr-note',
-      'issue-update',
-      'issue-assignment',
-    ] as const;
-    for (const t of status) {
+  it('renders the right badge kind per type; system events use tiles', () => {
+    const kinds: Record<string, string> = {
+      'comment-mention': 'mention',
+      'gitlab-mention': 'mention',
+      'jira-comment': 'comment',
+      'mr-note': 'comment',
+      'issue-assignment': 'assignment',
+      'mr-approval': 'approval',
+      'pipeline-failure': 'failure',
+    };
+    for (const [t, kind] of Object.entries(kinds)) {
       const { container, unmount } = setup({
-        item: makeItem('jira', { notificationType: t }),
+        item: makeItem('jira', { notificationType: t as NotificationItem['notificationType'] }),
       });
-      expect(container.querySelector('[data-tone="status"]')).not.toBeNull();
+      expect(container.querySelector(`[data-event-badge="${kind}"]`), t).not.toBeNull();
       unmount();
     }
-    for (const t of neutral) {
-      const { container, unmount } = setup({
-        item: makeItem('jira', { notificationType: t }),
-      });
-      expect(container.querySelector('[data-tone="neutral"]')).not.toBeNull();
-      expect(container.querySelector('[data-tone="status"]')).toBeNull();
-      unmount();
-    }
+    const ci = setup({ item: makeItem('jira', { notificationType: 'pipeline-failure' }) });
+    expect(ci.container.querySelector('[data-avatar-tile="ci"]')).not.toBeNull();
+    expect(screen.queryByRole('img', { name: 'Jane Smith' })).toBeNull();
+    ci.unmount();
+    const due = setup({
+      item: makeItem('jira', {
+        notificationType: 'due-date-reminder',
+        bodyPreview: 'Due tomorrow',
+      }),
+    });
+    expect(due.container.querySelector('[data-avatar-tile="due"]')).not.toBeNull();
+    expect(screen.getByText('due tomorrow')).toBeInTheDocument();
+  });
+
+  it('renders the verb in the event colour', () => {
+    setup({ item: makeItem('jira', { notificationType: 'comment-mention' }) });
+    expect(screen.getByText('mentioned you').className).toContain('text-violet-600');
+  });
+
+  it('renders status changes as old and new pills', () => {
+    const { container } = setup({
+      item: makeItem('jira', {
+        notificationType: 'issue-update',
+        bodyPreview: 'Status: To Do \u2192 In Review',
+      }),
+    });
+    expect(container.querySelector('[data-tail="status"]')).not.toBeNull();
+    expect(screen.getByText('To Do')).toBeInTheDocument();
+    expect(screen.getByText('In Review')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {
+        name: 'Unread. Jane changed status from To Do to In Review on PROJ-123 Fix login bug',
+      }),
+    ).toBeInTheDocument();
   });
 
   it('overlay click calls onOpen once; key click calls onOpen once', () => {

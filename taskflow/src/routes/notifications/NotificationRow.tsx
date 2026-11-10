@@ -1,43 +1,36 @@
 /**
  * NotificationRow — one-line, neutral event row (Phase 95 D-02..D-05, D-08, D-14).
  *
- * Layout: [unread dot][type glyph][KEY][entity title][verb \u00b7 actor][time]
- * Nested (grouped) rows: [dot][glyph][verb \u00b7 actor][muted snippet][time]
+ * Layout: [unread dot][avatar+event badge][KEY][entity title][coloured verb | status pills][time]
+ * Nested (grouped) rows: [dot][avatar+badge][coloured verb][muted snippet][time]
  * - An absolute inset-0 overlay <button> is the primary target; the key and tray
  *   buttons are SIBLINGS (relative z-10), never nested inside it.
  * - Unread vs read only changes class strings / the aria prefix, never the tree (D-05).
  * - Body, parent and absolute time live in a 600ms tooltip only.
  */
-import {
-  Bell,
-  CalendarClock,
-  Check,
-  CheckCircle2,
-  ExternalLink,
-  Mail,
-  MailOpen,
-  MessageSquare,
-  RefreshCw,
-  UserPlus,
-  XCircle,
-} from 'lucide-react';
+import { Check, ExternalLink, Mail, MailOpen } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { LinkContextMenu } from '@/components/ui/link-context-menu';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { TooltipBody } from '@/components/ui/tooltip-body';
 import { PEEKED_ROW_CLASS } from '@/lib/peek-highlight';
+import { statusCategoryBadgeClass } from '@/lib/statusStyles';
 import { cn } from '@/lib/utils';
 import { useIsPeeked } from '@/stores/peek.store';
 import type { NotificationItem } from '../../stores/notifications.store';
+import NotificationAvatar from './NotificationAvatar';
+import type { EventStyle } from './notification-colours';
 import {
   describeEventAria,
   describeEventParts,
+  type EventParts,
+  eventStyleFor,
   formatAbsoluteTime,
-  formatEventTail,
   getEntityRef,
   getEntityTitle,
   getJiraKey,
   relTime,
+  statusCategoryGuess,
 } from './notification-view';
 
 interface NotificationRowProps {
@@ -109,50 +102,67 @@ export function NotificationTrayButton({
   );
 }
 
-/* ── type glyph (only 3 types carry colour) ─────────── */
+/* ── event tail: coloured verb, or status pills ────── */
 
-export function NotificationTypeGlyph({ item }: { item: NotificationItem }) {
-  const neutral = 'size-4 text-muted-foreground';
-  let icon: ReactNode;
-  let status = false;
-  switch (item.notificationType) {
-    case 'comment-mention':
-    case 'jira-comment':
-    case 'gitlab-mention':
-    case 'mr-note':
-      icon = <MessageSquare aria-hidden="true" className={neutral} />;
-      break;
-    case 'issue-update':
-      icon = <RefreshCw aria-hidden="true" className={neutral} />;
-      break;
-    case 'issue-assignment':
-      icon = <UserPlus aria-hidden="true" className={neutral} />;
-      break;
-    case 'mr-approval':
-      status = true;
-      icon = (
-        <CheckCircle2 aria-hidden="true" className="size-4 text-green-600 dark:text-green-400" />
-      );
-      break;
-    case 'pipeline-failure':
-      status = true;
-      icon = <XCircle aria-hidden="true" className="size-4 text-destructive" />;
-      break;
-    case 'due-date-reminder':
-      status = true;
-      icon = (
-        <CalendarClock aria-hidden="true" className="size-4 text-amber-600 dark:text-amber-400" />
-      );
-      break;
-    default:
-      icon = <Bell aria-hidden="true" className={neutral} />;
+export function NotificationTail({
+  parts,
+  style,
+  unread,
+}: {
+  parts: EventParts;
+  style: EventStyle;
+  unread: boolean;
+}) {
+  if (parts.to) {
+    return (
+      <span
+        data-tail="status"
+        className="pointer-events-none relative flex flex-none items-center gap-1 text-[11px]"
+      >
+        {parts.from ? (
+          <>
+            <div className="flex">
+              <span
+                className={cn(
+                  'whitespace-nowrap rounded px-1',
+                  statusCategoryBadgeClass(statusCategoryGuess(parts.from)),
+                )}
+              >
+                {parts.from}
+              </span>
+            </div>
+            <span aria-hidden="true" className="text-muted-foreground">
+              {'\u2192'}
+            </span>
+          </>
+        ) : (
+          <span aria-hidden="true" className="text-muted-foreground">
+            {'\u2192'}
+          </span>
+        )}
+        <div className="flex">
+          <span
+            className={cn(
+              'whitespace-nowrap rounded px-1',
+              statusCategoryBadgeClass(statusCategoryGuess(parts.to)),
+            )}
+          >
+            {parts.to}
+          </span>
+        </div>
+      </span>
+    );
   }
   return (
     <span
-      data-tone={status ? 'status' : 'neutral'}
-      className="pointer-events-none relative flex size-4 flex-none items-center justify-center"
+      data-tail="verb"
+      className={cn(
+        'pointer-events-none relative max-w-[40%] flex-none truncate pr-0.5 font-medium',
+        style.text,
+        !unread && 'opacity-80',
+      )}
     >
-      {icon}
+      {parts.verb}
     </span>
   );
 }
@@ -172,11 +182,11 @@ export default function NotificationRow({
   const ref = getEntityRef(item);
   const title = getEntityTitle(item);
   const parts = describeEventParts(item);
-  const tail = formatEventTail(parts);
+  const style = eventStyleFor(item, parts);
   const peeked = useIsPeeked(getJiraKey(item) ?? '');
   const typeLabel = (item.notificationType && TYPE_LABEL[item.notificationType]) || 'Notification';
   const sourceLabel = item.source === 'jira' ? 'Jira' : 'GitLab';
-  const ariaLabel = `${isUnread ? 'Unread. ' : ''}${ref ? `${ref} ` : ''}${title} \u2014 ${describeEventAria(parts)}`;
+  const ariaLabel = `${isUnread ? 'Unread. ' : ''}${describeEventAria(parts)} on ${ref ? `${ref} ` : ''}${title}`;
 
   return (
     <div
@@ -224,18 +234,11 @@ export default function NotificationRow({
         />
       </span>
 
-      <NotificationTypeGlyph item={item} />
+      <NotificationAvatar item={item} style={style} small={nested} />
 
       {nested ? (
         <>
-          <span
-            className={cn(
-              'pointer-events-none relative flex-none',
-              isUnread ? 'font-medium text-foreground' : 'text-muted-foreground',
-            )}
-          >
-            {tail}
-          </span>
+          <NotificationTail parts={parts} style={style} unread={isUnread} />
           <span className="pointer-events-none relative min-w-0 flex-1 truncate text-muted-foreground">
             {parts.snippet}
           </span>
@@ -263,9 +266,7 @@ export default function NotificationRow({
           >
             {title}
           </span>
-          <span className="pointer-events-none relative max-w-[40%] flex-none truncate pr-0.5 text-muted-foreground">
-            {tail}
-          </span>
+          <NotificationTail parts={parts} style={style} unread={isUnread} />
         </>
       )}
 

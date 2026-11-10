@@ -5,6 +5,7 @@
  */
 
 import type { NotificationItem } from '../../stores/notifications.store';
+import { EVENT_STYLE, type EventStyle, STATUS_STYLE, UPDATE_STYLE } from './notification-colours';
 
 export type SourceFilter = 'all' | 'jira' | 'gitlab';
 export type TimeBucket = 'today' | 'yesterday' | 'week' | 'older';
@@ -130,12 +131,15 @@ export function isSafeHttpUrl(url: string | undefined): boolean {
 }
 
 export interface EventParts {
-  /** Short lowercase verb, e.g. "assigned", "status \u2192 Done", "pipeline failed". */
+  /** Short verb phrase, e.g. "mentioned you", "changed status", "pipeline failed", "due tomorrow". */
   verb: string;
   /** First name (or display name when it has no space); absent for system events. */
   actor?: string;
   /** Single-line body snippet; shown only in nested rows and the tooltip. */
   snippet: string;
+  /** Status change only: old status (may be absent) and new status. */
+  from?: string;
+  to?: string;
 }
 
 function actorName(author: string): string | undefined {
@@ -155,9 +159,9 @@ export function describeEventParts(item: NotificationItem): EventParts {
       return { verb: 'commented', actor, snippet };
     case 'comment-mention':
     case 'gitlab-mention':
-      return { verb: 'mentioned', actor, snippet };
+      return { verb: 'mentioned you', actor, snippet };
     case 'issue-assignment':
-      return { verb: 'assigned', actor, snippet: '' };
+      return { verb: 'assigned you', actor, snippet: '' };
     case 'mr-approval':
       return { verb: 'approved', actor, snippet: '' };
     case 'pipeline-failure':
@@ -167,9 +171,15 @@ export function describeEventParts(item: NotificationItem): EventParts {
       return { verb: m ? `due ${m[1].toLowerCase()}` : 'due', snippet: '' };
     }
     case 'issue-update': {
-      const m = item.bodyPreview.match(/^Status:.*\u2192\s*(.+)$/m);
+      const m = item.bodyPreview.match(/^Status:\s*(.*?)\s*\u2192\s*(.+)$/m);
       return m
-        ? { verb: `status \u2192 ${m[1].trim()}`, actor, snippet: '' }
+        ? {
+            verb: 'changed status',
+            actor,
+            snippet: '',
+            from: m[1].trim() || undefined,
+            to: m[2].trim(),
+          }
         : { verb: 'updated', actor, snippet };
     }
     default:
@@ -177,14 +187,27 @@ export function describeEventParts(item: NotificationItem): EventParts {
   }
 }
 
-/** "verb \u00b7 Actor" tail text. */
-export function formatEventTail(parts: EventParts): string {
-  return parts.actor ? `${parts.verb} \u00b7 ${parts.actor}` : parts.verb;
+/** Event style (colour + glyph) for an item; status changes get the amber status style. */
+export function eventStyleFor(item: NotificationItem, parts: EventParts): EventStyle {
+  if (parts.to) return STATUS_STYLE;
+  return (item.notificationType && EVENT_STYLE[item.notificationType]) || UPDATE_STYLE;
 }
 
-/** Aria-friendly phrase: "assigned by Ben". */
+/** Best-effort Jira status category from a status name (for pill colour). */
+export function statusCategoryGuess(name: string): 'new' | 'indeterminate' | 'done' {
+  const n = name.toLowerCase();
+  if (/(done|closed|resolved|complete|released|fixed)/.test(n)) return 'done';
+  if (/(to do|todo|open|backlog|new|reopened|selected)/.test(n)) return 'new';
+  return 'indeterminate';
+}
+
+/** Aria phrase with actor: "Ana mentioned you" / "Pipeline failed" / "Cara changed status from X to Y". */
 export function describeEventAria(parts: EventParts): string {
-  return parts.actor ? `${parts.verb} by ${parts.actor}` : parts.verb;
+  const core = parts.to
+    ? `${parts.verb}${parts.from ? ` from ${parts.from}` : ''} to ${parts.to}`
+    : parts.verb;
+  if (parts.actor) return `${parts.actor} ${core}`;
+  return core.charAt(0).toUpperCase() + core.slice(1);
 }
 
 function ts(item: NotificationItem): number {
