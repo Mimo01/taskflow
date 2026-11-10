@@ -9,9 +9,8 @@
  * - Fetch error with cached items shows StaleDataBanner; with no items shows ErrorState
  */
 
-import { Bell, BellOff, MoreHorizontal } from 'lucide-react';
+import { Bell, BellOff, MoreHorizontal, TriangleAlert, X } from 'lucide-react';
 import { useState } from 'react';
-import { Alert, AlertDescription } from '../../components/ui/alert';
 import { Button } from '../../components/ui/button';
 import {
   DropdownMenu,
@@ -31,6 +30,7 @@ import NotificationList from './NotificationList';
 import NotificationRow from './NotificationRow';
 import {
   buildEntries,
+  countUnreadCards,
   type EventEntry,
   filterItems,
   getJiraKey,
@@ -89,9 +89,9 @@ export default function NotificationPopover({
   const scopedUnreadIds = scopedItems.filter((i) => !readSet.has(i.id)).map((i) => i.id);
   const hasScopedRead = scopedItems.some((i) => readSet.has(i.id));
 
+  /** Unread CARDS per tab (merged runs count once) so chips match the list and the bell. */
   function unreadCount(source: SourceFilter): number {
-    return items.filter((i) => (source === 'all' || i.source === source) && !readSet.has(i.id))
-      .length;
+    return countUnreadCards(items, readSet, source, now);
   }
 
   function navigateTo(item: NotificationItem) {
@@ -321,43 +321,27 @@ export default function NotificationPopover({
         </div>
       </div>
 
-      {/* Permission-denied banner */}
+      {/* Permission-denied banner — same pattern as StaleDataBanner (icon, muted text, ghost X) */}
       {permissionDenied && (
         <div className="m-2">
-          <Alert>
-            <AlertDescription>
-              System notifications are blocked. Enable them in System Settings to get alerts outside
-              the app.
-            </AlertDescription>
-            <button
-              type="button"
-              aria-label="Dismiss"
-              onClick={() => setPermissionDenied(false)}
-              className="absolute top-2 right-2 text-muted-foreground hover:text-foreground text-xs"
-            >
-              ✕
-            </button>
-          </Alert>
+          <PopoverBanner
+            icon={<BellOff className="size-4 shrink-0 text-muted-foreground" />}
+            onDismiss={() => setPermissionDenied(false)}
+          >
+            System notifications are blocked — enable them in System Settings.
+          </PopoverBanner>
         </div>
       )}
 
       {/* Notification send error banner (e.g. dev mode on macOS) */}
       {notificationSendError && !permissionDenied && (
         <div className="m-2">
-          <Alert>
-            <AlertDescription>
-              Desktop notifications failed to send. If running in dev mode, this is expected — macOS
-              requires a signed app bundle. Try a production build to verify.
-            </AlertDescription>
-            <button
-              type="button"
-              aria-label="Dismiss"
-              onClick={() => setNotificationSendError(false)}
-              className="absolute top-2 right-2 text-muted-foreground hover:text-foreground text-xs"
-            >
-              ✕
-            </button>
-          </Alert>
+          <PopoverBanner
+            icon={<TriangleAlert className="size-4 shrink-0 text-muted-foreground" />}
+            onDismiss={() => setNotificationSendError(false)}
+          >
+            Desktop notifications failed to send (expected in dev mode — macOS needs a signed app).
+          </PopoverBanner>
         </div>
       )}
 
@@ -372,6 +356,30 @@ export default function NotificationPopover({
       )}
 
       {renderBody()}
+    </div>
+  );
+}
+
+/** Popover-local info banner; mirrors the shared StaleDataBanner box so all banners match. */
+function PopoverBanner({
+  icon,
+  children,
+  onDismiss,
+}: {
+  icon: React.ReactNode;
+  children: React.ReactNode;
+  onDismiss: () => void;
+}) {
+  return (
+    <div
+      role="status"
+      className="flex items-center gap-2 rounded-lg border bg-muted px-3 py-2 text-sm"
+    >
+      {icon}
+      <span className="flex-1 text-muted-foreground">{children}</span>
+      <Button variant="ghost" size="sm" aria-label="Dismiss" onClick={onDismiss}>
+        <X className="size-4" />
+      </Button>
     </div>
   );
 }

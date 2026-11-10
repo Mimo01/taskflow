@@ -43,7 +43,7 @@ export default function NotificationAvatar({ item, style }: NotificationAvatarPr
     lead = (
       <span
         data-avatar-tile="anon"
-        className="flex size-9 flex-none items-center justify-center rounded-full bg-muted ring-1 ring-foreground/15 density-compact:size-8 density-comfortable:size-10"
+        className="flex size-9 flex-none items-center justify-center rounded-full bg-muted ring-1 ring-foreground/15 dark:bg-foreground/20 density-compact:size-8 density-comfortable:size-10"
       >
         <User aria-hidden="true" className="size-4 text-muted-foreground" />
       </span>
@@ -54,7 +54,7 @@ export default function NotificationAvatar({ item, style }: NotificationAvatarPr
         url={item.authorAvatarUrl}
         name={item.author}
         size={40}
-        className="size-9 rounded-full density-compact:size-8 density-comfortable:size-10 ring-1 ring-foreground/15 [&>*]:size-full! [&_div]:text-[10px]"
+        className="size-9 rounded-full density-compact:size-8 density-comfortable:size-10 ring-1 ring-foreground/15 [&>*]:size-full! [&_div]:text-[10px] dark:[&>div]:bg-foreground/20!"
       />
     );
   }

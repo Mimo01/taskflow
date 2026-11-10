@@ -256,6 +256,19 @@ describe('NotificationRow', () => {
     ).toBeInTheDocument();
   });
 
+  it('hover tray fades into the title instead of a hard edge', () => {
+    const { container } = setup();
+    const tray = container.querySelector('[data-tray]') as HTMLElement;
+    expect(tray.className).toContain('before:bg-linear-to-l');
+    expect(tray.className).toContain('before:from-accent');
+  });
+
+  it('initials avatar gets a lighter fill in dark mode', () => {
+    const { container } = setup();
+    const slot = container.querySelector('[data-event-kind] > div') as HTMLElement;
+    expect(slot.className).toContain('dark:[&>div]:bg-foreground/20!');
+  });
+
   it('the whole card shows a pointer cursor (it is all one click target)', () => {
     const { container } = setup();
     expect((container.querySelector('[data-card]') as HTMLElement).className).toContain(

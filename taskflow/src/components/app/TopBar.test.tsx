@@ -71,6 +71,21 @@ describe('TopBar', () => {
     expect(screen.getByText('3')).toBeInTheDocument();
   });
 
+  it('badge counts unread CARDS: same-actor consecutive comments on one issue count once', () => {
+    const c = (id: string, min: number): NotificationItem => ({
+      ...makeItem(id),
+      entityTitle: 'PROJ-9: Same issue',
+      notificationType: 'jira-comment',
+      createdAt: new Date(Date.now() - (60 - min) * 60_000).toISOString(),
+    });
+    const items = [c('m1', 0), c('m2', 10), c('m3', 20)];
+    act(() => {
+      useNotificationsStore.setState({ items, readIds: [], _unreadCount: 3 });
+    });
+    renderTopBar();
+    expect(screen.getByText('1')).toBeInTheDocument();
+  });
+
   it('renders badge with "99+" when unreadCount is 100', () => {
     const items = Array.from({ length: 100 }, (_, i) => makeItem(`item-${i}`));
     act(() => {

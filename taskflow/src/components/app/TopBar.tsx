@@ -12,6 +12,7 @@
 import { Bell, Search } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import NotificationPopover from '../../routes/notifications/NotificationPopover';
+import { useUnreadCardCount } from '../../routes/notifications/useUnreadCardCount';
 import { useUnreadCount } from '../../stores/notifications.store';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import RecentItemsPopover from './RecentItemsPopover';
@@ -46,27 +47,30 @@ export default function TopBar({
   onNotifPopoverChange,
   onOpenSettings,
 }: TopBarProps) {
-  const unreadCount = useUnreadCount();
-  const prevCountRef = useRef(unreadCount);
+  // Badge shows unread CARDS (matches the list); the pulse keys off raw item arrivals so a new
+  // comment folded into an existing card still rings the bell.
+  const unreadCount = useUnreadCardCount();
+  const rawUnread = useUnreadCount();
+  const prevCountRef = useRef(rawUnread);
   const [bellPulse, setBellPulse] = useState(false);
 
   // Trigger pulse animation when unread count increases (new notifications arrived)
   useEffect(() => {
-    if (unreadCount > prevCountRef.current) {
+    if (rawUnread > prevCountRef.current) {
       setBellPulse(true);
       const timer = setTimeout(() => setBellPulse(false), 2000);
       return () => clearTimeout(timer);
     }
-    prevCountRef.current = unreadCount;
-  }, [unreadCount]);
+    prevCountRef.current = rawUnread;
+  }, [rawUnread]);
 
   // Clear pulse when popover is opened
   useEffect(() => {
     if (notifPopoverOpen) {
       setBellPulse(false);
-      prevCountRef.current = unreadCount;
+      prevCountRef.current = rawUnread;
     }
-  }, [notifPopoverOpen, unreadCount]);
+  }, [notifPopoverOpen, rawUnread]);
 
   return (
     <header className="h-12 border-b flex items-center px-4 flex-shrink-0 gap-2">

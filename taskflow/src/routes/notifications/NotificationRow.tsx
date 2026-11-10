@@ -505,11 +505,14 @@ export default function NotificationRow({
           </span>
           <time
             dateTime={item.createdAt}
-            className="pointer-events-none relative w-9 flex-none text-right text-[11px] tabular-nums text-muted-foreground group-hover/row:opacity-0 group-focus-within/row:opacity-0"
+            className="pointer-events-none relative min-w-9 flex-none whitespace-nowrap text-right text-[11px] tabular-nums text-muted-foreground group-hover/row:opacity-0 group-focus-within/row:opacity-0"
           >
             {relTime(item.createdAt, now)}
           </time>
-          <span className="absolute right-0 top-1/2 z-10 flex -translate-y-1/2 items-center gap-0.5 bg-accent pl-1 opacity-0 group-hover/row:opacity-100 group-focus-within/row:opacity-100">
+          <span
+            data-tray
+            className="absolute right-0 top-1/2 z-10 flex -translate-y-1/2 items-center gap-0.5 bg-accent pl-1 opacity-0 before:pointer-events-none before:absolute before:inset-y-0 before:right-full before:w-6 before:bg-linear-to-l before:from-accent before:to-transparent before:content-[''] group-hover/row:opacity-100 group-focus-within/row:opacity-100"
+          >
             <NotificationTrayButton
               label={isUnread ? 'Mark as read' : 'Mark as unread'}
               shortcut="U"

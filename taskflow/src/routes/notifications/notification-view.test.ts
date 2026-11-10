@@ -14,6 +14,7 @@ import {
   describeEntryParts,
   describeEventParts,
   commentPreview,
+  countUnreadCards,
   listRowCount,
   MAX_LIST_ROWS,
   visibleCount,
@@ -93,7 +94,15 @@ describe('relTime / formatAbsoluteTime / isSafeHttpUrl', () => {
     expect(relTime(ago(300), NOW)).toBe('5m');
     expect(relTime(ago(3 * 3600), NOW)).toBe('3h');
     expect(relTime(ago(2 * 86400), NOW)).toBe('2d');
-    expect(relTime(ago(15 * 86400), NOW)).toBe('2w');
+    expect(relTime(ago(6 * 86400), NOW)).toBe('6d');
+    // a week or older shows the date (same year: no year; older: with year)
+    const nov = new Date(2026, 9, 26, 12).toISOString();
+    expect(relTime(nov, NOW)).toBe(
+      new Date(nov).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+    );
+    expect(relTime(nov, NOW)).not.toMatch(/w$/);
+    const lastYear = new Date(2025, 10, 3, 12).toISOString();
+    expect(relTime(lastYear, NOW)).toContain('2025');
   });
   it('formats an absolute time string', () => {
     expect(formatAbsoluteTime(local(10, 10))).toMatch(/\d/);
@@ -718,5 +727,24 @@ describe('list cap (shared by cards and the height estimate)', () => {
     expect(listRowCount(11)).toBe(10);
     expect(visibleCount(40)).toBe(9);
     expect(listRowCount(40)).toBe(10);
+  });
+});
+
+describe('countUnreadCards', () => {
+  it('counts merged runs once and skips fully-read cards', () => {
+    const now = new Date(2026, 10, 10, 15, 0).getTime();
+    const t = (min: number) => new Date(2026, 10, 10, 14, min).toISOString();
+    const c = (id: string, key: string, min: number, author = 'Ben Carter') =>
+      jira(id, key, t(min), { author, notificationType: 'jira-comment', bodyPreview: id });
+    // Ben x3 on PROJ-1 (one card), Ana on PROJ-2, Cara on PROJ-3 (read)
+    const items = [
+      c('a', 'PROJ-1', 0),
+      c('b', 'PROJ-1', 10),
+      c('c', 'PROJ-1', 20),
+      c('d', 'PROJ-2', 30, 'Ana'),
+      c('e', 'PROJ-3', 40, 'Cara'),
+    ];
+    expect(countUnreadCards(items, new Set(['e']), 'all', now)).toBe(2);
+    expect(countUnreadCards(items, new Set(['e']), 'gitlab', now)).toBe(0);
   });
 });

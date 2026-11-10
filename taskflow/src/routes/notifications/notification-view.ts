@@ -100,7 +100,14 @@ export function relTime(iso: string, now: number): string {
   if (h < 24) return `${h}h`;
   const d = Math.floor(h / 24);
   if (d < 7) return `${d}d`;
-  return `${Math.floor(d / 7)}w`;
+  // A week or older: the actual date reads better than "3w" and replaces the old hover tooltip.
+  const then = new Date(iso);
+  const sameYear = then.getFullYear() === new Date(now).getFullYear();
+  return then.toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    ...(sameYear ? {} : { year: 'numeric' }),
+  });
 }
 
 export function formatAbsoluteTime(iso: string): string {
@@ -750,6 +757,21 @@ export function buildEntries(input: {
     entries.push({ kind: 'event', id: `event:${item.id}`, item, items: group, isUnread });
   }
   return entries;
+}
+
+/**
+ * Unread notifications as the user SEES them: one per card (merged runs count once), so the bell
+ * and tab chips match the list. Same merge rules as buildEntries.
+ */
+export function countUnreadCards(
+  items: NotificationItem[],
+  readSet: ReadonlySet<string>,
+  source: SourceFilter,
+  now: number,
+): number {
+  return buildEntries({ items, readSet, source, unreadOnly: true, now }).filter(
+    (e) => e.kind === 'event',
+  ).length;
 }
 
 /** Max rows a card's change / comment list may take (items + the "+N more" row). */

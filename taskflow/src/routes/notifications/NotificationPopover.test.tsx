@@ -67,9 +67,7 @@ describe('NotificationPopover', () => {
     });
     render(<NotificationPopover />);
     expect(
-      screen.getByText(
-        'System notifications are blocked. Enable them in System Settings to get alerts outside the app.',
-      ),
+      screen.getByText('System notifications are blocked — enable them in System Settings.'),
     ).toBeInTheDocument();
   });
 
