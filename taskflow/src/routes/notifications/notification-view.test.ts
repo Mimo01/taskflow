@@ -19,6 +19,7 @@ import {
   isFocusableEntry,
   isSafeHttpUrl,
   relTime,
+  secondActor,
 } from './notification-view';
 
 const NOW = new Date(2026, 10, 10, 15, 0).getTime();
@@ -119,6 +120,20 @@ describe('describeEventParts', () => {
     expect(verb('issue-update', 'unrecognised text')).toBe('updated');
     expect(verb(undefined)).toBe('updated');
     expect(d('jira-comment').actor).toBe('Ann');
+  });
+  it('exposes a what column (field name for updates) and detail text', () => {
+    expect(d('issue-update', 'Status: To Do \u2192 Done').what).toBe('status');
+    expect(d('issue-update', 'Priority: A \u2192 B').what).toBe('priority');
+    expect(d('issue-update', 'Description: updated')).toMatchObject({
+      what: 'description',
+      detailText: 'edited',
+    });
+    expect(d('due-date-reminder', 'Due tomorrow', '')).toMatchObject({
+      what: 'due',
+      detailText: 'tomorrow',
+    });
+    expect(d('pipeline-failure').what).toBe('pipeline failed');
+    expect(d('comment-mention').what).toBe('mentioned you');
   });
   it('parses change lines incl. (none), description and unknown lines', () => {
     expect(
@@ -381,5 +396,40 @@ describe('entryItemIds / isFocusableEntry', () => {
     expect(entryItemIds(e[2])).toEqual(['a']);
     expect(isFocusableEntry(e[0])).toBe(false);
     expect(isFocusableEntry(e[1])).toBe(true);
+  });
+});
+
+describe('secondActor', () => {
+  it('returns the next distinct human actor behind the newest event', () => {
+    const mk = (id: string, author: string, h: number, over: Partial<NotificationItem> = {}) =>
+      makeItem({
+        id,
+        author,
+        entityTitle: 'PROJ-1: X',
+        createdAt: local(10, 10, h),
+        ...over,
+      });
+    const items = [mk('a', 'Ann', 12), mk('b', 'Ann', 11), mk('c', 'Bob', 10)];
+    const e = buildEntries({
+      items,
+      readSet: new Set(),
+      source: 'all',
+      unreadOnly: false,
+      expandOverrides: {},
+      now: NOW,
+    });
+    const g = e.find((x) => x.kind === 'group');
+    if (g?.kind !== 'group') throw new Error('no group');
+    expect(secondActor(g)?.id).toBe('c');
+    const same = buildEntries({
+      items: items.slice(0, 2),
+      readSet: new Set(),
+      source: 'all',
+      unreadOnly: false,
+      expandOverrides: {},
+      now: NOW,
+    }).find((x) => x.kind === 'group');
+    if (same?.kind !== 'group') throw new Error('no group');
+    expect(secondActor(same)).toBeUndefined();
   });
 });

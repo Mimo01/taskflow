@@ -133,6 +133,10 @@ export function isSafeHttpUrl(url: string | undefined): boolean {
 export interface EventParts {
   /** Short verb phrase, e.g. "mentioned you", "changed status", "pipeline failed", "due tomorrow". */
   verb: string;
+  /** Column label for the "what" slot: verb phrase, or the field name for issue updates ("status", "priority"). */
+  what: string;
+  /** Plain text for the detail slot when there are no change values ("tomorrow", "edited"). */
+  detailText?: string;
   /** First name (or display name when it has no space); absent for system events. */
   actor?: string;
   /** Single-line body snippet; shown only in nested rows and the tooltip. */
@@ -194,19 +198,24 @@ export function describeEventParts(item: NotificationItem): EventParts {
   switch (item.notificationType) {
     case 'mr-note':
     case 'jira-comment':
-      return { verb: 'commented', actor, snippet };
+      return { verb: 'commented', what: 'commented', actor, snippet };
     case 'comment-mention':
     case 'gitlab-mention':
-      return { verb: 'mentioned you', actor, snippet };
+      return { verb: 'mentioned you', what: 'mentioned you', actor, snippet };
     case 'issue-assignment':
-      return { verb: 'assigned you', actor, snippet: '' };
+      return { verb: 'assigned you', what: 'assigned you', actor, snippet: '' };
     case 'mr-approval':
-      return { verb: 'approved', actor, snippet: '' };
+      return { verb: 'approved', what: 'approved', actor, snippet: '' };
     case 'pipeline-failure':
-      return { verb: 'pipeline failed', snippet };
+      return { verb: 'pipeline failed', what: 'pipeline failed', snippet };
     case 'due-date-reminder': {
       const m = snippet.match(/^due\s+(.+)$/i);
-      return { verb: m ? `due ${m[1].toLowerCase()}` : 'due', snippet: '' };
+      return {
+        verb: m ? `due ${m[1].toLowerCase()}` : 'due',
+        what: 'due',
+        detailText: m ? m[1].toLowerCase() : undefined,
+        snippet: '',
+      };
     }
     case 'issue-update': {
       const lines = parseChangeLines(item.bodyPreview);
@@ -215,6 +224,7 @@ export function describeEventParts(item: NotificationItem): EventParts {
       if (status) {
         return {
           verb: 'changed status',
+          what: 'status',
           actor,
           snippet: '',
           from: status.from,
@@ -226,16 +236,18 @@ export function describeEventParts(item: NotificationItem): EventParts {
       if (others.length > 0) {
         return {
           verb: `changed ${others[0].field}`,
+          what: others[0].field,
+          detailText: others[0].from || others[0].to ? undefined : 'edited',
           actor,
           snippet: '',
           changes: others,
           moreChanges: others.length > 1 ? others.length - 1 : undefined,
         };
       }
-      return { verb: 'updated', actor, snippet };
+      return { verb: 'updated', what: 'updated', actor, snippet };
     }
     default:
-      return { verb: 'updated', actor, snippet };
+      return { verb: 'updated', what: 'updated', actor, snippet };
   }
 }
 
@@ -352,6 +364,20 @@ export function buildEntries(input: {
     for (const chunk of buckets[bucket]) entries.push(...chunk);
   }
   return entries;
+}
+
+/** Next distinct human actor behind a group's newest event (for the avatar stack), if any. */
+export function secondActor(entry: GroupEntry): NotificationItem | undefined {
+  const lead = entry.newest.author.trim();
+  return entry.items
+    .slice(1)
+    .find(
+      (i) =>
+        i.author.trim() &&
+        i.author.trim() !== lead &&
+        i.notificationType !== 'pipeline-failure' &&
+        i.notificationType !== 'due-date-reminder',
+    );
 }
 
 export function entryItemIds(entry: NotificationEntry): string[] {

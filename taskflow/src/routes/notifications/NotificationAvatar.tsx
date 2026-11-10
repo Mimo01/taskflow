@@ -15,12 +15,15 @@ interface NotificationAvatarProps {
   style: EventStyle;
   /** Smaller variant for nested group children. */
   small?: boolean;
+  /** Grouped row: the next distinct actor, drawn peeking out behind the newest actor's avatar. */
+  behind?: NotificationItem;
 }
 
 export default function NotificationAvatar({
   item,
   style,
   small = false,
+  behind,
 }: NotificationAvatarProps) {
   const type = item.notificationType;
   const px = small ? 'size-5' : 'size-6';
@@ -54,28 +57,46 @@ export default function NotificationAvatar({
         url={item.authorAvatarUrl}
         name={item.author}
         size={small ? 20 : 24}
-        className="rounded-full ring-1 ring-foreground/15 [&_div]:text-[8px]"
+        className={cn(
+          'rounded-full [&_div]:text-[8px]',
+          behind
+            ? 'ring-2 ring-popover group-hover/row:ring-accent group-focus-within/row:ring-accent'
+            : 'ring-1 ring-foreground/15',
+        )}
       />
     );
   }
   return (
     <span
       data-event-kind={style.kind}
-      className={cn('pointer-events-none relative mr-1 flex flex-none', px)}
+      data-avatar-stack={behind ? 'true' : undefined}
+      className="pointer-events-none relative flex h-6 w-11 flex-none items-center"
     >
-      {lead}
-      {showBadge ? (
-        <span
-          data-event-badge={style.kind}
-          className={cn(
-            'absolute -right-1.5 -bottom-1.5 flex items-center justify-center rounded-full text-white ring-2 ring-popover group-hover:ring-accent group-focus-within:ring-accent',
-            badgeSize,
-            style.badge,
-          )}
-        >
-          <Icon aria-hidden="true" className={glyph} />
+      {behind ? (
+        <span data-avatar-behind className={cn('absolute left-5 flex', px)}>
+          <CachedAvatar
+            url={behind.authorAvatarUrl}
+            name={behind.author}
+            size={24}
+            className="rounded-full ring-1 ring-foreground/15 [&_div]:text-[8px]"
+          />
         </span>
       ) : null}
+      <span className={cn('relative flex flex-none', px)}>
+        {lead}
+        {showBadge ? (
+          <span
+            data-event-badge={style.kind}
+            className={cn(
+              'absolute -right-1 -bottom-1 flex items-center justify-center rounded-full text-white ring-2 ring-popover group-hover/row:ring-accent group-focus-within/row:ring-accent',
+              badgeSize,
+              style.badge,
+            )}
+          >
+            <Icon aria-hidden="true" className={glyph} />
+          </span>
+        ) : null}
+      </span>
     </span>
   );
 }

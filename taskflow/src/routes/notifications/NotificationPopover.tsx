@@ -40,6 +40,7 @@ import {
   isSafeHttpUrl,
   type NotificationEntry,
   type SourceFilter,
+  secondActor,
 } from './notification-view';
 
 interface NotificationPopoverProps {
@@ -170,6 +171,7 @@ export default function NotificationPopover({
           isUnread={entry.unreadCount > 0}
           now={now}
           groupCount={entry.items.length - 1}
+          stackItem={secondActor(entry)}
           expanded={entry.expanded}
           onToggleExpand={() => setExpanded(entry, !entry.expanded)}
           onOpen={() => openGroup(entry)}
@@ -184,6 +186,7 @@ export default function NotificationPopover({
         item={ev.item}
         isUnread={ev.isUnread}
         now={now}
+        nested={ev.nested}
         onOpen={() => openEvent(ev.item)}
         onToggleRead={() => toggleRead(ev)}
         onDone={() => done(ev)}

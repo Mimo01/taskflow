@@ -90,8 +90,9 @@ describe('NotificationRow', () => {
         fullBody: 'Priority: Minor \u2192 Major',
       }),
     });
-    const tail = container.querySelector('[data-tail="change"]') as HTMLElement;
-    expect(tail.textContent).toContain('priority');
+    expect(container.querySelector('[data-col="what"]')?.textContent).toBe('priority');
+    const tail = container.querySelector('[data-col="detail"]') as HTMLElement;
+    expect(tail.dataset.detail).toBe('change');
     expect(tail.textContent).toContain('Minor');
     expect(tail.textContent).toContain('Major');
     unmount();
@@ -102,8 +103,8 @@ describe('NotificationRow', () => {
         fullBody: 'x',
       }),
     });
-    const t2 = multi.container.querySelector('[data-tail="change"]') as HTMLElement;
-    expect(t2.textContent).toContain('sprint');
+    expect(multi.container.querySelector('[data-col="what"]')?.textContent).toBe('sprint');
+    const t2 = multi.container.querySelector('[data-col="detail"]') as HTMLElement;
     expect(t2.textContent).toContain('+2');
     multi.unmount();
     const desc = setup({
@@ -113,12 +114,11 @@ describe('NotificationRow', () => {
         fullBody: 'x',
       }),
     });
-    expect(desc.container.querySelector('[data-tail="change"]')?.textContent).toBe(
-      'edited description',
-    );
+    expect(desc.container.querySelector('[data-col="what"]')?.textContent).toBe('description');
+    expect(desc.container.querySelector('[data-col="detail"]')?.textContent).toBe('edited');
   });
 
-  it('grouped row looks like a single row plus a +N chip that toggles aria-expanded', () => {
+  it('grouped row looks like a single row plus an "N events" pill that toggles aria-expanded', () => {
     const onToggleExpand = vi.fn();
     const { container, rerender, ...h } = setup({ groupCount: 2, onToggleExpand });
     expect(screen.getByText('PROJ-123')).toBeInTheDocument();
@@ -126,7 +126,7 @@ describe('NotificationRow', () => {
     expect(screen.getByText('commented')).toBeInTheDocument();
     expect(container.querySelector('[data-event-badge]')).not.toBeNull();
     const chip = screen.getByRole('button', { name: 'Show 2 earlier events on PROJ-123' });
-    expect(chip).toHaveTextContent('+2');
+    expect(chip).toHaveTextContent('3 events');
     expect(chip).toHaveAttribute('aria-expanded', 'false');
     fireEvent.click(chip);
     expect(onToggleExpand).toHaveBeenCalledTimes(1);
@@ -146,7 +146,7 @@ describe('NotificationRow', () => {
     );
     const open = screen.getByRole('button', { name: 'Hide 2 earlier events on PROJ-123' });
     expect(open).toHaveAttribute('aria-expanded', 'true');
-    expect(open).toHaveTextContent('\u22122');
+    expect(open).toHaveTextContent('3 events');
     expect(screen.getByRole('button', { name: 'Mark group read' })).toBeInTheDocument();
   });
 
@@ -221,7 +221,8 @@ describe('NotificationRow', () => {
       }),
     });
     expect(due.container.querySelector('[data-avatar-tile="due"]')).not.toBeNull();
-    expect(screen.getByText('due tomorrow')).toBeInTheDocument();
+    expect(due.container.querySelector('[data-col="what"]')?.textContent).toBe('due');
+    expect(due.container.querySelector('[data-col="detail"]')?.textContent).toBe('tomorrow');
   });
 
   it('renders the verb in the event colour', () => {
@@ -236,7 +237,8 @@ describe('NotificationRow', () => {
         bodyPreview: 'Status: To Do \u2192 In Review',
       }),
     });
-    expect(container.querySelector('[data-tail="status"]')).not.toBeNull();
+    expect(container.querySelector('[data-col="what"]')?.textContent).toBe('status');
+    expect(container.querySelector('[data-detail="status"]')).not.toBeNull();
     expect(screen.getByText('To Do')).toBeInTheDocument();
     expect(screen.getByText('In Review')).toBeInTheDocument();
     expect(
@@ -303,5 +305,60 @@ describe('NotificationRow', () => {
   it('has no div[role=button]', () => {
     const { container } = setup();
     expect(container.querySelectorAll('div[role="button"]').length).toBe(0);
+  });
+
+  it('scopes hover/focus ring + background changes to its own row (named group)', () => {
+    const { container } = setup();
+    const root = container.firstElementChild as HTMLElement;
+    expect(root.className).toContain('group/row');
+    expect(root.className).not.toMatch(/(^|\s)group(\s|$)/);
+    const badge = container.querySelector('[data-event-badge]') as HTMLElement;
+    expect(badge.className).toContain('group-hover/row:ring-accent');
+    expect(badge.className).not.toMatch(/(^|\s)group-hover:/);
+    // badge stays inside the row box: small overhang only, no -1.5 spill into neighbours
+    expect(badge.className).not.toContain('-bottom-1.5');
+  });
+
+  it('every row has a bottom divider; nested rows are tinted, railed and lighter', () => {
+    const single = setup();
+    const r1 = single.container.firstElementChild as HTMLElement;
+    expect(r1.className).toContain('border-b');
+    expect(r1.className).toContain('border-border/60');
+    expect(r1.querySelector('[data-thread-rail]')).toBeNull();
+    single.unmount();
+    const nested = setup({ nested: true });
+    const r2 = nested.container.firstElementChild as HTMLElement;
+    expect(r2.className).toContain('border-border/30');
+    expect(r2.className).toContain('bg-muted/40');
+    expect(r2.querySelector('[data-thread-rail]')).not.toBeNull();
+  });
+
+  it('nested rows keep the columns but show only a muted snippet instead of the title', () => {
+    const { container } = setup({
+      nested: true,
+      item: makeItem('jira', { notificationType: 'comment-mention', bodyPreview: 'ping @you' }),
+    });
+    expect(screen.queryByText('Fix login bug')).not.toBeInTheDocument();
+    expect(container.querySelector('[data-nested-snippet]')?.textContent).toBe('ping @you');
+    expect(container.querySelector('[data-col="what"]')?.textContent).toBe('mentioned you');
+    expect(container.querySelector('[data-col="detail"]')).not.toBeNull();
+    expect(screen.getByText('PROJ-123')).toBeInTheDocument();
+  });
+
+  it('group rows draw a 2-avatar stack when a second actor is given', () => {
+    const { container } = setup({
+      groupCount: 2,
+      stackItem: makeItem('jira', { author: 'Bob Brown' }),
+    });
+    expect(container.querySelector('[data-avatar-stack="true"]')).not.toBeNull();
+    expect(container.querySelector('[data-avatar-behind]')).not.toBeNull();
+  });
+
+  it('every row type renders what and detail columns (detail empty without values)', () => {
+    const { container } = setup();
+    expect(container.querySelector('[data-col="what"]')).not.toBeNull();
+    const d = container.querySelector('[data-col="detail"]') as HTMLElement;
+    expect(d.dataset.detail).toBe('empty');
+    expect(d.textContent).toBe('');
   });
 });

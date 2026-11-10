@@ -41,7 +41,7 @@ export default function NotificationList({
   const rowVirtualizer = useVirtualizer({
     count: entries.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: (i) => (entries[i]?.kind === 'header' ? 28 : 32),
+    estimateSize: (i) => (entries[i]?.kind === 'header' ? 28 : 36),
     overscan: 8,
     // Stable identity keys: entries remap indices on read/done/expand, so an index-keyed
     // size cache would apply a row's height to a different entry.
