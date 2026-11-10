@@ -34,6 +34,8 @@ interface TopBarProps {
   notifPopoverOpen: boolean;
   /** Callback when notification popover open state changes. */
   onNotifPopoverChange: (open: boolean) => void;
+  /** Opens app settings; surfaced as "Notification settings" in the notification popover. */
+  onOpenSettings?: () => void;
 }
 
 export default function TopBar({
@@ -42,6 +44,7 @@ export default function TopBar({
   onPaletteOpen,
   notifPopoverOpen,
   onNotifPopoverChange,
+  onOpenSettings,
 }: TopBarProps) {
   const unreadCount = useUnreadCount();
   const prevCountRef = useRef(unreadCount);
@@ -104,6 +107,7 @@ export default function TopBar({
           <NotificationPopover
             onIssueClick={onIssueClick}
             onMRClick={onMRClick}
+            onOpenSettings={onOpenSettings}
             onClose={() => onNotifPopoverChange(false)}
           />
         </PopoverContent>

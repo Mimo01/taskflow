@@ -106,4 +106,14 @@ describe('TopBar', () => {
 
     expect(screen.getByLabelText('Recent Items')).toBeInTheDocument();
   });
+
+  it('forwards onOpenSettings to the notification popover overflow menu', async () => {
+    const onOpenSettings = vi.fn();
+    renderTopBar({ notifPopoverOpen: true, onOpenSettings } as never);
+
+    fireEvent.click(screen.getByRole('button', { name: 'More actions' }));
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Notification settings' }));
+
+    expect(onOpenSettings).toHaveBeenCalledOnce();
+  });
 });

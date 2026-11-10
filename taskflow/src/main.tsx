@@ -672,6 +672,7 @@ function AppLayout() {
           onPaletteOpen={() => setPaletteOpen(true)}
           notifPopoverOpen={notifPopoverOpen}
           onNotifPopoverChange={setNotifPopoverOpen}
+          onOpenSettings={() => navigate('/settings')}
         />
         {pinnedKeys.length > 0 && (
           <PinnedTabStrip

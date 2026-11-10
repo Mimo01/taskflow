@@ -1,364 +1,259 @@
 /**
- * NotificationPopover — tabbed notification feed rendered inside TopBar's Popover.
+ * NotificationPopover — grouped notification feed rendered inside TopBar's Popover (Phase 95).
  *
- * Features:
- * - Source tabs (All / Jira / GitLab) with unread count badges
- * - Unread-only filter toggle
- * - Time-grouped sections (Today / Yesterday / Earlier)
- * - Open-in-browser action on hover
- * - Mark-all-read header + per-item mark-as-read on hover
- * - Source-specific empty states
- * - Virtualized list via @tanstack/react-virtual for large notification feeds
+ * - Header: "Notifications", ghost "Mark all read", overflow (Clear read, Notification settings)
+ * - Filter bar: segmented Unread | All + source tabs with neutral unread chips
+ * - Entries built by notification-view (time buckets + per-entity groups), rendered by
+ *   NotificationList (virtualized, keyboard triage)
+ * - Row/group click = mark read + navigate + close (D-13); no peek wiring
+ * - Fetch error with cached items shows StaleDataBanner; with no items shows ErrorState
  */
 
-import { useVirtualizer } from '@tanstack/react-virtual';
-import { Bell, BellOff, GitMerge, TicketCheck } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { Bell, BellOff, MoreHorizontal } from 'lucide-react';
+import { useState } from 'react';
 import { Alert, AlertDescription } from '../../components/ui/alert';
 import { Button } from '../../components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '../../components/ui/dropdown-menu';
 import { EmptyState } from '../../components/ui/empty-state';
 import { ErrorState } from '../../components/ui/error-state';
+import { StaleDataBanner } from '../../components/ui/stale-data-banner';
 import { useNow } from '../../hooks/useNow';
 import { openExternal } from '../../lib/openExternal';
+import { cn } from '../../lib/utils';
 import type { NotificationItem } from '../../stores/notifications.store';
 import { useNotificationsStore } from '../../stores/notifications.store';
+import NotificationGroupHeader from './NotificationGroupHeader';
+import NotificationList from './NotificationList';
 import NotificationRow from './NotificationRow';
-
-type SourceFilter = 'all' | 'jira' | 'gitlab';
-
-/**
- * Extracts a Jira issue key from a notification item.
- */
-function extractJiraIssueKey(item: {
-  source: string;
-  entityTitle: string;
-  url?: string;
-}): string | null {
-  if (item.source !== 'jira') return null;
-  const colonIdx = item.entityTitle.indexOf(':');
-  if (colonIdx > 0) {
-    const candidate = item.entityTitle.slice(0, colonIdx).trim();
-    if (/^[A-Z]+-\d+$/.test(candidate)) return candidate;
-  }
-  if (item.url) {
-    const match = item.url.match(/\/browse\/([A-Z]+-\d+)/);
-    if (match) return match[1];
-  }
-  return null;
-}
+import {
+  buildEntries,
+  type EventEntry,
+  entryItemIds,
+  type FocusableEntry,
+  filterItems,
+  type GroupEntry,
+  getJiraKey,
+  isSafeHttpUrl,
+  type NotificationEntry,
+  type SourceFilter,
+} from './notification-view';
 
 interface NotificationPopoverProps {
   onIssueClick?: (issueKey: string) => void;
-  onOpenIssue?: (issueKey: string) => void;
   onMRClick?: (projectIdAndIid: string) => void;
   onClose?: () => void;
+  onOpenSettings?: () => void;
 }
 
-function sortNewestFirst(items: NotificationItem[]): NotificationItem[] {
-  return [...items].sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-  );
-}
-
-const tabs: { key: SourceFilter; label: string }[] = [
-  { key: 'all', label: 'All' },
+const SOURCE_TABS: { key: SourceFilter; label: string }[] = [
+  { key: 'all', label: 'All sources' },
   { key: 'jira', label: 'Jira' },
   { key: 'gitlab', label: 'GitLab' },
 ];
 
-/** Classify a timestamp into a day group. */
-function getTimeGroup(isoTimestamp: string): 'today' | 'yesterday' | 'earlier' {
-  const now = new Date();
-  const then = new Date(isoTimestamp);
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const yesterdayStart = new Date(todayStart.getTime() - 86400000);
-
-  if (then >= todayStart) return 'today';
-  if (then >= yesterdayStart) return 'yesterday';
-  return 'earlier';
-}
-
-const groupLabels: Record<string, string> = {
-  today: 'Today',
-  yesterday: 'Yesterday',
-  earlier: 'Earlier',
-};
-
-/** A virtual row is either a group header or a notification item. */
-type VirtualEntry =
-  | { type: 'header'; key: string; label: string }
-  | { type: 'item'; item: NotificationItem };
-
-/** Build a flat list of virtual entries (headers + items) from grouped notifications. */
-function buildVirtualEntries(rowItems: NotificationItem[]): VirtualEntry[] {
-  const entries: VirtualEntry[] = [];
-  let currentGroup: string | null = null;
-
-  for (const item of rowItems) {
-    const group = getTimeGroup(item.createdAt);
-    if (group !== currentGroup) {
-      currentGroup = group;
-      entries.push({ type: 'header', key: group, label: groupLabels[group] });
-    }
-    entries.push({ type: 'item', item });
-  }
-
-  return entries;
-}
-
-/** Virtualized notification list with group headers and measureElement for variable heights. */
-function VirtualizedNotificationList({
-  entries,
-  readSet,
-  now,
-  onRowClick,
-  onMarkRead,
-  onDismiss,
-  onOpenInBrowser,
-}: {
-  entries: VirtualEntry[];
-  readSet: Set<string>;
-  now: number;
-  onRowClick: (item: NotificationItem) => void;
-  onMarkRead: (item: NotificationItem) => void;
-  onDismiss: (item: NotificationItem) => void;
-  onOpenInBrowser: (item: NotificationItem) => (() => void) | undefined;
-}) {
-  const parentRef = useRef<HTMLDivElement>(null);
-
-  const rowVirtualizer = useVirtualizer({
-    count: entries.length,
-    getScrollElement: () => parentRef.current,
-    estimateSize: () => 64,
-    overscan: 5,
-    // Key the size cache (and React keys) by stable entry identity rather than the default
-    // array index. Entries mix short headers with taller notification rows and are measured
-    // dynamically; dismissing/marking-read remaps which entry sits at each index, so an
-    // index-keyed cache would apply a row's cached height to a header (and vice versa) —
-    // gaps/overlap until a scroll re-measures. Stable keys keep each entry's measured height.
-    getItemKey: (index) => {
-      const entry = entries[index];
-      if (!entry) return index;
-      return entry.type === 'header' ? `header:${entry.key}` : `item:${entry.item.id}`;
-    },
-  });
-
-  const virtualItems = rowVirtualizer.getVirtualItems();
-  const useVirtual = virtualItems.length > 0;
-
-  return (
-    <div ref={parentRef} className="overflow-y-auto max-h-[520px]">
-      <div
-        style={
-          useVirtual
-            ? { height: `${rowVirtualizer.getTotalSize()}px`, position: 'relative' }
-            : undefined
-        }
-      >
-        {useVirtual
-          ? virtualItems.map((virtualRow) => {
-              const entry = entries[virtualRow.index];
-              return (
-                <div
-                  key={virtualRow.key}
-                  ref={rowVirtualizer.measureElement}
-                  data-index={virtualRow.index}
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    transform: `translateY(${virtualRow.start}px)`,
-                  }}
-                >
-                  {entry.type === 'header' ? (
-                    <div className="bg-background/95 backdrop-blur-sm px-3 py-1.5 density-compact:py-1 density-comfortable:py-2.5 border-b">
-                      <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
-                        {entry.label}
-                      </span>
-                    </div>
-                  ) : (
-                    <NotificationRow
-                      item={entry.item}
-                      isUnread={!readSet.has(entry.item.id)}
-                      now={now}
-                      onOpen={() => onRowClick(entry.item)}
-                      onToggleRead={() => onMarkRead(entry.item)}
-                      onDone={() => onDismiss(entry.item)}
-                      onOpenInBrowser={onOpenInBrowser(entry.item)}
-                    />
-                  )}
-                </div>
-              );
-            })
-          : entries.map((entry) =>
-              entry.type === 'header' ? (
-                <div
-                  key={entry.key}
-                  className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm px-3 py-1.5 density-compact:py-1 density-comfortable:py-2.5 border-b"
-                >
-                  <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
-                    {entry.label}
-                  </span>
-                </div>
-              ) : (
-                <NotificationRow
-                  key={entry.item.id}
-                  item={entry.item}
-                  isUnread={!readSet.has(entry.item.id)}
-                  now={now}
-                  onOpen={() => onRowClick(entry.item)}
-                  onToggleRead={() => onMarkRead(entry.item)}
-                  onDone={() => onDismiss(entry.item)}
-                  onOpenInBrowser={onOpenInBrowser(entry.item)}
-                />
-              ),
-            )}
-      </div>
-    </div>
-  );
-}
-
 export default function NotificationPopover({
   onIssueClick,
-  onOpenIssue,
   onMRClick,
   onClose,
+  onOpenSettings,
 }: NotificationPopoverProps) {
   const now = useNow(60_000);
   const [activeTab, setActiveTab] = useState<SourceFilter>('all');
   const [unreadOnly, setUnreadOnly] = useState(false);
-  const {
-    items,
-    readIds,
-    permissionDenied,
-    notificationSendError,
-    fetchError,
-    retryFetch,
-    markAllRead,
-    markAllReadBySource,
-    markAsRead,
-    markAsUnread,
-    removeItem,
-    setPermissionDenied,
-    setNotificationSendError,
-  } = useNotificationsStore();
+  const [expandOverrides, setExpandOverrides] = useState<Record<string, boolean>>({});
+  const [dismissedError, setDismissedError] = useState<unknown>(null);
+
+  const items = useNotificationsStore((s) => s.items);
+  const readIds = useNotificationsStore((s) => s.readIds);
+  const permissionDenied = useNotificationsStore((s) => s.permissionDenied);
+  const notificationSendError = useNotificationsStore((s) => s.notificationSendError);
+  const fetchError = useNotificationsStore((s) => s.fetchError);
+  const retryFetch = useNotificationsStore((s) => s.retryFetch);
+  const markAsRead = useNotificationsStore((s) => s.markAsRead);
+  const markAsUnread = useNotificationsStore((s) => s.markAsUnread);
+  const markItemsRead = useNotificationsStore((s) => s.markItemsRead);
+  const markItemsUnread = useNotificationsStore((s) => s.markItemsUnread);
+  const removeItem = useNotificationsStore((s) => s.removeItem);
+  const removeItems = useNotificationsStore((s) => s.removeItems);
+  const clearRead = useNotificationsStore((s) => s.clearRead);
+  const setPermissionDenied = useNotificationsStore((s) => s.setPermissionDenied);
+  const setNotificationSendError = useNotificationsStore((s) => s.setNotificationSendError);
 
   const readSet = new Set(readIds);
+  const entries = buildEntries({
+    items,
+    readSet,
+    source: activeTab,
+    unreadOnly,
+    expandOverrides,
+    now,
+  });
 
-  // Filter by active tab
-  const tabFiltered = activeTab === 'all' ? items : items.filter((i) => i.source === activeTab);
+  const scopedItems = filterItems(items, readSet, activeTab, false);
+  const scopedUnreadIds = scopedItems.filter((i) => !readSet.has(i.id)).map((i) => i.id);
+  const hasScopedRead = scopedItems.some((i) => readSet.has(i.id));
 
-  // Optionally filter to unread only
-  const visibleItems = sortNewestFirst(
-    unreadOnly ? tabFiltered.filter((i) => !readSet.has(i.id)) : tabFiltered,
-  );
-
-  // Unread counts per tab for badges
-  const jiraUnread = items.filter((i) => i.source === 'jira' && !readSet.has(i.id)).length;
-  const gitlabUnread = items.filter((i) => i.source === 'gitlab' && !readSet.has(i.id)).length;
-  const totalUnread = jiraUnread + gitlabUnread;
-
-  function getTabCount(key: SourceFilter): number {
-    if (key === 'jira') return jiraUnread;
-    if (key === 'gitlab') return gitlabUnread;
-    return totalUnread;
+  function unreadCount(source: SourceFilter): number {
+    return items.filter((i) => (source === 'all' || i.source === source) && !readSet.has(i.id))
+      .length;
   }
 
-  function handleMarkAllRead() {
-    if (activeTab === 'all') {
-      markAllRead();
-    } else {
-      markAllReadBySource(activeTab);
-    }
-  }
-
-  /** Click row = mark as read + open peek (issue) or navigate (MR). */
-  function handleRowClick(item: NotificationItem) {
-    markAsRead(item.id);
-    // Body row click → open peek for Jira issues (onOpenIssue), keep onIssueClick for key-element
-    // clicks delivered in Plan 04 Task 3 (NotificationRow key split).
-    const issueKey = extractJiraIssueKey(item);
-    if (issueKey && onOpenIssue) {
-      onOpenIssue(issueKey);
-      onClose?.();
-      return;
-    }
-    // Fallback to onIssueClick if onOpenIssue not wired yet
-    if (issueKey && onIssueClick) {
-      onIssueClick(issueKey);
+  function navigateTo(item: NotificationItem) {
+    const key = getJiraKey(item);
+    if (key && onIssueClick) {
+      onIssueClick(key);
       onClose?.();
       return;
     }
     if (item.source === 'gitlab' && item.mrProjectId && item.mrIid && onMRClick) {
       onMRClick(`${item.mrProjectId}/${item.mrIid}`);
       onClose?.();
+    }
+    // No navigable target: stays open, already marked read.
+  }
+
+  function openEvent(item: NotificationItem) {
+    markAsRead(item.id);
+    navigateTo(item);
+  }
+
+  function openGroup(group: GroupEntry) {
+    markItemsRead(entryItemIds(group));
+    navigateTo(group.newest);
+  }
+
+  function toggleRead(entry: FocusableEntry) {
+    if (entry.kind === 'event') {
+      if (entry.isUnread) markAsRead(entry.item.id);
+      else markAsUnread(entry.item.id);
       return;
     }
-    // No navigable target — just mark read (row stays in popover)
+    const ids = entryItemIds(entry);
+    if (entry.unreadCount > 0) markItemsRead(ids);
+    else markItemsUnread(ids);
   }
 
-  function handleMarkRead(item: NotificationItem) {
-    if (readSet.has(item.id)) {
-      markAsUnread(item.id);
-    } else {
-      markAsRead(item.id);
-    }
+  function done(entry: FocusableEntry) {
+    if (entry.kind === 'event') removeItem(entry.item.id);
+    else removeItems(entryItemIds(entry));
   }
 
-  function handleDismiss(item: NotificationItem) {
-    removeItem(item.id);
+  function setExpanded(group: GroupEntry, expanded: boolean) {
+    setExpandOverrides((o) => ({ ...o, [group.entityKey]: expanded }));
   }
 
   function getOpenInBrowser(item: NotificationItem): (() => void) | undefined {
-    return item.url
-      ? () => {
-          openExternal(item.url ?? '');
-          markAsRead(item.id);
-        }
-      : undefined;
+    const url = item.url;
+    if (!url || !isSafeHttpUrl(url)) return undefined;
+    return () => {
+      openExternal(url);
+      markAsRead(item.id);
+    };
   }
 
-  // Build flat virtual entries from grouped visible items
-  const virtualEntries = buildVirtualEntries(visibleItems);
+  function renderEntry(entry: NotificationEntry) {
+    if (entry.kind === 'header') {
+      return (
+        <div className="flex h-7 items-center px-4 text-[11px] font-medium text-muted-foreground density-compact:h-6">
+          {entry.label}
+        </div>
+      );
+    }
+    if (entry.kind === 'group') {
+      return (
+        <NotificationGroupHeader
+          group={entry}
+          now={now}
+          onOpen={() => openGroup(entry)}
+          onToggleExpanded={() => setExpanded(entry, !entry.expanded)}
+          onToggleRead={() => toggleRead(entry)}
+          onDone={() => done(entry)}
+        />
+      );
+    }
+    const ev: EventEntry = entry;
+    return (
+      <NotificationRow
+        item={ev.item}
+        isUnread={ev.isUnread}
+        now={now}
+        nested={ev.nested}
+        onOpen={() => openEvent(ev.item)}
+        onToggleRead={() => toggleRead(ev)}
+        onDone={() => done(ev)}
+        onOpenInBrowser={getOpenInBrowser(ev.item)}
+      />
+    );
+  }
 
-  function renderEmptyState() {
-    if (unreadOnly) {
+  const settingsAction = onOpenSettings ? (
+    <Button
+      variant="outline"
+      size="sm"
+      onClick={() => {
+        onOpenSettings();
+        onClose?.();
+      }}
+    >
+      Notification settings
+    </Button>
+  ) : undefined;
+
+  function renderBody() {
+    if (items.length === 0 && fetchError) {
+      return (
+        <div className="p-2">
+          <ErrorState
+            error={fetchError}
+            onRetry={retryFetch ?? undefined}
+            viewName="notifications"
+          />
+        </div>
+      );
+    }
+    if (items.length === 0) {
       return (
         <EmptyState
+          compact
+          icon={Bell}
+          title="No notifications yet"
+          subtitle="Activity on your Jira issues and GitLab merge requests will show up here."
+          action={settingsAction}
+        />
+      );
+    }
+    if (entries.length === 0 && unreadOnly) {
+      return (
+        <EmptyState
+          compact
           icon={BellOff}
           title="All caught up"
-          subtitle={
-            activeTab === 'all'
-              ? 'No unread notifications'
-              : `No unread ${activeTab === 'jira' ? 'Jira' : 'GitLab'} notifications`
-          }
+          subtitle="You have no unread notifications."
         />
       );
     }
-    if (activeTab === 'jira') {
+    if (entries.length === 0) {
       return (
         <EmptyState
-          icon={TicketCheck}
-          title="No Jira notifications"
-          subtitle="Comments, mentions, and issue updates from Jira will appear here"
-        />
-      );
-    }
-    if (activeTab === 'gitlab') {
-      return (
-        <EmptyState
-          icon={GitMerge}
-          title="No GitLab notifications"
-          subtitle="MR comments, approvals, and pipeline alerts will appear here"
+          compact
+          icon={BellOff}
+          title={`Nothing from ${activeTab === 'jira' ? 'Jira' : 'GitLab'}`}
+          subtitle="No notifications from this source."
         />
       );
     }
     return (
-      <EmptyState
-        icon={Bell}
-        title="No notifications yet"
-        subtitle="Mentions and updates from Jira and GitLab will appear here"
+      <NotificationList
+        entries={entries}
+        renderEntry={renderEntry}
+        onToggleRead={toggleRead}
+        onDone={done}
+        onSetExpanded={setExpanded}
       />
     );
   }
@@ -366,73 +261,100 @@ export default function NotificationPopover({
   return (
     <div>
       {/* Header */}
-      <div className="flex items-center justify-between p-3 bg-muted/30 border-b">
-        <span className="font-semibold text-sm">Notifications</span>
+      <div className="flex h-10 items-center justify-between px-4">
+        <h2 className="text-sm font-medium">Notifications</h2>
         <div className="flex items-center gap-1">
-          {/* Unread-only toggle */}
-          <Button
-            variant={unreadOnly ? 'secondary' : 'ghost'}
-            size="sm"
-            onClick={() => setUnreadOnly(!unreadOnly)}
-            className="text-xs h-7 px-2"
-            title={unreadOnly ? 'Show all' : 'Show unread only'}
-          >
-            {unreadOnly ? (
-              <>
-                <BellOff className="w-3.5 h-3.5 mr-1" />
-                Unread
-              </>
-            ) : (
-              <>
-                <Bell className="w-3.5 h-3.5 mr-1" />
-                All
-              </>
-            )}
-          </Button>
           <Button
             variant="ghost"
             size="sm"
-            onClick={handleMarkAllRead}
-            className="text-xs h-7 px-2"
+            disabled={scopedUnreadIds.length === 0}
+            onClick={() => markItemsRead(scopedUnreadIds)}
           >
             Mark all read
           </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={
+                <Button variant="ghost" size="icon" className="size-7" aria-label="More actions" />
+              }
+            >
+              <MoreHorizontal className="size-4" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                title="Remove all read notifications"
+                disabled={!hasScopedRead}
+                onClick={() => clearRead(activeTab === 'all' ? undefined : activeTab)}
+              >
+                Clear read
+              </DropdownMenuItem>
+              {onOpenSettings && (
+                <DropdownMenuItem
+                  onClick={() => {
+                    onOpenSettings();
+                    onClose?.();
+                  }}
+                >
+                  Notification settings
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
-      {/* Source tabs */}
-      <div className="flex border-b">
-        {tabs.map((tab) => {
-          const count = getTabCount(tab.key);
-          const isActive = activeTab === tab.key;
-          return (
+      {/* Filter bar */}
+      <div className="flex h-9 items-center justify-between gap-2 border-b px-4">
+        <fieldset className="m-0 inline-flex rounded-lg border-0 bg-muted p-0.5">
+          <legend className="sr-only">Show</legend>
+          {(
+            [
+              { value: true, label: 'Unread' },
+              { value: false, label: 'All' },
+            ] as const
+          ).map(({ value, label }) => (
             <button
-              key={tab.key}
+              key={label}
               type="button"
-              onClick={() => setActiveTab(tab.key)}
-              className={`flex-1 py-2 text-xs font-medium transition-colors relative ${
-                isActive
-                  ? 'text-foreground border-b-2 border-primary'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              {tab.label}
-              {count > 0 && (
-                <span
-                  className={`ml-1.5 inline-flex items-center justify-center min-w-[1.1rem] h-[1.1rem] rounded-full text-[10px] px-1 ${
-                    tab.key === 'jira'
-                      ? 'bg-orange-500/15 text-orange-600 dark:text-orange-400'
-                      : tab.key === 'gitlab'
-                        ? 'bg-purple-500/15 text-purple-600 dark:text-purple-400'
-                        : 'bg-red-500/15 text-red-600 dark:text-red-400'
-                  }`}
-                >
-                  {count > 99 ? '99+' : count}
-                </span>
+              aria-pressed={unreadOnly === value}
+              onClick={() => setUnreadOnly(value)}
+              className={cn(
+                'rounded-md px-2 py-0.5 text-xs font-medium transition-colors',
+                unreadOnly === value
+                  ? 'bg-foreground text-background shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground',
               )}
+            >
+              {label}
             </button>
-          );
-        })}
+          ))}
+        </fieldset>
+        <div className="flex h-full items-stretch">
+          {SOURCE_TABS.map((tab) => {
+            const count = unreadCount(tab.key);
+            const isActive = activeTab === tab.key;
+            return (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => setActiveTab(tab.key)}
+                className={cn(
+                  'flex items-center px-2 text-xs font-medium transition-colors',
+                  isActive
+                    ? 'text-foreground border-b-2 border-primary'
+                    : 'text-muted-foreground hover:text-foreground',
+                )}
+              >
+                {tab.label}
+                {count > 0 && (
+                  <span className="ml-1 rounded bg-muted px-1 text-[11px] text-muted-foreground tabular-nums">
+                    {count > 99 ? '99+' : count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Permission-denied banner */}
@@ -440,8 +362,8 @@ export default function NotificationPopover({
         <div className="m-2">
           <Alert>
             <AlertDescription>
-              Desktop notifications are blocked. Enable them in System Settings → Notifications →
-              Taskflow.
+              System notifications are blocked. Enable them in System Settings to get alerts outside
+              the app.
             </AlertDescription>
             <button
               type="button"
@@ -475,26 +397,17 @@ export default function NotificationPopover({
         </div>
       )}
 
-      {/* Feed */}
-      {fetchError && visibleItems.length === 0 && retryFetch ? (
-        <div className="overflow-y-auto max-h-[520px]">
-          <div className="p-2">
-            <ErrorState error={fetchError} onRetry={retryFetch} viewName="notifications" />
-          </div>
+      {/* Stale-data banner: fetch failed but cached items are shown */}
+      {fetchError && items.length > 0 && fetchError !== dismissedError && (
+        <div className="m-2">
+          <StaleDataBanner
+            onRetry={() => retryFetch?.()}
+            onDismiss={() => setDismissedError(fetchError)}
+          />
         </div>
-      ) : visibleItems.length === 0 ? (
-        <div className="overflow-y-auto max-h-[520px]">{renderEmptyState()}</div>
-      ) : (
-        <VirtualizedNotificationList
-          entries={virtualEntries}
-          readSet={readSet}
-          now={now}
-          onRowClick={handleRowClick}
-          onMarkRead={handleMarkRead}
-          onDismiss={handleDismiss}
-          onOpenInBrowser={getOpenInBrowser}
-        />
       )}
+
+      {renderBody()}
     </div>
   );
 }
