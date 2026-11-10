@@ -1,17 +1,18 @@
 /**
- * NotificationRow — flat two-line notification row (Phase 95).
+ * NotificationRow — a rounded notification card (Phase 95).
  *
- *   [unread dot][avatar + action badge] line 1: KEY  parent › title            time
- *                                       line 2: coloured verb + details (full width)
- * - Line 2 starts at the same x as the key. Comments show their text; updates show every
- *   change inline ("field old → new · field old → new"); system events show a short detail.
+ *   [avatar + action badge]  line 1: KEY  parent > title                       time
+ *                            line 2: coloured action + comment / single change
+ *                            lines 3+: change list (multi-field updates) or "+N earlier comments"
+ * - One card may stand for several merged notifications (same actor, same entity, <= 60 min apart);
+ *   read / done / open act on all of them.
  * - An absolute inset-0 overlay <button> is the primary target; the key and tray
  *   buttons are SIBLINGS (relative z-10), never nested inside it.
  * - Unread vs read only changes class strings / the aria prefix, never the tree (D-05).
  * - Absolute time and full body live in a 600ms tooltip; the hover tray replaces the time.
  */
 import { Check, ExternalLink, Mail, MailOpen } from 'lucide-react';
-import { Fragment, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { LinkContextMenu } from '@/components/ui/link-context-menu';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { TooltipBody } from '@/components/ui/tooltip-body';
@@ -24,9 +25,10 @@ import NotificationAvatar from './NotificationAvatar';
 import { ACTION_STYLE, UPDATE_STYLE } from './notification-colours';
 import {
   type ChangeLine,
+  cleanCommentText,
+  describeEntryParts,
   describeEventAria,
   describeEventAriaText,
-  describeEventParts,
   type EventParts,
   eventStyleFor,
   formatAbsoluteTime,
@@ -38,7 +40,10 @@ import {
 } from './notification-view';
 
 interface NotificationRowProps {
+  /** Latest notification of the card. */
   item: NotificationItem;
+  /** All merged notifications, newest first; defaults to just `item`. */
+  items?: NotificationItem[];
   isUnread: boolean;
   now: number;
   onOpen: () => void;
@@ -170,25 +175,20 @@ export function NotificationDetailLine({
 }) {
   let content: ReactNode;
   let kind: string;
-  if (parts.changes && parts.changes.length > 0) {
+  if (parts.changes && parts.changes.length === 1) {
     kind = 'changes';
-    content = parts.changes.map((c, i) => (
-      // biome-ignore lint/suspicious/noArrayIndexKey: static, order-stable list
-      <Fragment key={i}>
-        {i > 0 ? (
-          <span aria-hidden="true" className="text-muted-foreground">
-            {' \u00B7 '}
-          </span>
-        ) : null}
-        <ChangeInline change={c} />
-      </Fragment>
-    ));
+    content = <ChangeInline change={parts.changes[0]} />;
   } else {
     const text = parts.commentText || parts.detail;
     kind = parts.commentText ? 'comment' : parts.detail ? 'text' : 'verb';
     content = (
       <>
         <span className={cn('font-medium', colour, !unread && 'opacity-80')}>{parts.verb}</span>
+        {parts.verbSuffix ? (
+          <span className="mx-1 rounded bg-foreground/10 px-1 text-foreground/80">
+            {parts.verbSuffix}
+          </span>
+        ) : null}
         {text ? <span className="text-muted-foreground"> {text}</span> : null}
       </>
     );
@@ -204,10 +204,126 @@ export function NotificationDetailLine({
   );
 }
 
+export const MAX_LISTED_CHANGES = 3;
+
+function LabelChips({ text }: { text: string }) {
+  return (
+    <>
+      {text.split(' ').map((tok) => (
+        <span key={tok} className="rounded bg-foreground/10 px-1 text-foreground">
+          {tok}
+        </span>
+      ))}
+    </>
+  );
+}
+
+function ChangeValue({ change }: { change: ChangeLine }) {
+  if (change.text) {
+    return change.field === 'labels' ? (
+      <LabelChips text={change.text} />
+    ) : (
+      <span className="font-medium text-foreground">{change.text}</span>
+    );
+  }
+  return (
+    <>
+      {change.from ? (
+        <>
+          {change.field === 'status' ? (
+            <StatusPill name={change.from} />
+          ) : (
+            <span className="truncate text-muted-foreground">{change.from}</span>
+          )}
+          {ARROW}
+        </>
+      ) : (
+        ARROW
+      )}
+      {change.to ? (
+        change.field === 'status' ? (
+          <StatusPill name={change.to} />
+        ) : (
+          <span className="truncate font-medium text-foreground">{change.to}</span>
+        )
+      ) : (
+        <span className="text-muted-foreground">none</span>
+      )}
+    </>
+  );
+}
+
+/** Compact change list for multi-field updates: icon, fixed-width field name, old → new; max 3 + "+N more". */
+export function NotificationChangeList({ changes }: { changes: ChangeLine[] }) {
+  const shown = changes.slice(0, MAX_LISTED_CHANGES);
+  const hidden = changes.length - shown.length;
+  return (
+    <ul data-change-list className="pointer-events-none relative mt-1 flex flex-col gap-0.5">
+      {shown.map((c) => {
+        const style = c.action ? ACTION_STYLE[c.action] : UPDATE_STYLE;
+        const Icon = style.Icon;
+        return (
+          <li
+            key={`${c.field}|${c.action ?? ''}|${c.text ?? c.to ?? ''}`}
+            data-change-row
+            className="flex h-4 items-center gap-1.5 text-[11px] leading-4"
+          >
+            <Icon aria-hidden="true" className={cn('size-3 flex-none', style.text)} />
+            <span className="w-[6.5rem] flex-none truncate text-muted-foreground">{c.field}</span>
+            <span className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden whitespace-nowrap">
+              <ChangeValue change={c} />
+            </span>
+          </li>
+        );
+      })}
+      {hidden > 0 ? (
+        <li
+          data-change-more
+          className="h-4 pl-[1.125rem] text-[11px] leading-4 text-muted-foreground"
+        >
+          +{hidden} more change{hidden === 1 ? '' : 's'}
+        </li>
+      ) : null}
+    </ul>
+  );
+}
+
+/** Tooltip lines for a merged card: all changes, or the comments latest first. */
+function mergedTooltip(items: NotificationItem[], parts: EventParts): ReactNode {
+  if (parts.changes && parts.changes.length > MAX_LISTED_CHANGES) {
+    return (
+      <div className="flex flex-col gap-0.5">
+        {parts.changes.map((c, i) => (
+          // biome-ignore lint/suspicious/noArrayIndexKey: static list
+          <div key={i}>
+            {c.field}
+            {c.text ? ` ${c.text}` : ''}
+            {c.from ? ` ${c.from}` : ''}
+            {c.from || c.to ? ` \u2192 ${c.to ?? 'none'}` : ''}
+          </div>
+        ))}
+      </div>
+    );
+  }
+  if (parts.count && parts.count > 1) {
+    return (
+      <div className="flex flex-col gap-1">
+        {items.map((i) => (
+          <div key={i.id} className="line-clamp-2">
+            {cleanCommentText(i.fullBody || i.bodyPreview)}
+          </div>
+        ))}
+      </div>
+    );
+  }
+  return null;
+}
+
 /* ── component ──────────────────────────────────────── */
 
 export default function NotificationRow({
   item,
+  items,
   isUnread,
   now,
   onOpen,
@@ -215,9 +331,10 @@ export default function NotificationRow({
   onDone,
   onOpenInBrowser,
 }: NotificationRowProps) {
+  const all = items && items.length > 0 ? items : [item];
   const ref = getEntityRef(item);
   const title = getEntityTitle(item);
-  const parts = describeEventParts(item);
+  const parts = describeEntryParts(all);
   const style = eventStyleFor(item, parts);
   const peeked = useIsPeeked(getJiraKey(item) ?? '');
   const typeLabel = (item.notificationType && TYPE_LABEL[item.notificationType]) || 'Notification';
@@ -227,11 +344,18 @@ export default function NotificationRow({
     : '';
   const ariaText = describeEventAriaText(parts);
   const ariaLabel = `${isUnread ? 'Unread. ' : ''}${describeEventAria(parts)} on ${ref ? `${ref} ` : ''}${title}${parentLabel ? ` (in ${parentLabel})` : ''}${ariaText ? `: ${ariaText}` : ''}`;
+  const listChanges = parts.changes && parts.changes.length >= 2 ? parts.changes : null;
+  const merged = mergedTooltip(all, parts);
 
   return (
     <div
+      data-card
+      data-unread-card={isUnread ? 'true' : 'false'}
       className={cn(
-        'group/row relative flex h-14 items-center gap-2 border-b border-border/60 px-2 text-xs density-compact:h-12 density-comfortable:h-16 hover:bg-accent focus-within:bg-accent',
+        'group/row relative flex items-start gap-3 rounded-xl border px-3 py-2.5 text-xs transition-colors density-compact:gap-2.5 density-compact:px-2.5 density-compact:py-1.5 density-comfortable:gap-3.5 density-comfortable:px-3.5 density-comfortable:py-3.5 hover:bg-accent hover:shadow-sm focus-within:bg-accent',
+        isUnread
+          ? 'border-border bg-primary/[0.03] dark:bg-primary/[0.07]'
+          : 'border-border/60 bg-card',
         peeked && PEEKED_ROW_CLASS,
       )}
       data-peeked={peeked ? 'true' : undefined}
@@ -245,36 +369,38 @@ export default function NotificationRow({
               data-entry-primary
               aria-label={ariaLabel}
               onClick={onOpen}
-              className="absolute inset-0 cursor-pointer rounded-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+              className="absolute inset-0 cursor-pointer rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             />
           }
         />
         <TooltipContent>
           <TooltipBody
             title={item.entityTitle}
-            note={`${sourceLabel} · ${typeLabel} · ${formatAbsoluteTime(item.createdAt)}`}
+            note={`${sourceLabel} \u00B7 ${typeLabel} \u00B7 ${formatAbsoluteTime(item.createdAt)}`}
           >
-            {item.fullBody ? (
-              <div className="line-clamp-3 whitespace-pre-line">{item.fullBody}</div>
-            ) : null}
+            {merged ??
+              (item.fullBody ? (
+                <div className="line-clamp-3 whitespace-pre-line">{item.fullBody}</div>
+              ) : null)}
             {item.parentKey ? (
               <div className="truncate text-muted-foreground">
                 Parent: {item.parentKey} {item.parentSummary}
               </div>
             ) : null}
-            {!item.fullBody && parts.changes && parts.changes.length > 0 ? (
+            {!merged && !item.fullBody && parts.changes && parts.changes.length > 0 ? (
               <div className="whitespace-pre-line">{item.bodyPreview}</div>
             ) : null}
           </TooltipBody>
         </TooltipContent>
       </Tooltip>
 
-      <span className="pointer-events-none flex w-2 flex-none justify-center">
-        <span
-          data-unread={isUnread ? 'true' : 'false'}
-          className={cn('size-1.5 rounded-full bg-primary', !isUnread && 'opacity-0')}
-        />
-      </span>
+      <span
+        data-unread={isUnread ? 'true' : 'false'}
+        className={cn(
+          'pointer-events-none absolute top-3.5 left-1 size-1.5 rounded-full bg-primary',
+          !isUnread && 'opacity-0',
+        )}
+      />
 
       <NotificationAvatar item={item} style={style} />
 
@@ -308,7 +434,7 @@ export default function NotificationRow({
             <span
               className={cn(
                 'min-w-0 flex-[0_1_auto] truncate',
-                isUnread ? 'font-medium text-foreground' : 'font-normal text-muted-foreground',
+                isUnread ? 'font-semibold text-foreground' : 'font-normal text-muted-foreground',
               )}
             >
               {title}
@@ -338,6 +464,15 @@ export default function NotificationRow({
           </span>
         </div>
         <NotificationDetailLine parts={parts} colour={style.text} unread={isUnread} />
+        {listChanges ? <NotificationChangeList changes={listChanges} /> : null}
+        {parts.moreLabel ? (
+          <span
+            data-line="more"
+            className="pointer-events-none relative mt-0.5 block h-4 text-[11px] leading-4 text-muted-foreground"
+          >
+            {parts.moreLabel}
+          </span>
+        ) : null}
       </div>
     </div>
   );

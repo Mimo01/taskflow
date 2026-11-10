@@ -1,7 +1,12 @@
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { type KeyboardEvent, type ReactNode, useCallback, useEffect, useRef } from 'react';
 import { cn } from '../../lib/utils';
-import { type EventEntry, isFocusableEntry, type NotificationEntry } from './notification-view';
+import {
+  type EventEntry,
+  estimateEntryHeight,
+  isFocusableEntry,
+  type NotificationEntry,
+} from './notification-view';
 
 interface NotificationListProps {
   entries: NotificationEntry[];
@@ -32,7 +37,7 @@ export default function NotificationList({
   const rowVirtualizer = useVirtualizer({
     count: entries.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: (i) => (entries[i]?.kind === 'header' ? 28 : 56),
+    estimateSize: (i) => (entries[i] ? estimateEntryHeight(entries[i]) : 72),
     overscan: 8,
     // Stable identity keys: entries remap indices on read/done, so an index-keyed
     // size cache would apply a row's height to a different entry.
@@ -141,7 +146,7 @@ export default function NotificationList({
     // biome-ignore lint/a11y/noStaticElementInteractions: keyboard triage layer scoped to the list
     <div
       ref={parentRef}
-      className={cn('@container relative max-h-[520px] overflow-y-auto', className)}
+      className={cn('@container relative max-h-[520px] overflow-y-auto px-2 py-1', className)}
       onKeyDown={handleKeyDown}
     >
       <div
@@ -190,7 +195,13 @@ function EntryWrapper({
   renderEntry: (entry: NotificationEntry) => ReactNode;
 }) {
   return (
-    <div data-entry-index={index} data-entry-id={entry.id}>
+    <div
+      data-entry-index={index}
+      data-entry-id={entry.id}
+      className={cn(
+        entry.kind === 'event' && 'pb-1.5 density-compact:pb-1 density-comfortable:pb-2',
+      )}
+    >
       {renderEntry(entry)}
     </div>
   );

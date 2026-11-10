@@ -24,9 +24,9 @@ export default function NotificationAvatar({ item, style }: NotificationAvatarPr
     lead = (
       <span
         data-avatar-tile="ci"
-        className="flex size-8 flex-none items-center justify-center rounded-md bg-muted"
+        className="flex size-9 flex-none items-center justify-center rounded-lg bg-muted density-compact:size-8 density-comfortable:size-10"
       >
-        <GitBranch aria-hidden="true" className="size-4 text-muted-foreground" />
+        <GitBranch aria-hidden="true" className="size-[18px] text-muted-foreground" />
       </span>
     );
   } else if (type === 'due-date-reminder') {
@@ -34,7 +34,7 @@ export default function NotificationAvatar({ item, style }: NotificationAvatarPr
     lead = (
       <span
         data-avatar-tile="due"
-        className="flex size-8 flex-none items-center justify-center rounded-md bg-amber-500/15"
+        className="flex size-9 flex-none items-center justify-center rounded-lg bg-amber-500/15 density-compact:size-8 density-comfortable:size-10"
       >
         <CalendarClock aria-hidden="true" className="size-4 text-amber-600 dark:text-amber-400" />
       </span>
@@ -44,26 +44,26 @@ export default function NotificationAvatar({ item, style }: NotificationAvatarPr
       <CachedAvatar
         url={item.authorAvatarUrl}
         name={item.author}
-        size={32}
-        className="rounded-full ring-1 ring-foreground/15 [&_div]:text-[10px]"
+        size={40}
+        className="size-9 rounded-full density-compact:size-8 density-comfortable:size-10 ring-1 ring-foreground/15 [&_div]:text-[10px]"
       />
     );
   }
   return (
     <span
       data-event-kind={style.kind}
-      className="pointer-events-none relative flex size-8 flex-none"
+      className="pointer-events-none relative mt-px flex size-9 flex-none density-compact:size-8 density-comfortable:size-10"
     >
       {lead}
       {showBadge ? (
         <span
           data-event-badge={style.kind}
           className={cn(
-            'absolute -right-1 -bottom-1 flex size-4 items-center justify-center rounded-full text-white ring-2 ring-popover group-hover/row:ring-accent group-focus-within/row:ring-accent',
+            'absolute -right-1 -bottom-1 flex size-[18px] items-center justify-center rounded-full text-white density-compact:size-4 ring-2 ring-card group-hover/row:ring-accent group-focus-within/row:ring-accent',
             style.badge,
           )}
         >
-          <Icon aria-hidden="true" className="size-2.5" />
+          <Icon aria-hidden="true" className="size-[11px]" />
         </span>
       ) : null}
     </span>

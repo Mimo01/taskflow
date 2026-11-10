@@ -114,11 +114,11 @@ describe('NotificationRow', () => {
       }),
     });
     expect(multi.container.querySelector('[data-line="detail"]')?.textContent).toBe(
-      'sprint S12 \u2192 S13 \u00B7 labels +b \u00B7 assignee \u2192 Ben \u00B7 description edited',
+      'updated 4 fields',
     );
     expect(
       screen.getByRole('button', {
-        name: 'Unread. Jane changed sprint from S12 to S13, labels +b, assignee to Ben, description edited on PROJ-123 Fix login bug',
+        name: 'Unread. Jane changed assignee to Ben, sprint from S12 to S13, labels +b, description edited on PROJ-123 Fix login bug',
       }),
     ).toBeInTheDocument();
   });
@@ -312,14 +312,27 @@ describe('NotificationRow', () => {
     expect(badge.className).not.toContain('-bottom-1.5');
   });
 
-  it('every row has a bottom divider and a two-line density-aware height', () => {
-    const { container } = setup();
+  it('is a rounded bordered card with density-aware padding, no divider', () => {
+    const { container } = setup({ isUnread: false });
     const r = container.firstElementChild as HTMLElement;
-    expect(r.className).toContain('border-b');
+    expect(r.className).toContain('rounded-xl');
     expect(r.className).toContain('border-border/60');
-    expect(r.className).toContain('h-14');
-    expect(r.className).toContain('density-compact:h-12');
-    expect(r.className).toContain('density-comfortable:h-16');
+    expect(r.className).toContain('bg-card');
+    expect(r.className).not.toMatch(/(^|\s)border-b(\s|$)/);
+    expect(r.className).toContain('density-compact:py-1.5');
+    expect(r.className).toContain('density-comfortable:py-3.5');
+  });
+
+  it('unread cards are tinted with a semibold title; read cards are plain', () => {
+    const unread = setup({ isUnread: true });
+    const u = unread.container.firstElementChild as HTMLElement;
+    expect(u.className).toContain('bg-primary/[0.03]');
+    expect(screen.getByText('Fix login bug').className).toContain('font-semibold');
+    unread.unmount();
+    const read = setup({ isUnread: false });
+    const r = read.container.firstElementChild as HTMLElement;
+    expect(r.className).not.toContain('bg-primary');
+    expect(screen.getByText('Fix login bug').className).toContain('font-normal');
   });
 
   it('pipeline failure shows the pipeline number and branch', () => {
@@ -379,7 +392,7 @@ describe('NotificationRow', () => {
       ['Review requested: ana, ben', 'review', 'review \u2192 ana, ben'],
       ['Labels added: x, y', 'labels', 'labels +x, y'],
       ['Target branch: a \u2192 b', 'branch', 'target branch a \u2192 b'],
-      ['Labels added: x\nMilestone: v1', 'labels', 'labels +x \u00B7 milestone \u2192 v1'],
+      ['Labels added: x\nMilestone: v1', 'multi', 'updated 2 fields'],
     ];
     for (const [body, kind, line] of cases) {
       const { container, unmount } = setup({ item: sys(body) });
@@ -415,5 +428,82 @@ describe('NotificationRow', () => {
     const d = container.querySelector('[data-line="detail"]') as HTMLElement;
     expect(d.dataset.detail).toBe('verb');
     expect(d.textContent).toBe('assigned you');
+  });
+
+  describe('multi-change card', () => {
+    const six = makeItem('jira', {
+      notificationType: 'issue-update',
+      bodyPreview:
+        'Description: updated\nPriority: Minor \u2192 Major\nSprint: S12 \u2192 S13\nLabels: a \u2192 a perf\nStatus: To Do \u2192 In Progress\nAssignee: Ben \u2192 Cara',
+      fullBody: 'x',
+    });
+
+    it('shows "updated N fields", the generic badge and a 3-row ordered change list', () => {
+      const { container } = setup({ item: six });
+      expect(container.querySelector('[data-event-badge="multi"]')).not.toBeNull();
+      expect(container.querySelector('[data-line="detail"]')?.textContent).toBe('updated 6 fields');
+      const rows = [...container.querySelectorAll('[data-change-row]')];
+      expect(rows).toHaveLength(3);
+      expect(rows.map((r) => r.textContent)).toEqual([
+        'statusTo Do\u2192In Progress',
+        'assigneeBen\u2192Cara',
+        'priorityMinor\u2192Major',
+      ]);
+      expect(container.querySelector('[data-change-more]')?.textContent).toBe('+3 more changes');
+      expect(screen.getByText('To Do').className).toContain('rounded');
+    });
+
+    it('renders label diffs as chips and omits the "more" row when it all fits', () => {
+      const { container } = setup({
+        item: makeItem('jira', {
+          notificationType: 'issue-update',
+          bodyPreview: 'Labels: wip \u2192 perf\nPriority: A \u2192 B',
+        }),
+      });
+      expect(container.querySelector('[data-change-more]')).toBeNull();
+      expect(screen.getByText('+perf').className).toContain('rounded');
+      expect(screen.getByText('\u2212wip')).toBeInTheDocument();
+    });
+  });
+
+  describe('merged conversation card', () => {
+    const mk = (id: string, text: string, type: NotificationItem['notificationType']) =>
+      makeItem('jira', {
+        id,
+        notificationType: type,
+        author: 'Ben Carter',
+        bodyPreview: text,
+        fullBody: text,
+      });
+    const items = [
+      mk('c3', 'Latest comment', 'jira-comment'),
+      mk('c2', 'Middle', 'jira-comment'),
+      mk('c1', 'First', 'jira-comment'),
+    ];
+
+    it('shows the latest text, the earlier-comments hint and the aria summary', () => {
+      const { container } = setup({ item: items[0], items });
+      expect(screen.getByText('commented 3 times')).toBeInTheDocument();
+      expect(container.querySelector('[data-line="detail"]')?.textContent).toContain(
+        'Latest comment',
+      );
+      expect(container.querySelector('[data-line="more"]')?.textContent).toBe(
+        '+2 earlier comments',
+      );
+      expect(
+        screen.getByRole('button', {
+          name: 'Unread. Ben commented 3 times on PROJ-123 Fix login bug: Latest comment',
+        }),
+      ).toBeInTheDocument();
+    });
+
+    it('promotes to a mention when any item mentions the user', () => {
+      const withMention = [items[0], mk('c2', '@you ping', 'comment-mention'), items[2]];
+      const { container } = setup({ item: withMention[0], items: withMention });
+      expect(container.querySelector('[data-event-badge="mention"]')).not.toBeNull();
+      expect(container.querySelector('[data-line="detail"]')?.textContent).toContain(
+        'mentioned you3 comments',
+      );
+    });
   });
 });

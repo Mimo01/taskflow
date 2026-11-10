@@ -11,6 +11,8 @@ import {
   actionKeyForField,
   EVENT_STYLE,
   type EventStyle,
+  MENTION_STYLE,
+  MULTI_UPDATE_STYLE,
   UPDATE_STYLE,
 } from './notification-colours';
 
@@ -34,7 +36,11 @@ export interface HeaderEntry {
 export interface EventEntry {
   kind: 'event';
   id: string;
+  /** Latest item; drives the row's entity, time and style. */
   item: NotificationItem;
+  /** Every merged item, newest first (always includes `item`; length 1 when nothing merged). */
+  items: NotificationItem[];
+  /** True when ANY merged item is unread. */
   isUnread: boolean;
 }
 
@@ -122,8 +128,16 @@ export interface EventParts {
   detail?: string;
   /** Single-line body snippet. */
   snippet: string;
-  /** Issue update / GitLab system note: every parsed change, in order. */
+  /** Issue update / GitLab system note: every parsed change, in display order. */
   changes?: ChangeLine[];
+  /** Merged conversation: number of comments / mentions folded into this entry. */
+  count?: number;
+  /** Muted hint under the latest comment, e.g. "+4 earlier comments". */
+  moreLabel?: string;
+  /** Muted suffix after the verb, e.g. "5 comments" when a mention is promoted. */
+  verbSuffix?: string;
+  /** A merged conversation that contains at least one mention: styled as a mention. */
+  promoted?: boolean;
 }
 
 export interface ChangeLine {
@@ -291,21 +305,51 @@ function actorName(author: string): string | undefined {
   return first || undefined;
 }
 
+const CHANGE_RANK: Partial<Record<ActionKey, number>> = {
+  status: 0,
+  assignee: 1,
+  unassigned: 1,
+  priority: 2,
+  sprint: 3,
+  version: 4,
+  milestone: 4,
+  labels: 5,
+  description: 7,
+};
+
+/** Display order: status, assignee, priority, sprint, version/milestone, labels, others, description. */
+export function orderChanges(lines: ChangeLine[]): ChangeLine[] {
+  const rank = (c: ChangeLine) => (c.action ? (CHANGE_RANK[c.action] ?? 6) : 6);
+  return lines
+    .map((c, i) => ({ c, i }))
+    .sort((a, b) => rank(a.c) - rank(b.c) || a.i - b.i)
+    .map((x) => x.c);
+}
+
+/** Parts for an issue update / system note: one change reads inline, several read as "updated N fields". */
+function changesParts(actor: string | undefined, changes: ChangeLine[]): EventParts {
+  if (changes.length >= 2) {
+    return { verb: `updated ${changes.length} fields`, actor, snippet: '', changes };
+  }
+  if (changes.length === 1) {
+    const first = changes[0];
+    return {
+      verb: isStateAction(first) ? first.field : `changed ${first.field}`,
+      actor,
+      snippet: '',
+      changes,
+    };
+  }
+  return { verb: 'updated', actor, snippet: '' };
+}
+
 /** Structured, plain-text description of an event. Never returns HTML. */
 export function describeEventParts(item: NotificationItem): EventParts {
   const snippet = cleanCommentText(item.bodyPreview);
   const actor = actorName(item.author);
   if (item.notificationType === 'mr-note' && isSystemNote(item)) {
     const lines = parseSystemLines(item.bodyPreview);
-    if (lines.length > 0) {
-      const first = lines[0];
-      return {
-        verb: isStateAction(first) ? first.field : `changed ${first.field}`,
-        actor,
-        snippet: '',
-        changes: lines,
-      };
-    }
+    if (lines.length > 0) return changesParts(actor, orderChanges(lines));
     return { verb: 'updated', actor, snippet: '' };
   }
   switch (item.notificationType) {
@@ -332,14 +376,7 @@ export function describeEventParts(item: NotificationItem): EventParts {
     }
     case 'issue-update': {
       const lines = parseChangeLines(item.bodyPreview);
-      if (lines.length > 0) {
-        return {
-          verb: `changed ${lines[0].field}`,
-          actor,
-          snippet: '',
-          changes: lines,
-        };
-      }
+      if (lines.length > 0) return changesParts(actor, orderChanges(lines));
       return { verb: 'updated', actor, snippet };
     }
     default:
@@ -349,6 +386,8 @@ export function describeEventParts(item: NotificationItem): EventParts {
 
 /** Event style (colour + glyph) for an item; status changes get the amber status style. */
 export function eventStyleFor(item: NotificationItem, parts: EventParts): EventStyle {
+  if (parts.promoted) return MENTION_STYLE;
+  if (parts.changes && parts.changes.length >= 2) return MULTI_UPDATE_STYLE;
   const act = parts.changes?.[0]?.action;
   if (act) return ACTION_STYLE[act];
   return (item.notificationType && EVENT_STYLE[item.notificationType]) || UPDATE_STYLE;
@@ -385,7 +424,7 @@ export function describeEventAria(parts: EventParts): string {
       ? parts.changes.map((c) => c.field).join(', ')
       : `changed ${parts.changes.map(changePhrase).join(', ')}`;
   } else {
-    core = parts.verb;
+    core = parts.verbSuffix ? `${parts.verb}, ${parts.verbSuffix}` : parts.verb;
   }
   if (parts.actor) return `${parts.actor} ${core}`;
   return core.charAt(0).toUpperCase() + core.slice(1);
@@ -406,6 +445,145 @@ export function filterItems(
     .sort((a, b) => ts(b) - ts(a));
 }
 
+/* ── merging ────────────────────────────────────────── */
+
+export const MERGE_GAP_MS = 60 * 60_000;
+type MergeCategory = 'conversation' | 'changes';
+
+function changesOf(item: NotificationItem): ChangeLine[] {
+  return isSystemNote(item)
+    ? parseSystemLines(item.bodyPreview)
+    : parseChangeLines(item.bodyPreview);
+}
+
+/** Which merge family an item belongs to; null = never merges (assignment, approval, pipeline, due, MR state). */
+export function mergeCategory(item: NotificationItem): MergeCategory | null {
+  if (item.notificationType === 'mr-note' && isSystemNote(item)) {
+    const lines = parseSystemLines(item.bodyPreview);
+    if (lines.length === 0 || lines.some(isStateAction)) return null;
+    return 'changes';
+  }
+  switch (item.notificationType) {
+    case 'jira-comment':
+    case 'comment-mention':
+    case 'mr-note':
+    case 'gitlab-mention':
+      return 'conversation';
+    case 'issue-update':
+      return parseChangeLines(item.bodyPreview).length > 0 ? 'changes' : null;
+    default:
+      return null;
+  }
+}
+
+function entityKey(item: NotificationItem): string | null {
+  const jira = getJiraKey(item);
+  if (jira) return `jira:${jira}`;
+  if (item.source === 'gitlab' && item.mrProjectId != null && item.mrIid != null)
+    return `gitlab:${item.mrProjectId}/${item.mrIid}`;
+  return null;
+}
+
+function isMention(item: NotificationItem): boolean {
+  return item.notificationType === 'comment-mention' || item.notificationType === 'gitlab-mention';
+}
+
+const actorKey = (item: NotificationItem) => item.author.trim().toLowerCase();
+
+/** Signed label tokens ("+a -b", "+a, b") -> name -> +1 | -1. */
+function labelTokens(text: string): [string, 1 | -1][] {
+  const out: [string, 1 | -1][] = [];
+  let sign: 1 | -1 = 1;
+  for (const raw of text.split(/[\s,]+/).filter(Boolean)) {
+    let tok = raw;
+    if (tok.startsWith('+')) {
+      sign = 1;
+      tok = tok.slice(1);
+    } else if (tok.startsWith('\u2212') || tok.startsWith('-')) {
+      sign = -1;
+      tok = tok.slice(1);
+    }
+    if (tok) out.push([tok, sign]);
+  }
+  return out;
+}
+
+/**
+ * Union of chronological change lists: the same field changed repeatedly collapses to
+ * first-from -> last-to, no-ops (from === to) drop, label diffs net out.
+ */
+export function mergeChanges(chronological: ChangeLine[][]): ChangeLine[] {
+  const diffs = new Map<string, ChangeLine>();
+  const labels = new Map<string, number>();
+  const labelOrder: string[] = [];
+  const other = new Map<string, ChangeLine>();
+  const order: string[] = [];
+  for (const list of chronological) {
+    for (const c of list) {
+      if (c.field === 'labels' && c.text) {
+        if (!order.includes('labels')) order.push('labels');
+        for (const [name, sign] of labelTokens(c.text)) {
+          if (!labels.has(name)) labelOrder.push(name);
+          labels.set(name, (labels.get(name) ?? 0) + sign);
+        }
+        continue;
+      }
+      const isDiff = !c.text && (c.from !== undefined || c.to !== undefined);
+      const reviewish = c.action === 'review' || c.action === 'unreview';
+      if (isDiff && !reviewish) {
+        const key = c.field;
+        const prev = diffs.get(key);
+        if (!prev) order.push(`d:${key}`);
+        const merged: ChangeLine = { ...c, from: prev ? prev.from : c.from };
+        if (c.field === 'assignee') merged.action = merged.to ? 'assignee' : 'unassigned';
+        diffs.set(key, merged);
+      } else {
+        const key = `o:${c.field}|${c.action ?? ''}|${c.text ?? ''}|${c.to ?? ''}`;
+        if (!other.has(key)) order.push(key);
+        other.set(key, c);
+      }
+    }
+  }
+  const out: ChangeLine[] = [];
+  for (const key of order) {
+    if (key === 'labels') {
+      const parts = labelOrder
+        .filter((n) => (labels.get(n) ?? 0) !== 0)
+        .map((n) => ((labels.get(n) ?? 0) > 0 ? `+${n}` : `\u2212${n}`));
+      if (parts.length > 0) out.push({ field: 'labels', text: parts.join(' '), action: 'labels' });
+    } else if (key.startsWith('d:')) {
+      const c = diffs.get(key.slice(2));
+      if (c && c.from !== c.to) out.push(c);
+    } else {
+      const c = other.get(key);
+      if (c) out.push(c);
+    }
+  }
+  return out;
+}
+
+/** Parts for a (possibly merged) entry; `items` is newest first. */
+export function describeEntryParts(items: NotificationItem[]): EventParts {
+  const primary = items[0];
+  if (items.length < 2) return describeEventParts(primary);
+  const actor = actorName(primary.author);
+  if (mergeCategory(primary) === 'changes') {
+    const chrono = [...items].reverse().map(changesOf);
+    return changesParts(actor, orderChanges(mergeChanges(chrono)));
+  }
+  const latest = describeEventParts(primary);
+  const n = items.length;
+  const promoted = items.some(isMention);
+  return {
+    ...latest,
+    verb: promoted ? 'mentioned you' : `commented ${n} times`,
+    verbSuffix: promoted ? `${n} comments` : undefined,
+    promoted,
+    count: n,
+    moreLabel: `+${n - 1} earlier comment${n - 1 === 1 ? '' : 's'}`,
+  };
+}
+
 export function buildEntries(input: {
   items: NotificationItem[];
   readSet: ReadonlySet<string>;
@@ -414,24 +592,72 @@ export function buildEntries(input: {
   now: number;
 }): NotificationEntry[] {
   const { readSet, now } = input;
-  // Flat list, newest first, split by time-bucket headers.
-  const filtered = filterItems(input.items, readSet, input.source, input.unreadOnly);
+  // Merge over everything in the source scope so read state never splits a run,
+  // then drop runs with nothing unread when unreadOnly.
+  const sorted = filterItems(input.items, readSet, input.source, false);
+  const groups = new Map<string, NotificationItem[]>();
+  const byEntity = new Map<string, NotificationItem[]>();
+  for (const item of [...sorted].reverse()) {
+    const key = entityKey(item);
+    if (!key) {
+      groups.set(item.id, [item]);
+      continue;
+    }
+    const seq = byEntity.get(key);
+    if (seq) seq.push(item);
+    else byEntity.set(key, [item]);
+  }
+  for (const seq of byEntity.values()) {
+    let run: NotificationItem[] = [];
+    const flush = () => {
+      if (run.length > 0) groups.set(run[run.length - 1].id, [...run].reverse());
+    };
+    for (const item of seq) {
+      const last = run[run.length - 1];
+      const cat = last ? mergeCategory(last) : null;
+      const joins =
+        last &&
+        cat !== null &&
+        cat === mergeCategory(item) &&
+        actorKey(item) !== '' &&
+        actorKey(item) === actorKey(last) &&
+        ts(item) - ts(last) <= MERGE_GAP_MS &&
+        bucketOf(item.createdAt, now) === bucketOf(last.createdAt, now);
+      if (joins) run.push(item);
+      else {
+        flush();
+        run = [item];
+      }
+    }
+    flush();
+  }
+
   const entries: NotificationEntry[] = [];
   let current: TimeBucket | null = null;
-  for (const item of filtered) {
+  for (const item of sorted) {
+    const group = groups.get(item.id);
+    if (!group) continue; // older member of a merged run
+    const isUnread = group.some((i) => !readSet.has(i.id));
+    if (input.unreadOnly && !isUnread) continue;
     const bucket = bucketOf(item.createdAt, now);
     if (bucket !== current) {
       current = bucket;
       entries.push({ kind: 'header', id: `header:${bucket}`, bucket, label: BUCKET_LABEL[bucket] });
     }
-    entries.push({
-      kind: 'event',
-      id: `event:${item.id}`,
-      item,
-      isUnread: !readSet.has(item.id),
-    });
+    entries.push({ kind: 'event', id: `event:${item.id}`, item, items: group, isUnread });
   }
   return entries;
+}
+
+/** Rough pixel height for the virtualizer's first paint; real heights are measured. */
+export function estimateEntryHeight(entry: NotificationEntry): number {
+  if (entry.kind === 'header') return 32;
+  const parts = describeEntryParts(entry.items);
+  let h = 66;
+  const n = parts.changes?.length ?? 0;
+  if (n >= 2) h += 4 + Math.min(3, n) * 16 + (n > 3 ? 16 : 0);
+  if (parts.moreLabel) h += 16;
+  return h;
 }
 
 export function isFocusableEntry(entry: NotificationEntry): entry is EventEntry {

@@ -143,6 +143,73 @@ describe('NotificationPopover', () => {
     });
   });
 
+  describe('merged cards', () => {
+    const t = (min: number) => new Date(Date.now() - min * 60_000).toISOString();
+    const comment = (id: string, min: number, who = 'Ben Carter') =>
+      jiraItem(id, 'PROJ-5', { author: who, notificationType: 'jira-comment', createdAt: t(min) });
+    beforeEach(() =>
+      seed([
+        comment('m1', 30),
+        comment('m2', 20),
+        comment('m3', 10),
+        jiraItem('z', 'PROJ-9', { createdAt: t(45) }),
+      ]),
+    );
+
+    it('renders consecutive same-actor comments as one card', () => {
+      render(<NotificationPopover />);
+      expect(entryCount()).toBe(2);
+      expect(screen.getByText('commented 3 times')).toBeInTheDocument();
+    });
+
+    it('does not merge a same-actor pair split by another actor', () => {
+      seed([comment('a', 30), comment('x', 20, 'Cara Diaz'), comment('b', 10)]);
+      render(<NotificationPopover />);
+      expect(entryCount()).toBe(3);
+    });
+
+    it('Mark as read / unread act on every merged id', () => {
+      render(<NotificationPopover />);
+      fireEvent.click(screen.getAllByRole('button', { name: 'Mark as read' })[0]);
+      expect(useNotificationsStore.getState().readIds).toEqual(
+        expect.arrayContaining(['m1', 'm2', 'm3']),
+      );
+      fireEvent.click(screen.getAllByRole('button', { name: 'Mark as unread' })[0]);
+      expect(useNotificationsStore.getState().readIds).not.toContain('m1');
+      expect(useNotificationsStore.getState().readIds).not.toContain('m3');
+    });
+
+    it('Done removes and tombstones every merged id', () => {
+      render(<NotificationPopover />);
+      fireEvent.click(screen.getAllByRole('button', { name: 'Done' })[0]);
+      const st = useNotificationsStore.getState();
+      expect(st.items.map((i) => i.id)).toEqual(['z']);
+      expect(st.dismissedIds).toEqual(expect.arrayContaining(['m1', 'm2', 'm3']));
+    });
+
+    it('opening marks all read and navigates', () => {
+      const onIssueClick = vi.fn();
+      render(<NotificationPopover onIssueClick={onIssueClick} />);
+      fireEvent.click(screen.getByRole('button', { name: /commented 3 times on PROJ-5/ }));
+      expect(onIssueClick).toHaveBeenCalledWith('PROJ-5');
+      expect(useNotificationsStore.getState().readIds).toEqual(
+        expect.arrayContaining(['m1', 'm2', 'm3']),
+      );
+    });
+
+    it('keyboard u and e act on the whole merged card', () => {
+      render(<NotificationPopover />);
+      const first = document.querySelectorAll<HTMLElement>('[data-entry-primary]')[0];
+      first.focus();
+      fireEvent.keyDown(first, { key: 'u' });
+      expect(useNotificationsStore.getState().readIds).toEqual(
+        expect.arrayContaining(['m1', 'm2', 'm3']),
+      );
+      fireEvent.keyDown(first, { key: 'e' });
+      expect(useNotificationsStore.getState().items.map((i) => i.id)).toEqual(['z']);
+    });
+  });
+
   it('row Done removes the item and read toggle flips state', () => {
     seed([jiraItem('a')]);
     render(<NotificationPopover />);

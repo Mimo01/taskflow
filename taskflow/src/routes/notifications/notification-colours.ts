@@ -25,6 +25,7 @@ import {
   Puzzle,
   Shapes,
   Signal,
+  SquarePen,
   Tag,
   Type,
   UserMinus,
@@ -69,6 +70,7 @@ export type EventKind =
   | 'failure'
   | 'due'
   | 'update'
+  | 'multi'
   | ActionKey;
 
 export interface EventStyle {
@@ -100,6 +102,16 @@ export const UPDATE_STYLE: EventStyle = {
   badge: 'bg-slate-500',
   text: 'text-slate-600 dark:text-slate-400',
 };
+
+/** Generic "updated N fields" style for issue updates / system notes with several changes. */
+export const MULTI_UPDATE_STYLE: EventStyle = {
+  kind: 'multi',
+  Icon: SquarePen,
+  badge: 'bg-indigo-600',
+  text: 'text-indigo-600 dark:text-indigo-400',
+};
+
+export const MENTION_STYLE = MENTION;
 
 export const EVENT_STYLE: Record<NotificationType, EventStyle> = {
   'comment-mention': MENTION,

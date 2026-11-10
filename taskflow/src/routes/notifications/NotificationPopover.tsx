@@ -69,10 +69,9 @@ export default function NotificationPopover({
   const notificationSendError = useNotificationsStore((s) => s.notificationSendError);
   const fetchError = useNotificationsStore((s) => s.fetchError);
   const retryFetch = useNotificationsStore((s) => s.retryFetch);
-  const markAsRead = useNotificationsStore((s) => s.markAsRead);
-  const markAsUnread = useNotificationsStore((s) => s.markAsUnread);
+  const markItemsUnread = useNotificationsStore((s) => s.markItemsUnread);
   const markItemsRead = useNotificationsStore((s) => s.markItemsRead);
-  const removeItem = useNotificationsStore((s) => s.removeItem);
+  const removeItems = useNotificationsStore((s) => s.removeItems);
   const clearRead = useNotificationsStore((s) => s.clearRead);
   const setPermissionDenied = useNotificationsStore((s) => s.setPermissionDenied);
   const setNotificationSendError = useNotificationsStore((s) => s.setNotificationSendError);
@@ -109,33 +108,35 @@ export default function NotificationPopover({
     // No navigable target: stays open, already marked read.
   }
 
-  function openEvent(item: NotificationItem) {
-    markAsRead(item.id);
-    navigateTo(item);
+  const idsOf = (entry: EventEntry) => entry.items.map((i) => i.id);
+
+  function openEvent(entry: EventEntry) {
+    markItemsRead(idsOf(entry));
+    navigateTo(entry.item);
   }
 
   function toggleRead(entry: EventEntry) {
-    if (entry.isUnread) markAsRead(entry.item.id);
-    else markAsUnread(entry.item.id);
+    if (entry.isUnread) markItemsRead(idsOf(entry));
+    else markItemsUnread(idsOf(entry));
   }
 
   function done(entry: EventEntry) {
-    removeItem(entry.item.id);
+    removeItems(idsOf(entry));
   }
 
-  function getOpenInBrowser(item: NotificationItem): (() => void) | undefined {
-    const url = item.url;
+  function getOpenInBrowser(entry: EventEntry): (() => void) | undefined {
+    const url = entry.item.url;
     if (!url || !isSafeHttpUrl(url)) return undefined;
     return () => {
       openExternal(url);
-      markAsRead(item.id);
+      markItemsRead(idsOf(entry));
     };
   }
 
   function renderEntry(entry: NotificationEntry) {
     if (entry.kind === 'header') {
       return (
-        <div className="flex h-7 items-center px-4 text-[11px] font-medium text-muted-foreground density-compact:h-6">
+        <div className="flex h-7 items-end px-2 pb-1 text-[11px] font-medium text-muted-foreground density-compact:h-6">
           {entry.label}
         </div>
       );
@@ -144,12 +145,13 @@ export default function NotificationPopover({
     return (
       <NotificationRow
         item={ev.item}
+        items={ev.items}
         isUnread={ev.isUnread}
         now={now}
-        onOpen={() => openEvent(ev.item)}
+        onOpen={() => openEvent(ev)}
         onToggleRead={() => toggleRead(ev)}
         onDone={() => done(ev)}
-        onOpenInBrowser={getOpenInBrowser(ev.item)}
+        onOpenInBrowser={getOpenInBrowser(ev)}
       />
     );
   }

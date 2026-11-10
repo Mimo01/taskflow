@@ -11,7 +11,12 @@ import {
   bucketOf,
   buildEntries,
   describeEventAria,
+  describeEntryParts,
   describeEventParts,
+  estimateEntryHeight,
+  mergeChanges,
+  mergeCategory,
+  orderChanges,
   parseChangeLines,
   filterItems,
   formatAbsoluteTime,
@@ -155,10 +160,10 @@ describe('describeEventParts', () => {
   it('keeps every change of an update in order, status included', () => {
     const body = 'Priority: A \u2192 B\nStatus: To Do \u2192 Done\nSprint: S1 \u2192 S2';
     const s = d('issue-update', body);
-    expect(s.verb).toBe('changed priority');
-    expect(s.changes?.map((c) => c.field)).toEqual(['priority', 'status', 'sprint']);
+    expect(s.verb).toBe('updated 3 fields');
+    expect(s.changes?.map((c) => c.field)).toEqual(['status', 'priority', 'sprint']);
     expect(describeEventAria(s)).toBe(
-      'Ann changed priority from A to B, status from To Do to Done, sprint from S1 to S2',
+      'Ann changed status from To Do to Done, priority from A to B, sprint from S1 to S2',
     );
   });
   it('extracts old and new status for status changes', () => {
@@ -400,5 +405,277 @@ describe('action styles', () => {
     for (const f of ['priority', 'sprint', 'fix version', 'due date', 'type', 'story points']) {
       expect(actionKeyForField(f), f).toBeDefined();
     }
+  });
+});
+
+describe('merging', () => {
+  const base = { source: 'all' as const, unreadOnly: false, now: NOW };
+  const at = (h: number, min: number) => local(10, 10, h, min);
+  const com = (
+    id: string,
+    key: string,
+    who: string,
+    h: number,
+    min: number,
+    type = 'jira-comment',
+  ) => jira(id, key, at(h, min), { author: who, notificationType: type as never, bodyPreview: id });
+  const upd = (id: string, key: string, who: string, h: number, min: number, body: string) =>
+    jira(id, key, at(h, min), {
+      author: who,
+      notificationType: 'issue-update',
+      bodyPreview: body,
+    });
+  const run = (
+    items: NotificationItem[],
+    extra: Partial<Parameters<typeof buildEntries>[0]> = {},
+  ) =>
+    buildEntries({ ...base, items, readSet: new Set(), ...extra }).filter(
+      (e) => e.kind === 'event',
+    );
+  const ids = (items: NotificationItem[]) =>
+    run(items).map((e) => (e.kind === 'event' ? e.items.map((i) => i.id) : []));
+
+  it('merges consecutive same-actor same-category items within 60 minutes (chain)', () => {
+    const items = [
+      com('c1', 'PROJ-1', 'Ben', 8, 0),
+      com('c2', 'PROJ-1', 'Ben', 8, 50),
+      com('c3', 'PROJ-1', 'Ben', 9, 40),
+    ];
+    expect(ids(items)).toEqual([['c3', 'c2', 'c1']]);
+    const e = run(items)[0];
+    expect(e.kind === 'event' && e.item.id).toBe('c3');
+    expect(e.id).toBe('event:c3');
+  });
+
+  it('breaks on a gap over 60 minutes', () => {
+    expect(ids([com('c1', 'PROJ-1', 'Ben', 8, 0), com('c2', 'PROJ-1', 'Ben', 9, 1)])).toEqual([
+      ['c2'],
+      ['c1'],
+    ]);
+  });
+
+  it('breaks when another actor commented on that entity in between', () => {
+    const items = [
+      com('c1', 'PROJ-1', 'Ben', 8, 0),
+      com('x', 'PROJ-1', 'Cara', 8, 10),
+      com('c2', 'PROJ-1', 'Ben', 8, 20),
+    ];
+    expect(ids(items)).toEqual([['c2'], ['x'], ['c1']]);
+  });
+
+  it('events on other entities in between do not break a run', () => {
+    const items = [
+      com('c1', 'PROJ-1', 'Ben', 8, 0),
+      com('o', 'PROJ-2', 'Cara', 8, 10),
+      com('c2', 'PROJ-1', 'Ben', 8, 20),
+    ];
+    expect(ids(items)).toEqual([['c2', 'c1'], ['o']]);
+  });
+
+  it('never merges across actors, sources, entities or time buckets', () => {
+    expect(ids([com('a', 'PROJ-1', 'Ben', 8, 0), com('b', 'PROJ-1', 'Cara', 8, 5)])).toHaveLength(
+      2,
+    );
+    expect(ids([com('a', 'PROJ-1', 'Ben', 8, 0), com('b', 'PROJ-2', 'Ben', 8, 5)])).toHaveLength(2);
+    const y = jira('y', 'PROJ-1', new Date(2026, 9, 9, 23, 50).toISOString(), {
+      author: 'Ben',
+      notificationType: 'jira-comment',
+    });
+    const t = jira('t', 'PROJ-1', new Date(2026, 9, 10, 0, 10).toISOString(), {
+      author: 'Ben',
+      notificationType: 'jira-comment',
+    });
+    const e = buildEntries({
+      ...base,
+      now: new Date(2026, 9, 10, 12).getTime(),
+      items: [y, t],
+      readSet: new Set(),
+    });
+    expect(e.map((x) => x.kind)).toEqual(['header', 'event', 'header', 'event']);
+  });
+
+  it('never merges a comment with an update, or assignment/approval/pipeline/due items', () => {
+    expect(
+      ids([
+        com('c', 'PROJ-1', 'Ben', 8, 0),
+        upd('u', 'PROJ-1', 'Ben', 8, 5, 'Priority: A \u2192 B'),
+      ]),
+    ).toHaveLength(2);
+    for (const type of [
+      'issue-assignment',
+      'mr-approval',
+      'pipeline-failure',
+      'due-date-reminder',
+    ]) {
+      const mk = (id: string, min: number) =>
+        jira(id, 'PROJ-1', at(8, min), { author: 'Ben', notificationType: type as never });
+      expect(ids([mk('a', 0), mk('b', 5)]), type).toHaveLength(2);
+      expect(mergeCategory(mk('a', 0)), type).toBeNull();
+    }
+  });
+
+  it('merges GitLab MRs by project + iid and keeps MR state changes separate', () => {
+    const sys = (id: string, min: number, body: string, iid = 5) =>
+      makeItem({
+        id: `gitlab-system-${id}`,
+        source: 'gitlab',
+        entityTitle: 'Add export',
+        author: 'Ana',
+        mrProjectId: 1,
+        mrIid: iid,
+        notificationType: 'mr-note',
+        bodyPreview: body,
+        createdAt: at(8, min),
+      });
+    const labels = [sys('1', 0, 'Labels added: a'), sys('2', 10, 'Labels added: b')];
+    expect(ids(labels)).toEqual([['gitlab-system-2', 'gitlab-system-1']]);
+    expect(
+      ids([sys('1', 0, 'Labels added: a'), sys('2', 10, 'State: opened \u2192 merged')]),
+    ).toHaveLength(2);
+    expect(ids([sys('1', 0, 'Labels added: a'), sys('2', 10, 'Labels added: b', 6)])).toHaveLength(
+      2,
+    );
+    const parts = describeEntryParts(
+      run(labels)[0].kind === 'event'
+        ? (run(labels)[0] as never as { items: NotificationItem[] }).items
+        : [],
+    );
+    expect(parts.changes).toEqual([{ field: 'labels', text: '+a +b', action: 'labels' }]);
+  });
+
+  it('conversation merge: latest text, count verb, earlier hint', () => {
+    const e = run([
+      com('c1', 'PROJ-1', 'Ben Carter', 8, 0),
+      com('c2', 'PROJ-1', 'Ben Carter', 8, 10),
+      com('c3', 'PROJ-1', 'Ben Carter', 8, 20),
+    ])[0];
+    const p = describeEntryParts((e as { items: NotificationItem[] }).items);
+    expect(p.verb).toBe('commented 3 times');
+    expect(p.commentText).toBe('c3');
+    expect(p.moreLabel).toBe('+2 earlier comments');
+    expect(p.actor).toBe('Ben');
+    expect(describeEventAria(p)).toBe('Ben commented 3 times');
+  });
+
+  it('promotes to "mentioned you" when any item is a mention', () => {
+    const e = run([
+      com('c1', 'PROJ-1', 'Ben', 8, 0),
+      com('c2', 'PROJ-1', 'Ben', 8, 10, 'comment-mention'),
+    ])[0];
+    const p = describeEntryParts((e as { items: NotificationItem[] }).items);
+    expect(p).toMatchObject({ verb: 'mentioned you', verbSuffix: '2 comments', promoted: true });
+    expect(p.moreLabel).toBe('+1 earlier comment');
+    expect(eventStyleFor((e as { item: NotificationItem }).item, p).kind).toBe('mention');
+  });
+
+  it('change merge collapses a field to first-from -> last-to and drops no-ops', () => {
+    const items = [
+      upd('u1', 'PROJ-1', 'Ana', 8, 0, 'Priority: Minor \u2192 Major\nSprint: S1 \u2192 S2'),
+      upd('u2', 'PROJ-1', 'Ana', 8, 10, 'Priority: Major \u2192 Critical'),
+      upd('u3', 'PROJ-1', 'Ana', 8, 20, 'Sprint: S2 \u2192 S1\nLabels: a \u2192 a perf'),
+    ];
+    const e = run(items)[0];
+    expect((e as { items: unknown[] }).items).toHaveLength(3);
+    const p = describeEntryParts((e as { items: NotificationItem[] }).items);
+    expect(p.changes).toEqual([
+      { field: 'priority', from: 'Minor', to: 'Critical', action: 'priority' },
+      { field: 'labels', text: '+perf', action: 'labels' },
+    ]);
+    expect(p.verb).toBe('updated 2 fields');
+  });
+
+  it('a single resulting change keeps its specific verb and style', () => {
+    const items = [
+      upd('u1', 'PROJ-1', 'Ana', 8, 0, 'Priority: Minor \u2192 Major'),
+      upd('u2', 'PROJ-1', 'Ana', 8, 10, 'Priority: Major \u2192 Critical'),
+    ];
+    const e = run(items)[0] as { items: NotificationItem[]; item: NotificationItem };
+    const p = describeEntryParts(e.items);
+    expect(p.verb).toBe('changed priority');
+    expect(eventStyleFor(e.item, p).kind).toBe('priority');
+  });
+
+  it('mergeChanges nets labels, dedupes descriptions and re-derives unassign', () => {
+    const out = mergeChanges([
+      [
+        { field: 'labels', text: '+a', action: 'labels' },
+        { field: 'description', text: 'edited', action: 'description' },
+      ],
+      [
+        { field: 'labels', text: '\u2212a +b', action: 'labels' },
+        { field: 'description', text: 'edited', action: 'description' },
+      ],
+      [{ field: 'assignee', from: 'Ben', to: 'Cara', action: 'assignee' }],
+      [{ field: 'assignee', from: 'Cara', action: 'unassigned' }],
+    ]);
+    expect(out).toEqual([
+      { field: 'labels', text: '+b', action: 'labels' },
+      { field: 'description', text: 'edited', action: 'description' },
+      { field: 'assignee', from: 'Ben', to: undefined, action: 'unassigned' },
+    ]);
+    expect(
+      mergeChanges([
+        [{ field: 'sprint', from: 'A', to: 'B' }],
+        [{ field: 'sprint', from: 'B', to: 'A' }],
+      ]),
+    ).toEqual([]);
+  });
+
+  it('orders changes status, assignee, priority, sprint, version, labels, others, description', () => {
+    const c = (field: string) => ({ field, action: actionKeyForField(field) });
+    expect(
+      orderChanges(
+        [
+          'description',
+          'labels',
+          'estimate',
+          'fix version',
+          'sprint',
+          'priority',
+          'assignee',
+          'status',
+        ].map(c),
+      ).map((x) => x.field),
+    ).toEqual([
+      'status',
+      'assignee',
+      'priority',
+      'sprint',
+      'fix version',
+      'labels',
+      'estimate',
+      'description',
+    ]);
+  });
+
+  it('entry is unread when ANY item is unread; unreadOnly keeps partly-read runs', () => {
+    const items = [com('c1', 'PROJ-1', 'Ben', 8, 0), com('c2', 'PROJ-1', 'Ben', 8, 10)];
+    const some = buildEntries({ ...base, items, readSet: new Set(['c2']) });
+    expect(some[1].kind === 'event' && some[1].isUnread).toBe(true);
+    const all = buildEntries({ ...base, items, readSet: new Set(['c1', 'c2']) });
+    expect(all[1].kind === 'event' && all[1].isUnread).toBe(false);
+    expect(
+      buildEntries({ ...base, items, readSet: new Set(['c1', 'c2']), unreadOnly: true }),
+    ).toEqual([]);
+    const partly = buildEntries({ ...base, items, readSet: new Set(['c2']), unreadOnly: true });
+    expect(partly[1].kind === 'event' && partly[1].items).toHaveLength(2);
+  });
+
+  it('estimates taller cards for multi-change and merged entries', () => {
+    const [single] = run([com('c', 'PROJ-9', 'Zed', 8, 0)]);
+    const [multi] = run([
+      upd(
+        'u',
+        'PROJ-8',
+        'Ana',
+        8,
+        0,
+        'Status: A \u2192 B\nPriority: A \u2192 B\nSprint: A \u2192 B\nLabels: a \u2192 a b',
+      ),
+    ]);
+    expect(estimateEntryHeight(multi)).toBeGreaterThan(estimateEntryHeight(single));
+    expect(estimateEntryHeight({ kind: 'header', id: 'h', bucket: 'today', label: 'Today' })).toBe(
+      32,
+    );
   });
 });
