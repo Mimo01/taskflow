@@ -18,6 +18,7 @@ import { Alert, AlertDescription } from '../../components/ui/alert';
 import { Button } from '../../components/ui/button';
 import { EmptyState } from '../../components/ui/empty-state';
 import { ErrorState } from '../../components/ui/error-state';
+import { useNow } from '../../hooks/useNow';
 import { openExternal } from '../../lib/openExternal';
 import type { NotificationItem } from '../../stores/notifications.store';
 import { useNotificationsStore } from '../../stores/notifications.store';
@@ -109,16 +110,16 @@ function buildVirtualEntries(rowItems: NotificationItem[]): VirtualEntry[] {
 function VirtualizedNotificationList({
   entries,
   readSet,
+  now,
   onRowClick,
-  onIssueKeyClick,
   onMarkRead,
   onDismiss,
   onOpenInBrowser,
 }: {
   entries: VirtualEntry[];
   readSet: Set<string>;
+  now: number;
   onRowClick: (item: NotificationItem) => void;
-  onIssueKeyClick: (item: NotificationItem) => void;
   onMarkRead: (item: NotificationItem) => void;
   onDismiss: (item: NotificationItem) => void;
   onOpenInBrowser: (item: NotificationItem) => (() => void) | undefined;
@@ -180,10 +181,10 @@ function VirtualizedNotificationList({
                     <NotificationRow
                       item={entry.item}
                       isUnread={!readSet.has(entry.item.id)}
-                      onClick={() => onRowClick(entry.item)}
-                      onIssueKeyClick={() => onIssueKeyClick(entry.item)}
-                      onMarkRead={() => onMarkRead(entry.item)}
-                      onDismiss={() => onDismiss(entry.item)}
+                      now={now}
+                      onOpen={() => onRowClick(entry.item)}
+                      onToggleRead={() => onMarkRead(entry.item)}
+                      onDone={() => onDismiss(entry.item)}
                       onOpenInBrowser={onOpenInBrowser(entry.item)}
                     />
                   )}
@@ -205,10 +206,10 @@ function VirtualizedNotificationList({
                   key={entry.item.id}
                   item={entry.item}
                   isUnread={!readSet.has(entry.item.id)}
-                  onClick={() => onRowClick(entry.item)}
-                  onIssueKeyClick={() => onIssueKeyClick(entry.item)}
-                  onMarkRead={() => onMarkRead(entry.item)}
-                  onDismiss={() => onDismiss(entry.item)}
+                  now={now}
+                  onOpen={() => onRowClick(entry.item)}
+                  onToggleRead={() => onMarkRead(entry.item)}
+                  onDone={() => onDismiss(entry.item)}
                   onOpenInBrowser={onOpenInBrowser(entry.item)}
                 />
               ),
@@ -224,6 +225,7 @@ export default function NotificationPopover({
   onMRClick,
   onClose,
 }: NotificationPopoverProps) {
+  const now = useNow(60_000);
   const [activeTab, setActiveTab] = useState<SourceFilter>('all');
   const [unreadOnly, setUnreadOnly] = useState(false);
   const {
@@ -294,16 +296,6 @@ export default function NotificationPopover({
       return;
     }
     // No navigable target — just mark read (row stays in popover)
-  }
-
-  /** PEEK-05: clicking the issue key in a row marks read + navigates full-page + closes popover. */
-  function handleIssueKeyClick(item: NotificationItem) {
-    markAsRead(item.id);
-    const issueKey = extractJiraIssueKey(item);
-    if (issueKey && onIssueClick) {
-      onIssueClick(issueKey);
-      onClose?.();
-    }
   }
 
   function handleMarkRead(item: NotificationItem) {
@@ -496,8 +488,8 @@ export default function NotificationPopover({
         <VirtualizedNotificationList
           entries={virtualEntries}
           readSet={readSet}
+          now={now}
           onRowClick={handleRowClick}
-          onIssueKeyClick={handleIssueKeyClick}
           onMarkRead={handleMarkRead}
           onDismiss={handleDismiss}
           onOpenInBrowser={getOpenInBrowser}

@@ -5,12 +5,13 @@ import NotificationRow from './NotificationRow';
 
 vi.mock('@tauri-apps/plugin-opener', () => ({ openUrl: vi.fn() }));
 
-// LinkContextMenu (wrapping the open-in-browser icon) calls useDetectedBrowsers,
-// which needs a QueryClient. These existing tests don't exercise the right-click
-// menu, so stub the hook rather than wrapping every render() in a provider.
+// LinkContextMenu (wrapping the open-in-browser button) calls useDetectedBrowsers,
+// which needs a QueryClient; stub it rather than wrapping every render().
 vi.mock('@/lib/useDetectedBrowsers', () => ({
   useDetectedBrowsers: () => [],
 }));
+
+const NOW = new Date('2026-03-11T12:00:00.000Z').getTime();
 
 function makeItem(
   source: 'jira' | 'gitlab',
@@ -25,223 +26,166 @@ function makeItem(
     bodyPreview: 'The issue was caused by a race condition',
     fullBody: 'The issue was caused by a race condition in the auth flow',
     createdAt: '2026-03-11T10:00:00.000Z',
+    notificationType: 'jira-comment',
+    url: 'https://jira.example.com/browse/PROJ-123',
     ...overrides,
   };
 }
 
+function setup(props?: Partial<React.ComponentProps<typeof NotificationRow>>) {
+  const handlers = {
+    onOpen: vi.fn(),
+    onToggleRead: vi.fn(),
+    onDone: vi.fn(),
+    onOpenInBrowser: vi.fn(),
+  };
+  const utils = render(
+    <NotificationRow item={makeItem('jira')} isUnread={true} now={NOW} {...handlers} {...props} />,
+  );
+  return { ...utils, ...handlers };
+}
+
 describe('NotificationRow', () => {
-  // Avatar rendering
-  it('renders author avatar element when authorAvatarUrl is provided', () => {
-    render(<NotificationRow item={makeItem('jira')} onClick={() => {}} />);
-    // CachedAvatar renders an accessible div with role="img" while the blob URL loads
-    const avatar = screen.getByRole('img', { name: 'Jane Smith' });
-    expect(avatar).toBeInTheDocument();
-  });
-
-  it('renders initials fallback when no avatar', () => {
-    render(
-      <NotificationRow
-        item={makeItem('jira', { authorAvatarUrl: undefined })}
-        onClick={() => {}}
-      />,
-    );
-    expect(screen.getByText('JS')).toBeInTheDocument(); // Jane Smith → JS
-  });
-
-  // Source identification via left border
-  it('renders orange left border for jira', () => {
-    const { container } = render(<NotificationRow item={makeItem('jira')} onClick={() => {}} />);
-    const btn = container.querySelector('[data-testid="notification-row"]');
-    expect(btn?.className).toContain('border-orange-500');
-  });
-
-  it('renders purple left border for gitlab', () => {
-    const { container } = render(<NotificationRow item={makeItem('gitlab')} onClick={() => {}} />);
-    const btn = container.querySelector('[data-testid="notification-row"]');
-    expect(btn?.className).toContain('border-purple-500');
-  });
-
-  // Author + verb sentence
-  it('renders author name prominently', () => {
-    render(<NotificationRow item={makeItem('jira')} onClick={() => {}} />);
-    expect(screen.getByText('Jane Smith')).toBeInTheDocument();
-  });
-
-  it('renders type badge for comment-mention', () => {
-    render(
-      <NotificationRow
-        item={makeItem('jira', { notificationType: 'comment-mention' })}
-        onClick={() => {}}
-      />,
-    );
-    expect(screen.getByText('Mentioned you')).toBeInTheDocument();
-    expect(screen.getByTestId('type-badge')).toBeInTheDocument();
-  });
-
-  it('renders type badge for mr-approval', () => {
-    render(
-      <NotificationRow
-        item={makeItem('gitlab', { notificationType: 'mr-approval' })}
-        onClick={() => {}}
-      />,
-    );
-    expect(screen.getByText('Approved')).toBeInTheDocument();
-  });
-
-  it('renders type badge for issue-assignment', () => {
-    render(
-      <NotificationRow
-        item={makeItem('jira', { notificationType: 'issue-assignment' })}
-        onClick={() => {}}
-      />,
-    );
-    expect(screen.getByText('Assigned to you')).toBeInTheDocument();
-  });
-
-  // Issue key + title
-  it('extracts and renders issue key separately from title', () => {
-    render(<NotificationRow item={makeItem('jira')} onClick={() => {}} />);
+  it('renders ref, description and injected-now relative time', () => {
+    setup();
     expect(screen.getByText('PROJ-123')).toBeInTheDocument();
-    expect(screen.getByText('Fix login bug')).toBeInTheDocument();
+    expect(
+      screen.getByText('Jane Smith commented: The issue was caused by a race condition'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('2h')).toBeInTheDocument();
   });
 
-  it('renders full title when no issue key', () => {
-    render(
+  it('does not render fullBody or parent summary outside the tooltip', () => {
+    setup({
+      item: makeItem('jira', { parentKey: 'PROJ-1', parentSummary: 'Parent story' }),
+    });
+    expect(screen.queryByText(/in the auth flow/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Parent story/)).not.toBeInTheDocument();
+  });
+
+  it('renders the author avatar and an initials fallback', () => {
+    setup({ item: makeItem('jira', { authorAvatarUrl: undefined }) });
+    expect(screen.getByText('JS')).toBeInTheDocument();
+  });
+
+  it('renders GitLab MR ref as !iid', () => {
+    setup({
+      item: makeItem('gitlab', {
+        entityTitle: 'Fix the thing',
+        mrProjectId: 7,
+        mrIid: 34,
+        notificationType: 'mr-note',
+      }),
+    });
+    expect(screen.getByText('!34')).toBeInTheDocument();
+  });
+
+  it('marks unread via aria prefix and dot; read has neither', () => {
+    const { container, rerender, ...h } = setup();
+    expect(screen.getByRole('button', { name: /^Unread\. PROJ-123/ })).toBeInTheDocument();
+    expect(container.querySelector('[data-unread="true"]')).not.toBeNull();
+    rerender(
       <NotificationRow
-        item={makeItem('gitlab', { entityTitle: 'Some MR title' })}
-        onClick={() => {}}
+        item={makeItem('jira')}
+        isUnread={false}
+        now={NOW}
+        onOpen={h.onOpen}
+        onToggleRead={h.onToggleRead}
+        onDone={h.onDone}
       />,
     );
-    expect(screen.getByText('Some MR title')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Unread/ })).not.toBeInTheDocument();
+    expect(container.querySelector('[data-unread="false"]')).not.toBeNull();
   });
 
-  // Entity state badge
-  it('renders entity state badge when present', () => {
-    render(
-      <NotificationRow item={makeItem('gitlab', { entityState: 'merged' })} onClick={() => {}} />,
-    );
-    expect(screen.getByText('Merged')).toBeInTheDocument();
+  it('only pipeline-failure, mr-approval and due-date-reminder glyphs are status-toned', () => {
+    const status = ['pipeline-failure', 'mr-approval', 'due-date-reminder'] as const;
+    const neutral = [
+      'comment-mention',
+      'jira-comment',
+      'gitlab-mention',
+      'mr-note',
+      'issue-update',
+      'issue-assignment',
+    ] as const;
+    for (const t of status) {
+      const { container, unmount } = setup({
+        item: makeItem('jira', { notificationType: t }),
+      });
+      expect(container.querySelector('[data-tone="status"]')).not.toBeNull();
+      unmount();
+    }
+    for (const t of neutral) {
+      const { container, unmount } = setup({
+        item: makeItem('jira', { notificationType: t }),
+      });
+      expect(container.querySelector('[data-tone="neutral"]')).not.toBeNull();
+      expect(container.querySelector('[data-tone="status"]')).toBeNull();
+      unmount();
+    }
   });
 
-  // Body preview
-  it('renders body preview', () => {
-    render(<NotificationRow item={makeItem('gitlab')} onClick={() => {}} />);
-    expect(screen.getByText('The issue was caused by a race condition')).toBeInTheDocument();
+  it('overlay click calls onOpen once; key click calls onOpen once', () => {
+    const { onOpen } = setup();
+    fireEvent.click(screen.getByRole('button', { name: /^Unread\./ }));
+    expect(onOpen).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole('button', { name: 'PROJ-123' }));
+    expect(onOpen).toHaveBeenCalledTimes(2);
   });
 
-  // Timestamp
-  it('renders relative timestamp', () => {
-    render(<NotificationRow item={makeItem('jira')} onClick={() => {}} />);
-    expect(screen.getByText(/\d+[dwh]|\d+m|just now/)).toBeInTheDocument();
+  it('tray buttons call only their handler', () => {
+    const { onOpen, onToggleRead, onDone, onOpenInBrowser } = setup();
+    fireEvent.click(screen.getByRole('button', { name: 'Mark as read' }));
+    expect(onToggleRead).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole('button', { name: 'Open in browser' }));
+    expect(onOpenInBrowser).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole('button', { name: 'Done' }));
+    expect(onDone).toHaveBeenCalledTimes(1);
+    expect(onOpen).not.toHaveBeenCalled();
   });
 
-  // Unread state — blue tinted background + ring on avatar
-  it('applies blue tint background when unread', () => {
-    const { container } = render(
-      <NotificationRow item={makeItem('jira')} isUnread onClick={() => {}} />,
-    );
-    const btn = container.querySelector('[data-testid="notification-row"]');
-    expect(btn?.className).toContain('bg-blue-500');
+  it('read row offers "Mark as unread"', () => {
+    setup({ isUnread: false });
+    expect(screen.getByRole('button', { name: 'Mark as unread' })).toBeInTheDocument();
   });
 
-  it('does not apply blue tint when read', () => {
-    const { container } = render(
-      <NotificationRow item={makeItem('jira')} isUnread={false} onClick={() => {}} />,
-    );
-    const btn = container.querySelector('[data-testid="notification-row"]');
-    expect(btn?.className).not.toContain('bg-blue-500');
+  it('omits Open in browser without a handler', () => {
+    setup({ onOpenInBrowser: undefined });
+    expect(screen.queryByRole('button', { name: 'Open in browser' })).not.toBeInTheDocument();
   });
 
-  // Parent story chip
-  it('renders parent story chip when parentKey present', () => {
-    render(
+  it('omits Open in browser without a url', () => {
+    setup({ item: makeItem('jira', { url: undefined }) });
+    expect(screen.queryByRole('button', { name: 'Open in browser' })).not.toBeInTheDocument();
+  });
+
+  it('keeps the same overlay node and focus when isUnread flips (D-05)', () => {
+    const { rerender, ...h } = setup();
+    const before = screen.getByRole('button', { name: /^Unread\./ });
+    before.focus();
+    rerender(
       <NotificationRow
-        item={makeItem('jira', { parentKey: 'PROJ-100', parentSummary: 'User Login Flow' })}
-        onClick={() => {}}
+        item={makeItem('jira')}
+        isUnread={false}
+        now={NOW}
+        onOpen={h.onOpen}
+        onToggleRead={h.onToggleRead}
+        onDone={h.onDone}
+        onOpenInBrowser={h.onOpenInBrowser}
       />,
     );
-    expect(screen.getByText('PROJ-100')).toBeInTheDocument();
-    expect(screen.getByText('User Login Flow')).toBeInTheDocument();
+    const after = document.querySelector('[data-entry-primary]');
+    expect(after).toBe(before);
+    expect(document.activeElement).toBe(before);
   });
 
-  // Click
-  it('fires onClick on click', () => {
-    const fn = vi.fn();
-    render(<NotificationRow item={makeItem('jira')} onClick={fn} />);
-    fireEvent.click(screen.getByTestId('notification-row'));
-    expect(fn).toHaveBeenCalledTimes(1);
+  it('nested hides the key button', () => {
+    setup({ nested: true });
+    expect(screen.queryByRole('button', { name: 'PROJ-123' })).not.toBeInTheDocument();
   });
 
-  // Action tray
-  it('renders action tray when actions provided', () => {
-    const { container } = render(
-      <NotificationRow
-        item={makeItem('jira', { url: 'https://jira.example.com/PROJ-123' })}
-        onClick={() => {}}
-        onMarkRead={() => {}}
-        onDismiss={() => {}}
-        onOpenInBrowser={() => {}}
-      />,
-    );
-    expect(container.querySelector('[data-testid="action-tray"]')).toBeInTheDocument();
-  });
-
-  it('does not render action tray when no actions', () => {
-    const { container } = render(<NotificationRow item={makeItem('jira')} onClick={() => {}} />);
-    expect(container.querySelector('[data-testid="action-tray"]')).not.toBeInTheDocument();
-  });
-
-  // Right-click LinkContextMenu (260827-f6e)
-  it('right-clicking the open-in-browser icon shows the LinkContextMenu when item.url is present', async () => {
-    const { container } = render(
-      <NotificationRow
-        item={makeItem('jira', { url: 'https://jira.example.com/browse/PROJ-123' })}
-        onClick={() => {}}
-        onOpenInBrowser={() => {}}
-      />,
-    );
-    const trigger = container.querySelector('[data-slot="context-menu-trigger"]');
-    expect(trigger).not.toBeNull();
-    fireEvent.contextMenu(trigger as Element);
-    expect(await screen.findByText('Open in System Default')).toBeInTheDocument();
-    expect(screen.getByText('Copy link')).toBeInTheDocument();
-  });
-
-  it('renders no context-menu trigger for a row without item.url', () => {
-    const { container } = render(
-      <NotificationRow item={makeItem('jira')} onClick={() => {}} onOpenInBrowser={() => {}} />,
-    );
-    expect(container.querySelector('[data-slot="context-menu-trigger"]')).not.toBeInTheDocument();
-  });
-
-  // Status change formatting
-  it('renders status changes with old→new chip style', () => {
-    render(
-      <NotificationRow
-        item={makeItem('jira', {
-          notificationType: 'issue-update',
-          bodyPreview: 'Status: In Progress \u2192 Done',
-        })}
-        onClick={() => {}}
-      />,
-    );
-    expect(screen.getByText('Status')).toBeInTheDocument();
-    expect(screen.getByText('In Progress')).toBeInTheDocument();
-    expect(screen.getByText('Done')).toBeInTheDocument();
-  });
-
-  // Structured field:value without arrow
-  it('renders field:value updates in chip style', () => {
-    render(
-      <NotificationRow
-        item={makeItem('jira', {
-          notificationType: 'issue-update',
-          bodyPreview: 'Priority: High',
-        })}
-        onClick={() => {}}
-      />,
-    );
-    expect(screen.getByText('Priority')).toBeInTheDocument();
-    expect(screen.getByText('High')).toBeInTheDocument();
+  it('has no div[role=button]', () => {
+    const { container } = setup();
+    expect(container.querySelectorAll('div[role="button"]').length).toBe(0);
   });
 });

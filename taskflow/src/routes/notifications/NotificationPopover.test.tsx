@@ -71,8 +71,8 @@ describe('NotificationPopover', () => {
 
     render(<NotificationPopover />);
 
-    // NotificationRow splits entityTitle into key + title spans — click the row button
-    fireEvent.click(screen.getByTestId('notification-row'));
+    // Click the row's overlay button (accessible name carries the title)
+    fireEvent.click(screen.getByRole('button', { name: /Fix login bug/ }));
 
     // Should now be in readIds
     expect(useNotificationsStore.getState().readIds).toContain('jira-1');
@@ -98,8 +98,8 @@ describe('NotificationPopover', () => {
 
     render(<NotificationPopover />);
 
-    // NotificationRow splits entityTitle into key + title spans — click the row button
-    fireEvent.click(screen.getByTestId('notification-row'));
+    // Click the row's overlay button (accessible name carries the title)
+    fireEvent.click(screen.getByRole('button', { name: /Fix login bug/ }));
 
     // Row click always calls markAsRead — already-read stays read
     expect(useNotificationsStore.getState().readIds).toContain('jira-1');
@@ -129,7 +129,7 @@ describe('NotificationPopover', () => {
     // Rendered WITHOUT onOpenIssue — mirrors the TopBar call site (HB4-01).
     render(<NotificationPopover onIssueClick={onIssueClick} onClose={onClose} />);
 
-    fireEvent.click(screen.getByTestId('notification-row'));
+    fireEvent.click(screen.getByRole('button', { name: /Fix login bug/ }));
 
     // Body click falls through to onIssueClick (full-page) with the issue key
     expect(onIssueClick).toHaveBeenCalledWith('PROJ-42');
