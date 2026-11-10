@@ -237,7 +237,7 @@ export default function NotificationRow({
   return (
     <div
       className={cn(
-        'group/row relative flex h-9 items-center gap-1.5 border-b px-2 text-xs density-compact:h-8 density-comfortable:h-10 hover:bg-accent focus-within:bg-accent',
+        'group/row relative flex h-11 items-center gap-1.5 border-b px-2 text-xs density-compact:h-10 density-comfortable:h-12 hover:bg-accent focus-within:bg-accent',
         nested ? 'border-border/30 bg-muted/40' : 'border-border/60',
         peeked && PEEKED_ROW_CLASS,
       )}
