@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
+import { PriorityIcon } from '@/components/ui/priority-icon';
 import { useRmWeekIndex } from '@/hooks/useRmWeekIndex';
 import {
   evaluatePackageSync,
@@ -115,6 +116,7 @@ function PersonCell({
 // icon at 520. Summary and Fix split the leftover width 2:1 (Fix 7rem–280px,
 // truncating), so neither starves and a row never overflows.
 const COL_ICON = 'size-3.5 flex-none @max-[640px]:hidden';
+const COL_PRIORITY = 'w-[1.125rem] flex-none';
 const COL_KEY = 'w-[5.5rem] flex-none whitespace-nowrap @max-[520px]:w-[5rem]';
 const COL_STATE = 'w-[84px] flex-none @max-[520px]:w-7';
 const COL_ASSIGNEE = 'w-[6.75rem] flex-none min-w-0 @max-[860px]:w-9';
@@ -352,6 +354,7 @@ export function DeploymentPackageSection({
       <div data-testid="package-column-header" className={HEADER_CLASS}>
         <span className={COL_ICON} aria-hidden="true" />
         <span className={COL_KEY}>Key</span>
+        <span className={COL_PRIORITY} aria-hidden="true" />
         <span className={COL_STATE}>
           <span className="@max-[520px]:sr-only">State</span>
         </span>
@@ -386,6 +389,17 @@ export function DeploymentPackageSection({
               >
                 {issue.key}
               </button>
+              <span
+                className={`${COL_PRIORITY} flex items-center justify-center`}
+                style={{ width: 18, height: 18 }}
+                aria-hidden={!issue.fields.priority}
+              >
+                <PriorityIcon
+                  priority={
+                    issue.fields.priority as { name?: string; iconUrl?: string } | null | undefined
+                  }
+                />
+              </span>
               <span
                 className={`${CALLOUT_STATE_PILL_CLASS} ${COL_STATE}`}
                 title={`${result.hint}${result.detail ? ` ${result.detail}` : ''}`}

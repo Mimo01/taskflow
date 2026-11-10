@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { indexChildToWeek, type RmWeek } from '@/lib/deployment-package';
 import type { JiraIssue } from '@/services/jira';
@@ -46,7 +46,13 @@ vi.mock('@/services/jira', () => ({
 }));
 
 const v44 = { id: '2', name: 'R-44', releaseDate: '2026-10-29' };
-const issue = (key: string, type: string, pkg: unknown, fixVersions: unknown[]) =>
+const issue = (
+  key: string,
+  type: string,
+  pkg: unknown,
+  fixVersions: unknown[],
+  priority: { name: string; iconUrl: string } | null = null,
+) =>
   ({
     id: key,
     key,
@@ -56,6 +62,7 @@ const issue = (key: string, type: string, pkg: unknown, fixVersions: unknown[]) 
       project: { id: '1', key: 'PROJ', name: 'Core' },
       customfield_15725: pkg,
       fixVersions,
+      priority,
     },
   }) as unknown as JiraIssue;
 
@@ -167,6 +174,31 @@ describe('DeploymentPackageSection', () => {
     await waitFor(() =>
       expect(fetchFixVersions).toHaveBeenCalledWith('https://jira.example.com', 'tok', 'OTH'),
     );
+  });
+
+  it('shows the priority icon after the key and before the state pill', async () => {
+    renderSection([
+      issue('S-1', 'Story', null, [v44], {
+        name: 'Blocker',
+        iconUrl: 'https://jira.example.test/blocker.svg',
+      }),
+      issue('S-2', 'Story', null, [v44]),
+    ]);
+    const row = await screen.findByTestId('package-row-S-1');
+    const icon = within(row).getByRole('img', { name: 'Priority: Blocker' });
+    const key = within(row).getByRole('button', { name: 'S-1' });
+    const state = within(row).getByTestId('package-state');
+    expect(key.compareDocumentPosition(icon) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(icon.compareDocumentPosition(state) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const other = screen.getByTestId('package-row-S-2');
+    expect(within(other).queryByRole('img', { name: /Priority/ })).toBeNull();
+  });
+
+  it('keeps one header cell per row cell', async () => {
+    renderSection([issue('S-1', 'Story', null, [v44])]);
+    const row = await screen.findByTestId('package-row-S-1');
+    const header = screen.getByTestId('package-column-header');
+    expect(header.children).toHaveLength((row.firstElementChild as HTMLElement).children.length);
   });
 
   it('renders each item as one row: type icon, key, state pill, summary, target and Apply', async () => {
