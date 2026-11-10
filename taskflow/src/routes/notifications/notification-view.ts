@@ -132,12 +132,20 @@ export interface EventParts {
   changes?: ChangeLine[];
   /** Merged conversation: number of comments / mentions folded into this entry. */
   count?: number;
-  /** Muted hint under the latest comment, e.g. "+4 earlier comments". */
-  moreLabel?: string;
+  /** Merged conversation: every comment, newest first, for the per-comment list. */
+  comments?: CommentLine[];
   /** Muted suffix after the verb, e.g. "5 comments" when a mention is promoted. */
   verbSuffix?: string;
   /** A merged conversation that contains at least one mention: styled as a mention. */
   promoted?: boolean;
+}
+
+export interface CommentLine {
+  id: string;
+  /** Cleaned single-line comment text. */
+  text: string;
+  createdAt: string;
+  mention: boolean;
 }
 
 export interface ChangeLine {
@@ -580,7 +588,12 @@ export function describeEntryParts(items: NotificationItem[]): EventParts {
     verbSuffix: promoted ? `${n} comments` : undefined,
     promoted,
     count: n,
-    moreLabel: `+${n - 1} earlier comment${n - 1 === 1 ? '' : 's'}`,
+    comments: items.map((i) => ({
+      id: i.id,
+      text: describeEventParts(i).commentText ?? cleanCommentText(i.bodyPreview),
+      createdAt: i.createdAt,
+      mention: isMention(i),
+    })),
   };
 }
 
@@ -649,14 +662,20 @@ export function buildEntries(input: {
   return entries;
 }
 
-/** Rough pixel height for the virtualizer's first paint; real heights are measured. */
+/** Pixel height for the virtualizer's first paint (default density); real heights are measured. */
 export function estimateEntryHeight(entry: NotificationEntry): number {
   if (entry.kind === 'header') return 32;
   const parts = describeEntryParts(entry.items);
-  let h = 66;
-  const n = parts.changes?.length ?? 0;
-  if (n >= 2) h += 4 + Math.min(3, n) * 16 + (n > 3 ? 16 : 0);
-  if (parts.moreLabel) h += 16;
+  // card: py-2.5 (20) + border (2) + line 1 h-5 (20) + line 2 h-5 (20) + wrapper pb-1.5 (6)
+  let h = 68;
+  // list: mt-1 (4) + rows of h-5 (20) separated by gap-1 (4), plus a "+N more" row when capped
+  const list = (n: number) => {
+    if (n < 2) return 0;
+    const rows = Math.min(3, n) + (n > 3 ? 1 : 0);
+    return 4 + rows * 20 + (rows - 1) * 4;
+  };
+  h += list(parts.changes?.length ?? 0);
+  h += list(parts.comments?.length ?? 0);
   return h;
 }
 

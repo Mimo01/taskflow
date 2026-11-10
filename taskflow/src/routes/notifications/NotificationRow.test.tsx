@@ -481,15 +481,18 @@ describe('NotificationRow', () => {
       mk('c1', 'First', 'jira-comment'),
     ];
 
-    it('shows the latest text, the earlier-comments hint and the aria summary', () => {
+    it('lists every comment (newest first) under the verb, with the aria summary', () => {
       const { container } = setup({ item: items[0], items });
       expect(screen.getByText('commented 3 times')).toBeInTheDocument();
-      expect(container.querySelector('[data-line="detail"]')?.textContent).toContain(
-        'Latest comment',
+      expect(container.querySelector('[data-line="detail"]')?.textContent).toBe(
+        'commented 3 times',
       );
-      expect(container.querySelector('[data-line="more"]')?.textContent).toBe(
-        '+2 earlier comments',
-      );
+      const rows = [...container.querySelectorAll('[data-comment-row]')].map((r) => r.textContent);
+      expect(rows).toHaveLength(3);
+      expect(rows[0]).toContain('Latest comment');
+      expect(rows[1]).toContain('Middle');
+      expect(rows[2]).toContain('First');
+      expect(container.querySelector('[data-comment-more]')).toBeNull();
       expect(
         screen.getByRole('button', {
           name: 'Unread. Ben commented 3 times on PROJ-123 Fix login bug: Latest comment',
@@ -505,5 +508,35 @@ describe('NotificationRow', () => {
         'mentioned you3 comments',
       );
     });
+
+    it('caps the comment list at 3 with "+N more comments"', () => {
+      const five = [
+        ...items,
+        mk('c0', 'Older', 'jira-comment'),
+        mk('cz', 'Oldest', 'jira-comment'),
+      ];
+      const { container } = setup({ item: five[0], items: five });
+      expect(container.querySelectorAll('[data-comment-row]')).toHaveLength(3);
+      expect(container.querySelector('[data-comment-more]')?.textContent).toBe('+2 more comments');
+    });
+  });
+
+  it('status pills get real padding (not squashed into the line)', () => {
+    const { container } = setup({
+      item: makeItem('jira', {
+        notificationType: 'issue-update',
+        bodyPreview: 'Status: To Do \u2192 In Review',
+      }),
+    });
+    const pill = screen.getByText('In Review');
+    expect(pill.className).toContain('py-0.5');
+    expect(pill.className).toContain('px-1.5');
+    expect(container.querySelector('[data-line="detail"]')?.className).toContain('h-5');
+  });
+
+  it('avatar inner circle fills its slot at every density (no egg shape)', () => {
+    const { container } = setup();
+    const slot = container.querySelector('[data-event-kind] > div');
+    expect(slot?.className).toContain('[&>*]:size-full!');
   });
 });

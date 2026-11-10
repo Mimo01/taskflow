@@ -45,7 +45,7 @@ export default function NotificationAvatar({ item, style }: NotificationAvatarPr
         url={item.authorAvatarUrl}
         name={item.author}
         size={40}
-        className="size-9 rounded-full density-compact:size-8 density-comfortable:size-10 ring-1 ring-foreground/15 [&_div]:text-[10px]"
+        className="size-9 rounded-full density-compact:size-8 density-comfortable:size-10 ring-1 ring-foreground/15 [&>*]:size-full! [&_div]:text-[10px]"
       />
     );
   }

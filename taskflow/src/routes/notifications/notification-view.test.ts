@@ -543,7 +543,7 @@ describe('merging', () => {
     expect(parts.changes).toEqual([{ field: 'labels', text: '+a +b', action: 'labels' }]);
   });
 
-  it('conversation merge: latest text, count verb, earlier hint', () => {
+  it('conversation merge: latest text, count verb, every comment listed newest first', () => {
     const e = run([
       com('c1', 'PROJ-1', 'Ben Carter', 8, 0),
       com('c2', 'PROJ-1', 'Ben Carter', 8, 10),
@@ -552,7 +552,8 @@ describe('merging', () => {
     const p = describeEntryParts((e as { items: NotificationItem[] }).items);
     expect(p.verb).toBe('commented 3 times');
     expect(p.commentText).toBe('c3');
-    expect(p.moreLabel).toBe('+2 earlier comments');
+    expect(p.comments?.map((c) => c.text)).toEqual(['c3', 'c2', 'c1']);
+    expect(p.comments?.every((c) => !c.mention)).toBe(true);
     expect(p.actor).toBe('Ben');
     expect(describeEventAria(p)).toBe('Ben commented 3 times');
   });
@@ -564,7 +565,7 @@ describe('merging', () => {
     ])[0];
     const p = describeEntryParts((e as { items: NotificationItem[] }).items);
     expect(p).toMatchObject({ verb: 'mentioned you', verbSuffix: '2 comments', promoted: true });
-    expect(p.moreLabel).toBe('+1 earlier comment');
+    expect(p.comments?.map((c) => c.mention)).toEqual([true, false]);
     expect(eventStyleFor((e as { item: NotificationItem }).item, p).kind).toBe('mention');
   });
 

@@ -22,9 +22,10 @@ import { cn } from '@/lib/utils';
 import { useIsPeeked } from '@/stores/peek.store';
 import type { NotificationItem } from '../../stores/notifications.store';
 import NotificationAvatar from './NotificationAvatar';
-import { ACTION_STYLE, UPDATE_STYLE } from './notification-colours';
+import { ACTION_STYLE, EVENT_STYLE, MENTION_STYLE, UPDATE_STYLE } from './notification-colours';
 import {
   type ChangeLine,
+  type CommentLine,
   cleanCommentText,
   describeEntryParts,
   describeEventAria,
@@ -115,7 +116,7 @@ function StatusPill({ name }: { name: string }) {
   return (
     <span
       className={cn(
-        'whitespace-nowrap rounded px-1 py-px',
+        'inline-flex items-center whitespace-nowrap rounded px-1.5 py-0.5 leading-none',
         statusCategoryBadgeClass(statusCategoryGuess(name)),
       )}
     >
@@ -189,7 +190,7 @@ export function NotificationDetailLine({
             {parts.verbSuffix}
           </span>
         ) : null}
-        {text ? <span className="text-muted-foreground"> {text}</span> : null}
+        {text && !parts.comments ? <span className="text-muted-foreground"> {text}</span> : null}
       </>
     );
   }
@@ -197,7 +198,7 @@ export function NotificationDetailLine({
     <span
       data-line="detail"
       data-detail={kind}
-      className="pointer-events-none relative block h-4 truncate text-[11px] leading-4"
+      className="pointer-events-none relative block h-5 truncate text-[11px] leading-5"
     >
       {content}
     </span>
@@ -258,7 +259,7 @@ export function NotificationChangeList({ changes }: { changes: ChangeLine[] }) {
   const shown = changes.slice(0, MAX_LISTED_CHANGES);
   const hidden = changes.length - shown.length;
   return (
-    <ul data-change-list className="pointer-events-none relative mt-1 flex flex-col gap-0.5">
+    <ul data-change-list className="pointer-events-none relative mt-1 flex flex-col gap-1">
       {shown.map((c) => {
         const style = c.action ? ACTION_STYLE[c.action] : UPDATE_STYLE;
         const Icon = style.Icon;
@@ -266,7 +267,7 @@ export function NotificationChangeList({ changes }: { changes: ChangeLine[] }) {
           <li
             key={`${c.field}|${c.action ?? ''}|${c.text ?? c.to ?? ''}`}
             data-change-row
-            className="flex h-4 items-center gap-1.5 text-[11px] leading-4"
+            className="flex h-5 items-center gap-1.5 text-[11px] leading-5"
           >
             <Icon aria-hidden="true" className={cn('size-3 flex-none', style.text)} />
             <span className="w-[6.5rem] flex-none truncate text-muted-foreground">{c.field}</span>
@@ -279,9 +280,50 @@ export function NotificationChangeList({ changes }: { changes: ChangeLine[] }) {
       {hidden > 0 ? (
         <li
           data-change-more
-          className="h-4 pl-[1.125rem] text-[11px] leading-4 text-muted-foreground"
+          className="h-5 pl-[1.125rem] text-[11px] leading-5 text-muted-foreground"
         >
           +{hidden} more change{hidden === 1 ? '' : 's'}
+        </li>
+      ) : null}
+    </ul>
+  );
+}
+
+/** Merged conversation: one line per comment (icon, time, text), newest first; max 3 + "+N more". */
+export function NotificationCommentList({
+  comments,
+  now,
+}: {
+  comments: CommentLine[];
+  now: number;
+}) {
+  const shown = comments.slice(0, MAX_LISTED_CHANGES);
+  const hidden = comments.length - shown.length;
+  return (
+    <ul data-comment-list className="pointer-events-none relative mt-1 flex flex-col gap-1">
+      {shown.map((c) => {
+        const style = c.mention ? MENTION_STYLE : EVENT_STYLE['jira-comment'];
+        const Icon = style.Icon;
+        return (
+          <li
+            key={c.id}
+            data-comment-row
+            className="flex h-5 items-center gap-1.5 text-[11px] leading-5"
+          >
+            <Icon aria-hidden="true" className={cn('size-3 flex-none', style.text)} />
+            <span className="w-8 flex-none tabular-nums text-muted-foreground">
+              {relTime(c.createdAt, now)}
+            </span>
+            <span className="min-w-0 flex-1 truncate text-foreground/90">{c.text}</span>
+          </li>
+        );
+      })}
+      {hidden > 0 ? (
+        <li
+          data-comment-more
+          className="h-5 pl-[1.125rem] text-[11px] leading-5 text-muted-foreground"
+        >
+          +{hidden} more comment{hidden === 1 ? '' : 's'}
         </li>
       ) : null}
     </ul>
@@ -465,13 +507,8 @@ export default function NotificationRow({
         </div>
         <NotificationDetailLine parts={parts} colour={style.text} unread={isUnread} />
         {listChanges ? <NotificationChangeList changes={listChanges} /> : null}
-        {parts.moreLabel ? (
-          <span
-            data-line="more"
-            className="pointer-events-none relative mt-0.5 block h-4 text-[11px] leading-4 text-muted-foreground"
-          >
-            {parts.moreLabel}
-          </span>
+        {parts.comments && parts.comments.length > 1 ? (
+          <NotificationCommentList comments={parts.comments} now={now} />
         ) : null}
       </div>
     </div>
