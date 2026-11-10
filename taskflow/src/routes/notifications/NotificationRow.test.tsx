@@ -55,6 +55,14 @@ describe('NotificationRow', () => {
     expect(screen.getByText('2h')).toBeInTheDocument();
   });
 
+  it('never wraps the issue key (nowrap, column grows instead of breaking)', () => {
+    setup();
+    const key = screen.getByRole('button', { name: 'PROJ-123' });
+    expect(key.className).toContain('whitespace-nowrap');
+    expect(key.className).toContain('flex-none');
+    expect(key.className).not.toMatch(/(^|\s)w-\[/);
+  });
+
   it('does not render fullBody outside the tooltip', () => {
     setup();
     expect(screen.queryByText(/in the auth flow/)).not.toBeInTheDocument();

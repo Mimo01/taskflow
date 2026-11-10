@@ -301,7 +301,7 @@ export default function NotificationRow({
             e.stopPropagation();
             onOpen();
           }}
-          className="relative z-10 w-[3.75rem] flex-none text-left cursor-pointer font-mono text-[11px] text-muted-foreground hover:underline @max-[22rem]:hidden"
+          className="relative z-10 min-w-[5rem] flex-none whitespace-nowrap text-left cursor-pointer font-mono text-[11px] text-muted-foreground hover:underline @max-[22rem]:hidden"
         >
           {ref}
         </button>
