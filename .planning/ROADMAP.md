@@ -228,9 +228,20 @@ Plans:
 
 Plans:
 
+**Wave 1**
+
 - [ ] 95-01-PLAN.md — Store hygiene: readIds pruning, capped dismissed tombstones, due-date id, bulk triage actions (wave 1)
 - [ ] 95-02-PLAN.md — Pure view-model (entity key, time buckets, grouping, filters) + useNow (wave 1, TDD)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 95-03-PLAN.md — One-line NotificationRow rewrite + NotificationGroupHeader (wave 2)
 - [ ] 95-04-PLAN.md — NotificationList virtualizer + popover-scoped keyboard triage (wave 2)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 95-05-PLAN.md — Popover shell: header, filter bar, banners, states, click wiring, settings link (wave 3)
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
 - [ ] 95-06-PLAN.md — Screenshot matrix via preview harness + human Tauri verification (wave 4, checkpoint)

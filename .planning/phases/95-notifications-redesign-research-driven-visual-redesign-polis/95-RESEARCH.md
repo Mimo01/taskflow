@@ -335,18 +335,20 @@ Code/config-only phase; no new external tools. Existing toolchain: node/npm, vit
 | A6 | React Compiler memoizes `Date.now()`/`new Date()` render reads (Pitfall 9) | Pitfalls | Unverified for these specific files; verify by compiling if stale times appear |
 | A7 | Row click should open peek when available (current popover comments suggest so; TopBar does not pass `onOpenIssue`) | Pattern 5 | Behaviour may be intentionally full-page; check main.tsx wiring |
 
-## Open Questions (design decisions to lock in UI-SPEC; recommended default for each)
+## Open Questions (RESOLVED)
 
-1. **D1 Surface: popover only vs add an Inbox page.** Default: **popover only** (no new route). Scope and consistency win; revisit if the list needs more width. If a page is chosen, use `PageHeader` (text-2xl, no icon) and the AIO-cycles segmented filter.
-2. **D2 Row anatomy.** Default: single line `[dot][type glyph][avatar 20][key][title ... ][time]`; body preview in a hover `TooltipBody`; entity-state (Open/Merged/Closed) as a tiny status pill only on group headers; parent story summary dropped from rows (or shown in the group tooltip). Alternative: second muted line for body only (violates NOTIF-01; not recommended).
-3. **D3 Colour.** Default: neutral type glyphs; semantic colour only for pipeline-failure (red), approval (green), due-date (amber); source shown as small Jira/GitLab glyph (no coloured left border); tab counts neutral.
-4. **D4 Triage vocabulary.** Default: keep read toggle + dismiss, relabel dismiss "Done" (check icon / tooltip), add "Clear read"; no snooze, no archive view, no undo.
-5. **D5 Grouping scope.** Default: time buckets (Today / Yesterday / This week / Older -- replaces "Earlier") containing entity groups; group placed by newest event; groups with one event render as a plain row (no header); groups auto-expanded when they contain unread, collapsed otherwise. Alternative: entity groups only, no time buckets.
-6. **D6 Filter bar.** Default: segmented `Unread | All` (as AIO cycles) replacing the toggle button, source tabs kept but counts neutral; header actions "Mark all read" (scoped) and overflow for "Clear read". Keep the header minimal.
-7. **D7 Keyboard.** Default: j/k + arrows, Enter, `u`, `e`; documented in the existing `KeyboardShortcutsPanel` only if those panel entries are registry-driven (check `lib/shortcuts.ts`); otherwise tooltips.
-8. **D8 Dismissal persistence (Pitfall 2).** Default: persisted `dismissedIds` tombstones capped (e.g. 500) + due-date id includes due date.
-9. **D9 Click target.** Confirm whether notification clicks should peek (via `onOpenIssue`) or navigate full-page (current effective behaviour). Default: preserve current effective behaviour (full page) unless the user says otherwise.
-10. **D10 Dock/OS badge, snooze, per-entity mute, notification page, new sources.** Default: out of scope.
+All resolved in 95-CONTEXT.md (discuss-phase); defaults below were adopted except D9, corrected by D-13.
+
+1. **D1 Surface: popover only vs add an Inbox page.** Default: **popover only** (no new route). Scope and consistency win; revisit if the list needs more width. If a page is chosen, use `PageHeader` (text-2xl, no icon) and the AIO-cycles segmented filter. **RESOLVED:** D-01.
+2. **D2 Row anatomy.** Default: single line `[dot][type glyph][avatar 20][key][title ... ][time]`; body preview in a hover `TooltipBody`; entity-state (Open/Merged/Closed) as a tiny status pill only on group headers; parent story summary dropped from rows (or shown in the group tooltip). Alternative: second muted line for body only (violates NOTIF-01; not recommended). **RESOLVED:** D-02, D-03.
+3. **D3 Colour.** Default: neutral type glyphs; semantic colour only for pipeline-failure (red), approval (green), due-date (amber); source shown as small Jira/GitLab glyph (no coloured left border); tab counts neutral. **RESOLVED:** D-04.
+4. **D4 Triage vocabulary.** Default: keep read toggle + dismiss, relabel dismiss "Done" (check icon / tooltip), add "Clear read"; no snooze, no archive view, no undo. **RESOLVED:** D-08.
+5. **D5 Grouping scope.** Default: time buckets (Today / Yesterday / This week / Older -- replaces "Earlier") containing entity groups; group placed by newest event; groups with one event render as a plain row (no header); groups auto-expanded when they contain unread, collapsed otherwise. Alternative: entity groups only, no time buckets. **RESOLVED:** D-06 (+ D-09 group triage).
+6. **D6 Filter bar.** Default: segmented `Unread | All` (as AIO cycles) replacing the toggle button, source tabs kept but counts neutral; header actions "Mark all read" (scoped) and overflow for "Clear read". Keep the header minimal. **RESOLVED:** D-12.
+7. **D7 Keyboard.** Default: j/k + arrows, Enter, `u`, `e`; documented in the existing `KeyboardShortcutsPanel` only if those panel entries are registry-driven (check `lib/shortcuts.ts`); otherwise tooltips. **RESOLVED:** D-14 (tooltips only — lib/shortcuts.ts is a global-hotkey registry).
+8. **D8 Dismissal persistence (Pitfall 2).** Default: persisted `dismissedIds` tombstones capped (e.g. 500) + due-date id includes due date. **RESOLVED:** D-10, D-11.
+9. **D9 Click target.** Confirm whether notification clicks should peek (via `onOpenIssue`) or navigate full-page (current effective behaviour). Default: preserve current effective behaviour (full page) unless the user says otherwise. **RESOLVED:** D-13 — full-page navigation, no peek (corrects NOTIF-08).
+10. **D10 Dock/OS badge, snooze, per-entity mute, notification page, new sources.** Default: out of scope. **RESOLVED:** out of scope (CONTEXT deferred).
 
 ## Validation Architecture
 
