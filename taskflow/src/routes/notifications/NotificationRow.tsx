@@ -35,7 +35,6 @@ import { Check, ExternalLink, Mail, MailOpen } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { LinkContextMenu } from '@/components/ui/link-context-menu';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { TooltipBody } from '@/components/ui/tooltip-body';
 import { PEEKED_ROW_CLASS } from '@/lib/peek-highlight';
 import { statusCategoryBadgeClass } from '@/lib/statusStyles';
 import { cn } from '@/lib/utils';
@@ -52,13 +51,11 @@ import {
 import {
   type ChangeLine,
   type CommentLine,
-  cleanCommentText,
   describeEntryParts,
   describeEventAria,
   describeEventAriaText,
   type EventParts,
   eventStyleFor,
-  formatAbsoluteTime,
   getEntityRef,
   getEntityTitle,
   getJiraKey,
@@ -78,18 +75,6 @@ interface NotificationRowProps {
   onDone: () => void;
   onOpenInBrowser?: () => void;
 }
-
-const TYPE_LABEL: Record<string, string> = {
-  'comment-mention': 'Mention',
-  'gitlab-mention': 'Mention',
-  'issue-update': 'Update',
-  'mr-note': 'Comment',
-  'jira-comment': 'Comment',
-  'mr-approval': 'Approval',
-  'pipeline-failure': 'Pipeline failure',
-  'issue-assignment': 'Assignment',
-  'due-date-reminder': 'Due date',
-};
 
 /* ── shared tray button ─────────────────────────────── */
 
@@ -190,7 +175,13 @@ function TextValue({ change }: { change: ChangeLine }) {
 
 /** Empty side of a change: "none", muted, so "none → 1.14.0" / "Ben → none" both read explicitly. */
 const NONE = (
-  <span data-value-none className="text-muted-foreground">
+  <span
+    data-value-none
+    className={cn(
+      CHIP_CLASS,
+      'border border-dashed border-muted-foreground/40 bg-transparent font-normal text-muted-foreground/70',
+    )}
+  >
     none
   </span>
 );
@@ -262,7 +253,7 @@ export function NotificationDetailLine({
       className="pointer-events-none relative block h-5 truncate text-[11px] leading-5"
     >
       {actor ? (
-        <span data-actor className="font-medium text-foreground">
+        <span data-actor className="mr-1 font-medium text-foreground">
           {actor}{' '}
         </span>
       ) : null}
@@ -270,10 +261,17 @@ export function NotificationDetailLine({
       {single && hasValue(single) ? (
         <>
           {' '}
-          <ValueChange change={single} />
+          <span data-detail-gap className="ml-1">
+            <ValueChange change={single} />
+          </span>
         </>
       ) : !single && text && !parts.comments ? (
-        <span className="text-muted-foreground"> {text}</span>
+        <>
+          {' '}
+          <span data-detail-gap className="ml-1 text-muted-foreground">
+            {text}
+          </span>
+        </>
       ) : null}
     </span>
   );
@@ -406,43 +404,6 @@ export function NotificationCommentList({ comments }: { comments: CommentLine[] 
   );
 }
 
-const TOOLTIP_MAX_COMMENTS = 5;
-
-/** Tooltip lines for a merged card: all changes, or the comments latest first. */
-function mergedTooltip(items: NotificationItem[], parts: EventParts): ReactNode {
-  if (parts.changes && parts.changes.length > MAX_LISTED_CHANGES) {
-    return (
-      <div className="flex flex-col gap-0.5">
-        {parts.changes.map((c, i) => (
-          // biome-ignore lint/suspicious/noArrayIndexKey: static list
-          <div key={i}>
-            {c.field}
-            {c.text ? ` ${c.text}` : ''}
-            {c.from || c.to ? ` ${c.from ?? 'none'} \u2192 ${c.to ?? 'none'}` : ''}
-          </div>
-        ))}
-      </div>
-    );
-  }
-  if (parts.count && parts.count > 1) {
-    return (
-      <div className="flex flex-col gap-1">
-        {items.slice(0, TOOLTIP_MAX_COMMENTS).map((i) => (
-          <div key={i.id} className="line-clamp-2">
-            {cleanCommentText(i.fullBody || i.bodyPreview)}
-          </div>
-        ))}
-        {items.length > TOOLTIP_MAX_COMMENTS ? (
-          <div className="text-muted-foreground">
-            +{items.length - TOOLTIP_MAX_COMMENTS} more comments
-          </div>
-        ) : null}
-      </div>
-    );
-  }
-  return null;
-}
-
 /* ── component ──────────────────────────────────────── */
 
 export default function NotificationRow({
@@ -461,15 +422,12 @@ export default function NotificationRow({
   const parts = describeEntryParts(all);
   const style = eventStyleFor(item, parts);
   const peeked = useIsPeeked(getJiraKey(item) ?? '');
-  const typeLabel = (item.notificationType && TYPE_LABEL[item.notificationType]) || 'Notification';
-  const sourceLabel = item.source === 'jira' ? 'Jira' : 'GitLab';
   const parentLabel = item.parentKey
     ? `${item.parentKey}${item.parentSummary ? ` ${item.parentSummary}` : ''}`
     : '';
   const ariaText = describeEventAriaText(parts);
   const ariaLabel = `${isUnread ? 'Unread. ' : ''}${describeEventAria(parts)} on ${ref ? `${ref} ` : ''}${title}${parentLabel ? ` (in ${parentLabel})` : ''}${ariaText ? `: ${ariaText}` : ''}`;
   const listChanges = parts.changes && parts.changes.length >= 2 ? parts.changes : null;
-  const merged = mergedTooltip(all, parts);
 
   return (
     <div
@@ -484,39 +442,13 @@ export default function NotificationRow({
       )}
       data-peeked={peeked ? 'true' : undefined}
     >
-      <Tooltip>
-        <TooltipTrigger
-          delay={600}
-          render={
-            <button
-              type="button"
-              data-entry-primary
-              aria-label={ariaLabel}
-              onClick={onOpen}
-              className="absolute inset-0 cursor-pointer rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            />
-          }
-        />
-        <TooltipContent data-notification-tooltip className="max-w-sm [overflow-wrap:anywhere]">
-          <TooltipBody
-            title={item.entityTitle}
-            note={`${sourceLabel} \u00B7 ${typeLabel} \u00B7 ${formatAbsoluteTime(item.createdAt)}`}
-          >
-            {merged ??
-              (item.fullBody ? (
-                <div className="line-clamp-3 whitespace-pre-line">{item.fullBody}</div>
-              ) : null)}
-            {item.parentKey ? (
-              <div className="truncate text-muted-foreground">
-                Parent: {item.parentKey} {item.parentSummary}
-              </div>
-            ) : null}
-            {!merged && !item.fullBody && parts.changes && parts.changes.length > 0 ? (
-              <div className="whitespace-pre-line">{item.bodyPreview}</div>
-            ) : null}
-          </TooltipBody>
-        </TooltipContent>
-      </Tooltip>
+      <button
+        type="button"
+        data-entry-primary
+        aria-label={ariaLabel}
+        onClick={onOpen}
+        className="absolute inset-0 cursor-pointer rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      />
 
       <span
         data-unread={isUnread ? 'true' : 'false'}
@@ -564,9 +496,12 @@ export default function NotificationRow({
               {title}
             </span>
           </span>
-          <span className="pointer-events-none relative w-9 flex-none text-right text-[11px] tabular-nums text-muted-foreground group-hover/row:opacity-0 group-focus-within/row:opacity-0">
+          <time
+            dateTime={item.createdAt}
+            className="pointer-events-none relative w-9 flex-none text-right text-[11px] tabular-nums text-muted-foreground group-hover/row:opacity-0 group-focus-within/row:opacity-0"
+          >
             {relTime(item.createdAt, now)}
-          </span>
+          </time>
           <span className="absolute right-0 top-1/2 z-10 flex -translate-y-1/2 items-center gap-0.5 bg-accent pl-1 opacity-0 group-hover/row:opacity-100 group-focus-within/row:opacity-100">
             <NotificationTrayButton
               label={isUnread ? 'Mark as read' : 'Mark as unread'}

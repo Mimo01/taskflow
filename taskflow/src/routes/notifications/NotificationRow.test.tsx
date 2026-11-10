@@ -654,9 +654,29 @@ describe('NotificationRow', () => {
       );
     });
 
-    it('tooltip content wraps long text instead of overflowing', () => {
+    it('has no hover tooltip on the card (all info is on the card itself)', () => {
       const src = readFileSync(resolve(__dirname, 'NotificationRow.tsx'), 'utf8');
-      expect(src).toMatch(/data-notification-tooltip className="[^"]*\[overflow-wrap:anywhere\]/);
+      expect(src).not.toContain('data-notification-tooltip');
+      expect(src).not.toContain('TooltipBody');
+    });
+
+    it('renders an empty value as a dashed "none" chip, distinct from real values', () => {
+      const { container } = setup({ item: issue('Fix Version: \u2192 1.14.0') });
+      const none = container.querySelector('[data-value-none]') as HTMLElement;
+      expect(none.textContent).toBe('none');
+      expect(none.className).toContain('border-dashed');
+      expect(none.className).toContain('bg-transparent');
+    });
+
+    it('separates actor, action and detail with a real gap (space + margin)', () => {
+      const { container } = setup();
+      expect((container.querySelector('[data-actor]') as HTMLElement).className).toContain('mr-1');
+      expect((container.querySelector('[data-detail-gap]') as HTMLElement).className).toContain(
+        'ml-1',
+      );
+      expect(container.querySelector('[data-line="detail"]')?.textContent).toMatch(
+        /^Jane Smith commented /,
+      );
     });
 
     it('keeps the unread dot inside the card padding', () => {
