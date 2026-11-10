@@ -134,7 +134,11 @@ export interface UnifiedTaskTableProps {
 const EMPTY_KEY_TYPES: Record<string, string> = {};
 const COL_ICON = 'flex-none w-[1.125rem] @max-[640px]:hidden';
 const COL_KEY = 'flex-none w-[5.5rem] whitespace-nowrap';
-const COL_PRIORITY = 'flex-none w-[1.125rem] @max-[860px]:hidden';
+// Primary task rows only: key trimmed to fit an 11-char key, so the priority icon
+// sits with equal space either side (gap-2 + mx-1 = 12px) — secondary rows keep
+// COL_KEY because their key cell carries a "+N" suffix.
+const COL_TASK_KEY = 'flex-none w-[5rem] whitespace-nowrap';
+const COL_PRIORITY = 'flex-none w-[1.125rem] mx-1 @max-[860px]:hidden';
 const COL_SUMMARY = 'flex-1 min-w-0';
 const COL_PERSON = 'flex-none w-[8.75rem] min-w-0 @max-[860px]:w-9';
 const COL_STATE = 'flex-none w-[6rem] @max-[400px]:hidden';
@@ -693,7 +697,7 @@ function ColumnHeaderStrip({
       className="sticky top-(--release-sticky-top,0px) z-20 border-b flex items-center gap-2 text-xs text-muted-foreground font-medium pl-2 py-1 density-compact:py-0.5 density-comfortable:py-2 bg-[color-mix(in_oklab,var(--color-muted)_10%,var(--color-background))]"
     >
       <span className={COL_ICON} aria-hidden="true" />
-      <SortableHeader sortKey="key" label="Key" className={COL_KEY} {...headerProps} />
+      <SortableHeader sortKey="key" label="Key" className={COL_TASK_KEY} {...headerProps} />
       <span className={COL_PRIORITY} aria-hidden="true" />
       <SortableHeader sortKey="summary" label="Summary" className={COL_SUMMARY} {...headerProps} />
       <span className={COL_MR} title="Merge requests — merged / open">
@@ -1669,7 +1673,7 @@ function TaskRow({
           onSeedBreadcrumb();
           onOpenIssueFull(issue.key);
         }}
-        className={`relative z-10 ${COL_KEY} font-mono text-xs text-primary hover:underline text-left`}
+        className={`relative z-10 ${COL_TASK_KEY} font-mono text-xs text-primary hover:underline text-left`}
       >
         {issue.key}
       </button>
