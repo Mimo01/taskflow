@@ -339,7 +339,7 @@ export default function NotificationPopover({
                 type="button"
                 onClick={() => setActiveTab(tab.key)}
                 className={cn(
-                  'flex items-center px-2 text-xs font-medium transition-colors',
+                  'flex shrink-0 items-center whitespace-nowrap px-2 text-xs font-medium transition-colors',
                   isActive
                     ? 'text-foreground border-b-2 border-primary'
                     : 'text-muted-foreground hover:text-foreground',
