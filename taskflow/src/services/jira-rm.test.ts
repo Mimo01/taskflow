@@ -3,7 +3,7 @@ import {
   fetchRmPackage,
   fetchRmWeekChildren,
   fetchRmWeekList,
-  fetchStoriesWithPackageNoFixVersion,
+  fetchStoriesWithPackage,
 } from './jira';
 
 vi.mock('@tauri-apps/plugin-http', () => ({ fetch: vi.fn() }));
@@ -194,30 +194,26 @@ describe('Release Management lookups', () => {
     }) as never);
     expect((await fetchRmPackage(base, TOKEN, 'RM-11')).week).toBeNull();
   });
-  it('fetchStoriesWithPackageNoFixVersion: queries stories without a fix version for the given tasks', async () => {
+  it('fetchStoriesWithPackage: queries stories carrying the given tasks, with or without a fix version', async () => {
     const base = nextBase();
     vi.mocked(mockFetch).mockResolvedValue(
       ok({ total: 1, issues: [{ key: 'S-9', fields: { summary: 'x' } }] }),
     );
-    const r = await fetchStoriesWithPackageNoFixVersion(base, TOKEN, 'PROJ', [
-      'RM-21',
-      'RM-22',
-      'RM-21',
-    ]);
+    const r = await fetchStoriesWithPackage(base, TOKEN, 'PROJ', ['RM-21', 'RM-22', 'RM-21']);
     expect(r.map((i) => i.key)).toEqual(['S-9']);
     const jql = jqlOf(vi.mocked(mockFetch).mock.calls[0][0] as string);
     expect(jql).toContain('project = "PROJ"');
-    expect(jql).toContain('fixVersion is EMPTY');
+    expect(jql).not.toContain('fixVersion');
     expect(jql).toContain('cf[15725] in ("RM-21", "RM-22")');
     const url = new URL(vi.mocked(mockFetch).mock.calls[0][0] as string);
     expect(url.searchParams.get('fields')).toContain('assignee,reporter');
   });
 
-  it('fetchStoriesWithPackageNoFixVersion: returns [] for no keys or when the query is rejected', async () => {
+  it('fetchStoriesWithPackage: returns [] for no keys or when the query is rejected', async () => {
     const base = nextBase();
-    expect(await fetchStoriesWithPackageNoFixVersion(base, TOKEN, 'PROJ', [])).toEqual([]);
+    expect(await fetchStoriesWithPackage(base, TOKEN, 'PROJ', [])).toEqual([]);
     expect(mockFetch).not.toHaveBeenCalled();
     vi.mocked(mockFetch).mockResolvedValue(bad());
-    expect(await fetchStoriesWithPackageNoFixVersion(base, TOKEN, 'PROJ', ['RM-21'])).toEqual([]);
+    expect(await fetchStoriesWithPackage(base, TOKEN, 'PROJ', ['RM-21'])).toEqual([]);
   });
 });

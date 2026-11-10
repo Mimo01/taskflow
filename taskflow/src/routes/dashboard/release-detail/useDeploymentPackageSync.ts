@@ -36,6 +36,8 @@ function resolvePackageEditShape(
 function invalidateAfterWrite(queryClient: QueryClient) {
   queryClient.invalidateQueries({ queryKey: ['jira-fixversion-issues'] });
   queryClient.invalidateQueries({ queryKey: ['jira-issue-detail'] });
+  // Stories found by package (no or another release's fix version) live in their own query.
+  queryClient.invalidateQueries({ queryKey: ['jira-package-stories'] });
 }
 
 /**

@@ -69,7 +69,7 @@ export async function refreshReleaseDetail(
     queryClient.invalidateQueries({ queryKey: ['rm-week-children'] }),
     queryClient.invalidateQueries({ queryKey: ['rm-package'] }),
     queryClient.invalidateQueries({
-      queryKey: ['jira-package-no-fixversion', activeJiraProject],
+      queryKey: ['jira-package-stories', activeJiraProject],
     }),
   ];
   if (activeGitlabProject != null) {

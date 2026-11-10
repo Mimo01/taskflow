@@ -46,7 +46,7 @@ describe('refreshReleaseDetail', () => {
     expect(stage2).toContainEqual(['jira-fixversion-issues', '123']);
     expect(stage2).toContainEqual(['rm-week-children']);
     expect(stage2).toContainEqual(['rm-package']);
-    expect(stage2).toContainEqual(['jira-package-no-fixversion', 'PROJ']);
+    expect(stage2).toContainEqual(['jira-package-stories', 'PROJ']);
     for (const prefix of MR_CHANNEL_QUERY_PREFIXES) {
       expect(stage2).toContainEqual(mrChannelKeys.channelForProject(prefix, 7));
     }
@@ -84,7 +84,7 @@ describe('refreshReleaseDetail — deployment-package sources (WR-04)', () => {
       ['rm-week-list', 'RM', 'https://jira.example.com'],
       ['rm-week-children', 'RM-1', 'https://jira.example.com'],
       ['rm-package', 'RM-18', 'https://jira.example.com'],
-      ['jira-package-no-fixversion', 'PROJ', 'https://jira.example.com', ['RM-18']],
+      ['jira-package-stories', 'PROJ', 'https://jira.example.com', ['RM-18']],
       ['jira-fix-versions', 'PROJ'],
       ['jira-fix-versions', 'OTHER'],
     ];

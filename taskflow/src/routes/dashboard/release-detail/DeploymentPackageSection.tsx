@@ -24,7 +24,7 @@ import {
   packageFixLabel,
 } from '@/lib/deployment-package';
 import type { JiraIssue } from '@/services/jira';
-import { fetchFixVersions, fetchStoriesWithPackageNoFixVersion } from '@/services/jira';
+import { fetchFixVersions, fetchStoriesWithPackage } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
 import { packageFixTarget } from '../PackageFixAction';
 import {
@@ -205,8 +205,9 @@ export function DeploymentPackageSection({
     pkgKeys: packageKeys,
   });
 
-  // Stories whose package belongs to this release's week but that have NO fix version never
-  // show up in the release's "fixVersion = X" issue list, so they are fetched separately.
+  // Stories whose package belongs to this release's week but whose fix version is missing or
+  // another release's never show up in the release's "fixVersion = X" issue list, so they are
+  // fetched separately (deduped below; ones already in this release's week evaluate as ok).
   const releaseWeek = useMemo(
     () => (version?.releaseDate ? findWeekForDate(weeks, version.releaseDate) : null),
     [weeks, version],
@@ -216,16 +217,11 @@ export function DeploymentPackageSection({
     [releaseWeek],
   );
   const orphansQuery = useQuery({
-    queryKey: ['jira-package-no-fixversion', activeJiraProject, jiraBaseUrl, weekChildKeys],
+    queryKey: ['jira-package-stories', activeJiraProject, jiraBaseUrl, weekChildKeys],
     queryFn: async () => {
       const token = await readSecret('jira-pat').catch(() => null);
       if (!token || !jiraBaseUrl || !activeJiraProject) return [];
-      return fetchStoriesWithPackageNoFixVersion(
-        jiraBaseUrl,
-        token,
-        activeJiraProject,
-        weekChildKeys,
-      );
+      return fetchStoriesWithPackage(jiraBaseUrl, token, activeJiraProject, weekChildKeys);
     },
     enabled:
       enabled && !weeksLoading && !!jiraBaseUrl && !!activeJiraProject && weekChildKeys.length > 0,

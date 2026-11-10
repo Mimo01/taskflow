@@ -38,7 +38,7 @@ vi.mock('./useDeploymentPackageSync', () => ({
 vi.mock('@/services/stronghold', () => ({ readSecret: vi.fn().mockResolvedValue('tok') }));
 const orphans = vi.hoisted(() => ({ fetch: vi.fn() }));
 vi.mock('@/services/jira', () => ({
-  fetchStoriesWithPackageNoFixVersion: orphans.fetch,
+  fetchStoriesWithPackage: orphans.fetch,
   fetchFixVersions: vi.fn().mockResolvedValue([
     { id: '1', name: 'R-43', releaseDate: '2026-10-22', released: false },
     { id: '2', name: 'R-44', releaseDate: '2026-10-29', released: false },
@@ -136,6 +136,22 @@ describe('DeploymentPackageSection', () => {
       'RM-21',
     ]);
     expect(screen.getByRole('button', { name: /set fix version to R-44/i })).toBeInTheDocument();
+  });
+
+  it("lists a story with the release week's package but another release's fix version", async () => {
+    const v43 = { id: '1', name: 'R-43', releaseDate: '2026-10-22' };
+    orphans.fetch.mockResolvedValue([issue('S-8', 'Story', 'RM-21', [v43])]);
+    renderSection([]);
+    expect(await screen.findByText('Summary S-8')).toBeInTheDocument();
+    expect(screen.getByText('Mismatch')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /choose a fix/i }));
+    fireEvent.click(await screen.findByText(/set fix version to R-44 \(replaces R-43\)/i));
+    await waitFor(() =>
+      expect(applyFix).toHaveBeenCalledWith(
+        expect.objectContaining({ key: 'S-8' }),
+        expect.objectContaining({ kind: 'set-fix-version', versionId: '2', removes: ['R-43'] }),
+      ),
+    );
   });
 
   it('does not duplicate a story already in the release list', async () => {

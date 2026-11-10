@@ -2851,12 +2851,13 @@ export async function fetchRmWeekChildren(
 }
 
 /**
- * Stories of a project that carry one of the given Deployment package tasks but have NO fix
- * version. These never appear in a release's "fixVersion = X" issue list, so the release
- * detail page fetches them separately to flag them. Returns [] on any failure (e.g. the
+ * Stories of a project that carry one of the given Deployment package tasks, whatever their
+ * fix version. Those with no fix version or another release's fix version never appear in a
+ * release's "fixVersion = X" issue list, so the release detail page fetches them separately
+ * to flag them (callers dedupe against the release's own issues). Returns [] on any failure (e.g. the
  * package field is not JQL-searchable) so the page degrades to the fixVersion-based list.
  */
-export async function fetchStoriesWithPackageNoFixVersion(
+export async function fetchStoriesWithPackage(
   baseUrl: string,
   token: string,
   projectKey: string,
@@ -2867,7 +2868,7 @@ export async function fetchStoriesWithPackageNoFixVersion(
   const base = baseUrl.replace(/\/$/, '');
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
   const jql =
-    `project = "${projectKey}" AND issuetype in (${PACKAGE_ISSUE_TYPES.join(', ')}) AND fixVersion is EMPTY ` +
+    `project = "${projectKey}" AND issuetype in (${PACKAGE_ISSUE_TYPES.join(', ')}) ` +
     `AND cf[15725] in (${keys.map((k) => `"${k}"`).join(', ')})`;
   const fields = 'summary,issuetype,project,status,fixVersions,customfield_15725,assignee,reporter';
   try {
