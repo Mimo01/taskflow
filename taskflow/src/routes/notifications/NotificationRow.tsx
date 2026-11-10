@@ -165,7 +165,7 @@ export function NotificationTail({
     return (
       <span
         data-tail="change"
-        className="pointer-events-none relative flex min-w-0 max-w-[45%] flex-none items-center gap-1 text-[11px]"
+        className="pointer-events-none relative flex min-w-0 max-w-[40%] flex-none items-center gap-1 text-[11px]"
       >
         <span className={cn('flex-none font-medium', style.text, !unread && 'opacity-80')}>
           {change.from || change.to ? change.field : `edited ${change.field}`}
@@ -292,15 +292,12 @@ export default function NotificationRow({
         </button>
       ) : null}
       <span className="pointer-events-none relative flex min-w-0 flex-1 items-center gap-1 overflow-hidden pr-0.5">
-        {item.parentKey ? (
+        {item.parentKey && item.parentSummary ? (
           <span
             data-parent
-            className="flex min-w-[4.75rem] @max-[26rem]:hidden flex-[0_100_auto] items-baseline gap-1 overflow-hidden text-muted-foreground"
+            className="flex min-w-[4.75rem] max-w-[55%] @max-[26rem]:hidden flex-[0_1_auto] items-baseline gap-1 overflow-hidden text-muted-foreground"
           >
-            <span className="flex-none font-mono text-[11px]">{item.parentKey}</span>
-            {item.parentSummary ? (
-              <span className="min-w-0 truncate">{item.parentSummary}</span>
-            ) : null}
+            <span className="min-w-0 truncate">{item.parentSummary}</span>
             <span aria-hidden="true" className="flex-none">
               {'\u203A'}
             </span>

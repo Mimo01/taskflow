@@ -69,12 +69,12 @@ describe('NotificationRow', () => {
       }),
     });
     const parent = container.querySelector('[data-parent]') as HTMLElement;
-    expect(parent.textContent).toContain('PROJ-100');
+    expect(parent.textContent).not.toContain('PROJ-100');
     expect(parent.textContent).toContain('Checkout redesign');
     expect(parent.textContent).toContain('\u203A');
-    // subtask key stays in the fixed key column, parent shrinks before the title
+    // subtask key stays in the fixed key column, parent summary capped at 55% of the title area
     expect(screen.getByText('PROJ-123')).toBeInTheDocument();
-    expect(parent.className).toContain('flex-[0_100_auto]');
+    expect(parent.className).toContain('max-w-[55%]');
     expect(
       screen.getByRole('button', {
         name: 'Unread. Jane commented on PROJ-123 Fix tax rounding (in PROJ-100 Checkout redesign)',

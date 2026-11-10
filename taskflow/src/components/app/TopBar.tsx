@@ -103,7 +103,7 @@ export default function TopBar({
             </span>
           )}
         </PopoverTrigger>
-        <PopoverContent className="p-0 w-[28rem]">
+        <PopoverContent className="p-0 w-[36rem] max-w-[calc(100vw-1rem)]">
           <NotificationPopover
             onIssueClick={onIssueClick}
             onMRClick={onMRClick}
