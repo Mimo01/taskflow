@@ -1,10 +1,11 @@
 ---
 phase: 95
 slug: notifications-redesign-research-driven-visual-redesign-polis
-status: draft
+status: approved
 shadcn_initialized: true
 preset: base-nova (neutral, cssVariables, lucide)
 created: 2026-11-10
+reviewed_at: 2026-11-10
 ---
 
 # Phase 95 — UI Design Contract
