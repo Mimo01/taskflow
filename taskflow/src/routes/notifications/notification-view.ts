@@ -136,6 +136,11 @@ export interface EventParts {
   comments?: CommentLine[];
   /** Muted suffix after the verb, e.g. "5 comments" when a mention is promoted. */
   verbSuffix?: string;
+  /**
+   * Single change where one side is empty: 'added' (none -> value) or 'removed' (value -> none).
+   * The verb already says it ("added fix version"), so the row shows only the one value.
+   */
+  singleMode?: 'added' | 'removed';
   /** A merged conversation that contains at least one mention: styled as a mention. */
   promoted?: boolean;
 }
@@ -370,6 +375,29 @@ function changesParts(actor: string | undefined, changes: ChangeLine[]): EventPa
     const first = changes[0];
     // Value-less events ("merged", "marked as draft") are the phrase itself; "edited" reads as a verb.
     const phraseOnly = !first.from && !first.to && !first.text;
+    const signed = signedTextMode(first);
+    if (signed) {
+      // "+frontend +bug" -> "added labels frontend bug"; "−ana" -> "unassigned ana"
+      const added = signed === 'added';
+      return {
+        verb: oneSidedVerb(first, added),
+        actor,
+        snippet: '',
+        changes: [{ ...first, text: stripSigns(first.text ?? '') }],
+        singleMode: signed,
+      };
+    }
+    const oneSided = !first.text && Boolean(first.from) !== Boolean(first.to);
+    if (oneSided) {
+      const added = Boolean(first.to);
+      return {
+        verb: oneSidedVerb(first, added),
+        actor,
+        snippet: '',
+        changes,
+        singleMode: added ? 'added' : 'removed',
+      };
+    }
     return {
       verb: phraseOnly
         ? first.field
@@ -382,6 +410,33 @@ function changesParts(actor: string | undefined, changes: ChangeLine[]): EventPa
     };
   }
   return { verb: 'updated', actor, snippet: '' };
+}
+
+const SIGNED_TOKEN = /^[+\u2212-]/;
+
+/** Text change made only of "+x" tokens (added) or only "−x" tokens (removed); mixed -> undefined. */
+function signedTextMode(c: ChangeLine): 'added' | 'removed' | undefined {
+  if (!c.text) return undefined;
+  const toks = c.text.split(/[\s,]+/).filter(Boolean);
+  if (toks.length === 0 || !toks.every((t) => SIGNED_TOKEN.test(t))) return undefined;
+  if (toks.every((t) => t.startsWith('+'))) return 'added';
+  if (toks.every((t) => !t.startsWith('+'))) return 'removed';
+  return undefined;
+}
+
+function stripSigns(text: string): string {
+  return text
+    .split(/\s+/)
+    .map((t) => t.replace(SIGNED_TOKEN, ''))
+    .join(' ');
+}
+
+/** "added fix version" / "removed component"; people and reviews get their natural verbs. */
+function oneSidedVerb(c: ChangeLine, added: boolean): string {
+  if (c.action === 'review' || c.action === 'unreview')
+    return added ? 'requested review from' : 'removed review from';
+  if (c.field === 'assignee') return added ? 'assigned' : 'unassigned';
+  return `${added ? 'added' : 'removed'} ${c.field}`;
 }
 
 /** Structured, plain-text description of an event. Never returns HTML. */
@@ -459,7 +514,10 @@ export function describeEventAriaText(parts: EventParts): string {
 /** Aria phrase with actor: "Ana mentioned you: text" / "Cara changed status from X to Y, priority from A to B". */
 export function describeEventAria(parts: EventParts): string {
   let core: string;
-  if (parts.changes && parts.changes.length > 0) {
+  if (parts.singleMode && parts.changes?.length === 1) {
+    const c = parts.changes[0];
+    core = `${parts.verb} ${c.text ?? (parts.singleMode === 'added' ? c.to : c.from)}`;
+  } else if (parts.changes && parts.changes.length > 0) {
     const labelOnly = parts.changes.every((c) => !c.from && !c.to && !c.text);
     core = labelOnly
       ? parts.changes.map((c) => c.field).join(', ')

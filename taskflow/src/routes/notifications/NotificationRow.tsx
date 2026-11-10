@@ -22,7 +22,7 @@
  *  I. Merged and single cards share the skeleton; merged only adds the list.
  *  J. The hover tray sits in the time slot of line 1 (right-0, centred) in every card.
  *  K. Densities scale padding / gaps / lead size; grammar is identical.
- *  L. Key column: min-w 5rem (fits PROJ-1234 / !1234); longer keys extend, never wrap.
+ *  L. Key: inline right before the title, same 12px size (muted, medium, tabular), fixed 6px gap; no fixed column, never wraps.
  *
  * - One card may stand for several merged notifications (same actor, same entity, <= 60 min apart);
  *   read / done / open act on all of them.
@@ -262,7 +262,20 @@ export function NotificationDetailLine({
         <>
           {' '}
           <span data-detail-gap className="ml-1">
-            <ValueChange change={single} />
+            {single.text && parts.singleMode ? (
+              <TextValue change={single} />
+            ) : parts.singleMode === 'added' ? (
+              <ToValue change={single} />
+            ) : parts.singleMode === 'removed' ? (
+              <span
+                data-value-removed
+                className="text-muted-foreground line-through decoration-muted-foreground/60"
+              >
+                <FromValue change={single} />
+              </span>
+            ) : (
+              <ValueChange change={single} />
+            )}
           </span>
         </>
       ) : !single && text && !parts.comments ? (
@@ -278,6 +291,14 @@ export function NotificationDetailLine({
 }
 
 export const MAX_LISTED_CHANGES = 3;
+
+/**
+ * Rows to show for a capped list: a "+1 more" row costs the same line as the item it hides, so
+ * show everything up to MAX + 1; only collapse to MAX + "+N more" when N >= 2.
+ */
+export function visibleCount(total: number): number {
+  return total <= MAX_LISTED_CHANGES + 1 ? total : MAX_LISTED_CHANGES;
+}
 
 /** ONE list-row geometry for change AND comment lists: 12px icon, optional field column, value. */
 function ListRow({
@@ -325,7 +346,7 @@ const LIST_CLASS = 'pointer-events-none relative mt-1 flex flex-col gap-1';
  * "edited") span old..new. Same 12px icon / h-5 / 11px geometry as ListRow.
  */
 export function NotificationChangeList({ changes }: { changes: ChangeLine[] }) {
-  const shown = changes.slice(0, MAX_LISTED_CHANGES);
+  const shown = changes.slice(0, visibleCount(changes.length));
   const hidden = changes.length - shown.length;
   return (
     <ul
@@ -382,7 +403,7 @@ export function NotificationChangeList({ changes }: { changes: ChangeLine[] }) {
 
 /** Merged conversation: one row per comment (icon, text), newest first; max 3 + "+N more". */
 export function NotificationCommentList({ comments }: { comments: CommentLine[] }) {
-  const shown = comments.slice(0, MAX_LISTED_CHANGES);
+  const shown = comments.slice(0, visibleCount(comments.length));
   const hidden = comments.length - shown.length;
   return (
     <ul data-comment-list className={LIST_CLASS}>
@@ -470,7 +491,8 @@ export default function NotificationRow({
                 e.stopPropagation();
                 onOpen();
               }}
-              className="relative z-10 min-w-[5rem] flex-none cursor-pointer pr-1 whitespace-nowrap text-left font-mono text-[11px] text-muted-foreground hover:underline @max-[22rem]:hidden"
+              data-entity-key
+              className="relative z-10 flex-none cursor-pointer whitespace-nowrap text-left text-xs font-medium tabular-nums text-muted-foreground hover:underline @max-[22rem]:hidden"
             >
               {ref}
             </button>

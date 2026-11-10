@@ -70,6 +70,14 @@ describe('NotificationRow', () => {
     expect(key.className).not.toMatch(/(^|\s)w-\[/);
   });
 
+  it('key sits inline with the title at the same size (no min-width column, no mono 11px)', () => {
+    setup();
+    const key = screen.getByRole('button', { name: 'PROJ-123' });
+    expect(key.className).toContain('text-xs');
+    expect(key.className).not.toMatch(/min-w-\[/);
+    expect(key.className).not.toContain('font-mono');
+  });
+
   it('does not render fullBody outside the tooltip', () => {
     setup();
     expect(screen.queryByText(/in the auth flow/)).not.toBeInTheDocument();
@@ -396,8 +404,8 @@ describe('NotificationRow', () => {
       ['State: opened \u2192 merged', 'merged', 'merged'],
       ['State: opened \u2192 closed', 'closed', 'closed'],
       ['State: closed \u2192 reopened', 'reopened', 'reopened'],
-      ['Review requested: ana, ben', 'review', 'changed review \u2192 ana, ben'],
-      ['Labels added: x, y', 'labels', 'changed labels +x +y'],
+      ['Review requested: ana, ben', 'review', 'requested review from ana, ben'],
+      ['Labels added: x, y', 'labels', 'added labels x y'],
       ['Target branch: a \u2192 b', 'branch', 'changed target branch a \u2192 b'],
       ['Labels added: x\nMilestone: v1', 'multi', 'updated 2 fields'],
     ];
@@ -595,10 +603,29 @@ describe('NotificationRow', () => {
       expect(from).toEqual(['Minor', 'Sprint 12', 'none']);
     });
 
-    it('signals an empty old value as "none" (none -> value), inline too', () => {
-      const { container } = setup({ item: issue('Fix Version: \u2192 1.14.0') });
-      expect(container.querySelector('[data-line="detail"] [data-value-change]')?.textContent).toBe(
-        'none \u2192 1.14.0',
+    it('one-sided single change says "added"/"removed" instead of none -> value', () => {
+      const add = setup({ item: issue('Fix Version: \u2192 1.14.0') });
+      expect(add.container.querySelector('[data-line="detail"]')?.textContent).toBe(
+        'Jane Smith added fix version 1.14.0',
+      );
+      expect(add.container.querySelector('[data-value-none]')).toBeNull();
+      add.unmount();
+      const rm = setup({ item: issue('Component: Backend \u2192 (none)') });
+      expect(rm.container.querySelector('[data-line="detail"]')?.textContent).toBe(
+        'Jane Smith removed component Backend',
+      );
+      expect(rm.container.querySelector('[data-value-removed]')).not.toBeNull();
+      rm.unmount();
+      const who = setup({ item: issue('Assignee: (none) \u2192 Ben Carter') });
+      expect(who.container.querySelector('[data-line="detail"]')?.textContent).toBe(
+        'Jane Smith assigned Ben Carter',
+      );
+    });
+
+    it('two-sided single change keeps "changed field old -> new"', () => {
+      const { container } = setup({ item: issue('Priority: Minor \u2192 Major') });
+      expect(container.querySelector('[data-line="detail"]')?.textContent).toBe(
+        'Jane Smith changed priority Minor \u2192 Major',
       );
     });
 
@@ -629,7 +656,7 @@ describe('NotificationRow', () => {
 
     it('change rows and comment rows share the list-row geometry and the more-row indent', () => {
       const ch = setup({
-        item: issue('A: 1 \u2192 2\nB: 1 \u2192 2\nC: 1 \u2192 2\nD: 1 \u2192 2'),
+        item: issue('A: 1 \u2192 2\nB: 1 \u2192 2\nC: 1 \u2192 2\nD: 1 \u2192 2\nE: 1 \u2192 2'),
       });
       const list = ch.container.querySelector('[data-change-list]') as HTMLElement;
       const row = ch.container.querySelector('[data-change-row]') as HTMLElement;
@@ -644,13 +671,35 @@ describe('NotificationRow', () => {
       ch.unmount();
       const mk = (id: string, t: string) =>
         makeItem('jira', { id, bodyPreview: t, createdAt: '2026-03-11T10:00:00.000Z' });
-      const comments = [mk('c1', 'one'), mk('c2', 'two'), mk('c3', 'three'), mk('c4', 'four')];
+      const comments = [
+        mk('c1', 'one'),
+        mk('c2', 'two'),
+        mk('c3', 'three'),
+        mk('c4', 'four'),
+        mk('c5', 'five'),
+      ];
       const cm = setup({ item: comments[0], items: comments });
       const crow = cm.container.querySelector('[data-comment-row]') as HTMLElement;
       expect(crow.className).toContain('h-5');
       expect(crow.className).toContain('text-[11px]');
       expect(cm.container.querySelector('[data-comment-more]')?.className).toContain(
         'pl-[1.125rem]',
+      );
+    });
+
+    it('shows a 4th row instead of "+1 more"; collapses only when 2+ would be hidden', () => {
+      const four = setup({
+        item: issue('A: 1 \u2192 2\nB: 1 \u2192 2\nC: 1 \u2192 2\nD: 1 \u2192 2'),
+      });
+      expect(four.container.querySelectorAll('[data-change-row]')).toHaveLength(4);
+      expect(four.container.querySelector('[data-change-more]')).toBeNull();
+      four.unmount();
+      const five = setup({
+        item: issue('A: 1 \u2192 2\nB: 1 \u2192 2\nC: 1 \u2192 2\nD: 1 \u2192 2\nE: 1 \u2192 2'),
+      });
+      expect(five.container.querySelectorAll('[data-change-row]')).toHaveLength(3);
+      expect(five.container.querySelector('[data-change-more]')?.textContent).toBe(
+        '+2 more changes',
       );
     });
 
@@ -661,7 +710,10 @@ describe('NotificationRow', () => {
     });
 
     it('renders an empty value as a dashed "none" chip, distinct from real values', () => {
-      const { container } = setup({ item: issue('Fix Version: \u2192 1.14.0') });
+      // multi-change lists keep "none -> value" so the arrow column stays aligned
+      const { container } = setup({
+        item: issue('Fix Version: \u2192 1.14.0\nPriority: Minor \u2192 Major'),
+      });
       const none = container.querySelector('[data-value-none]') as HTMLElement;
       expect(none.textContent).toBe('none');
       expect(none.className).toContain('border-dashed');

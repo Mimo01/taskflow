@@ -541,7 +541,9 @@ describe('merging', () => {
         ? (run(labels)[0] as never as { items: NotificationItem[] }).items
         : [],
     );
-    expect(parts.changes).toEqual([{ field: 'labels', text: '+a +b', action: 'labels' }]);
+    // single-sided label change: verb says "added labels", chips drop the + sign
+    expect(parts.verb).toBe('added labels');
+    expect(parts.changes).toEqual([{ field: 'labels', text: 'a b', action: 'labels' }]);
   });
 
   it('conversation merge: latest text, count verb, every comment listed newest first', () => {
