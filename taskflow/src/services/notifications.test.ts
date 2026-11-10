@@ -1174,4 +1174,46 @@ describe('notifications service', () => {
       expect(mockFetch).not.toHaveBeenCalled();
     });
   });
+
+  describe('NOTIF-09: due-date reminder id embeds the due date', () => {
+    async function runWithDueDate(duedate: string) {
+      const empty = { ok: true, status: 200, json: async () => ({ issues: [] }) };
+      const dueResp = {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          issues: [{ key: 'PROJ-1', fields: { summary: 'Example', duedate } }],
+        }),
+      };
+      vi.mocked(mockFetch)
+        .mockResolvedValueOnce(empty as unknown as Response) // Query A
+        .mockResolvedValueOnce(empty as unknown as Response) // Query B
+        .mockResolvedValueOnce(empty as unknown as Response) // Query C
+        .mockResolvedValueOnce(dueResp as unknown as Response); // Query D
+      return fetchNewNotifications(
+        'https://jira.example.com',
+        null,
+        { jira: 'jira-token', gitlab: null },
+        {
+          activeJiraProject: 'PROJ',
+          jiraUserDisplayName: 'Jane Doe',
+          jiraUsername: 'jdoe',
+          gitlabUserId: null,
+          gitlabUsername: null,
+          mrList: [],
+          lastSeenJiraCursor: '2026-03-11T10:00:00.000Z',
+          lastSeenGitlabCursor: '2026-03-11T10:00:00.000Z',
+        },
+      );
+    }
+
+    it('includes the due date in the id and changes it when the date changes', async () => {
+      const a = await runWithDueDate('2026-11-12');
+      expect(a.map((i) => i.id)).toContain('jira-duedate-PROJ-1-2026-11-12');
+      vi.mocked(mockFetch).mockReset();
+      const b = await runWithDueDate('2026-11-13');
+      expect(b.map((i) => i.id)).toContain('jira-duedate-PROJ-1-2026-11-13');
+      expect(b.map((i) => i.id)).not.toContain('jira-duedate-PROJ-1-2026-11-12');
+    });
+  });
 });

@@ -17,7 +17,7 @@ import { fetchNewNotifications, tryDispatchOsNotification } from '../services/no
 import { readSecret } from '../services/stronghold';
 import { useAuthStore } from '../stores/auth.store';
 import type { NotificationType } from '../stores/notifications.store';
-import { useNotificationsStore } from '../stores/notifications.store';
+import { getKnownNotificationIds, useNotificationsStore } from '../stores/notifications.store';
 import { useSettingsStore } from '../stores/settings.store';
 
 export function useNotificationPolling() {
@@ -201,7 +201,10 @@ export function useNotificationPolling() {
         // cursor (e.g. after React Query cache re-use or app restart) can cause the
         // same notification to be re-fetched and re-dispatched even though it is
         // already present in the store.
-        const existingIds = new Set(storeItemsRef.current.map((i) => i.id));
+        const existingIds = getKnownNotificationIds({
+          items: storeItemsRef.current,
+          dismissedIds: useNotificationsStore.getState().dismissedIds,
+        });
         prependItems(newItems);
         // Use allItems to advance cursors (avoid cursor drift from filtered items)
         advanceCursors(allItems);

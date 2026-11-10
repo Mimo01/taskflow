@@ -16,7 +16,7 @@ import {
   sendNotification,
 } from '@tauri-apps/plugin-notification';
 import { apiFetch } from '../lib/apiFetch';
-import type { NotificationType } from '../stores/notifications.store';
+import type { NotificationItem } from '../stores/notifications.store';
 import type { GitLabMR } from './gitlab';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -39,23 +39,7 @@ function toUtcIso(ts: string): string {
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-export interface NotificationItem {
-  id: string; // 'jira-comment-{id}' | 'gitlab-note-{id}'
-  source: 'jira' | 'gitlab';
-  entityTitle: string; // "PROJ-123: Fix login bug"
-  author: string; // "J.Smith"
-  authorAvatarUrl?: string; // avatar image URL from Jira/GitLab API
-  bodyPreview: string; // first ~80 chars of body
-  fullBody: string;
-  createdAt: string; // ISO 8601
-  url?: string; // browser-openable URL for the entity
-  notificationType?: NotificationType;
-  entityState?: string; // GitLab: "opened" | "merged" | "closed"
-  parentKey?: string; // Jira subtask parent key, e.g. "PROJ-100"
-  parentSummary?: string; // Jira subtask parent summary, e.g. "User Login Flow"
-  mrProjectId?: number; // GitLab MR project ID — for internal /mr/:projectId/:iid routing
-  mrIid?: number; // GitLab MR iid — for internal /mr/:projectId/:iid routing
-}
+export type { NotificationItem };
 
 // ─── Jira Comment Fetcher ─────────────────────────────────────────────────────
 
@@ -454,7 +438,7 @@ async function fetchNewJiraComments(
       const dueLabel = dueDate <= today ? 'Due today' : 'Due tomorrow';
 
       results.push({
-        id: `jira-duedate-${issue.key}`,
+        id: `jira-duedate-${issue.key}-${issue.fields.duedate}`,
         source: 'jira',
         entityTitle: `${issue.key}: ${issue.fields.summary}`,
         author: '',
