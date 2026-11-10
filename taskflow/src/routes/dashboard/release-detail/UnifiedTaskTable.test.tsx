@@ -2081,6 +2081,8 @@ describe('responsive container tiers', () => {
     expect(unassigned.parentElement?.className).not.toMatch(/:hidden/);
     const icon = within(taskRow).getByTestId('task-row-overlay').nextElementSibling;
     expect(icon).toHaveClass('@max-[640px]:hidden');
+    // Priority drops with the type icon at the same tier.
+    expect(within(taskRow).getByTestId('task-row-priority')).toHaveClass('@max-[640px]:hidden');
     const chip = within(taskRow).getByTestId('mr-status-chip');
     // The label goes sr-only at narrow widths; the state/count groups carry it.
     expect(within(chip).getByTestId('mr-status-label')).toHaveTextContent('Open');
