@@ -17,7 +17,12 @@ vi.mock('@tauri-apps/plugin-store', () => {
 });
 
 import type { NotificationItem } from './notifications.store';
-import { useNotificationsStore, useUnreadCount } from './notifications.store';
+import {
+  DISMISSED_CAP,
+  getKnownNotificationIds,
+  useNotificationsStore,
+  useUnreadCount,
+} from './notifications.store';
 
 function makeItem(id: string, createdAt = '2026-03-11T10:00:00.000Z'): NotificationItem {
   return {
@@ -37,6 +42,7 @@ describe('notifications.store', () => {
       useNotificationsStore.setState({
         items: [],
         readIds: [],
+        dismissedIds: [],
         lastSeenCursor: null,
         permissionDenied: false,
         _unreadCount: 0,
@@ -264,6 +270,123 @@ describe('notifications.store', () => {
       // Returns cached _unreadCount, not a computed value
       expect(result.current).toBe(2);
       expect(result.current).toBe(useNotificationsStore.getState()._unreadCount);
+    });
+  });
+
+  describe('NOTIF-09: readIds pruning and dismissed tombstones', () => {
+    const st = () => useNotificationsStore.getState();
+    const many = (n: number, prefix = 'n') =>
+      Array.from({ length: n }, (_, i) => makeItem(`${prefix}-${i}`));
+
+    it('prependItems keeps readIds within items (<= 200)', () => {
+      const first = many(220);
+      act(() => {
+        st().setItems(first.slice(0, 200));
+        st().markItemsRead(first.slice(0, 200).map((i) => i.id));
+      });
+      act(() => st().prependItems(many(250, 'fresh')));
+      expect(st().items).toHaveLength(200);
+      const ids = new Set(st().items.map((i) => i.id));
+      expect(st().readIds.length).toBeLessThanOrEqual(200);
+      expect(st().readIds.every((id) => ids.has(id))).toBe(true);
+    });
+
+    it('setItems prunes readIds to the new items', () => {
+      act(() => {
+        st().setItems([makeItem('a'), makeItem('b')]);
+        st().markItemsRead(['a', 'b']);
+      });
+      act(() => st().setItems([makeItem('b')]));
+      expect(st().readIds).toEqual(['b']);
+    });
+
+    it('removeItem tombstones and prependItems does not re-add', () => {
+      act(() => st().setItems([makeItem('a')]));
+      act(() => st().removeItem('a'));
+      expect(st().items).toHaveLength(0);
+      expect(st().dismissedIds).toContain('a');
+      act(() => st().prependItems([makeItem('a')]));
+      expect(st().items).toHaveLength(0);
+    });
+
+    it('removeItems tombstones both and updates counters', () => {
+      act(() => st().setItems([makeItem('a'), makeItem('b'), makeItem('c')]));
+      act(() => st().removeItems(['a', 'b']));
+      expect(st().dismissedIds).toEqual(['a', 'b']);
+      expect(st()._unreadCount).toBe(1);
+      expect(st()._jiraUnreadCount).toBe(1);
+      expect(st()._gitlabUnreadCount).toBe(0);
+    });
+
+    it('caps tombstones and dedupes', () => {
+      const ids = Array.from({ length: 600 }, (_, i) => `t-${i}`);
+      act(() => st().removeItems(ids));
+      act(() => st().removeItems(['t-599']));
+      expect(st().dismissedIds).toHaveLength(DISMISSED_CAP);
+      expect(st().dismissedIds).toContain('t-599');
+      expect(st().dismissedIds).not.toContain('t-0');
+      expect(st().dismissedIds.filter((x) => x === 't-599')).toHaveLength(1);
+    });
+
+    it('getKnownNotificationIds is the union of items and tombstones', () => {
+      const set = getKnownNotificationIds({ items: [makeItem('a')], dismissedIds: ['z'] });
+      expect([...set].sort()).toEqual(['a', 'z']);
+    });
+
+    it('persist merge handles missing / invalid dismissedIds and prunes readIds', () => {
+      const merge = useNotificationsStore.persist.getOptions().merge as (
+        p: unknown,
+        c: unknown,
+      ) => { dismissedIds: string[]; readIds: string[] };
+      const cur = st();
+      expect(merge({ items: [], readIds: [] }, cur).dismissedIds).toEqual([]);
+      expect(merge({ items: [], readIds: [], dismissedIds: 'x' }, cur).dismissedIds).toEqual([]);
+      const out = merge(
+        { items: [makeItem('a')], readIds: ['a', 'gone'], dismissedIds: ['d', 5] },
+        cur,
+      );
+      expect(out.readIds).toEqual(['a']);
+      expect(out.dismissedIds).toEqual(['d']);
+    });
+
+    it('partialize includes dismissedIds; clearAll resets it', () => {
+      act(() => st().removeItems(['q']));
+      const partial = useNotificationsStore.persist.getOptions().partialize?.(st());
+      expect(partial).toHaveProperty('dismissedIds', ['q']);
+      act(() => st().clearAll());
+      expect(st().dismissedIds).toEqual([]);
+    });
+  });
+
+  describe('NOTIF-04: bulk triage actions', () => {
+    const st = () => useNotificationsStore.getState();
+    const gl = (id: string): NotificationItem => ({ ...makeItem(id), source: 'gitlab' });
+
+    it('markItemsRead is idempotent and markItemsUnread is scoped', () => {
+      act(() => st().setItems([makeItem('a'), makeItem('b'), makeItem('c')]));
+      act(() => st().markItemsRead(['a', 'b']));
+      act(() => st().markItemsRead(['a', 'b']));
+      expect(st().readIds).toEqual(['a', 'b']);
+      expect(st()._unreadCount).toBe(1);
+      act(() => st().markItemsUnread(['a']));
+      expect(st().readIds).toEqual(['b']);
+      expect(st()._unreadCount).toBe(2);
+    });
+
+    it('clearRead removes read items and tombstones them', () => {
+      act(() => st().setItems([makeItem('a'), makeItem('b')]));
+      act(() => st().markItemsRead(['a']));
+      act(() => st().clearRead());
+      expect(st().items.map((i) => i.id)).toEqual(['b']);
+      expect(st().dismissedIds).toEqual(['a']);
+    });
+
+    it("clearRead('jira') leaves read GitLab items", () => {
+      act(() => st().setItems([makeItem('j'), gl('g')]));
+      act(() => st().markItemsRead(['j', 'g']));
+      act(() => st().clearRead('jira'));
+      expect(st().items.map((i) => i.id)).toEqual(['g']);
+      expect(st().readIds).toEqual(['g']);
     });
   });
 });

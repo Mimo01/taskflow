@@ -46,6 +46,7 @@ export interface NotificationItem {
 interface NotificationsState {
   items: NotificationItem[];
   readIds: string[]; // string[] NOT Set — JSON-serializable
+  dismissedIds: string[]; // tombstones for Done items (capped at DISMISSED_CAP)
   lastSeenCursor: string | null; // DEPRECATED — kept for migration
   lastSeenJiraCursor: string | null; // ISO timestamp of last seen Jira notification
   lastSeenGitlabCursor: string | null; // ISO timestamp of last seen GitLab notification
@@ -66,7 +67,11 @@ interface NotificationsState {
   markAsUnread: (id: string) => void;
   markAllRead: () => void;
   markAllReadBySource: (source: 'jira' | 'gitlab') => void;
+  markItemsRead: (ids: string[]) => void;
+  markItemsUnread: (ids: string[]) => void;
   removeItem: (id: string) => void;
+  removeItems: (ids: string[]) => void;
+  clearRead: (source?: 'jira' | 'gitlab') => void;
   clearAll: () => void;
   setLastSeenCursor: (ts: string) => void;
   setLastSeenJiraCursor: (ts: string) => void;
@@ -78,6 +83,33 @@ interface NotificationsState {
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
+
+export const DISMISSED_CAP = 500;
+
+function appendTombstones(prev: string[], ids: string[]): string[] {
+  const seen = new Set(prev);
+  const next = [...prev];
+  for (const id of ids) {
+    if (!seen.has(id)) {
+      seen.add(id);
+      next.push(id);
+    }
+  }
+  return next.slice(-DISMISSED_CAP);
+}
+
+function pruneReadIds(items: NotificationItem[], readIds: string[]): string[] {
+  const idSet = new Set(items.map((i) => i.id));
+  return readIds.filter((id) => idSet.has(id));
+}
+
+/** Union of live item ids and dismissed tombstones — ids the poller must treat as already known. */
+export function getKnownNotificationIds(state: {
+  items: NotificationItem[];
+  dismissedIds: string[];
+}): Set<string> {
+  return new Set([...state.items.map((i) => i.id), ...state.dismissedIds]);
+}
 
 function computeUnreadCounts(items: NotificationItem[], readIds: string[]) {
   const readSet = new Set(readIds);
@@ -101,6 +133,7 @@ export const useNotificationsStore = create<NotificationsState>()(
     (set, get) => ({
       items: [],
       readIds: [],
+      dismissedIds: [],
       lastSeenCursor: null,
       lastSeenJiraCursor: null,
       lastSeenGitlabCursor: null,
@@ -112,15 +145,19 @@ export const useNotificationsStore = create<NotificationsState>()(
       _jiraUnreadCount: 0,
       _gitlabUnreadCount: 0,
 
-      setItems: (items) => set({ items, ...computeUnreadCounts(items, get().readIds) }),
+      setItems: (items) => {
+        const readIds = pruneReadIds(items, get().readIds);
+        set({ items, readIds, ...computeUnreadCounts(items, readIds) });
+      },
 
       prependItems: (newItems) =>
         set((s) => {
-          const existingIds = new Set(s.items.map((i) => i.id));
-          const deduped = newItems.filter((i) => !existingIds.has(i.id));
+          const known = getKnownNotificationIds(s);
+          const deduped = newItems.filter((i) => !known.has(i.id));
           if (deduped.length === 0) return s;
           const items = [...deduped, ...s.items].slice(0, 200);
-          return { items, ...computeUnreadCounts(items, s.readIds) };
+          const readIds = pruneReadIds(items, s.readIds);
+          return { items, readIds, ...computeUnreadCounts(items, readIds) };
         }),
 
       markAsRead: (id) =>
@@ -154,17 +191,54 @@ export const useNotificationsStore = create<NotificationsState>()(
           return { readIds, ...computeUnreadCounts(s.items, readIds) };
         }),
 
-      removeItem: (id) =>
+      markItemsRead: (ids) =>
         set((s) => {
-          const items = s.items.filter((i) => i.id !== id);
-          const readIds = s.readIds.filter((rid) => rid !== id);
-          return { items, readIds, ...computeUnreadCounts(items, readIds) };
+          const readIds = [...new Set([...s.readIds, ...ids])];
+          return { readIds, ...computeUnreadCounts(s.items, readIds) };
+        }),
+
+      markItemsUnread: (ids) =>
+        set((s) => {
+          const drop = new Set(ids);
+          const readIds = s.readIds.filter((rid) => !drop.has(rid));
+          return { readIds, ...computeUnreadCounts(s.items, readIds) };
+        }),
+
+      removeItem: (id) => get().removeItems([id]),
+
+      removeItems: (ids) =>
+        set((s) => {
+          const drop = new Set(ids);
+          const items = s.items.filter((i) => !drop.has(i.id));
+          const readIds = s.readIds.filter((rid) => !drop.has(rid));
+          return {
+            items,
+            readIds,
+            dismissedIds: appendTombstones(s.dismissedIds, ids),
+            ...computeUnreadCounts(items, readIds),
+          };
+        }),
+
+      clearRead: (source) =>
+        set((s) => {
+          const readSet = new Set(s.readIds);
+          const gone = s.items.filter((i) => readSet.has(i.id) && (!source || i.source === source));
+          const drop = new Set(gone.map((i) => i.id));
+          const items = s.items.filter((i) => !drop.has(i.id));
+          const readIds = s.readIds.filter((rid) => !drop.has(rid));
+          return {
+            items,
+            readIds,
+            dismissedIds: appendTombstones(s.dismissedIds, [...drop]),
+            ...computeUnreadCounts(items, readIds),
+          };
         }),
 
       clearAll: () =>
         set({
           items: [],
           readIds: [],
+          dismissedIds: [],
           lastSeenCursor: null,
           lastSeenJiraCursor: null,
           lastSeenGitlabCursor: null,
@@ -190,6 +264,7 @@ export const useNotificationsStore = create<NotificationsState>()(
         // Only persist these fields; permissionDenied is transient
         items: s.items,
         readIds: s.readIds,
+        dismissedIds: s.dismissedIds,
         lastSeenJiraCursor: s.lastSeenJiraCursor,
         lastSeenGitlabCursor: s.lastSeenGitlabCursor,
       }),
@@ -201,11 +276,15 @@ export const useNotificationsStore = create<NotificationsState>()(
         const jiraCursor = p.lastSeenJiraCursor ?? p.lastSeenCursor ?? null;
         const gitlabCursor = p.lastSeenGitlabCursor ?? p.lastSeenCursor ?? null;
         const items = Array.isArray(p.items) ? p.items : [];
-        const readIds = Array.isArray(p.readIds) ? p.readIds : [];
+        const readIds = pruneReadIds(items, Array.isArray(p.readIds) ? p.readIds : []);
+        const dismissedIds = Array.isArray(p.dismissedIds)
+          ? p.dismissedIds.filter((x): x is string => typeof x === 'string')
+          : [];
         return {
           ...current,
           ...p,
           readIds,
+          dismissedIds,
           items,
           lastSeenJiraCursor: jiraCursor,
           lastSeenGitlabCursor: gitlabCursor,
