@@ -47,11 +47,12 @@ function setup(props?: Partial<React.ComponentProps<typeof NotificationRow>>) {
 
 describe('NotificationRow', () => {
   it('renders ref, entity title, verb tail and injected-now relative time', () => {
-    setup();
+    const { container } = setup();
     expect(screen.getByText('PROJ-123')).toBeInTheDocument();
     expect(screen.getByText('Fix login bug')).toBeInTheDocument();
     expect(screen.getByText('commented')).toBeInTheDocument();
-    expect(screen.queryByText(/race condition/)).not.toBeInTheDocument();
+    // comment text lives in the detail column
+    expect(container.querySelector('[data-col="detail"]')?.textContent).toContain('race condition');
     expect(screen.getByText('2h')).toBeInTheDocument();
   });
 
@@ -126,7 +127,7 @@ describe('NotificationRow', () => {
     expect(desc.container.querySelector('[data-col="detail"]')?.textContent).toBe('edited');
   });
 
-  it('grouped row looks like a single row plus an "N events" pill that toggles aria-expanded', () => {
+  it('grouped row has an always-on rail, a gutter chevron toggle and a +N bubble, no "events" text', () => {
     const onToggleExpand = vi.fn();
     const { container, rerender, ...h } = setup({ groupCount: 2, onToggleExpand });
     expect(screen.getByText('PROJ-123')).toBeInTheDocument();
@@ -134,7 +135,10 @@ describe('NotificationRow', () => {
     expect(screen.getByText('commented')).toBeInTheDocument();
     expect(container.querySelector('[data-event-badge]')).not.toBeNull();
     const chip = screen.getByRole('button', { name: 'Show 2 earlier events on PROJ-123' });
-    expect(chip).toHaveTextContent('3 events');
+    expect(chip).toHaveAttribute('data-group-toggle');
+    expect(container.querySelector('[data-thread-rail]')).not.toBeNull();
+    expect(container.querySelector('[data-group-more]')?.textContent).toBe('+2');
+    expect(container.textContent).not.toMatch(/events/);
     expect(chip).toHaveAttribute('aria-expanded', 'false');
     fireEvent.click(chip);
     expect(onToggleExpand).toHaveBeenCalledTimes(1);
@@ -154,7 +158,8 @@ describe('NotificationRow', () => {
     );
     const open = screen.getByRole('button', { name: 'Hide 2 earlier events on PROJ-123' });
     expect(open).toHaveAttribute('aria-expanded', 'true');
-    expect(open).toHaveTextContent('3 events');
+    fireEvent.click(container.querySelector('[data-group-more]') as HTMLElement);
+    expect(onToggleExpand).toHaveBeenCalledTimes(2);
     expect(screen.getByRole('button', { name: 'Mark group read' })).toBeInTheDocument();
   });
 
@@ -341,16 +346,73 @@ describe('NotificationRow', () => {
     expect(r2.querySelector('[data-thread-rail]')).not.toBeNull();
   });
 
-  it('nested rows keep the columns but show only a muted snippet instead of the title', () => {
+  it('nested rows keep every column and show the entity title (muted) with the comment in detail', () => {
     const { container } = setup({
       nested: true,
       item: makeItem('jira', { notificationType: 'comment-mention', bodyPreview: 'ping @you' }),
     });
-    expect(screen.queryByText('Fix login bug')).not.toBeInTheDocument();
-    expect(container.querySelector('[data-nested-snippet]')?.textContent).toBe('ping @you');
+    expect(screen.getByText('Fix login bug').className).toContain('text-muted-foreground');
     expect(container.querySelector('[data-col="what"]')?.textContent).toBe('mentioned you');
-    expect(container.querySelector('[data-col="detail"]')).not.toBeNull();
+    expect(container.querySelector('[data-col="detail"]')?.textContent).toBe('ping @you');
     expect(screen.getByText('PROJ-123')).toBeInTheDocument();
+  });
+
+  it('GitLab comment rows put the MR title in the title column and the text in detail', () => {
+    const { container } = setup({
+      item: makeItem('gitlab', {
+        id: 'gitlab-note-9',
+        notificationType: 'mr-note',
+        entityTitle: 'PROJ-9: Add export',
+        bodyPreview: 'Please rename **this**',
+      }),
+    });
+    expect(screen.getByText('Add export')).toBeInTheDocument();
+    expect(container.querySelector('[data-col="what"]')?.textContent).toBe('commented');
+    expect(container.querySelector('[data-col="detail"]')?.textContent).toBe('Please rename this');
+  });
+
+  it('GitLab system notes render as changes with their own icon, never "commented"', () => {
+    const sys = (body: string) =>
+      makeItem('gitlab', {
+        id: 'gitlab-system-1',
+        notificationType: 'mr-note',
+        bodyPreview: body,
+        entityTitle: 'Add export',
+      });
+    const cases: [string, string, string, string][] = [
+      ['State: opened \u2192 merged', 'merged', 'merged', ''],
+      ['State: opened \u2192 closed', 'closed', 'closed', ''],
+      ['State: closed \u2192 reopened', 'reopened', 'reopened', ''],
+      ['Review requested: ana, ben', 'review', 'review', '\u2192ana, ben'],
+      ['Labels added: x, y', 'labels', 'labels', '+x, y'],
+      ['Target branch: a \u2192 b', 'target branch', 'branch', 'a\u2192b'],
+    ];
+    for (const [body, what, kind, detail] of cases) {
+      const { container, unmount } = setup({ item: sys(body) });
+      expect(container.querySelector('[data-col="what"]')?.textContent, body).toBe(what);
+      expect(container.querySelector(`[data-event-badge="${kind}"]`), body).not.toBeNull();
+      expect(container.querySelector('[data-col="detail"]')?.textContent, body).toBe(detail);
+      expect(container.textContent).not.toContain('commented');
+      unmount();
+    }
+  });
+
+  it('issue updates get a per-field badge (priority, sprint, labels)', () => {
+    for (const [field, kind] of [
+      ['Priority', 'priority'],
+      ['Sprint', 'sprint'],
+      ['Labels', 'labels'],
+      ['Fix Version', 'version'],
+    ]) {
+      const { container, unmount } = setup({
+        item: makeItem('jira', {
+          notificationType: 'issue-update',
+          bodyPreview: `${field}: a \u2192 b`,
+        }),
+      });
+      expect(container.querySelector(`[data-event-badge="${kind}"]`), field).not.toBeNull();
+      unmount();
+    }
   });
 
   it('group rows draw a 2-avatar stack when a second actor is given', () => {
@@ -363,7 +425,9 @@ describe('NotificationRow', () => {
   });
 
   it('every row type renders what and detail columns (detail empty without values)', () => {
-    const { container } = setup();
+    const { container } = setup({
+      item: makeItem('jira', { notificationType: 'issue-assignment' }),
+    });
     expect(container.querySelector('[data-col="what"]')).not.toBeNull();
     const d = container.querySelector('[data-col="detail"]') as HTMLElement;
     expect(d.dataset.detail).toBe('empty');

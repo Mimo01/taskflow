@@ -3,14 +3,15 @@
  *
  * Fixed columns (explicit widths so every row aligns without a <table>):
  *   [unread dot][who: avatar+event badge][KEY][parent › title][what][detail][time]
- * A grouped entity renders as this same row for its newest event (avatar stack + "N events"
- * pill); expanded, the earlier events render as nested rows in a tinted, railed thread.
+ * A grouped entity renders as this same row for its newest event, marked by an always-on left
+ * rail, a gutter chevron and a "+N" count bubble on the avatar stack; expanded, the earlier
+ * events render as nested rows in a tinted, railed thread.
  * - An absolute inset-0 overlay <button> is the primary target; the key and tray
  *   buttons are SIBLINGS (relative z-10), never nested inside it.
  * - Unread vs read only changes class strings / the aria prefix, never the tree (D-05).
  * - Body, parent and absolute time live in a 600ms tooltip only.
  */
-import { Check, ChevronDown, ChevronUp, ExternalLink, Mail, MailOpen } from 'lucide-react';
+import { Check, ChevronDown, ChevronRight, ExternalLink, Mail, MailOpen } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { LinkContextMenu } from '@/components/ui/link-context-menu';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -173,6 +174,17 @@ export function NotificationDetail({ parts }: { parts: EventParts }) {
         {more}
       </>
     );
+  } else if (parts.commentText) {
+    kind = 'comment';
+    content = <span className="min-w-0 truncate text-muted-foreground">{parts.commentText}</span>;
+  } else if (change?.text) {
+    kind = 'change';
+    content = (
+      <>
+        <span className="min-w-0 truncate text-foreground">{change.text}</span>
+        {more}
+      </>
+    );
   } else if (change && (change.from || change.to)) {
     kind = 'change';
     content = (
@@ -181,7 +193,11 @@ export function NotificationDetail({ parts }: { parts: EventParts }) {
           <span className="min-w-0 truncate text-foreground">{change.from}</span>
         ) : null}
         {ARROW}
-        {change.to ? <span className="min-w-0 truncate text-foreground">{change.to}</span> : null}
+        {change.to ? (
+          <span className="min-w-0 truncate text-foreground">{change.to}</span>
+        ) : (
+          <span className="text-muted-foreground">none</span>
+        )}
         {more}
       </>
     );
@@ -233,6 +249,7 @@ export default function NotificationRow({
     : '';
   const ariaLabel = `${isUnread ? 'Unread. ' : ''}${describeEventAria(parts)} on ${ref ? `${ref} ` : ''}${title}${parentLabel ? ` (in ${parentLabel})` : ''}`;
   const isGroup = groupCount > 0;
+  const toggleLabel = `${expanded ? 'Hide' : 'Show'} ${groupCount} earlier event${groupCount === 1 ? '' : 's'} on ${ref ?? title}`;
 
   return (
     <div
@@ -244,7 +261,7 @@ export default function NotificationRow({
       data-peeked={peeked ? 'true' : undefined}
       data-nested={nested ? 'true' : undefined}
     >
-      {nested || (isGroup && expanded) ? (
+      {nested || isGroup ? (
         <span
           aria-hidden="true"
           data-thread-rail
@@ -284,14 +301,45 @@ export default function NotificationRow({
         </TooltipContent>
       </Tooltip>
 
-      <span className="pointer-events-none relative flex w-2 flex-none justify-center">
-        <span
-          data-unread={isUnread ? 'true' : 'false'}
-          className={cn('size-1.5 rounded-full bg-primary', !isUnread && 'opacity-0')}
-        />
+      <span className="relative flex flex-none items-center">
+        <span className="pointer-events-none flex w-2 flex-none justify-center">
+          <span
+            data-unread={isUnread ? 'true' : 'false'}
+            className={cn('size-1.5 rounded-full bg-primary', !isUnread && 'opacity-0')}
+          />
+        </span>
+        <span className="flex size-4 flex-none items-center justify-center">
+          {isGroup ? (
+            <button
+              type="button"
+              tabIndex={-1}
+              data-group-toggle
+              aria-expanded={expanded}
+              aria-label={toggleLabel}
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleExpand?.();
+              }}
+              className="relative z-10 flex size-4 cursor-pointer items-center justify-center rounded text-muted-foreground hover:bg-background hover:text-foreground"
+            >
+              {expanded ? (
+                <ChevronDown aria-hidden="true" className="size-3.5" />
+              ) : (
+                <ChevronRight aria-hidden="true" className="size-3.5" />
+              )}
+            </button>
+          ) : null}
+        </span>
       </span>
 
-      <NotificationAvatar item={item} style={style} small={nested} behind={stackItem} />
+      <NotificationAvatar
+        item={item}
+        style={style}
+        small={nested}
+        behind={stackItem}
+        moreCount={isGroup ? groupCount : 0}
+        onToggleMore={onToggleExpand}
+      />
 
       {ref ? (
         <button
@@ -307,11 +355,6 @@ export default function NotificationRow({
         </button>
       ) : null}
       <span className="pointer-events-none relative flex min-w-0 flex-1 items-center gap-1 overflow-hidden pr-0.5">
-        {nested ? (
-          <span data-nested-snippet className="min-w-0 truncate text-muted-foreground">
-            {style.kind === 'comment' || style.kind === 'mention' ? parts.snippet : ''}
-          </span>
-        ) : null}
         {!nested && item.parentKey && item.parentSummary ? (
           <span
             data-parent
@@ -323,37 +366,16 @@ export default function NotificationRow({
             </span>
           </span>
         ) : null}
-        {nested ? null : (
-          <span
-            className={cn(
-              'min-w-0 flex-[0_1_auto] truncate',
-              isUnread ? 'font-medium text-foreground' : 'font-normal text-muted-foreground',
-            )}
-          >
-            {title}
-          </span>
-        )}
-        {isGroup ? (
-          <button
-            type="button"
-            tabIndex={-1}
-            aria-expanded={expanded}
-            aria-label={`${expanded ? 'Hide' : 'Show'} ${groupCount} earlier event${groupCount === 1 ? '' : 's'} on ${ref ?? title}`}
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleExpand?.();
-            }}
-            className="pointer-events-auto relative z-10 flex flex-none cursor-pointer items-center gap-0.5 rounded-full bg-muted px-1.5 text-[11px] text-muted-foreground hover:text-foreground"
-          >
-            {groupCount + 1}
-            <span className="@max-[26rem]:hidden"> events</span>
-            {expanded ? (
-              <ChevronUp aria-hidden="true" className="size-3" />
-            ) : (
-              <ChevronDown aria-hidden="true" className="size-3" />
-            )}
-          </button>
-        ) : null}
+        <span
+          className={cn(
+            'min-w-0 flex-[0_1_auto] truncate',
+            isUnread && !nested
+              ? 'font-medium text-foreground'
+              : 'font-normal text-muted-foreground',
+          )}
+        >
+          {title}
+        </span>
       </span>
       <NotificationWhat parts={parts} style={style} unread={isUnread} />
       <NotificationDetail parts={parts} />

@@ -1,7 +1,13 @@
-import { EVENT_STYLE } from './notification-colours';
+import {
+  ACTION_STYLE,
+  type ActionKey,
+  actionKeyForField,
+  EVENT_STYLE,
+} from './notification-colours';
 import { describe, expect, it } from 'vitest';
 import type { NotificationItem } from '../../stores/notifications.store';
 import {
+  parseGitlabSystemLine,
   bucketOf,
   buildEntries,
   describeEventAria,
@@ -147,16 +153,17 @@ describe('describeEventParts', () => {
         ].join('\n'),
       ),
     ).toEqual([
-      { field: 'priority', from: 'Minor', to: 'Major' },
-      { field: 'assignee', from: undefined, to: 'Ben' },
-      { field: 'labels', from: 'a', to: 'a b' },
-      { field: 'description' },
+      { field: 'priority', from: 'Minor', to: 'Major', action: 'priority' },
+      { field: 'assignee', from: undefined, to: 'Ben', action: 'assignee' },
+      { field: 'labels', from: 'a', to: 'a b', action: 'labels' },
+      { field: 'description', action: 'description' },
     ]);
     expect(parseChangeLines('nothing useful')).toEqual([]);
     expect(parseChangeLines('Assignee: Ben \u2192 (none)')[0]).toEqual({
       field: 'assignee',
       from: 'Ben',
       to: undefined,
+      action: 'unassigned',
     });
   });
   it('puts status first (pills) and counts the other changes; multi shows first +N', () => {
@@ -431,5 +438,64 @@ describe('secondActor', () => {
     }).find((x) => x.kind === 'group');
     if (same?.kind !== 'group') throw new Error('no group');
     expect(secondActor(same)).toBeUndefined();
+  });
+});
+
+describe('GitLab system notes', () => {
+  it('parses every service-emitted system format', () => {
+    const cases: [string, object][] = [
+      ['State: opened \u2192 merged', { field: 'merged', action: 'merged' }],
+      ['State: opened \u2192 closed', { field: 'closed', action: 'closed' }],
+      ['State: closed \u2192 reopened', { field: 'reopened', action: 'reopened' }],
+      ['Review requested: ana, ben', { field: 'review', to: 'ana, ben', action: 'review' }],
+      ['Review removed: ana', { field: 'review', text: '\u2212ana', action: 'unreview' }],
+      ['Labels added: x, y', { field: 'labels', text: '+x, y', action: 'labels' }],
+      ['Labels removed: x', { field: 'labels', text: '\u2212x', action: 'labels' }],
+      ['Assigned: ana', { field: 'assignee', to: 'ana', action: 'assignee' }],
+      ['Unassigned: ana', { field: 'assignee', text: '\u2212ana', action: 'unassigned' }],
+      ['Assignee: removed', { field: 'assignee', text: 'removed', action: 'unassigned' }],
+      ['Title: a \u2192 b', { field: 'title', from: 'a', to: 'b', action: 'title' }],
+      ['Description: updated', { field: 'description', action: 'description' }],
+      [
+        'Target branch: a \u2192 b',
+        { field: 'target branch', from: 'a', to: 'b', action: 'branch' },
+      ],
+      ['Milestone: v1.14', { field: 'milestone', to: 'v1.14', action: 'milestone' }],
+      ['Milestone: removed', { field: 'milestone', text: 'removed', action: 'milestone' }],
+      ['Auto-merge: enabled', { field: 'auto-merge', text: 'enabled', action: 'automerge' }],
+    ];
+    for (const [line, expected] of cases) {
+      expect(parseGitlabSystemLine(line), line).toEqual(expected);
+    }
+    expect(parseGitlabSystemLine('something else')).toBeNull();
+  });
+
+  it('describeEventParts treats system notes as changes, not comments', () => {
+    const parts = describeEventParts({
+      id: 'gitlab-system-5',
+      source: 'gitlab',
+      entityTitle: 'Add export',
+      author: 'Ana Lee',
+      bodyPreview: 'State: opened \u2192 merged',
+      fullBody: '',
+      createdAt: '2026-03-11T10:00:00.000Z',
+      notificationType: 'mr-note',
+    });
+    expect(parts.what).toBe('merged');
+    expect(parts.commentText).toBeUndefined();
+    expect(parts.to).toBeUndefined();
+  });
+});
+
+describe('action styles', () => {
+  it('every action key has a style and the fields map to one', () => {
+    for (const k of Object.keys(ACTION_STYLE) as ActionKey[]) {
+      expect(ACTION_STYLE[k].kind).toBe(k);
+      expect(ACTION_STYLE[k].badge).toMatch(/^bg-/);
+      expect(ACTION_STYLE[k].text).toMatch(/^text-/);
+    }
+    for (const f of ['priority', 'sprint', 'fix version', 'due date', 'type', 'story points']) {
+      expect(actionKeyForField(f), f).toBeDefined();
+    }
   });
 });

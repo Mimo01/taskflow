@@ -5,7 +5,14 @@
  */
 
 import type { NotificationItem } from '../../stores/notifications.store';
-import { EVENT_STYLE, type EventStyle, STATUS_STYLE, UPDATE_STYLE } from './notification-colours';
+import {
+  ACTION_STYLE,
+  type ActionKey,
+  actionKeyForField,
+  EVENT_STYLE,
+  type EventStyle,
+  UPDATE_STYLE,
+} from './notification-colours';
 
 export type SourceFilter = 'all' | 'jira' | 'gitlab';
 export type TimeBucket = 'today' | 'yesterday' | 'week' | 'older';
@@ -139,6 +146,8 @@ export interface EventParts {
   detailText?: string;
   /** First name (or display name when it has no space); absent for system events. */
   actor?: string;
+  /** Comment/mention text for the detail column (cleaned, single line). */
+  commentText?: string;
   /** Single-line body snippet; shown only in nested rows and the tooltip. */
   snippet: string;
   /** Status change only: old status (may be absent) and new status. */
@@ -157,6 +166,103 @@ export interface ChangeLine {
   from?: string;
   /** New value; undefined for description edits / cleared values. */
   to?: string;
+  /** Preformatted detail ("+x, y", "removed") shown instead of from -> to. */
+  text?: string;
+  /** Dedicated icon/colour key, when the field has one. */
+  action?: ActionKey;
+}
+
+const SYSTEM_ID_PREFIX = 'gitlab-system-';
+
+/** GitLab system notes (state/label/reviewer changes) are changes, not comments. */
+export function isSystemNote(item: NotificationItem): boolean {
+  return item.id.startsWith(SYSTEM_ID_PREFIX);
+}
+
+const LIST_RE = /^([^:\n]+):\s*(.*)$/;
+
+/** Parse one line produced by the service's parseSystemNote into a change line. */
+export function parseGitlabSystemLine(raw: string): ChangeLine | null {
+  const line = raw.trim();
+  const state = line.match(/^State:\s*\S+\s*\u2192\s*(merged|closed|reopened)$/i);
+  if (state) {
+    const f = state[1].toLowerCase();
+    return { field: f, action: actionKeyForField(f) };
+  }
+  const draft = line.match(/^Status:\s*\S+\s*\u2192\s*(draft|ready)$/i);
+  if (draft) {
+    const f = draft[1].toLowerCase();
+    return {
+      field: f,
+      text: f === 'draft' ? 'marked as draft' : 'ready for review',
+      action: 'draft',
+    };
+  }
+  const m = line.match(LIST_RE);
+  if (!m) return null;
+  const key = m[1].trim().toLowerCase();
+  const value = m[2].trim();
+  switch (key) {
+    case 'review requested':
+      return { field: 'review', to: value, action: 'review' };
+    case 'review removed':
+      return { field: 'review', text: `\u2212${value}`, action: 'unreview' };
+    case 'labels added':
+      return { field: 'labels', text: `+${value}`, action: 'labels' };
+    case 'labels removed':
+      return { field: 'labels', text: `\u2212${value}`, action: 'labels' };
+    case 'assigned':
+      return { field: 'assignee', to: value, action: 'assignee' };
+    case 'unassigned':
+      return { field: 'assignee', text: `\u2212${value}`, action: 'unassigned' };
+    case 'assignee':
+      return { field: 'assignee', text: 'removed', action: 'unassigned' };
+    case 'description':
+      return { field: 'description', action: 'description' };
+    case 'milestone':
+      return value === 'removed'
+        ? { field: 'milestone', text: 'removed', action: 'milestone' }
+        : { field: 'milestone', to: value, action: 'milestone' };
+    case 'auto-merge':
+      return { field: 'auto-merge', text: value, action: 'automerge' };
+    case 'title':
+    case 'target branch': {
+      const c = line.match(CHANGE_RE);
+      if (c) {
+        return {
+          field: key,
+          from: c[2].trim() || undefined,
+          to: c[3].trim() || undefined,
+          action: actionKeyForField(key),
+        };
+      }
+      return null;
+    }
+    default:
+      return null;
+  }
+}
+
+export function parseSystemLines(body: string): ChangeLine[] {
+  const out: ChangeLine[] = [];
+  for (const l of body.split('\n')) {
+    const c = parseGitlabSystemLine(l);
+    if (c) out.push(c);
+  }
+  return out;
+}
+
+/** Light cleanup of Jira wiki / GitLab markdown so a comment reads as plain text. */
+export function cleanCommentText(text: string): string {
+  return text
+    .replace(/\[~([^\]]+)\]/g, '@$1')
+    .replace(/\[([^|\]]+)\|[^\]]*\]/g, '$1')
+    .replace(/\{(?:code|noformat|quote|panel)[^}]*\}/g, ' ')
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/`+/g, '')
+    .replace(/^>\s*/gm, '')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 const CHANGE_RE = /^([^:\n]+):\s*(.*?)\s*\u2192\s*(.*)$/;
@@ -172,14 +278,20 @@ export function parseChangeLines(body: string): ChangeLine[] {
     if (m) {
       const from = m[2].trim();
       const to = m[3].trim();
+      const field = m[1].trim().toLowerCase();
+      const toV = to && to !== NONE ? to : undefined;
+      let act = actionKeyForField(field);
+      if (field === 'assignee' && !toV) act = 'unassigned';
       out.push({
-        field: m[1].trim().toLowerCase(),
+        field,
         from: from && from !== NONE ? from : undefined,
-        to: to && to !== NONE ? to : undefined,
+        to: toV,
+        action: act,
       });
       continue;
     }
-    if (/^Description:\s*(updated|set)$/i.test(line)) out.push({ field: 'description' });
+    if (/^Description:\s*(updated|set)$/i.test(line))
+      out.push({ field: 'description', action: 'description' });
   }
   return out;
 }
@@ -193,15 +305,38 @@ function actorName(author: string): string | undefined {
 
 /** Structured, plain-text description of an event. Never returns HTML. */
 export function describeEventParts(item: NotificationItem): EventParts {
-  const snippet = item.bodyPreview.replace(/\s+/g, ' ').trim();
+  const snippet = cleanCommentText(item.bodyPreview);
   const actor = actorName(item.author);
+  if (item.notificationType === 'mr-note' && isSystemNote(item)) {
+    const lines = parseSystemLines(item.bodyPreview);
+    if (lines.length > 0) {
+      const first = lines[0];
+      const isState =
+        first.action === 'merged' || first.action === 'closed' || first.action === 'reopened';
+      return {
+        verb: isState ? first.field : `changed ${first.field}`,
+        what: first.field,
+        actor,
+        snippet: '',
+        changes: lines,
+        moreChanges: lines.length > 1 ? lines.length - 1 : undefined,
+      };
+    }
+    return { verb: 'updated', what: 'updated', actor, snippet: '' };
+  }
   switch (item.notificationType) {
     case 'mr-note':
     case 'jira-comment':
-      return { verb: 'commented', what: 'commented', actor, snippet };
+      return { verb: 'commented', what: 'commented', actor, snippet, commentText: snippet };
     case 'comment-mention':
     case 'gitlab-mention':
-      return { verb: 'mentioned you', what: 'mentioned you', actor, snippet };
+      return {
+        verb: 'mentioned you',
+        what: 'mentioned you',
+        actor,
+        snippet,
+        commentText: snippet,
+      };
     case 'issue-assignment':
       return { verb: 'assigned you', what: 'assigned you', actor, snippet: '' };
     case 'mr-approval':
@@ -253,7 +388,9 @@ export function describeEventParts(item: NotificationItem): EventParts {
 
 /** Event style (colour + glyph) for an item; status changes get the amber status style. */
 export function eventStyleFor(item: NotificationItem, parts: EventParts): EventStyle {
-  if (parts.to) return STATUS_STYLE;
+  if (parts.to) return ACTION_STYLE.status;
+  const act = parts.changes?.[0]?.action;
+  if (act) return ACTION_STYLE[act];
   return (item.notificationType && EVENT_STYLE[item.notificationType]) || UPDATE_STYLE;
 }
 
@@ -272,7 +409,9 @@ export function describeEventAria(parts: EventParts): string {
     ? `${parts.verb}${parts.from ? ` from ${parts.from}` : ''} to ${parts.to}`
     : c && (c.from || c.to)
       ? `${parts.verb}${c.from ? ` from ${c.from}` : ''}${c.to ? ` to ${c.to}` : ''}`
-      : parts.verb;
+      : c?.text
+        ? `${parts.verb} ${c.text}`
+        : parts.verb;
   if (parts.actor) return `${parts.actor} ${core}`;
   return core.charAt(0).toUpperCase() + core.slice(1);
 }

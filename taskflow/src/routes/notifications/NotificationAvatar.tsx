@@ -17,6 +17,9 @@ interface NotificationAvatarProps {
   small?: boolean;
   /** Grouped row: the next distinct actor, drawn peeking out behind the newest actor's avatar. */
   behind?: NotificationItem;
+  /** Grouped row: number of earlier events, drawn as a "+N" bubble ending the stack. */
+  moreCount?: number;
+  onToggleMore?: () => void;
 }
 
 export default function NotificationAvatar({
@@ -24,6 +27,8 @@ export default function NotificationAvatar({
   style,
   small = false,
   behind,
+  moreCount = 0,
+  onToggleMore,
 }: NotificationAvatarProps) {
   const type = item.notificationType;
   const px = small ? 'size-5' : 'size-6';
@@ -70,7 +75,7 @@ export default function NotificationAvatar({
     <span
       data-event-kind={style.kind}
       data-avatar-stack={behind ? 'true' : undefined}
-      className="pointer-events-none relative flex h-6 w-11 flex-none items-center"
+      className="pointer-events-none relative flex h-6 w-[3.75rem] flex-none items-center"
     >
       {behind ? (
         <span data-avatar-behind className={cn('absolute left-5 flex', px)}>
@@ -97,6 +102,24 @@ export default function NotificationAvatar({
           </span>
         ) : null}
       </span>
+      {moreCount > 0 ? (
+        <button
+          type="button"
+          tabIndex={-1}
+          aria-hidden="true"
+          data-group-more
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleMore?.();
+          }}
+          className={cn(
+            'pointer-events-auto absolute z-10 flex h-[18px] min-w-[18px] cursor-pointer items-center justify-center rounded-full bg-muted px-1 text-[9px] font-medium tabular-nums text-muted-foreground ring-2 ring-popover hover:text-foreground group-hover/row:ring-accent group-focus-within/row:ring-accent',
+            behind ? 'left-10' : 'left-6',
+          )}
+        >
+          +{moreCount}
+        </button>
+      ) : null}
     </span>
   );
 }

@@ -119,11 +119,13 @@ describe('NotificationPopover', () => {
   describe('grouping', () => {
     beforeEach(() => seed([jiraItem('a'), jiraItem('b')]));
 
-    it('renders one collapsed group row with an N-events pill; the chip reveals the earlier event', () => {
+    it('renders one collapsed group row with a chevron toggle and +N bubble; it reveals the earlier event', () => {
       render(<NotificationPopover />);
-      expect(screen.getByRole('button', { name: /^Show 1 earlier event/ })).toHaveTextContent(
-        '2 events',
+      expect(screen.getByRole('button', { name: /^Show 1 earlier event/ })).toHaveAttribute(
+        'aria-expanded',
+        'false',
       );
+      expect(document.querySelector('[data-group-more]')?.textContent).toBe('+1');
       expect(entryCount()).toBe(1);
       fireEvent.click(screen.getByRole('button', { name: /^Show 1 earlier event/ }));
       expect(entryCount()).toBe(2);
