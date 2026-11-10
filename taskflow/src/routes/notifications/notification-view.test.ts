@@ -14,6 +14,9 @@ import {
   describeEntryParts,
   describeEventParts,
   commentPreview,
+  listRowCount,
+  MAX_LIST_ROWS,
+  visibleCount,
   estimateEntryHeight,
   mergeChanges,
   mergeCategory,
@@ -701,5 +704,19 @@ describe('commentPreview', () => {
     expect(commentPreview({ bodyPreview: 'Due tomorrow', fullBody: 'Example body text' })).toBe(
       'Due tomorrow',
     );
+  });
+});
+
+describe('list cap (shared by cards and the height estimate)', () => {
+  it('shows up to 10 items in full; beyond that 9 + a "+N more" row (N >= 2)', () => {
+    expect(MAX_LIST_ROWS).toBe(10);
+    for (const n of [1, 4, 10]) {
+      expect(visibleCount(n)).toBe(n);
+      expect(listRowCount(n)).toBe(n);
+    }
+    expect(visibleCount(11)).toBe(9);
+    expect(listRowCount(11)).toBe(10);
+    expect(visibleCount(40)).toBe(9);
+    expect(listRowCount(40)).toBe(10);
   });
 });

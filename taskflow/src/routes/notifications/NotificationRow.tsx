@@ -61,6 +61,7 @@ import {
   getJiraKey,
   relTime,
   statusCategoryGuess,
+  visibleCount,
 } from './notification-view';
 
 interface NotificationRowProps {
@@ -288,16 +289,6 @@ export function NotificationDetailLine({
       ) : null}
     </span>
   );
-}
-
-export const MAX_LISTED_CHANGES = 3;
-
-/**
- * Rows to show for a capped list: a "+1 more" row costs the same line as the item it hides, so
- * show everything up to MAX + 1; only collapse to MAX + "+N more" when N >= 2.
- */
-export function visibleCount(total: number): number {
-  return total <= MAX_LISTED_CHANGES + 1 ? total : MAX_LISTED_CHANGES;
 }
 
 /** ONE list-row geometry for change AND comment lists: 12px icon, optional field column, value. */

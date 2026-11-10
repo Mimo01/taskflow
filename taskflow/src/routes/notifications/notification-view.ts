@@ -752,6 +752,23 @@ export function buildEntries(input: {
   return entries;
 }
 
+/** Max rows a card's change / comment list may take (items + the "+N more" row). */
+export const MAX_LIST_ROWS = 10;
+
+/**
+ * Items to show in a capped list. Up to MAX_LIST_ROWS items show in full; beyond that show
+ * MAX_LIST_ROWS - 1 items plus a "+N more" row (N >= 2, since "+1 more" would cost the same
+ * line as just showing the item).
+ */
+export function visibleCount(total: number): number {
+  return total <= MAX_LIST_ROWS ? total : MAX_LIST_ROWS - 1;
+}
+
+/** Rows a list of `total` items occupies, including the "+N more" row. */
+export function listRowCount(total: number): number {
+  return total <= MAX_LIST_ROWS ? total : MAX_LIST_ROWS;
+}
+
 /** Pixel height for the virtualizer's first paint (default density); real heights are measured. */
 export function estimateEntryHeight(entry: NotificationEntry): number {
   if (entry.kind === 'header') return 32;
@@ -761,7 +778,7 @@ export function estimateEntryHeight(entry: NotificationEntry): number {
   // list: mt-1 (4) + rows of h-5 (20) separated by gap-1 (4), plus a "+N more" row when capped
   const list = (n: number) => {
     if (n < 2) return 0;
-    const rows = Math.min(3, n) + (n > 3 ? 1 : 0);
+    const rows = listRowCount(n);
     return 4 + rows * 20 + (rows - 1) * 4;
   };
   h += list(parts.changes?.length ?? 0);

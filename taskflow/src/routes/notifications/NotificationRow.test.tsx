@@ -464,20 +464,20 @@ describe('NotificationRow', () => {
       fullBody: 'x',
     });
 
-    it('shows "updated N fields", the generic badge and a 3-row ordered change list', () => {
+    it('shows "updated N fields", the generic badge and every change (6 <= 10) in order', () => {
       const { container } = setup({ item: six });
       expect(container.querySelector('[data-event-badge="multi"]')).not.toBeNull();
       expect(container.querySelector('[data-line="detail"]')?.textContent).toBe(
         'Jane Smith updated 6 fields',
       );
       const rows = [...container.querySelectorAll('[data-change-row]')];
-      expect(rows).toHaveLength(3);
-      expect(rows.map((r) => r.textContent)).toEqual([
+      expect(rows).toHaveLength(6);
+      expect(rows.slice(0, 3).map((r) => r.textContent)).toEqual([
         'statusTo Do\u2192In Progress',
         'assigneeBen\u2192Cara',
         'priorityMinor\u2192Major',
       ]);
-      expect(container.querySelector('[data-change-more]')?.textContent).toBe('+3 more changes');
+      expect(container.querySelector('[data-change-more]')).toBeNull();
       expect(screen.getByText('To Do').className).toContain('rounded');
     });
 
@@ -541,15 +541,17 @@ describe('NotificationRow', () => {
       );
     });
 
-    it('caps the comment list at 3 with "+N more comments"', () => {
-      const five = [
-        ...items,
-        mk('c0', 'Older', 'jira-comment'),
-        mk('cz', 'Oldest', 'jira-comment'),
-      ];
-      const { container } = setup({ item: five[0], items: five });
-      expect(container.querySelectorAll('[data-comment-row]')).toHaveLength(3);
-      expect(container.querySelector('[data-comment-more]')?.textContent).toBe('+2 more comments');
+    it('shows up to 10 comments; 12 -> 9 + "+3 more comments"', () => {
+      const many = (n: number) =>
+        Array.from({ length: n }, (_, i) => mk(`c${i}`, `Comment ${i}`, 'jira-comment'));
+      const ten = setup({ item: many(10)[0], items: many(10) });
+      expect(ten.container.querySelectorAll('[data-comment-row]')).toHaveLength(10);
+      expect(ten.container.querySelector('[data-comment-more]')).toBeNull();
+      ten.unmount();
+      const twelve = many(12);
+      const { container } = setup({ item: twelve[0], items: twelve });
+      expect(container.querySelectorAll('[data-comment-row]')).toHaveLength(9);
+      expect(container.querySelector('[data-comment-more]')?.textContent).toBe('+3 more comments');
     });
   });
 
@@ -586,6 +588,10 @@ describe('NotificationRow', () => {
     const slot = container.querySelector('[data-event-kind] > div');
     expect(slot?.className).toContain('[&>*]:size-full!');
   });
+
+  /** n distinct "Field: 1 -> 2" change lines. */
+  const changeLines = (n: number) =>
+    Array.from({ length: n }, (_, i) => `Field${i}: 1 \u2192 2`).join('\n');
 
   describe('consistent card grammar', () => {
     const issue = (body: string) =>
@@ -664,9 +670,7 @@ describe('NotificationRow', () => {
     });
 
     it('change rows and comment rows share the list-row geometry and the more-row indent', () => {
-      const ch = setup({
-        item: issue('A: 1 \u2192 2\nB: 1 \u2192 2\nC: 1 \u2192 2\nD: 1 \u2192 2\nE: 1 \u2192 2'),
-      });
+      const ch = setup({ item: issue(changeLines(12)) });
       const list = ch.container.querySelector('[data-change-list]') as HTMLElement;
       const row = ch.container.querySelector('[data-change-row]') as HTMLElement;
       const more = ch.container.querySelector('[data-change-more]') as HTMLElement;
@@ -680,13 +684,7 @@ describe('NotificationRow', () => {
       ch.unmount();
       const mk = (id: string, t: string) =>
         makeItem('jira', { id, bodyPreview: t, createdAt: '2026-03-11T10:00:00.000Z' });
-      const comments = [
-        mk('c1', 'one'),
-        mk('c2', 'two'),
-        mk('c3', 'three'),
-        mk('c4', 'four'),
-        mk('c5', 'five'),
-      ];
+      const comments = Array.from({ length: 12 }, (_, i) => mk(`c${i}`, `comment ${i}`));
       const cm = setup({ item: comments[0], items: comments });
       const crow = cm.container.querySelector('[data-comment-row]') as HTMLElement;
       expect(crow.className).toContain('h-5');
@@ -696,18 +694,14 @@ describe('NotificationRow', () => {
       );
     });
 
-    it('shows a 4th row instead of "+1 more"; collapses only when 2+ would be hidden', () => {
-      const four = setup({
-        item: issue('A: 1 \u2192 2\nB: 1 \u2192 2\nC: 1 \u2192 2\nD: 1 \u2192 2'),
-      });
-      expect(four.container.querySelectorAll('[data-change-row]')).toHaveLength(4);
-      expect(four.container.querySelector('[data-change-more]')).toBeNull();
-      four.unmount();
-      const five = setup({
-        item: issue('A: 1 \u2192 2\nB: 1 \u2192 2\nC: 1 \u2192 2\nD: 1 \u2192 2\nE: 1 \u2192 2'),
-      });
-      expect(five.container.querySelectorAll('[data-change-row]')).toHaveLength(3);
-      expect(five.container.querySelector('[data-change-more]')?.textContent).toBe(
+    it('shows up to 10 rows: 10 items in full, 11 -> 9 + "+2 more" (never "+1 more")', () => {
+      const ten = setup({ item: issue(changeLines(10)) });
+      expect(ten.container.querySelectorAll('[data-change-row]')).toHaveLength(10);
+      expect(ten.container.querySelector('[data-change-more]')).toBeNull();
+      ten.unmount();
+      const eleven = setup({ item: issue(changeLines(11)) });
+      expect(eleven.container.querySelectorAll('[data-change-row]')).toHaveLength(9);
+      expect(eleven.container.querySelector('[data-change-more]')?.textContent).toBe(
         '+2 more changes',
       );
     });
