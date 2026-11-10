@@ -224,14 +224,14 @@ Plans:
 **Goal:** Notifications already work; redesign them visually and polish the UI/UX. Research notification best practices (grouping, read/unread, triage, density, actions, empty states) and pick what fits taskflow's existing design language. Details are left to research/discuss — the user deferred specifics.
 **Requirements**: NOTIF-01, NOTIF-02, NOTIF-03, NOTIF-04, NOTIF-05, NOTIF-06, NOTIF-07, NOTIF-08 (reworded per D-13: full-page navigation, no peek), NOTIF-09, NOTIF-10
 **Depends on:** Phase 94
-**Plans:** 6 plans
+**Plans:** 2/6 plans executed
 
 Plans:
 
 **Wave 1**
 
-- [ ] 95-01-PLAN.md — Store hygiene: readIds pruning, capped dismissed tombstones, due-date id, bulk triage actions (wave 1)
-- [ ] 95-02-PLAN.md — Pure view-model (entity key, time buckets, grouping, filters) + useNow (wave 1, TDD)
+- [x] 95-01-PLAN.md — Store hygiene: readIds pruning, capped dismissed tombstones, due-date id, bulk triage actions (wave 1)
+- [x] 95-02-PLAN.md — Pure view-model (entity key, time buckets, grouping, filters) + useNow (wave 1, TDD)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
