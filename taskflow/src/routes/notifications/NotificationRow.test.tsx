@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { NotificationItem } from '../../stores/notifications.store';
@@ -52,7 +54,10 @@ describe('NotificationRow', () => {
     expect(screen.getByText('Fix login bug')).toBeInTheDocument();
     expect(screen.getByText('commented')).toBeInTheDocument();
     const line2 = container.querySelector('[data-line="detail"]') as HTMLElement;
-    expect(line2.textContent).toBe('Jane Smith commented The issue was caused by a race condition');
+    // preview is a prefix of the longer full body -> ends with an ellipsis
+    expect(line2.textContent).toBe(
+      'Jane Smith commented The issue was caused by a race condition\u2026',
+    );
     expect(line2.className).toContain('truncate');
     expect(screen.getByText('2h')).toBeInTheDocument();
   });
@@ -88,7 +93,7 @@ describe('NotificationRow', () => {
     expect(parent.className).toContain('flex-[0_100_auto]');
     expect(
       screen.getByRole('button', {
-        name: 'Unread. Jane commented on PROJ-123 Fix tax rounding (in PROJ-100 Checkout redesign): The issue was caused by a race condition',
+        name: 'Unread. Jane commented on PROJ-123 Fix tax rounding (in PROJ-100 Checkout redesign): The issue was caused by a race condition\u2026',
       }),
     ).toBeInTheDocument();
   });
@@ -451,9 +456,9 @@ describe('NotificationRow', () => {
       const rows = [...container.querySelectorAll('[data-change-row]')];
       expect(rows).toHaveLength(3);
       expect(rows.map((r) => r.textContent)).toEqual([
-        'statusTo Do \u2192 In Progress',
-        'assigneeBen \u2192 Cara',
-        'priorityMinor \u2192 Major',
+        'statusTo Do\u2192In Progress',
+        'assigneeBen\u2192Cara',
+        'priorityMinor\u2192Major',
       ]);
       expect(container.querySelector('[data-change-more]')?.textContent).toBe('+3 more changes');
       expect(screen.getByText('To Do').className).toContain('rounded');
@@ -569,16 +574,43 @@ describe('NotificationRow', () => {
     const issue = (body: string) =>
       makeItem('jira', { notificationType: 'issue-update', bodyPreview: body });
 
-    it('uses the same ValueChange renderer inline (single change) and in list rows', () => {
+    it('renders old/new the same way inline and in lists; list arrows share one grid column', () => {
       const single = setup({ item: issue('Priority: Minor \u2192 Major') });
       const inline = single.container.querySelector('[data-line="detail"] [data-value-change]');
       expect(inline?.textContent).toBe('Minor \u2192 Major');
       single.unmount();
-      const multi = setup({ item: issue('Priority: Minor \u2192 Major\nSprint: S12 \u2192 S13') });
-      const rows = multi.container.querySelectorAll('[data-change-row] [data-value-change]');
-      expect(rows).toHaveLength(2);
-      expect(rows[0].textContent).toBe('Minor \u2192 Major');
-      expect(rows[0].className).toBe(inline?.className);
+      const multi = setup({
+        item: issue(
+          'Priority: Minor \u2192 Major\nSprint: Sprint 12 \u2192 S13\nFix Version: \u2192 1.14.0',
+        ),
+      });
+      const list = multi.container.querySelector('[data-change-list]') as HTMLElement;
+      // one grid: icon | field | old | arrow | new -> arrows align across rows
+      expect(list.className).toContain('grid-cols-[auto_auto_auto_auto_minmax(0,1fr)]');
+      expect(multi.container.querySelectorAll('[data-change-row]')).toHaveLength(3);
+      expect(multi.container.querySelectorAll('[data-list-arrow]')).toHaveLength(3);
+      const from = [...multi.container.querySelectorAll('[data-list-from]')].map(
+        (e) => e.textContent,
+      );
+      expect(from).toEqual(['Minor', 'Sprint 12', 'none']);
+    });
+
+    it('signals an empty old value as "none" (none -> value), inline too', () => {
+      const { container } = setup({ item: issue('Fix Version: \u2192 1.14.0') });
+      expect(container.querySelector('[data-line="detail"] [data-value-change]')?.textContent).toBe(
+        'none \u2192 1.14.0',
+      );
+    });
+
+    it('review requests keep "→ people" without a "none" old side', () => {
+      const { container } = setup({
+        item: makeItem('gitlab', {
+          id: 'gitlab-system-9',
+          notificationType: 'mr-note',
+          bodyPreview: 'Review requested: ana, ben',
+        }),
+      });
+      expect(container.querySelector('[data-value-none]')).toBeNull();
     });
 
     it('status pills and label chips share one chip geometry, inline and in lists', () => {
@@ -599,20 +631,32 @@ describe('NotificationRow', () => {
       const ch = setup({
         item: issue('A: 1 \u2192 2\nB: 1 \u2192 2\nC: 1 \u2192 2\nD: 1 \u2192 2'),
       });
+      const list = ch.container.querySelector('[data-change-list]') as HTMLElement;
       const row = ch.container.querySelector('[data-change-row]') as HTMLElement;
       const more = ch.container.querySelector('[data-change-more]') as HTMLElement;
       expect(row.hasAttribute('data-list-row')).toBe(true);
-      expect(row.className).toContain('h-5');
-      expect(row.className).toContain('text-[11px]');
+      expect(list.className).toContain('text-[11px]');
+      expect(list.className).toContain('leading-5');
+      expect((ch.container.querySelector('[data-list-field]') as HTMLElement).className).toContain(
+        'h-5',
+      );
       expect(more.className).toContain('pl-[1.125rem]');
       ch.unmount();
       const mk = (id: string, t: string) =>
         makeItem('jira', { id, bodyPreview: t, createdAt: '2026-03-11T10:00:00.000Z' });
-      const list = [mk('c1', 'one'), mk('c2', 'two'), mk('c3', 'three'), mk('c4', 'four')];
-      const cm = setup({ item: list[0], items: list });
+      const comments = [mk('c1', 'one'), mk('c2', 'two'), mk('c3', 'three'), mk('c4', 'four')];
+      const cm = setup({ item: comments[0], items: comments });
       const crow = cm.container.querySelector('[data-comment-row]') as HTMLElement;
-      expect(crow.className).toBe(row.className);
-      expect(cm.container.querySelector('[data-comment-more]')?.className).toBe(more.className);
+      expect(crow.className).toContain('h-5');
+      expect(crow.className).toContain('text-[11px]');
+      expect(cm.container.querySelector('[data-comment-more]')?.className).toContain(
+        'pl-[1.125rem]',
+      );
+    });
+
+    it('tooltip content wraps long text instead of overflowing', () => {
+      const src = readFileSync(resolve(__dirname, 'NotificationRow.tsx'), 'utf8');
+      expect(src).toMatch(/data-notification-tooltip className="[^"]*\[overflow-wrap:anywhere\]/);
     });
 
     it('keeps the unread dot inside the card padding', () => {

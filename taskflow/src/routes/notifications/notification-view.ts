@@ -247,6 +247,24 @@ export function parseSystemLines(body: string): ChangeLine[] {
 }
 
 /** Light cleanup of Jira wiki / GitLab markdown so a comment reads as plain text. */
+/**
+ * Preview text for a comment: the stored preview is cut server-side (80/120 chars) with no marker,
+ * so when the full body is longer, end the preview with an ellipsis to signal there is more.
+ */
+export function commentPreview(item: Pick<NotificationItem, 'bodyPreview' | 'fullBody'>): string {
+  const preview = cleanCommentText(item.bodyPreview);
+  const full = item.fullBody ? cleanCommentText(item.fullBody) : '';
+  if (
+    preview &&
+    full.length > preview.length &&
+    full.startsWith(preview) &&
+    !preview.endsWith('\u2026')
+  ) {
+    return `${preview.replace(/[\s.,;:]+$/, '')}\u2026`;
+  }
+  return preview;
+}
+
 export function cleanCommentText(text: string): string {
   return text
     .replace(/\[~([^\]]+)\]/g, '@$1')
@@ -368,7 +386,7 @@ function changesParts(actor: string | undefined, changes: ChangeLine[]): EventPa
 
 /** Structured, plain-text description of an event. Never returns HTML. */
 export function describeEventParts(item: NotificationItem): EventParts {
-  const snippet = cleanCommentText(item.bodyPreview);
+  const snippet = commentPreview(item);
   const actor = actorName(item.author);
   if (item.notificationType === 'mr-note' && isSystemNote(item)) {
     const lines = parseSystemLines(item.bodyPreview);
@@ -604,7 +622,7 @@ export function describeEntryParts(items: NotificationItem[]): EventParts {
     count: n,
     comments: items.map((i) => ({
       id: i.id,
-      text: describeEventParts(i).commentText ?? cleanCommentText(i.bodyPreview),
+      text: describeEventParts(i).commentText ?? commentPreview(i),
       createdAt: i.createdAt,
       mention: isMention(i),
     })),

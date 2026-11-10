@@ -12,8 +12,8 @@
  *     list row: old (muted) -> new (foreground, medium); status = status pill; labels = chips.
  *  D. Single change: "Cara changed priority  Minor -> Major"; several: "Cara updated 3 fields"
  *     + list. Phrase = "changed <field>" (state events / description: "merged", "edited description").
- *  E. List rows (changes + comments) share ListRow: 12px coloured icon, gap-1.5, h-5, 11px.
- *     Change rows: field name column sized to the widest field in that card (<= 5.5rem).
+ *  E. List rows share one geometry: 12px coloured icon, gap-1.5, h-5, 11px. Comment rows: icon + text.
+ *     Change rows: a grid (icon | field | old | arrow | new) so arrows align down the list; empty side = "none".
  *     Comment rows: text right after the icon. "+N more" rows align with the row text.
  *  F. Chips (status pill, label chip) share CHIP_CLASS: h-4, rounded, px-1.5, 11px medium.
  *  G. Type scale: title 12px; key, time, line 2, lists, chips 11px. Single ellipsis at the end
@@ -178,38 +178,59 @@ const ARROW = (
  * THE value-change renderer: old (muted) -> new (foreground, medium). Used inline on line 2
  * (single change) and in every change-list row. Inline-level only, so one ellipsis ends the line.
  */
+/** Text-only changes (labels diff, "edited", review list) — no old/new pair. */
+function TextValue({ change }: { change: ChangeLine }) {
+  if (change.field === 'labels') return <LabelChips text={change.text ?? ''} />;
+  return change.text === 'edited' ? (
+    <span className="text-muted-foreground">{change.text}</span>
+  ) : (
+    <span className="font-medium text-foreground">{change.text}</span>
+  );
+}
+
+/** Empty side of a change: "none", muted, so "none → 1.14.0" / "Ben → none" both read explicitly. */
+const NONE = (
+  <span data-value-none className="text-muted-foreground">
+    none
+  </span>
+);
+
+/** Old value cell (muted; status as pill; "none" when there was no value). */
+function FromValue({ change }: { change: ChangeLine }) {
+  // Review requests have no "old" side (it's a request to people, not a field value).
+  if (!change.from) return change.action === 'review' ? null : NONE;
+  return change.field === 'status' ? (
+    <StatusPill name={change.from} />
+  ) : (
+    <span className="text-muted-foreground">{change.from}</span>
+  );
+}
+
+/** New value cell (foreground medium; status as pill; "none" when cleared). */
+function ToValue({ change }: { change: ChangeLine }) {
+  if (!change.to) return NONE;
+  return change.field === 'status' ? (
+    <StatusPill name={change.to} />
+  ) : (
+    <span className="font-medium text-foreground">{change.to}</span>
+  );
+}
+
+/**
+ * THE value-change renderer for line 2: old (muted) -> new (foreground, medium). The change list
+ * renders the same FromValue / ARROW / ToValue cells in grid columns so arrows align.
+ */
 export function ValueChange({ change }: { change: ChangeLine }) {
-  if (change.text) {
-    if (change.field === 'labels') return <LabelChips text={change.text} />;
-    return change.text === 'edited' ? (
-      <span className="text-muted-foreground">{change.text}</span>
-    ) : (
-      <span className="font-medium text-foreground">{change.text}</span>
-    );
-  }
+  if (change.text) return <TextValue change={change} />;
   if (!change.from && !change.to) return null;
-  const status = change.field === 'status';
   return (
     <span data-value-change>
-      {change.from ? (
+      {change.from || change.action !== 'review' ? (
         <>
-          {status ? (
-            <StatusPill name={change.from} />
-          ) : (
-            <span className="text-muted-foreground">{change.from}</span>
-          )}{' '}
+          <FromValue change={change} />{' '}
         </>
       ) : null}
-      {ARROW}{' '}
-      {change.to ? (
-        status ? (
-          <StatusPill name={change.to} />
-        ) : (
-          <span className="font-medium text-foreground">{change.to}</span>
-        )
-      ) : (
-        <span className="text-muted-foreground">none</span>
-      )}
+      {ARROW} <ToValue change={change} />
     </span>
   );
 }
@@ -265,15 +286,11 @@ function ListRow({
   rowAttr,
   Icon,
   iconClass,
-  label,
-  labelWidth,
   children,
 }: {
   rowAttr: string;
   Icon: EventStyle['Icon'];
   iconClass: string;
-  label?: string;
-  labelWidth?: string;
   children: ReactNode;
 }) {
   return (
@@ -283,15 +300,6 @@ function ListRow({
       className="flex h-5 items-center gap-1.5 text-[11px] leading-5"
     >
       <Icon aria-hidden="true" className={cn('size-3 flex-none', iconClass)} />
-      {label != null ? (
-        <span
-          data-list-field
-          style={{ width: labelWidth }}
-          className="flex-none truncate text-muted-foreground"
-        >
-          {label}
-        </span>
-      ) : null}
       <span data-list-value className="min-w-0 flex-1 truncate">
         {children}
       </span>
@@ -313,34 +321,62 @@ function MoreRow({ attr, text }: { attr: string; text: string }) {
 
 const LIST_CLASS = 'pointer-events-none relative mt-1 flex flex-col gap-1';
 
-/** Compact change list for multi-field updates: icon, field column (widest field in the card, <= 5.5rem), value change. */
+/**
+ * Compact change list for multi-field updates. A 5-column grid — icon | field | old | arrow | new —
+ * so every row's field, old value, arrow and new value line up. Text-only changes (labels diff,
+ * "edited") span old..new. Same 12px icon / h-5 / 11px geometry as ListRow.
+ */
 export function NotificationChangeList({ changes }: { changes: ChangeLine[] }) {
   const shown = changes.slice(0, MAX_LISTED_CHANGES);
   const hidden = changes.length - shown.length;
-  const widest = Math.max(...shown.map((c) => c.field.length));
-  const labelWidth = `min(5.5rem, ${widest + 1}ch)`;
   return (
-    <ul data-change-list className={LIST_CLASS}>
+    <ul
+      data-change-list
+      className="pointer-events-none relative mt-1 grid grid-cols-[auto_auto_auto_auto_minmax(0,1fr)] items-center gap-x-1.5 gap-y-1 text-[11px] leading-5"
+    >
       {shown.map((c) => {
         const style = c.action ? ACTION_STYLE[c.action] : UPDATE_STYLE;
+        const Icon = style.Icon;
+        const textOnly = Boolean(c.text) || (!c.from && !c.to);
         return (
-          <ListRow
+          <li
             key={`${c.field}|${c.action ?? ''}|${c.text ?? c.to ?? ''}`}
-            rowAttr="data-change-row"
-            Icon={style.Icon}
-            iconClass={style.text}
-            label={c.field}
-            labelWidth={labelWidth}
+            data-change-row
+            data-list-row
+            className="contents"
           >
-            <ValueChange change={c} />
-          </ListRow>
+            <Icon aria-hidden="true" className={cn('size-3 flex-none', style.text)} />
+            <span data-list-field className="h-5 max-w-[5.5rem] truncate text-muted-foreground">
+              {c.field}
+            </span>
+            {textOnly ? (
+              <span data-list-value className="col-span-3 h-5 min-w-0 truncate">
+                {c.text ? <TextValue change={c} /> : null}
+              </span>
+            ) : (
+              <>
+                <span data-list-from className="h-5 max-w-[9rem] min-w-0 truncate">
+                  <FromValue change={c} />
+                </span>
+                <span data-list-arrow className="h-5">
+                  {ARROW}
+                </span>
+                <span data-list-value className="h-5 min-w-0 truncate">
+                  <ToValue change={c} />
+                </span>
+              </>
+            )}
+          </li>
         );
       })}
       {hidden > 0 ? (
-        <MoreRow
-          attr="data-change-more"
-          text={`+${hidden} more change${hidden === 1 ? '' : 's'}`}
-        />
+        <li
+          data-change-more
+          data-list-more
+          className="col-span-full h-5 pl-[1.125rem] text-muted-foreground"
+        >
+          +{hidden} more change{hidden === 1 ? '' : 's'}
+        </li>
       ) : null}
     </ul>
   );
@@ -370,6 +406,8 @@ export function NotificationCommentList({ comments }: { comments: CommentLine[] 
   );
 }
 
+const TOOLTIP_MAX_COMMENTS = 5;
+
 /** Tooltip lines for a merged card: all changes, or the comments latest first. */
 function mergedTooltip(items: NotificationItem[], parts: EventParts): ReactNode {
   if (parts.changes && parts.changes.length > MAX_LISTED_CHANGES) {
@@ -380,8 +418,7 @@ function mergedTooltip(items: NotificationItem[], parts: EventParts): ReactNode 
           <div key={i}>
             {c.field}
             {c.text ? ` ${c.text}` : ''}
-            {c.from ? ` ${c.from}` : ''}
-            {c.from || c.to ? ` \u2192 ${c.to ?? 'none'}` : ''}
+            {c.from || c.to ? ` ${c.from ?? 'none'} \u2192 ${c.to ?? 'none'}` : ''}
           </div>
         ))}
       </div>
@@ -390,11 +427,16 @@ function mergedTooltip(items: NotificationItem[], parts: EventParts): ReactNode 
   if (parts.count && parts.count > 1) {
     return (
       <div className="flex flex-col gap-1">
-        {items.map((i) => (
+        {items.slice(0, TOOLTIP_MAX_COMMENTS).map((i) => (
           <div key={i.id} className="line-clamp-2">
             {cleanCommentText(i.fullBody || i.bodyPreview)}
           </div>
         ))}
+        {items.length > TOOLTIP_MAX_COMMENTS ? (
+          <div className="text-muted-foreground">
+            +{items.length - TOOLTIP_MAX_COMMENTS} more comments
+          </div>
+        ) : null}
       </div>
     );
   }
@@ -455,7 +497,7 @@ export default function NotificationRow({
             />
           }
         />
-        <TooltipContent>
+        <TooltipContent data-notification-tooltip className="max-w-sm [overflow-wrap:anywhere]">
           <TooltipBody
             title={item.entityTitle}
             note={`${sourceLabel} \u00B7 ${typeLabel} \u00B7 ${formatAbsoluteTime(item.createdAt)}`}

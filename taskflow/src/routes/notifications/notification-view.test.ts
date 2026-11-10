@@ -13,6 +13,7 @@ import {
   describeEventAria,
   describeEntryParts,
   describeEventParts,
+  commentPreview,
   estimateEntryHeight,
   mergeChanges,
   mergeCategory,
@@ -677,6 +678,26 @@ describe('merging', () => {
     expect(estimateEntryHeight(multi)).toBeGreaterThan(estimateEntryHeight(single));
     expect(estimateEntryHeight({ kind: 'header', id: 'h', bucket: 'today', label: 'Today' })).toBe(
       32,
+    );
+  });
+});
+
+describe('commentPreview', () => {
+  it('ends a server-truncated preview with an ellipsis when the full body continues it', () => {
+    expect(
+      commentPreview({
+        bodyPreview: 'We saw a one cent mismatch on',
+        fullBody: 'We saw a one cent mismatch on invoices.',
+      }),
+    ).toBe('We saw a one cent mismatch on\u2026');
+  });
+  it('leaves complete previews alone', () => {
+    expect(commentPreview({ bodyPreview: 'Done.', fullBody: 'Done.' })).toBe('Done.');
+    expect(commentPreview({ bodyPreview: 'Short', fullBody: '' })).toBe('Short');
+  });
+  it('does not add an ellipsis when the full body is unrelated text', () => {
+    expect(commentPreview({ bodyPreview: 'Due tomorrow', fullBody: 'Example body text' })).toBe(
+      'Due tomorrow',
     );
   });
 });
