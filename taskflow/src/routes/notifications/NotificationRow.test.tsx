@@ -64,7 +64,7 @@ describe('NotificationRow', () => {
 
   it('never wraps the issue key (nowrap, column grows instead of breaking)', () => {
     setup();
-    const key = screen.getByRole('button', { name: 'PROJ-123' });
+    const key = screen.getByText('PROJ-123');
     expect(key.className).toContain('whitespace-nowrap');
     expect(key.className).toContain('flex-none');
     expect(key.className).not.toMatch(/(^|\s)w-\[/);
@@ -72,7 +72,7 @@ describe('NotificationRow', () => {
 
   it('key sits inline with the title at the same size (no min-width column, no mono 11px)', () => {
     setup();
-    const key = screen.getByRole('button', { name: 'PROJ-123' });
+    const key = screen.getByText('PROJ-123');
     expect(key.className).toContain('text-xs');
     expect(key.className).not.toMatch(/min-w-\[/);
     expect(key.className).not.toContain('font-mono');
@@ -256,12 +256,14 @@ describe('NotificationRow', () => {
     ).toBeInTheDocument();
   });
 
-  it('overlay click calls onOpen once; key click calls onOpen once', () => {
+  it('overlay click calls onOpen once; the key is plain text, not its own link', () => {
     const { onOpen } = setup();
     fireEvent.click(screen.getByRole('button', { name: /^Unread\./ }));
     expect(onOpen).toHaveBeenCalledTimes(1);
-    fireEvent.click(screen.getByRole('button', { name: 'PROJ-123' }));
-    expect(onOpen).toHaveBeenCalledTimes(2);
+    expect(screen.queryByRole('button', { name: 'PROJ-123' })).toBeNull();
+    const key = screen.getByText('PROJ-123');
+    expect(key.className).toContain('pointer-events-none');
+    expect(key.className).not.toContain('hover:underline');
   });
 
   it('tray buttons call only their handler', () => {

@@ -484,18 +484,12 @@ export default function NotificationRow({
       <div className="flex min-w-0 flex-1 flex-col justify-center">
         <div className="relative flex h-5 items-center gap-1.5">
           {ref ? (
-            <button
-              type="button"
-              tabIndex={-1}
-              onClick={(e) => {
-                e.stopPropagation();
-                onOpen();
-              }}
+            <span
               data-entity-key
-              className="relative z-10 flex-none cursor-pointer whitespace-nowrap text-left text-xs font-medium tabular-nums text-muted-foreground hover:underline @max-[22rem]:hidden"
+              className="pointer-events-none relative flex-none whitespace-nowrap text-xs font-medium tabular-nums text-muted-foreground @max-[22rem]:hidden"
             >
               {ref}
-            </button>
+            </span>
           ) : null}
           <span className="pointer-events-none relative flex min-w-0 flex-1 items-center gap-1 overflow-hidden pr-0.5">
             {item.parentKey && item.parentSummary ? (
