@@ -1,18 +1,17 @@
 /**
- * NotificationRow — one-line, neutral event row (Phase 95 D-02..D-05, D-08, D-14).
+ * NotificationRow — flat two-line notification row (Phase 95).
  *
- * Fixed columns (explicit widths so every row aligns without a <table>):
- *   [unread dot][who: avatar+event badge][KEY][parent › title][what][detail][time]
- * A grouped entity renders as this same row for its newest event, marked by an always-on left
- * rail, a gutter chevron and a "+N" count bubble on the avatar stack; expanded, the earlier
- * events render as nested rows in a tinted, railed thread.
+ *   [unread dot][avatar + action badge] line 1: KEY  parent › title            time
+ *                                       line 2: coloured verb + details (full width)
+ * - Line 2 starts at the same x as the key. Comments show their text; updates show every
+ *   change inline ("field old → new · field old → new"); system events show a short detail.
  * - An absolute inset-0 overlay <button> is the primary target; the key and tray
  *   buttons are SIBLINGS (relative z-10), never nested inside it.
  * - Unread vs read only changes class strings / the aria prefix, never the tree (D-05).
- * - Body, parent and absolute time live in a 600ms tooltip only.
+ * - Absolute time and full body live in a 600ms tooltip; the hover tray replaces the time.
  */
-import { Check, ChevronDown, ChevronRight, ExternalLink, Mail, MailOpen } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { Check, ExternalLink, Mail, MailOpen } from 'lucide-react';
+import { Fragment, type ReactNode } from 'react';
 import { LinkContextMenu } from '@/components/ui/link-context-menu';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { TooltipBody } from '@/components/ui/tooltip-body';
@@ -22,9 +21,11 @@ import { cn } from '@/lib/utils';
 import { useIsPeeked } from '@/stores/peek.store';
 import type { NotificationItem } from '../../stores/notifications.store';
 import NotificationAvatar from './NotificationAvatar';
-import type { EventStyle } from './notification-colours';
+import { ACTION_STYLE, UPDATE_STYLE } from './notification-colours';
 import {
+  type ChangeLine,
   describeEventAria,
+  describeEventAriaText,
   describeEventParts,
   type EventParts,
   eventStyleFor,
@@ -40,14 +41,6 @@ interface NotificationRowProps {
   item: NotificationItem;
   isUnread: boolean;
   now: number;
-  /** Number of earlier events folded behind this row (grouped entity); 0/undefined = single. */
-  groupCount?: number;
-  /** Next distinct actor in a group, drawn behind the newest actor's avatar. */
-  stackItem?: NotificationItem;
-  /** Earlier event shown inside an expanded group's thread (tinted, railed). */
-  nested?: boolean;
-  expanded?: boolean;
-  onToggleExpand?: () => void;
   onOpen: () => void;
   onToggleRead: () => void;
   onDone: () => void;
@@ -111,37 +104,13 @@ export function NotificationTrayButton({
   );
 }
 
-/* ── "what" and "detail" columns ───────────────────── */
-
-/** Fixed-width "what" column: verb phrase, or the changed field name. Event-coloured. */
-export function NotificationWhat({
-  parts,
-  style,
-  unread,
-}: {
-  parts: EventParts;
-  style: EventStyle;
-  unread: boolean;
-}) {
-  return (
-    <span
-      data-col="what"
-      className={cn(
-        'pointer-events-none relative w-[5.5rem] flex-none truncate text-[11px] font-medium',
-        style.text,
-        !unread && 'opacity-80',
-      )}
-    >
-      {parts.what}
-    </span>
-  );
-}
+/* ── line 2 ─────────────────────────────────────────── */
 
 function StatusPill({ name }: { name: string }) {
   return (
     <span
       className={cn(
-        'min-w-0 truncate whitespace-nowrap rounded px-1',
+        'whitespace-nowrap rounded px-1 py-px',
         statusCategoryBadgeClass(statusCategoryGuess(name)),
       )}
     >
@@ -151,70 +120,84 @@ function StatusPill({ name }: { name: string }) {
 }
 
 const ARROW = (
-  <span aria-hidden="true" className="flex-none text-muted-foreground">
+  <span aria-hidden="true" className="text-muted-foreground">
     {'\u2192'}
   </span>
 );
 
-/** Fixed-width "detail" column: status pills, change values, short text; empty otherwise. */
-export function NotificationDetail({ parts }: { parts: EventParts }) {
-  const more = parts.moreChanges ? (
-    <span className="flex-none text-muted-foreground">+{parts.moreChanges}</span>
-  ) : null;
-  const change = parts.changes?.[0];
-  let content: ReactNode = null;
-  let kind = 'empty';
-  if (parts.to) {
-    kind = 'status';
-    content = (
+function Value({ field, name }: { field: string; name: string }) {
+  if (field === 'status') return <StatusPill name={name} />;
+  return <span className="text-foreground">{name}</span>;
+}
+
+/** One change inline: coloured field label, then "old → new" / preformatted text. */
+function ChangeInline({ change }: { change: ChangeLine }) {
+  const colour = (change.action ? ACTION_STYLE[change.action] : UPDATE_STYLE).text;
+  let tail: ReactNode = null;
+  if (change.text) {
+    tail = <span className="text-foreground">{change.text}</span>;
+  } else if (change.from || change.to) {
+    tail = (
       <>
-        {parts.from ? <StatusPill name={parts.from} /> : null}
-        {ARROW}
-        <StatusPill name={parts.to} />
-        {more}
-      </>
-    );
-  } else if (parts.commentText) {
-    kind = 'comment';
-    content = <span className="min-w-0 truncate text-muted-foreground">{parts.commentText}</span>;
-  } else if (change?.text) {
-    kind = 'change';
-    content = (
-      <>
-        <span className="min-w-0 truncate text-foreground">{change.text}</span>
-        {more}
-      </>
-    );
-  } else if (change && (change.from || change.to)) {
-    kind = 'change';
-    content = (
-      <>
-        {change.from ? (
-          <span className="min-w-0 truncate text-foreground">{change.from}</span>
-        ) : null}
-        {ARROW}
+        {change.from ? <Value field={change.field} name={change.from} /> : null}
+        {change.from ? ' ' : null}
+        {ARROW}{' '}
         {change.to ? (
-          <span className="min-w-0 truncate text-foreground">{change.to}</span>
+          <Value field={change.field} name={change.to} />
         ) : (
           <span className="text-muted-foreground">none</span>
         )}
-        {more}
       </>
     );
-  } else if (parts.detailText) {
-    kind = 'text';
+  }
+  return (
+    <>
+      <span className={cn('font-medium', colour)}>{change.field}</span>
+      {tail ? <> {tail}</> : null}
+    </>
+  );
+}
+
+/** Line 2: one truncating block of inline runs, so a single ellipsis ends the whole line. */
+export function NotificationDetailLine({
+  parts,
+  colour,
+  unread,
+}: {
+  parts: EventParts;
+  colour: string;
+  unread: boolean;
+}) {
+  let content: ReactNode;
+  let kind: string;
+  if (parts.changes && parts.changes.length > 0) {
+    kind = 'changes';
+    content = parts.changes.map((c, i) => (
+      // biome-ignore lint/suspicious/noArrayIndexKey: static, order-stable list
+      <Fragment key={i}>
+        {i > 0 ? (
+          <span aria-hidden="true" className="text-muted-foreground">
+            {' \u00B7 '}
+          </span>
+        ) : null}
+        <ChangeInline change={c} />
+      </Fragment>
+    ));
+  } else {
+    const text = parts.commentText || parts.detail;
+    kind = parts.commentText ? 'comment' : parts.detail ? 'text' : 'verb';
     content = (
       <>
-        <span className="min-w-0 truncate text-foreground">{parts.detailText}</span>
-        {more}
+        <span className={cn('font-medium', colour, !unread && 'opacity-80')}>{parts.verb}</span>
+        {text ? <span className="text-muted-foreground"> {text}</span> : null}
       </>
     );
   }
   return (
     <span
-      data-col="detail"
+      data-line="detail"
       data-detail={kind}
-      className="pointer-events-none relative flex w-[10rem] flex-none items-center gap-1 overflow-hidden text-[11px] @max-[26rem]:hidden"
+      className="pointer-events-none relative block h-4 truncate text-[11px] leading-4"
     >
       {content}
     </span>
@@ -227,11 +210,6 @@ export default function NotificationRow({
   item,
   isUnread,
   now,
-  groupCount = 0,
-  stackItem,
-  nested = false,
-  expanded = false,
-  onToggleExpand,
   onOpen,
   onToggleRead,
   onDone,
@@ -247,27 +225,17 @@ export default function NotificationRow({
   const parentLabel = item.parentKey
     ? `${item.parentKey}${item.parentSummary ? ` ${item.parentSummary}` : ''}`
     : '';
-  const ariaLabel = `${isUnread ? 'Unread. ' : ''}${describeEventAria(parts)} on ${ref ? `${ref} ` : ''}${title}${parentLabel ? ` (in ${parentLabel})` : ''}`;
-  const isGroup = groupCount > 0;
-  const toggleLabel = `${expanded ? 'Hide' : 'Show'} ${groupCount} earlier event${groupCount === 1 ? '' : 's'} on ${ref ?? title}`;
+  const ariaText = describeEventAriaText(parts);
+  const ariaLabel = `${isUnread ? 'Unread. ' : ''}${describeEventAria(parts)} on ${ref ? `${ref} ` : ''}${title}${parentLabel ? ` (in ${parentLabel})` : ''}${ariaText ? `: ${ariaText}` : ''}`;
 
   return (
     <div
       className={cn(
-        'group/row relative flex h-11 items-center gap-1.5 border-b px-2 text-xs density-compact:h-10 density-comfortable:h-12 hover:bg-accent focus-within:bg-accent',
-        nested ? 'border-border/30 bg-muted/40' : 'border-border/60',
+        'group/row relative flex h-14 items-center gap-2 border-b border-border/60 px-2 text-xs density-compact:h-12 density-comfortable:h-16 hover:bg-accent focus-within:bg-accent',
         peeked && PEEKED_ROW_CLASS,
       )}
       data-peeked={peeked ? 'true' : undefined}
-      data-nested={nested ? 'true' : undefined}
     >
-      {nested || isGroup ? (
-        <span
-          aria-hidden="true"
-          data-thread-rail
-          className="pointer-events-none absolute inset-y-0 left-0 w-0.5 bg-muted-foreground/40"
-        />
-      ) : null}
       <Tooltip>
         <TooltipTrigger
           delay={600}
@@ -301,116 +269,76 @@ export default function NotificationRow({
         </TooltipContent>
       </Tooltip>
 
-      <span className="relative flex flex-none items-center">
-        <span className="pointer-events-none flex w-2 flex-none justify-center">
-          <span
-            data-unread={isUnread ? 'true' : 'false'}
-            className={cn('size-1.5 rounded-full bg-primary', !isUnread && 'opacity-0')}
-          />
-        </span>
-        <span className="flex size-4 flex-none items-center justify-center">
-          {isGroup ? (
+      <span className="pointer-events-none flex w-2 flex-none justify-center">
+        <span
+          data-unread={isUnread ? 'true' : 'false'}
+          className={cn('size-1.5 rounded-full bg-primary', !isUnread && 'opacity-0')}
+        />
+      </span>
+
+      <NotificationAvatar item={item} style={style} />
+
+      <div className="flex min-w-0 flex-1 flex-col justify-center">
+        <div className="relative flex h-5 items-center gap-1.5">
+          {ref ? (
             <button
               type="button"
               tabIndex={-1}
-              data-group-toggle
-              aria-expanded={expanded}
-              aria-label={toggleLabel}
               onClick={(e) => {
                 e.stopPropagation();
-                onToggleExpand?.();
+                onOpen();
               }}
-              className="relative z-10 flex size-4 cursor-pointer items-center justify-center rounded text-muted-foreground hover:bg-background hover:text-foreground"
+              className="relative z-10 min-w-[5rem] flex-none cursor-pointer whitespace-nowrap text-left font-mono text-[11px] text-muted-foreground hover:underline @max-[22rem]:hidden"
             >
-              {expanded ? (
-                <ChevronDown aria-hidden="true" className="size-3.5" />
-              ) : (
-                <ChevronRight aria-hidden="true" className="size-3.5" />
-              )}
+              {ref}
             </button>
           ) : null}
-        </span>
-      </span>
-
-      <NotificationAvatar
-        item={item}
-        style={style}
-        small={nested}
-        behind={stackItem}
-        moreCount={isGroup ? groupCount : 0}
-        onToggleMore={onToggleExpand}
-      />
-
-      {ref ? (
-        <button
-          type="button"
-          tabIndex={-1}
-          onClick={(e) => {
-            e.stopPropagation();
-            onOpen();
-          }}
-          className="relative z-10 min-w-[5rem] flex-none whitespace-nowrap text-left cursor-pointer font-mono text-[11px] text-muted-foreground hover:underline @max-[22rem]:hidden"
-        >
-          {ref}
-        </button>
-      ) : null}
-      <span className="pointer-events-none relative flex min-w-0 flex-1 items-center gap-1 overflow-hidden pr-0.5">
-        {!nested && item.parentKey && item.parentSummary ? (
-          <span
-            data-parent
-            className="flex min-w-[3rem] max-w-[55%] @max-[26rem]:hidden flex-[0_1_auto] items-baseline gap-1 overflow-hidden text-muted-foreground"
-          >
-            <span className="min-w-0 truncate">{item.parentSummary}</span>
-            <span aria-hidden="true" className="flex-none">
-              {'\u203A'}
+          <span className="pointer-events-none relative flex min-w-0 flex-1 items-center gap-1 overflow-hidden pr-0.5">
+            {item.parentKey && item.parentSummary ? (
+              <span
+                data-parent
+                className="flex min-w-[3rem] max-w-[55%] flex-[0_100_auto] items-baseline gap-1 overflow-hidden text-muted-foreground @max-[26rem]:hidden"
+              >
+                <span className="min-w-0 truncate">{item.parentSummary}</span>
+                <span aria-hidden="true" className="flex-none">
+                  {'\u203A'}
+                </span>
+              </span>
+            ) : null}
+            <span
+              className={cn(
+                'min-w-0 flex-[0_1_auto] truncate',
+                isUnread ? 'font-medium text-foreground' : 'font-normal text-muted-foreground',
+              )}
+            >
+              {title}
             </span>
           </span>
-        ) : null}
-        <span
-          className={cn(
-            'min-w-0 flex-[0_1_auto] truncate',
-            isUnread && !nested
-              ? 'font-medium text-foreground'
-              : 'font-normal text-muted-foreground',
-          )}
-        >
-          {title}
-        </span>
-      </span>
-      <NotificationWhat parts={parts} style={style} unread={isUnread} />
-      <NotificationDetail parts={parts} />
-
-      <span className="pointer-events-none relative w-9 flex-none text-right text-[11px] tabular-nums text-muted-foreground group-hover/row:opacity-0 group-focus-within/row:opacity-0">
-        {relTime(item.createdAt, now)}
-      </span>
-
-      <span className="absolute right-2 top-1/2 z-10 flex -translate-y-1/2 items-center gap-0.5 bg-accent pl-1 opacity-0 group-hover/row:opacity-100 group-focus-within/row:opacity-100">
-        <NotificationTrayButton
-          label={
-            isGroup
-              ? isUnread
-                ? 'Mark group read'
-                : 'Mark group unread'
-              : isUnread
-                ? 'Mark as read'
-                : 'Mark as unread'
-          }
-          shortcut="U"
-          onClick={onToggleRead}
-        >
-          {isUnread ? <MailOpen className="size-3.5" /> : <Mail className="size-3.5" />}
-        </NotificationTrayButton>
-        {onOpenInBrowser && item.url ? (
-          <LinkContextMenu href={item.url}>
-            <NotificationTrayButton label="Open in browser" onClick={onOpenInBrowser}>
-              <ExternalLink className="size-3.5" />
+          <span className="pointer-events-none relative w-9 flex-none text-right text-[11px] tabular-nums text-muted-foreground group-hover/row:opacity-0 group-focus-within/row:opacity-0">
+            {relTime(item.createdAt, now)}
+          </span>
+          <span className="absolute right-0 top-1/2 z-10 flex -translate-y-1/2 items-center gap-0.5 bg-accent pl-1 opacity-0 group-hover/row:opacity-100 group-focus-within/row:opacity-100">
+            <NotificationTrayButton
+              label={isUnread ? 'Mark as read' : 'Mark as unread'}
+              shortcut="U"
+              onClick={onToggleRead}
+            >
+              {isUnread ? <MailOpen className="size-3.5" /> : <Mail className="size-3.5" />}
             </NotificationTrayButton>
-          </LinkContextMenu>
-        ) : null}
-        <NotificationTrayButton label="Done" shortcut="E" onClick={onDone}>
-          <Check className="size-3.5" />
-        </NotificationTrayButton>
-      </span>
+            {onOpenInBrowser && item.url ? (
+              <LinkContextMenu href={item.url}>
+                <NotificationTrayButton label="Open in browser" onClick={onOpenInBrowser}>
+                  <ExternalLink className="size-3.5" />
+                </NotificationTrayButton>
+              </LinkContextMenu>
+            ) : null}
+            <NotificationTrayButton label="Done" shortcut="E" onClick={onDone}>
+              <Check className="size-3.5" />
+            </NotificationTrayButton>
+          </span>
+        </div>
+        <NotificationDetailLine parts={parts} colour={style.text} unread={isUnread} />
+      </div>
     </div>
   );
 }

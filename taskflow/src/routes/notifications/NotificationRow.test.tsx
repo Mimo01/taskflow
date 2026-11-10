@@ -46,13 +46,14 @@ function setup(props?: Partial<React.ComponentProps<typeof NotificationRow>>) {
 }
 
 describe('NotificationRow', () => {
-  it('renders ref, entity title, verb tail and injected-now relative time', () => {
+  it('renders ref, entity title, verb + comment text on line 2 and injected-now relative time', () => {
     const { container } = setup();
     expect(screen.getByText('PROJ-123')).toBeInTheDocument();
     expect(screen.getByText('Fix login bug')).toBeInTheDocument();
     expect(screen.getByText('commented')).toBeInTheDocument();
-    // comment text lives in the detail column
-    expect(container.querySelector('[data-col="detail"]')?.textContent).toContain('race condition');
+    const line2 = container.querySelector('[data-line="detail"]') as HTMLElement;
+    expect(line2.textContent).toBe('commented The issue was caused by a race condition');
+    expect(line2.className).toContain('truncate');
     expect(screen.getByText('2h')).toBeInTheDocument();
   });
 
@@ -81,17 +82,18 @@ describe('NotificationRow', () => {
     expect(parent.textContent).not.toContain('PROJ-100');
     expect(parent.textContent).toContain('Checkout redesign');
     expect(parent.textContent).toContain('\u203A');
-    // subtask key stays in the fixed key column, parent summary capped at 55% of the title area
+    // parent summary capped at 55% of the title area and shrinks before the title
     expect(screen.getByText('PROJ-123')).toBeInTheDocument();
     expect(parent.className).toContain('max-w-[55%]');
+    expect(parent.className).toContain('flex-[0_100_auto]');
     expect(
       screen.getByRole('button', {
-        name: 'Unread. Jane commented on PROJ-123 Fix tax rounding (in PROJ-100 Checkout redesign)',
+        name: 'Unread. Jane commented on PROJ-123 Fix tax rounding (in PROJ-100 Checkout redesign): The issue was caused by a race condition',
       }),
     ).toBeInTheDocument();
   });
 
-  it('shows what changed for an issue update, with +N more', () => {
+  it('shows every change of an issue update inline, joined by a dot', () => {
     const { container, unmount } = setup({
       item: makeItem('jira', {
         notificationType: 'issue-update',
@@ -99,68 +101,45 @@ describe('NotificationRow', () => {
         fullBody: 'Priority: Minor \u2192 Major',
       }),
     });
-    expect(container.querySelector('[data-col="what"]')?.textContent).toBe('priority');
-    const tail = container.querySelector('[data-col="detail"]') as HTMLElement;
-    expect(tail.dataset.detail).toBe('change');
-    expect(tail.textContent).toContain('Minor');
-    expect(tail.textContent).toContain('Major');
+    const line = container.querySelector('[data-line="detail"]') as HTMLElement;
+    expect(line.dataset.detail).toBe('changes');
+    expect(line.textContent).toBe('priority Minor \u2192 Major');
     unmount();
     const multi = setup({
       item: makeItem('jira', {
         notificationType: 'issue-update',
-        bodyPreview: 'Sprint: S12 \u2192 S13\nLabels: a \u2192 a b\nDescription: updated',
+        bodyPreview:
+          'Sprint: S12 \u2192 S13\nLabels: a \u2192 a b\nAssignee: (none) \u2192 Ben\nDescription: updated',
         fullBody: 'x',
       }),
     });
-    expect(multi.container.querySelector('[data-col="what"]')?.textContent).toBe('sprint');
-    const t2 = multi.container.querySelector('[data-col="detail"]') as HTMLElement;
-    expect(t2.textContent).toContain('+2');
-    multi.unmount();
-    const desc = setup({
-      item: makeItem('jira', {
-        notificationType: 'issue-update',
-        bodyPreview: 'Description: updated',
-        fullBody: 'x',
+    expect(multi.container.querySelector('[data-line="detail"]')?.textContent).toBe(
+      'sprint S12 \u2192 S13 \u00B7 labels +b \u00B7 assignee \u2192 Ben \u00B7 description edited',
+    );
+    expect(
+      screen.getByRole('button', {
+        name: 'Unread. Jane changed sprint from S12 to S13, labels +b, assignee to Ben, description edited on PROJ-123 Fix login bug',
       }),
-    });
-    expect(desc.container.querySelector('[data-col="what"]')?.textContent).toBe('description');
-    expect(desc.container.querySelector('[data-col="detail"]')?.textContent).toBe('edited');
+    ).toBeInTheDocument();
   });
 
-  it('grouped row has an always-on rail, a gutter chevron toggle and a +N bubble, no "events" text', () => {
-    const onToggleExpand = vi.fn();
-    const { container, rerender, ...h } = setup({ groupCount: 2, onToggleExpand });
-    expect(screen.getByText('PROJ-123')).toBeInTheDocument();
-    expect(screen.getByText('Fix login bug')).toBeInTheDocument();
-    expect(screen.getByText('commented')).toBeInTheDocument();
-    expect(container.querySelector('[data-event-badge]')).not.toBeNull();
-    const chip = screen.getByRole('button', { name: 'Show 2 earlier events on PROJ-123' });
-    expect(chip).toHaveAttribute('data-group-toggle');
-    expect(container.querySelector('[data-thread-rail]')).not.toBeNull();
-    expect(container.querySelector('[data-group-more]')?.textContent).toBe('+2');
-    expect(container.textContent).not.toMatch(/events/);
-    expect(chip).toHaveAttribute('aria-expanded', 'false');
-    fireEvent.click(chip);
-    expect(onToggleExpand).toHaveBeenCalledTimes(1);
-    expect(h.onOpen).not.toHaveBeenCalled();
-    rerender(
-      <NotificationRow
-        item={makeItem('jira')}
-        isUnread
-        now={NOW}
-        groupCount={2}
-        expanded
-        onToggleExpand={onToggleExpand}
-        onOpen={h.onOpen}
-        onToggleRead={h.onToggleRead}
-        onDone={h.onDone}
-      />,
-    );
-    const open = screen.getByRole('button', { name: 'Hide 2 earlier events on PROJ-123' });
-    expect(open).toHaveAttribute('aria-expanded', 'true');
-    fireEvent.click(container.querySelector('[data-group-more]') as HTMLElement);
-    expect(onToggleExpand).toHaveBeenCalledTimes(2);
-    expect(screen.getByRole('button', { name: 'Mark group read' })).toBeInTheDocument();
+  it('GitLab description note reads "edited" like Jira', () => {
+    const { container } = setup({
+      item: makeItem('gitlab', {
+        id: 'gitlab-system-5',
+        notificationType: 'mr-note',
+        bodyPreview: 'Description: updated',
+      }),
+    });
+    expect(container.querySelector('[data-line="detail"]')?.textContent).toBe('description edited');
+  });
+
+  it('is a flat row: no group chrome (rail, chevron, count bubble, avatar stack)', () => {
+    const { container } = setup();
+    expect(container.querySelector('[data-thread-rail]')).toBeNull();
+    expect(container.querySelector('[data-group-toggle]')).toBeNull();
+    expect(container.querySelector('[data-group-more]')).toBeNull();
+    expect(container.querySelector('[data-avatar-stack]')).toBeNull();
   });
 
   it('shows the actor avatar and an aria label naming actor, event and entity', () => {
@@ -234,8 +213,7 @@ describe('NotificationRow', () => {
       }),
     });
     expect(due.container.querySelector('[data-avatar-tile="due"]')).not.toBeNull();
-    expect(due.container.querySelector('[data-col="what"]')?.textContent).toBe('due');
-    expect(due.container.querySelector('[data-col="detail"]')?.textContent).toBe('tomorrow');
+    expect(due.container.querySelector('[data-line="detail"]')?.textContent).toBe('due tomorrow');
   });
 
   it('renders the verb in the event colour', () => {
@@ -250,8 +228,10 @@ describe('NotificationRow', () => {
         bodyPreview: 'Status: To Do \u2192 In Review',
       }),
     });
-    expect(container.querySelector('[data-col="what"]')?.textContent).toBe('status');
-    expect(container.querySelector('[data-detail="status"]')).not.toBeNull();
+    expect(container.querySelector('[data-line="detail"]')?.textContent).toBe(
+      'status To Do \u2192 In Review',
+    );
+    expect(screen.getByText('To Do').className).toContain('rounded');
     expect(screen.getByText('To Do')).toBeInTheDocument();
     expect(screen.getByText('In Review')).toBeInTheDocument();
     expect(
@@ -332,29 +312,41 @@ describe('NotificationRow', () => {
     expect(badge.className).not.toContain('-bottom-1.5');
   });
 
-  it('every row has a bottom divider; nested rows are tinted, railed and lighter', () => {
-    const single = setup();
-    const r1 = single.container.firstElementChild as HTMLElement;
-    expect(r1.className).toContain('border-b');
-    expect(r1.className).toContain('border-border/60');
-    expect(r1.querySelector('[data-thread-rail]')).toBeNull();
-    single.unmount();
-    const nested = setup({ nested: true });
-    const r2 = nested.container.firstElementChild as HTMLElement;
-    expect(r2.className).toContain('border-border/30');
-    expect(r2.className).toContain('bg-muted/40');
-    expect(r2.querySelector('[data-thread-rail]')).not.toBeNull();
+  it('every row has a bottom divider and a two-line density-aware height', () => {
+    const { container } = setup();
+    const r = container.firstElementChild as HTMLElement;
+    expect(r.className).toContain('border-b');
+    expect(r.className).toContain('border-border/60');
+    expect(r.className).toContain('h-14');
+    expect(r.className).toContain('density-compact:h-12');
+    expect(r.className).toContain('density-comfortable:h-16');
   });
 
-  it('nested rows keep every column and show the entity title (muted) with the comment in detail', () => {
+  it('pipeline failure shows the pipeline number and branch', () => {
     const { container } = setup({
-      nested: true,
-      item: makeItem('jira', { notificationType: 'comment-mention', bodyPreview: 'ping @you' }),
+      item: makeItem('gitlab', {
+        notificationType: 'pipeline-failure',
+        author: '',
+        bodyPreview: 'Pipeline #4821 failed on feature/burnup',
+        mrProjectId: 1,
+        mrIid: 11,
+      }),
     });
-    expect(screen.getByText('Fix login bug').className).toContain('text-muted-foreground');
-    expect(container.querySelector('[data-col="what"]')?.textContent).toBe('mentioned you');
-    expect(container.querySelector('[data-col="detail"]')?.textContent).toBe('ping @you');
-    expect(screen.getByText('PROJ-123')).toBeInTheDocument();
+    expect(container.querySelector('[data-line="detail"]')?.textContent).toBe(
+      'pipeline failed #4821 on feature/burnup',
+    );
+  });
+
+  it('long comments are truncated in the aria label', () => {
+    setup({
+      item: makeItem('jira', {
+        notificationType: 'comment-mention',
+        bodyPreview: 'word '.repeat(80),
+      }),
+    });
+    const label = screen.getByRole('button', { name: /^Unread\. Jane mentioned you/ });
+    expect(label.getAttribute('aria-label')?.length).toBeLessThan(260);
+    expect(label.getAttribute('aria-label')).toContain('\u2026');
   });
 
   it('GitLab comment rows put the MR title in the title column and the text in detail', () => {
@@ -367,8 +359,9 @@ describe('NotificationRow', () => {
       }),
     });
     expect(screen.getByText('Add export')).toBeInTheDocument();
-    expect(container.querySelector('[data-col="what"]')?.textContent).toBe('commented');
-    expect(container.querySelector('[data-col="detail"]')?.textContent).toBe('Please rename this');
+    expect(container.querySelector('[data-line="detail"]')?.textContent).toBe(
+      'commented Please rename this',
+    );
   });
 
   it('GitLab system notes render as changes with their own icon, never "commented"', () => {
@@ -379,19 +372,19 @@ describe('NotificationRow', () => {
         bodyPreview: body,
         entityTitle: 'Add export',
       });
-    const cases: [string, string, string, string][] = [
-      ['State: opened \u2192 merged', 'merged', 'merged', ''],
-      ['State: opened \u2192 closed', 'closed', 'closed', ''],
-      ['State: closed \u2192 reopened', 'reopened', 'reopened', ''],
-      ['Review requested: ana, ben', 'review', 'review', '\u2192ana, ben'],
-      ['Labels added: x, y', 'labels', 'labels', '+x, y'],
-      ['Target branch: a \u2192 b', 'target branch', 'branch', 'a\u2192b'],
+    const cases: [string, string, string][] = [
+      ['State: opened \u2192 merged', 'merged', 'merged'],
+      ['State: opened \u2192 closed', 'closed', 'closed'],
+      ['State: closed \u2192 reopened', 'reopened', 'reopened'],
+      ['Review requested: ana, ben', 'review', 'review \u2192 ana, ben'],
+      ['Labels added: x, y', 'labels', 'labels +x, y'],
+      ['Target branch: a \u2192 b', 'branch', 'target branch a \u2192 b'],
+      ['Labels added: x\nMilestone: v1', 'labels', 'labels +x \u00B7 milestone \u2192 v1'],
     ];
-    for (const [body, what, kind, detail] of cases) {
+    for (const [body, kind, line] of cases) {
       const { container, unmount } = setup({ item: sys(body) });
-      expect(container.querySelector('[data-col="what"]')?.textContent, body).toBe(what);
       expect(container.querySelector(`[data-event-badge="${kind}"]`), body).not.toBeNull();
-      expect(container.querySelector('[data-col="detail"]')?.textContent, body).toBe(detail);
+      expect(container.querySelector('[data-line="detail"]')?.textContent, body).toBe(line);
       expect(container.textContent).not.toContain('commented');
       unmount();
     }
@@ -415,22 +408,12 @@ describe('NotificationRow', () => {
     }
   });
 
-  it('group rows draw a 2-avatar stack when a second actor is given', () => {
-    const { container } = setup({
-      groupCount: 2,
-      stackItem: makeItem('jira', { author: 'Bob Brown' }),
-    });
-    expect(container.querySelector('[data-avatar-stack="true"]')).not.toBeNull();
-    expect(container.querySelector('[data-avatar-behind]')).not.toBeNull();
-  });
-
-  it('every row type renders what and detail columns (detail empty without values)', () => {
+  it('assignment line 2 is just the verb', () => {
     const { container } = setup({
       item: makeItem('jira', { notificationType: 'issue-assignment' }),
     });
-    expect(container.querySelector('[data-col="what"]')).not.toBeNull();
-    const d = container.querySelector('[data-col="detail"]') as HTMLElement;
-    expect(d.dataset.detail).toBe('empty');
-    expect(d.textContent).toBe('');
+    const d = container.querySelector('[data-line="detail"]') as HTMLElement;
+    expect(d.dataset.detail).toBe('verb');
+    expect(d.textContent).toBe('assigned you');
   });
 });

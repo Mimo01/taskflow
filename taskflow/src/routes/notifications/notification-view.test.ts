@@ -13,19 +13,16 @@ import {
   describeEventAria,
   describeEventParts,
   parseChangeLines,
-  entryItemIds,
   filterItems,
   formatAbsoluteTime,
   eventStyleFor,
   statusCategoryGuess,
-  getEntityKey,
   getEntityRef,
   getEntityTitle,
   getJiraKey,
   isFocusableEntry,
   isSafeHttpUrl,
   relTime,
-  secondActor,
 } from './notification-view';
 
 const NOW = new Date(2026, 10, 10, 15, 0).getTime();
@@ -50,7 +47,6 @@ describe('entity helpers', () => {
   it('parses jira key and title', () => {
     const i = makeItem({ id: 'a', entityTitle: 'PROJ-1: Fix login' });
     expect(getJiraKey(i)).toBe('PROJ-1');
-    expect(getEntityKey(i)).toBe('jira:PROJ-1');
     expect(getEntityTitle(i)).toBe('Fix login');
     expect(getEntityRef(i)).toBe('PROJ-1');
   });
@@ -63,13 +59,11 @@ describe('entity helpers', () => {
   });
   it('handles gitlab MRs', () => {
     const i = makeItem({ id: 'g', source: 'gitlab', mrProjectId: 12, mrIid: 34 });
-    expect(getEntityKey(i)).toBe('gitlab:12/34');
     expect(getEntityRef(i)).toBe('!34');
     expect(getJiraKey(i)).toBeNull();
   });
   it('falls back to item id', () => {
     const i = makeItem({ id: 'zz' });
-    expect(getEntityKey(i)).toBe('item:zz');
     expect(getEntityRef(i)).toBeNull();
   });
 });
@@ -127,19 +121,11 @@ describe('describeEventParts', () => {
     expect(verb(undefined)).toBe('updated');
     expect(d('jira-comment').actor).toBe('Ann');
   });
-  it('exposes a what column (field name for updates) and detail text', () => {
-    expect(d('issue-update', 'Status: To Do \u2192 Done').what).toBe('status');
-    expect(d('issue-update', 'Priority: A \u2192 B').what).toBe('priority');
-    expect(d('issue-update', 'Description: updated')).toMatchObject({
-      what: 'description',
-      detailText: 'edited',
-    });
-    expect(d('due-date-reminder', 'Due tomorrow', '')).toMatchObject({
-      what: 'due',
-      detailText: 'tomorrow',
-    });
-    expect(d('pipeline-failure').what).toBe('pipeline failed');
-    expect(d('comment-mention').what).toBe('mentioned you');
+  it('gives pipeline failures a detail and due reminders a verb with the day', () => {
+    expect(d('pipeline-failure', 'Pipeline #4821 failed on feature/x').detail).toBe(
+      '#4821 on feature/x',
+    );
+    expect(d('due-date-reminder', 'Due tomorrow', '').verb).toBe('due tomorrow');
   });
   it('parses change lines incl. (none), description and unknown lines', () => {
     expect(
@@ -155,8 +141,8 @@ describe('describeEventParts', () => {
     ).toEqual([
       { field: 'priority', from: 'Minor', to: 'Major', action: 'priority' },
       { field: 'assignee', from: undefined, to: 'Ben', action: 'assignee' },
-      { field: 'labels', from: 'a', to: 'a b', action: 'labels' },
-      { field: 'description', action: 'description' },
+      { field: 'labels', text: '+b', action: 'labels' },
+      { field: 'description', text: 'edited', action: 'description' },
     ]);
     expect(parseChangeLines('nothing useful')).toEqual([]);
     expect(parseChangeLines('Assignee: Ben \u2192 (none)')[0]).toEqual({
@@ -166,22 +152,25 @@ describe('describeEventParts', () => {
       action: 'unassigned',
     });
   });
-  it('puts status first (pills) and counts the other changes; multi shows first +N', () => {
+  it('keeps every change of an update in order, status included', () => {
     const body = 'Priority: A \u2192 B\nStatus: To Do \u2192 Done\nSprint: S1 \u2192 S2';
     const s = d('issue-update', body);
-    expect(s).toMatchObject({ to: 'Done', moreChanges: 2 });
-    const m = d('issue-update', 'Priority: A \u2192 B\nSprint: S1 \u2192 S2\nLabels: x \u2192 y');
-    expect(m.verb).toBe('changed priority');
-    expect(m.moreChanges).toBe(2);
-    expect(m.changes).toHaveLength(3);
-    expect(describeEventAria(m)).toBe('Ann changed priority from A to B');
+    expect(s.verb).toBe('changed priority');
+    expect(s.changes?.map((c) => c.field)).toEqual(['priority', 'status', 'sprint']);
+    expect(describeEventAria(s)).toBe(
+      'Ann changed priority from A to B, status from To Do to Done, sprint from S1 to S2',
+    );
   });
   it('extracts old and new status for status changes', () => {
     const p = d('issue-update', 'Status: To Do \u2192 In Progress');
-    expect(p).toMatchObject({ verb: 'changed status', from: 'To Do', to: 'In Progress' });
+    expect(p.verb).toBe('changed status');
+    expect(p.changes?.[0]).toMatchObject({ field: 'status', from: 'To Do', to: 'In Progress' });
     const q = d('issue-update', 'Status: \u2192 Done');
-    expect(q.from).toBeUndefined();
-    expect(q.to).toBe('Done');
+    expect(q.changes?.[0].from).toBeUndefined();
+    expect(q.changes?.[0].to).toBe('Done');
+  });
+  it('diffs Jira labels into +added \u2212removed', () => {
+    expect(parseChangeLines('Labels: a b \u2192 b c')[0]).toMatchObject({ text: '+c \u2212a' });
   });
   it('keeps single-word names and drops empty actors', () => {
     expect(d('jira-comment', 'x', 'J.Smith').actor).toBe('J.Smith');
@@ -267,7 +256,7 @@ describe('filterItems', () => {
 });
 
 describe('buildEntries', () => {
-  const base = { source: 'all' as const, unreadOnly: false, expandOverrides: {}, now: NOW };
+  const base = { source: 'all' as const, unreadOnly: false, now: NOW };
 
   it('returns [] for no items', () => {
     expect(buildEntries({ ...base, items: [], readSet: new Set() })).toEqual([]);
@@ -282,75 +271,29 @@ describe('buildEntries', () => {
     const e = buildEntries({ ...base, items, readSet: new Set() });
     expect(e.map((x) => x.kind)).toEqual(['header', 'event', 'event', 'event']);
     expect(e[0].id).toBe('header:today');
-    for (const x of e) if (x.kind === 'event') expect(x.nested).toBe(false);
   });
 
-  const grouped = [
+  const sameEntity = [
     jira('a', 'PROJ-1', local(10, 10, 9)),
     jira('b', 'PROJ-1', local(10, 10, 11)),
     jira('c', 'PROJ-2', local(10, 10, 10)),
   ];
 
-  it('groups events on the same entity', () => {
-    const e = buildEntries({ ...base, items: grouped, readSet: new Set(['a']) });
-    const g = e[1];
-    expect(g.kind).toBe('group');
-    if (g.kind !== 'group') return;
-    expect(g.id).toBe('group:jira:PROJ-1');
-    expect(g.items.map((i) => i.id)).toEqual(['b', 'a']);
-    expect(g.unreadCount).toBe(1);
-    expect(g.expanded).toBe(false);
-    expect(e).toHaveLength(3); // header, collapsed group, plain
-    const open = buildEntries({
-      ...base,
-      items: grouped,
-      readSet: new Set(['a']),
-      expandOverrides: { 'jira:PROJ-1': true },
-    });
-    // children are the EARLIER events only; the group row shows the newest
-    expect(open.slice(2, 3).map((x) => x.id)).toEqual(['event:a']);
-    for (const c of open.slice(2, 3)) {
-      if (c.kind === 'event') {
-        expect(c.nested).toBe(true);
-        expect(c.groupId).toBe('group:jira:PROJ-1');
-      }
-    }
-    const plain = open[3];
-    expect(plain.kind === 'event' && plain.nested === false).toBe(true);
+  it('never groups: every notification is its own event, newest first', () => {
+    const e = buildEntries({ ...base, items: sameEntity, readSet: new Set(['a']) });
+    expect(e.map((x) => x.id)).toEqual(['header:today', 'event:b', 'event:c', 'event:a']);
+    const a = e[3];
+    expect(a.kind === 'event' && a.isUnread).toBe(false);
+    expect(e.some((x) => (x.kind as string) === 'group')).toBe(false);
   });
 
-  it('keeps a group collapsed by default with no children', () => {
-    const e = buildEntries({ ...base, items: grouped, readSet: new Set(['a', 'b']) });
-    const g = e[1];
-    expect(g.kind === 'group' && g.expanded).toBe(false);
-    expect(e.filter((x) => x.kind === 'event' && x.nested)).toHaveLength(0);
-  });
-
-  it('honours expand overrides', () => {
-    const collapsed = buildEntries({
-      ...base,
-      items: grouped,
-      readSet: new Set(['a']),
-      expandOverrides: { 'jira:PROJ-1': false },
-    });
-    expect(collapsed.filter((x) => x.kind === 'event' && x.nested)).toHaveLength(0);
-    const open = buildEntries({
-      ...base,
-      items: grouped,
-      readSet: new Set(['a', 'b']),
-      expandOverrides: { 'jira:PROJ-1': true },
-    });
-    expect(open.filter((x) => x.kind === 'event' && x.nested)).toHaveLength(1);
-  });
-
-  it('places a group by its newest event', () => {
+  it('puts each notification under the header of its own bucket', () => {
     const items = [jira('a', 'PROJ-1', local(10, 10, 9)), jira('b', 'PROJ-1', local(10, 1, 9))];
     const e = buildEntries({ ...base, items, readSet: new Set() });
-    expect(e.filter((x) => x.kind === 'group')).toHaveLength(1);
-    expect(e.map((x) => x.id).filter((i) => i.startsWith('header:'))).toEqual(['header:today']);
+    expect(e.map((x) => x.id)).toEqual(['header:today', 'event:a', 'header:older', 'event:b']);
   });
 
-  it('orders buckets and groups within a bucket', () => {
+  it('orders buckets', () => {
     const items = [
       jira('o', 'PROJ-4', local(10, 1)),
       jira('w', 'PROJ-3', local(10, 5)),
@@ -366,20 +309,19 @@ describe('buildEntries', () => {
     ]);
   });
 
-  it('excludes read events before grouping when unreadOnly', () => {
+  it('excludes read events when unreadOnly', () => {
     const e = buildEntries({
       ...base,
       unreadOnly: true,
-      items: grouped,
+      items: sameEntity,
       readSet: new Set(['a']),
     });
-    expect(e.some((x) => x.kind === 'group')).toBe(false);
     expect(e.map((x) => x.id)).toContain('event:b');
     expect(e.map((x) => x.id)).not.toContain('event:a');
   });
 
   it('produces unique prefixed ids', () => {
-    const e = buildEntries({ ...base, items: grouped, readSet: new Set() });
+    const e = buildEntries({ ...base, items: sameEntity, readSet: new Set() });
     const ids = e.map((x) => x.id);
     expect(new Set(ids).size).toBe(ids.length);
     for (const x of e)
@@ -387,57 +329,18 @@ describe('buildEntries', () => {
   });
 });
 
-describe('entryItemIds / isFocusableEntry', () => {
-  it('maps entries to item ids', () => {
-    const items = [jira('a', 'PROJ-1', local(10, 10, 9)), jira('b', 'PROJ-1', local(10, 10, 11))];
+describe('isFocusableEntry', () => {
+  it('only events are focusable', () => {
+    const items = [jira('a', 'PROJ-1', local(10, 10, 9))];
     const e = buildEntries({
       items,
       readSet: new Set(),
       source: 'all',
       unreadOnly: false,
-      expandOverrides: { 'jira:PROJ-1': true },
       now: NOW,
     });
-    expect(entryItemIds(e[0])).toEqual([]);
-    expect(entryItemIds(e[1])).toEqual(['b', 'a']);
-    expect(entryItemIds(e[2])).toEqual(['a']);
     expect(isFocusableEntry(e[0])).toBe(false);
     expect(isFocusableEntry(e[1])).toBe(true);
-  });
-});
-
-describe('secondActor', () => {
-  it('returns the next distinct human actor behind the newest event', () => {
-    const mk = (id: string, author: string, h: number, over: Partial<NotificationItem> = {}) =>
-      makeItem({
-        id,
-        author,
-        entityTitle: 'PROJ-1: X',
-        createdAt: local(10, 10, h),
-        ...over,
-      });
-    const items = [mk('a', 'Ann', 12), mk('b', 'Ann', 11), mk('c', 'Bob', 10)];
-    const e = buildEntries({
-      items,
-      readSet: new Set(),
-      source: 'all',
-      unreadOnly: false,
-      expandOverrides: {},
-      now: NOW,
-    });
-    const g = e.find((x) => x.kind === 'group');
-    if (g?.kind !== 'group') throw new Error('no group');
-    expect(secondActor(g)?.id).toBe('c');
-    const same = buildEntries({
-      items: items.slice(0, 2),
-      readSet: new Set(),
-      source: 'all',
-      unreadOnly: false,
-      expandOverrides: {},
-      now: NOW,
-    }).find((x) => x.kind === 'group');
-    if (same?.kind !== 'group') throw new Error('no group');
-    expect(secondActor(same)).toBeUndefined();
   });
 });
 
@@ -455,7 +358,7 @@ describe('GitLab system notes', () => {
       ['Unassigned: ana', { field: 'assignee', text: '\u2212ana', action: 'unassigned' }],
       ['Assignee: removed', { field: 'assignee', text: 'removed', action: 'unassigned' }],
       ['Title: a \u2192 b', { field: 'title', from: 'a', to: 'b', action: 'title' }],
-      ['Description: updated', { field: 'description', action: 'description' }],
+      ['Description: updated', { field: 'description', text: 'edited', action: 'description' }],
       [
         'Target branch: a \u2192 b',
         { field: 'target branch', from: 'a', to: 'b', action: 'branch' },
@@ -481,9 +384,9 @@ describe('GitLab system notes', () => {
       createdAt: '2026-03-11T10:00:00.000Z',
       notificationType: 'mr-note',
     });
-    expect(parts.what).toBe('merged');
+    expect(parts.verb).toBe('merged');
     expect(parts.commentText).toBeUndefined();
-    expect(parts.to).toBeUndefined();
+    expect(parts.changes).toHaveLength(1);
   });
 });
 

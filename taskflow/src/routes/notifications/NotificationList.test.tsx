@@ -20,21 +20,19 @@ function item(id: string, key: string, createdAt: string): NotificationItem {
   };
 }
 
-// group PROJ-1 (a, b; newest b is the group row, a is the earlier child), single PROJ-2 (c).
-// Expanded order: header, group, a, c
+// Flat list, newest first. Order: header, b (11:00), c (10:00), a (09:00)
 const items = [
   item('a', 'PROJ-1', at(9)),
   item('b', 'PROJ-1', at(11)),
   item('c', 'PROJ-2', at(10)),
 ];
 
-function entriesFor(list: NotificationItem[], expandOverrides: Record<string, boolean> = {}) {
+function entriesFor(list: NotificationItem[]) {
   return buildEntries({
     items: list,
     readSet: new Set(),
     source: 'all',
     unreadOnly: false,
-    expandOverrides,
     now: NOW,
   });
 }
@@ -51,14 +49,13 @@ const stubRender = (entry: NotificationEntry) =>
     </div>
   );
 
-function setup(list = items, expandOverrides: Record<string, boolean> = { 'jira:PROJ-1': true }) {
+function setup(list = items) {
   const handlers = {
     onToggleRead: vi.fn(),
     onDone: vi.fn(),
-    onSetExpanded: vi.fn(),
   };
   const renderEntry = vi.fn(stubRender);
-  const entries = entriesFor(list, expandOverrides);
+  const entries = entriesFor(list);
   const utils = render(
     <NotificationList entries={entries} renderEntry={renderEntry} {...handlers} />,
   );
@@ -96,56 +93,50 @@ describe('NotificationList keyboard', () => {
   it('ArrowDown with nothing focused focuses the first focusable entry, skipping headers', async () => {
     const { container } = setup();
     fireEvent.keyDown(container.firstElementChild as HTMLElement, { key: 'ArrowDown' });
-    await waitFor(() => expect(btn('group:jira:PROJ-1')).toHaveFocus());
+    await waitFor(() => expect(btn('event:b')).toHaveFocus());
   });
 
   it('ArrowDown / j advance and ArrowUp / k go back; stays at the ends', async () => {
     const user = userEvent.setup();
     setup();
-    btn('group:jira:PROJ-1').focus();
+    btn('event:b').focus();
     await user.keyboard('{ArrowDown}');
-    await waitFor(() => expect(btn('event:a')).toHaveFocus());
+    await waitFor(() => expect(btn('event:c')).toHaveFocus());
     await user.keyboard('j');
-    await waitFor(() => expect(btn('event:c')).toHaveFocus());
+    await waitFor(() => expect(btn('event:a')).toHaveFocus());
     await user.keyboard('k');
-    await waitFor(() => expect(btn('event:a')).toHaveFocus());
-    await user.keyboard('{ArrowUp}');
-    await waitFor(() => expect(btn('group:jira:PROJ-1')).toHaveFocus());
-    await user.keyboard('{ArrowDown}');
-    await waitFor(() => expect(btn('event:a')).toHaveFocus());
-    await user.keyboard('{ArrowDown}');
     await waitFor(() => expect(btn('event:c')).toHaveFocus());
+    await user.keyboard('{ArrowUp}');
+    await waitFor(() => expect(btn('event:b')).toHaveFocus());
+    await user.keyboard('{ArrowUp}');
+    await new Promise((r) => setTimeout(r, 50));
+    expect(btn('event:b')).toHaveFocus();
+    btn('event:a').focus();
     await user.keyboard('{ArrowDown}');
     await new Promise((r) => setTimeout(r, 50));
-    expect(btn('event:c')).toHaveFocus();
+    expect(btn('event:a')).toHaveFocus();
   });
 
-  it('u toggles read on an event and on a group', async () => {
+  it('u toggles read on an event', async () => {
     const user = userEvent.setup();
     const { handlers, entries } = setup();
     btn('event:c').focus();
     await user.keyboard('u');
     expect(handlers.onToggleRead).toHaveBeenCalledWith(entries.find((e) => e.id === 'event:c'));
-    btn('group:jira:PROJ-1').focus();
-    await user.keyboard('u');
-    expect(handlers.onToggleRead).toHaveBeenLastCalledWith(
-      entries.find((e) => e.id === 'group:jira:PROJ-1'),
-    );
   });
 
   it('e and Delete call onDone; focus lands on the entry now at that position', async () => {
     const user = userEvent.setup();
     const { handlers, rerender, entries } = setup();
-    btn('event:a').focus();
+    btn('event:c').focus();
     await user.keyboard('e');
-    expect(handlers.onDone).toHaveBeenCalledWith(entries.find((e) => e.id === 'event:a'));
-    // remove a: group of one collapses to a plain event
-    const next = entriesFor(items.filter((i) => i.id !== 'a'));
+    expect(handlers.onDone).toHaveBeenCalledWith(entries.find((e) => e.id === 'event:c'));
+    const next = entriesFor(items.filter((i) => i.id !== 'c'));
     rerender(<NotificationList entries={next} renderEntry={stubRender} {...handlers} />);
-    // index 2 is now whatever follows the header and event:a/c
+    // index 2 (where c was) now holds the entry that followed it
     const idx = next.findIndex((e) => e.kind !== 'header');
     expect(idx).toBeGreaterThanOrEqual(0);
-    const expected = next[Math.min(2, next.length - 1)];
+    const expected = next[2];
     await waitFor(() => expect(btn(expected.id)).toHaveFocus());
 
     // Delete on the last entry focuses the previous one
@@ -159,36 +150,15 @@ describe('NotificationList keyboard', () => {
     await waitFor(() => expect(btn(shorter[shorter.length - 1].id)).toHaveFocus());
   });
 
-  it('ArrowRight expands a collapsed group; moves to first child when expanded', async () => {
+  it('has no expand/collapse keys (flat list)', async () => {
     const user = userEvent.setup();
-    const collapsed = setup(items, { 'jira:PROJ-1': false });
-    btn('group:jira:PROJ-1').focus();
-    await user.keyboard('{ArrowRight}');
-    expect(collapsed.handlers.onSetExpanded).toHaveBeenCalledWith(
-      expect.objectContaining({ id: 'group:jira:PROJ-1' }),
-      true,
-    );
-    collapsed.unmount();
-
-    const expanded = setup();
-    btn('group:jira:PROJ-1').focus();
-    await user.keyboard('{ArrowRight}');
-    await waitFor(() => expect(btn('event:a')).toHaveFocus());
-    expect(expanded.handlers.onSetExpanded).not.toHaveBeenCalled();
-  });
-
-  it('ArrowLeft collapses an expanded group and moves from a child to its header', async () => {
-    const user = userEvent.setup();
-    const { handlers } = setup();
-    btn('group:jira:PROJ-1').focus();
-    await user.keyboard('{ArrowLeft}');
-    expect(handlers.onSetExpanded).toHaveBeenCalledWith(
-      expect.objectContaining({ id: 'group:jira:PROJ-1' }),
-      false,
-    );
-    btn('event:a').focus();
-    await user.keyboard('{ArrowLeft}');
-    await waitFor(() => expect(btn('group:jira:PROJ-1')).toHaveFocus());
+    const { container } = setup();
+    btn('event:c').focus();
+    const prevented: boolean[] = [];
+    container.addEventListener('keydown', (e) => prevented.push(e.defaultPrevented));
+    await user.keyboard('{ArrowRight}{ArrowLeft}');
+    expect(prevented.every((p) => !p)).toBe(true);
+    expect(btn('event:c')).toHaveFocus();
   });
 
   it('ignores keys typed in an input', async () => {

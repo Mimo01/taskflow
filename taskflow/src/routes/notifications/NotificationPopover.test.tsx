@@ -1,4 +1,4 @@
-// Tests for NotificationPopover — header, filters, grouping, triage, navigation, states
+// Tests for NotificationPopover — header, filters, flat list, triage, navigation, states
 
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
@@ -116,53 +116,30 @@ describe('NotificationPopover', () => {
     expect(onClose).not.toHaveBeenCalled();
   });
 
-  describe('grouping', () => {
+  describe('flat list', () => {
     beforeEach(() => seed([jiraItem('a'), jiraItem('b')]));
 
-    it('renders one collapsed group row with a chevron toggle and +N bubble; it reveals the earlier event', () => {
+    it('renders every notification on the same issue as its own row, with no group chrome', () => {
       render(<NotificationPopover />);
-      expect(screen.getByRole('button', { name: /^Show 1 earlier event/ })).toHaveAttribute(
-        'aria-expanded',
-        'false',
-      );
-      expect(document.querySelector('[data-group-more]')?.textContent).toBe('+1');
-      expect(entryCount()).toBe(1);
-      fireEvent.click(screen.getByRole('button', { name: /^Show 1 earlier event/ }));
       expect(entryCount()).toBe(2);
+      expect(document.querySelector('[data-group-more]')).toBeNull();
+      expect(document.querySelector('[data-group-toggle]')).toBeNull();
+      expect(screen.queryByRole('button', { name: /earlier event/ })).toBeNull();
+      expect(screen.queryByRole('button', { name: 'Mark group read' })).toBeNull();
     });
 
-    it('group click marks both read and navigates', () => {
+    it('opening one row marks only that notification read', () => {
       const onIssueClick = vi.fn();
       render(<NotificationPopover onIssueClick={onIssueClick} />);
-      fireEvent.click(screen.getByRole('button', { name: /^Unread\. .* on PROJ-1/ }));
-      expect(useNotificationsStore.getState().readIds).toEqual(expect.arrayContaining(['a', 'b']));
+      fireEvent.click(screen.getAllByRole('button', { name: /^Unread\. .* on PROJ-1/ })[0]);
+      expect(useNotificationsStore.getState().readIds).toHaveLength(1);
       expect(onIssueClick).toHaveBeenCalledWith('PROJ-1');
     });
 
-    it('Mark group read marks all group ids read', () => {
+    it('Mark all read still marks every unread notification', () => {
       render(<NotificationPopover />);
-      fireEvent.click(screen.getByRole('button', { name: 'Mark group read' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Mark all read' }));
       expect(useNotificationsStore.getState().readIds).toEqual(expect.arrayContaining(['a', 'b']));
-    });
-
-    it('group Done removes both items and tombstones them', () => {
-      render(<NotificationPopover />);
-      fireEvent.click(screen.getAllByRole('button', { name: 'Done' })[0]);
-      const st = useNotificationsStore.getState();
-      expect(st.items).toHaveLength(0);
-      expect(st.dismissedIds).toEqual(expect.arrayContaining(['a', 'b']));
-    });
-
-    it('collapse hides children and survives a store update', () => {
-      render(<NotificationPopover />);
-      fireEvent.click(screen.getByRole('button', { name: /^Show 1 earlier event/ }));
-      expect(entryCount()).toBe(2);
-      fireEvent.click(screen.getByRole('button', { name: /^Hide 1 earlier event/ }));
-      expect(entryCount()).toBe(1);
-      act(() => {
-        useNotificationsStore.setState({ readIds: [] });
-      });
-      expect(entryCount()).toBe(1);
     });
   });
 

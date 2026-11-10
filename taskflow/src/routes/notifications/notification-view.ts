@@ -1,6 +1,6 @@
 /**
  * Pure notification view-model: entity keys, time bucketing, filtering and
- * grouping. No React and no clock reads — time-dependent helpers take `now`
+ * flat entry building. No React and no clock reads — time-dependent helpers take `now`
  * as an argument (React Compiler may memoize render-time clock reads).
  */
 
@@ -24,8 +24,6 @@ export const BUCKET_LABEL: Record<TimeBucket, string> = {
   older: 'Older',
 };
 
-const BUCKET_ORDER: TimeBucket[] = ['today', 'yesterday', 'week', 'older'];
-
 export interface HeaderEntry {
   kind: 'header';
   id: string;
@@ -33,29 +31,14 @@ export interface HeaderEntry {
   label: string;
 }
 
-export interface GroupEntry {
-  kind: 'group';
-  id: string;
-  entityKey: string;
-  bucket: TimeBucket;
-  /** Newest first. */
-  items: NotificationItem[];
-  newest: NotificationItem;
-  unreadCount: number;
-  expanded: boolean;
-}
-
 export interface EventEntry {
   kind: 'event';
   id: string;
   item: NotificationItem;
   isUnread: boolean;
-  nested: boolean;
-  groupId?: string;
 }
 
-export type NotificationEntry = HeaderEntry | GroupEntry | EventEntry;
-export type FocusableEntry = GroupEntry | EventEntry;
+export type NotificationEntry = HeaderEntry | EventEntry;
 
 const JIRA_PREFIX_RE = /^([A-Z][A-Z0-9]*-\d+):/;
 const JIRA_BROWSE_RE = /\/browse\/([A-Z][A-Z0-9]*-\d+)/;
@@ -69,15 +52,6 @@ export function getJiraKey(item: NotificationItem): string | null {
     if (u) return u[1];
   }
   return null;
-}
-
-export function getEntityKey(item: NotificationItem): string {
-  const jira = getJiraKey(item);
-  if (jira) return `jira:${jira}`;
-  if (item.source === 'gitlab' && item.mrProjectId != null && item.mrIid != null) {
-    return `gitlab:${item.mrProjectId}/${item.mrIid}`;
-  }
-  return `item:${item.id}`;
 }
 
 export function getEntityRef(item: NotificationItem): string | null {
@@ -138,35 +112,28 @@ export function isSafeHttpUrl(url: string | undefined): boolean {
 }
 
 export interface EventParts {
-  /** Short verb phrase, e.g. "mentioned you", "changed status", "pipeline failed", "due tomorrow". */
+  /** Short verb phrase, e.g. "mentioned you", "pipeline failed", "due tomorrow". Coloured lead label of line 2. */
   verb: string;
-  /** Column label for the "what" slot: verb phrase, or the field name for issue updates ("status", "priority"). */
-  what: string;
-  /** Plain text for the detail slot when there are no change values ("tomorrow", "edited"). */
-  detailText?: string;
   /** First name (or display name when it has no space); absent for system events. */
   actor?: string;
-  /** Comment/mention text for the detail column (cleaned, single line). */
+  /** Comment/mention text for line 2 (cleaned, single line). */
   commentText?: string;
-  /** Single-line body snippet; shown only in nested rows and the tooltip. */
+  /** Short plain detail after the verb ("#4821 on feature/x"). */
+  detail?: string;
+  /** Single-line body snippet. */
   snippet: string;
-  /** Status change only: old status (may be absent) and new status. */
-  from?: string;
-  to?: string;
-  /** Issue update, non-status field changes (first is shown in the tail). */
+  /** Issue update / GitLab system note: every parsed change, in order. */
   changes?: ChangeLine[];
-  /** Extra changes not shown in the tail (including non-status ones behind a status pill). */
-  moreChanges?: number;
 }
 
 export interface ChangeLine {
-  /** Lower-cased field label, e.g. "priority", "sprint", "description". */
+  /** Lower-cased field label, e.g. "priority", "sprint", "description"; for label-only events the whole phrase ("merged"). */
   field: string;
   /** Previous value; undefined when "(none)" or not applicable. */
   from?: string;
   /** New value; undefined for description edits / cleared values. */
   to?: string;
-  /** Preformatted detail ("+x, y", "removed") shown instead of from -> to. */
+  /** Preformatted detail ("+x \u2212y", "removed", "edited") shown instead of from -> to. */
   text?: string;
   /** Dedicated icon/colour key, when the field has one. */
   action?: ActionKey;
@@ -192,11 +159,7 @@ export function parseGitlabSystemLine(raw: string): ChangeLine | null {
   const draft = line.match(/^Status:\s*\S+\s*\u2192\s*(draft|ready)$/i);
   if (draft) {
     const f = draft[1].toLowerCase();
-    return {
-      field: f,
-      text: f === 'draft' ? 'marked as draft' : 'ready for review',
-      action: 'draft',
-    };
+    return { field: f === 'draft' ? 'marked as draft' : 'ready for review', action: 'draft' };
   }
   const m = line.match(LIST_RE);
   if (!m) return null;
@@ -218,7 +181,7 @@ export function parseGitlabSystemLine(raw: string): ChangeLine | null {
     case 'assignee':
       return { field: 'assignee', text: 'removed', action: 'unassigned' };
     case 'description':
-      return { field: 'description', action: 'description' };
+      return { field: 'description', text: 'edited', action: 'description' };
     case 'milestone':
       return value === 'removed'
         ? { field: 'milestone', text: 'removed', action: 'milestone' }
@@ -268,6 +231,17 @@ export function cleanCommentText(text: string): string {
 const CHANGE_RE = /^([^:\n]+):\s*(.*?)\s*\u2192\s*(.*)$/;
 const NONE = '(none)';
 
+/** "+x \u2212y" from space-separated label lists; undefined when nothing changed. */
+function labelDiff(from?: string, to?: string): string | undefined {
+  const a = new Set((from ?? '').split(/\s+/).filter(Boolean));
+  const b = new Set((to ?? '').split(/\s+/).filter(Boolean));
+  const parts = [
+    ...[...b].filter((x) => !a.has(x)).map((x) => `+${x}`),
+    ...[...a].filter((x) => !b.has(x)).map((x) => `\u2212${x}`),
+  ];
+  return parts.length > 0 ? parts.join(' ') : undefined;
+}
+
 /** Parse `Field: old → new` / `Description: updated|set` body lines. Unknown lines are skipped. */
 export function parseChangeLines(body: string): ChangeLine[] {
   const out: ChangeLine[] = [];
@@ -282,18 +256,32 @@ export function parseChangeLines(body: string): ChangeLine[] {
       const toV = to && to !== NONE ? to : undefined;
       let act = actionKeyForField(field);
       if (field === 'assignee' && !toV) act = 'unassigned';
-      out.push({
-        field,
-        from: from && from !== NONE ? from : undefined,
-        to: toV,
-        action: act,
-      });
+      const fromV = from && from !== NONE ? from : undefined;
+      if (field === 'labels') {
+        const diff = labelDiff(fromV, toV);
+        if (diff) {
+          out.push({ field, text: diff, action: act });
+          continue;
+        }
+      }
+      out.push({ field, from: fromV, to: toV, action: act });
       continue;
     }
     if (/^Description:\s*(updated|set)$/i.test(line))
-      out.push({ field: 'description', action: 'description' });
+      out.push({ field: 'description', text: 'edited', action: 'description' });
   }
   return out;
+}
+
+function isStateAction(c: ChangeLine): boolean {
+  return c.action === 'merged' || c.action === 'closed' || c.action === 'reopened';
+}
+
+/** "Pipeline #4821 failed on feature/x" -> "#4821 on feature/x"; otherwise the cleaned body. */
+function pipelineDetail(snippet: string): string | undefined {
+  const m = snippet.match(/#(\d+)\s+failed\s+on\s+(.+)$/i);
+  if (m) return `#${m[1]} on ${m[2]}`;
+  return snippet || undefined;
 }
 
 function actorName(author: string): string | undefined {
@@ -311,84 +299,56 @@ export function describeEventParts(item: NotificationItem): EventParts {
     const lines = parseSystemLines(item.bodyPreview);
     if (lines.length > 0) {
       const first = lines[0];
-      const isState =
-        first.action === 'merged' || first.action === 'closed' || first.action === 'reopened';
       return {
-        verb: isState ? first.field : `changed ${first.field}`,
-        what: first.field,
+        verb: isStateAction(first) ? first.field : `changed ${first.field}`,
         actor,
         snippet: '',
         changes: lines,
-        moreChanges: lines.length > 1 ? lines.length - 1 : undefined,
       };
     }
-    return { verb: 'updated', what: 'updated', actor, snippet: '' };
+    return { verb: 'updated', actor, snippet: '' };
   }
   switch (item.notificationType) {
     case 'mr-note':
     case 'jira-comment':
-      return { verb: 'commented', what: 'commented', actor, snippet, commentText: snippet };
+      return { verb: 'commented', actor, snippet, commentText: snippet };
     case 'comment-mention':
     case 'gitlab-mention':
       return {
         verb: 'mentioned you',
-        what: 'mentioned you',
         actor,
         snippet,
         commentText: snippet,
       };
     case 'issue-assignment':
-      return { verb: 'assigned you', what: 'assigned you', actor, snippet: '' };
+      return { verb: 'assigned you', actor, snippet: '' };
     case 'mr-approval':
-      return { verb: 'approved', what: 'approved', actor, snippet: '' };
+      return { verb: 'approved', actor, snippet: '' };
     case 'pipeline-failure':
-      return { verb: 'pipeline failed', what: 'pipeline failed', snippet };
+      return { verb: 'pipeline failed', detail: pipelineDetail(snippet), snippet };
     case 'due-date-reminder': {
       const m = snippet.match(/^due\s+(.+)$/i);
-      return {
-        verb: m ? `due ${m[1].toLowerCase()}` : 'due',
-        what: 'due',
-        detailText: m ? m[1].toLowerCase() : undefined,
-        snippet: '',
-      };
+      return { verb: m ? `due ${m[1].toLowerCase()}` : 'due', snippet: '' };
     }
     case 'issue-update': {
       const lines = parseChangeLines(item.bodyPreview);
-      const status = lines.find((l) => l.field === 'status' && l.to);
-      const others = lines.filter((l) => l !== status);
-      if (status) {
+      if (lines.length > 0) {
         return {
-          verb: 'changed status',
-          what: 'status',
+          verb: `changed ${lines[0].field}`,
           actor,
           snippet: '',
-          from: status.from,
-          to: status.to,
-          changes: others,
-          moreChanges: others.length || undefined,
+          changes: lines,
         };
       }
-      if (others.length > 0) {
-        return {
-          verb: `changed ${others[0].field}`,
-          what: others[0].field,
-          detailText: others[0].from || others[0].to ? undefined : 'edited',
-          actor,
-          snippet: '',
-          changes: others,
-          moreChanges: others.length > 1 ? others.length - 1 : undefined,
-        };
-      }
-      return { verb: 'updated', what: 'updated', actor, snippet };
+      return { verb: 'updated', actor, snippet };
     }
     default:
-      return { verb: 'updated', what: 'updated', actor, snippet };
+      return { verb: 'updated', actor, snippet };
   }
 }
 
 /** Event style (colour + glyph) for an item; status changes get the amber status style. */
 export function eventStyleFor(item: NotificationItem, parts: EventParts): EventStyle {
-  if (parts.to) return ACTION_STYLE.status;
   const act = parts.changes?.[0]?.action;
   if (act) return ACTION_STYLE[act];
   return (item.notificationType && EVENT_STYLE[item.notificationType]) || UPDATE_STYLE;
@@ -402,16 +362,31 @@ export function statusCategoryGuess(name: string): 'new' | 'indeterminate' | 'do
   return 'indeterminate';
 }
 
-/** Aria phrase with actor: "Ana mentioned you" / "Pipeline failed" / "Cara changed status from X to Y". */
+function changePhrase(c: ChangeLine): string {
+  if (c.from || c.to)
+    return `${c.field}${c.from ? ` from ${c.from}` : ''}${c.to ? ` to ${c.to}` : ''}`;
+  return c.text ? `${c.field} ${c.text}` : c.field;
+}
+
+const ARIA_TEXT_MAX = 120;
+
+/** Comment / detail text appended to the aria label after the entity, truncated sensibly. */
+export function describeEventAriaText(parts: EventParts): string {
+  const extra = parts.commentText || parts.detail || '';
+  return extra.length > ARIA_TEXT_MAX ? `${extra.slice(0, ARIA_TEXT_MAX)}\u2026` : extra;
+}
+
+/** Aria phrase with actor: "Ana mentioned you: text" / "Cara changed status from X to Y, priority from A to B". */
 export function describeEventAria(parts: EventParts): string {
-  const c = parts.changes?.[0];
-  const core = parts.to
-    ? `${parts.verb}${parts.from ? ` from ${parts.from}` : ''} to ${parts.to}`
-    : c && (c.from || c.to)
-      ? `${parts.verb}${c.from ? ` from ${c.from}` : ''}${c.to ? ` to ${c.to}` : ''}`
-      : c?.text
-        ? `${parts.verb} ${c.text}`
-        : parts.verb;
+  let core: string;
+  if (parts.changes && parts.changes.length > 0) {
+    const labelOnly = parts.changes.every((c) => !c.from && !c.to && !c.text);
+    core = labelOnly
+      ? parts.changes.map((c) => c.field).join(', ')
+      : `changed ${parts.changes.map(changePhrase).join(', ')}`;
+  } else {
+    core = parts.verb;
+  }
   if (parts.actor) return `${parts.actor} ${core}`;
   return core.charAt(0).toUpperCase() + core.slice(1);
 }
@@ -436,95 +411,29 @@ export function buildEntries(input: {
   readSet: ReadonlySet<string>;
   source: SourceFilter;
   unreadOnly: boolean;
-  expandOverrides: Readonly<Record<string, boolean>>;
   now: number;
 }): NotificationEntry[] {
-  const { readSet, expandOverrides, now } = input;
+  const { readSet, now } = input;
+  // Flat list, newest first, split by time-bucket headers.
   const filtered = filterItems(input.items, readSet, input.source, input.unreadOnly);
-
-  // Group by entity across the whole list (first occurrence = newest event).
-  const byEntity = new Map<string, NotificationItem[]>();
-  for (const item of filtered) {
-    const key = getEntityKey(item);
-    const list = byEntity.get(key);
-    if (list) list.push(item);
-    else byEntity.set(key, [item]);
-  }
-
-  const buckets: Record<TimeBucket, NotificationEntry[][]> = {
-    today: [],
-    yesterday: [],
-    week: [],
-    older: [],
-  };
-
-  // Map insertion order == newest-event order.
-  for (const [entityKey, items] of byEntity) {
-    const newest = items[0];
-    const bucket = bucketOf(newest.createdAt, now);
-    if (items.length === 1) {
-      buckets[bucket].push([
-        {
-          kind: 'event',
-          id: `event:${newest.id}`,
-          item: newest,
-          isUnread: !readSet.has(newest.id),
-          nested: false,
-        },
-      ]);
-      continue;
-    }
-    const unreadCount = items.filter((i) => !readSet.has(i.id)).length;
-    const expanded = expandOverrides[entityKey] ?? false;
-    const id = `group:${entityKey}`;
-    const out: NotificationEntry[] = [
-      { kind: 'group', id, entityKey, bucket, items, newest, unreadCount, expanded },
-    ];
-    if (expanded) {
-      // The group row itself shows the newest event; children are the earlier ones.
-      for (const item of items.slice(1)) {
-        out.push({
-          kind: 'event',
-          id: `event:${item.id}`,
-          item,
-          isUnread: !readSet.has(item.id),
-          nested: true,
-          groupId: id,
-        });
-      }
-    }
-    buckets[bucket].push(out);
-  }
-
   const entries: NotificationEntry[] = [];
-  for (const bucket of BUCKET_ORDER) {
-    if (buckets[bucket].length === 0) continue;
-    entries.push({ kind: 'header', id: `header:${bucket}`, bucket, label: BUCKET_LABEL[bucket] });
-    for (const chunk of buckets[bucket]) entries.push(...chunk);
+  let current: TimeBucket | null = null;
+  for (const item of filtered) {
+    const bucket = bucketOf(item.createdAt, now);
+    if (bucket !== current) {
+      current = bucket;
+      entries.push({ kind: 'header', id: `header:${bucket}`, bucket, label: BUCKET_LABEL[bucket] });
+    }
+    entries.push({
+      kind: 'event',
+      id: `event:${item.id}`,
+      item,
+      isUnread: !readSet.has(item.id),
+    });
   }
   return entries;
 }
 
-/** Next distinct human actor behind a group's newest event (for the avatar stack), if any. */
-export function secondActor(entry: GroupEntry): NotificationItem | undefined {
-  const lead = entry.newest.author.trim();
-  return entry.items
-    .slice(1)
-    .find(
-      (i) =>
-        i.author.trim() &&
-        i.author.trim() !== lead &&
-        i.notificationType !== 'pipeline-failure' &&
-        i.notificationType !== 'due-date-reminder',
-    );
-}
-
-export function entryItemIds(entry: NotificationEntry): string[] {
-  if (entry.kind === 'group') return entry.items.map((i) => i.id);
-  if (entry.kind === 'event') return [entry.item.id];
-  return [];
-}
-
-export function isFocusableEntry(entry: NotificationEntry): entry is FocusableEntry {
-  return entry.kind !== 'header';
+export function isFocusableEntry(entry: NotificationEntry): entry is EventEntry {
+  return entry.kind === 'event';
 }

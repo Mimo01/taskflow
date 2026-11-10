@@ -1,11 +1,11 @@
 /**
- * NotificationPopover — grouped notification feed rendered inside TopBar's Popover (Phase 95).
+ * NotificationPopover — flat two-line notification feed rendered inside TopBar's Popover (Phase 95).
  *
  * - Header: "Notifications", ghost "Mark all read", overflow (Clear read, Notification settings)
  * - Filter bar: segmented Unread | All + source tabs with neutral unread chips
- * - Entries built by notification-view (time buckets + per-entity groups), rendered by
+ * - Entries built by notification-view (time-bucket headers + one entry per notification), rendered by
  *   NotificationList (virtualized, keyboard triage)
- * - Row/group click = mark read + navigate + close (D-13); no peek wiring
+ * - Row click = mark read + navigate + close (D-13); no peek wiring
  * - Fetch error with cached items shows StaleDataBanner; with no items shows ErrorState
  */
 
@@ -32,15 +32,11 @@ import NotificationRow from './NotificationRow';
 import {
   buildEntries,
   type EventEntry,
-  entryItemIds,
-  type FocusableEntry,
   filterItems,
-  type GroupEntry,
   getJiraKey,
   isSafeHttpUrl,
   type NotificationEntry,
   type SourceFilter,
-  secondActor,
 } from './notification-view';
 
 interface NotificationPopoverProps {
@@ -65,7 +61,6 @@ export default function NotificationPopover({
   const now = useNow(60_000);
   const [activeTab, setActiveTab] = useState<SourceFilter>('all');
   const [unreadOnly, setUnreadOnly] = useState(false);
-  const [expandOverrides, setExpandOverrides] = useState<Record<string, boolean>>({});
   const [dismissedError, setDismissedError] = useState<unknown>(null);
 
   const items = useNotificationsStore((s) => s.items);
@@ -77,9 +72,7 @@ export default function NotificationPopover({
   const markAsRead = useNotificationsStore((s) => s.markAsRead);
   const markAsUnread = useNotificationsStore((s) => s.markAsUnread);
   const markItemsRead = useNotificationsStore((s) => s.markItemsRead);
-  const markItemsUnread = useNotificationsStore((s) => s.markItemsUnread);
   const removeItem = useNotificationsStore((s) => s.removeItem);
-  const removeItems = useNotificationsStore((s) => s.removeItems);
   const clearRead = useNotificationsStore((s) => s.clearRead);
   const setPermissionDenied = useNotificationsStore((s) => s.setPermissionDenied);
   const setNotificationSendError = useNotificationsStore((s) => s.setNotificationSendError);
@@ -90,7 +83,6 @@ export default function NotificationPopover({
     readSet,
     source: activeTab,
     unreadOnly,
-    expandOverrides,
     now,
   });
 
@@ -122,29 +114,13 @@ export default function NotificationPopover({
     navigateTo(item);
   }
 
-  function openGroup(group: GroupEntry) {
-    markItemsRead(entryItemIds(group));
-    navigateTo(group.newest);
+  function toggleRead(entry: EventEntry) {
+    if (entry.isUnread) markAsRead(entry.item.id);
+    else markAsUnread(entry.item.id);
   }
 
-  function toggleRead(entry: FocusableEntry) {
-    if (entry.kind === 'event') {
-      if (entry.isUnread) markAsRead(entry.item.id);
-      else markAsUnread(entry.item.id);
-      return;
-    }
-    const ids = entryItemIds(entry);
-    if (entry.unreadCount > 0) markItemsRead(ids);
-    else markItemsUnread(ids);
-  }
-
-  function done(entry: FocusableEntry) {
-    if (entry.kind === 'event') removeItem(entry.item.id);
-    else removeItems(entryItemIds(entry));
-  }
-
-  function setExpanded(group: GroupEntry, expanded: boolean) {
-    setExpandOverrides((o) => ({ ...o, [group.entityKey]: expanded }));
+  function done(entry: EventEntry) {
+    removeItem(entry.item.id);
   }
 
   function getOpenInBrowser(item: NotificationItem): (() => void) | undefined {
@@ -164,29 +140,12 @@ export default function NotificationPopover({
         </div>
       );
     }
-    if (entry.kind === 'group') {
-      return (
-        <NotificationRow
-          item={entry.newest}
-          isUnread={entry.unreadCount > 0}
-          now={now}
-          groupCount={entry.items.length - 1}
-          stackItem={secondActor(entry)}
-          expanded={entry.expanded}
-          onToggleExpand={() => setExpanded(entry, !entry.expanded)}
-          onOpen={() => openGroup(entry)}
-          onToggleRead={() => toggleRead(entry)}
-          onDone={() => done(entry)}
-        />
-      );
-    }
     const ev: EventEntry = entry;
     return (
       <NotificationRow
         item={ev.item}
         isUnread={ev.isUnread}
         now={now}
-        nested={ev.nested}
         onOpen={() => openEvent(ev.item)}
         onToggleRead={() => toggleRead(ev)}
         onDone={() => done(ev)}
@@ -257,7 +216,6 @@ export default function NotificationPopover({
         renderEntry={renderEntry}
         onToggleRead={toggleRead}
         onDone={done}
-        onSetExpanded={setExpanded}
       />
     );
   }

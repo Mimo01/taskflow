@@ -1,24 +1,16 @@
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { type KeyboardEvent, type ReactNode, useCallback, useEffect, useRef } from 'react';
 import { cn } from '../../lib/utils';
-import {
-  type FocusableEntry,
-  type GroupEntry,
-  isFocusableEntry,
-  type NotificationEntry,
-} from './notification-view';
+import { type EventEntry, isFocusableEntry, type NotificationEntry } from './notification-view';
 
 interface NotificationListProps {
   entries: NotificationEntry[];
-  /** Row/group/header markup. Each focusable render must contain one `[data-entry-primary]` element. */
+  /** Row/header markup. Each focusable render must contain one `[data-entry-primary]` element. */
   renderEntry: (entry: NotificationEntry) => ReactNode;
-  onToggleRead: (entry: FocusableEntry) => void;
-  onDone: (entry: FocusableEntry) => void;
-  onSetExpanded: (entry: GroupEntry, expanded: boolean) => void;
+  onToggleRead: (entry: EventEntry) => void;
+  onDone: (entry: EventEntry) => void;
   className?: string;
 }
-
-type PendingFocus = { type: 'index'; index: number } | { type: 'id'; id: string };
 
 const MAX_FOCUS_ATTEMPTS = 5;
 
@@ -32,18 +24,17 @@ export default function NotificationList({
   renderEntry,
   onToggleRead,
   onDone,
-  onSetExpanded,
   className,
 }: NotificationListProps) {
   const parentRef = useRef<HTMLDivElement>(null);
-  const pendingFocus = useRef<PendingFocus | null>(null);
+  const pendingFocus = useRef<number | null>(null);
 
   const rowVirtualizer = useVirtualizer({
     count: entries.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: (i) => (entries[i]?.kind === 'header' ? 28 : 44),
+    estimateSize: (i) => (entries[i]?.kind === 'header' ? 28 : 56),
     overscan: 8,
-    // Stable identity keys: entries remap indices on read/done/expand, so an index-keyed
+    // Stable identity keys: entries remap indices on read/done, so an index-keyed
     // size cache would apply a row's height to a different entry.
     getItemKey: (i) => entries[i]?.id ?? i,
   });
@@ -75,22 +66,17 @@ export default function NotificationList({
   // biome-ignore lint/correctness/useExhaustiveDependencies: runs when entries change only
   useEffect(() => {
     const pending = pendingFocus.current;
-    if (!pending) return;
+    if (pending == null) return;
     pendingFocus.current = null;
-    if (pending.type === 'id') {
-      const idx = entries.findIndex((e) => e.id === pending.id);
-      if (idx >= 0) focusEntry(idx);
-      return;
-    }
     let target = -1;
-    for (let i = Math.min(pending.index, entries.length); i < entries.length; i++) {
+    for (let i = Math.min(pending, entries.length); i < entries.length; i++) {
       if (isFocusableEntry(entries[i])) {
         target = i;
         break;
       }
     }
     if (target < 0) {
-      for (let i = Math.min(pending.index, entries.length) - 1; i >= 0; i--) {
+      for (let i = Math.min(pending, entries.length) - 1; i >= 0; i--) {
         if (isFocusableEntry(entries[i])) {
           target = i;
           break;
@@ -132,34 +118,6 @@ export default function NotificationList({
         if (n >= 0) focusEntry(n);
         return;
       }
-      case 'ArrowRight': {
-        if (focusable?.kind !== 'group') return;
-        e.preventDefault();
-        if (!focusable.expanded) {
-          pendingFocus.current = { type: 'id', id: focusable.id };
-          onSetExpanded(focusable, true);
-        } else {
-          const child = entries[current + 1];
-          if (child && child.kind === 'event' && child.groupId === focusable.id) {
-            focusEntry(current + 1);
-          }
-        }
-        return;
-      }
-      case 'ArrowLeft': {
-        if (!focusable) return;
-        if (focusable.kind === 'group') {
-          if (!focusable.expanded) return;
-          e.preventDefault();
-          pendingFocus.current = { type: 'id', id: focusable.id };
-          onSetExpanded(focusable, false);
-        } else if (focusable.nested && focusable.groupId) {
-          e.preventDefault();
-          const gi = entries.findIndex((x) => x.id === focusable.groupId);
-          if (gi >= 0) focusEntry(gi);
-        }
-        return;
-      }
       case 'u': {
         if (!focusable) return;
         e.preventDefault();
@@ -170,7 +128,7 @@ export default function NotificationList({
       case 'Delete': {
         if (!focusable) return;
         e.preventDefault();
-        pendingFocus.current = { type: 'index', index: current };
+        pendingFocus.current = current;
         onDone(focusable);
         return;
       }
