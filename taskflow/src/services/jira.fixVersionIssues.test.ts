@@ -36,6 +36,7 @@ describe('fetchFixVersionIssues URL contract', () => {
       'created',
       'resolutiondate',
       'reporter',
+      'priority',
     ]) {
       expect(fields).toContain(f);
     }

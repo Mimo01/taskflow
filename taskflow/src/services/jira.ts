@@ -1433,6 +1433,8 @@ export async function fetchFixVersionIssues(
     'resolutiondate',
     // Release detail package-mismatch rows show who reported the issue: additive.
     'reporter',
+    // Release detail task tables show the priority icon: additive.
+    'priority',
   ].join(',');
   const maxResults = 200;
   let startAt = 0;
@@ -2870,7 +2872,7 @@ export async function fetchStoriesWithPackage(
   const jql =
     `project = "${projectKey}" AND issuetype in (${PACKAGE_ISSUE_TYPES.join(', ')}) ` +
     `AND cf[15725] in (${keys.map((k) => `"${k}"`).join(', ')})`;
-  const fields = 'summary,issuetype,project,status,fixVersions,customfield_15725,assignee,reporter';
+  const fields = 'summary,issuetype,project,status,fixVersions,customfield_15725,assignee,reporter,priority';
   try {
     return await fetchAllSearchPagesConcurrent(
       `${base}/rest/api/2/search?jql=${encodeURIComponent(jql)}&fields=${fields}`,
