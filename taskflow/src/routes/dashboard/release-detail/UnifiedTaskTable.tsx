@@ -20,6 +20,7 @@ import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
 import { LinkContextMenu } from '@/components/ui/link-context-menu';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { PriorityIcon } from '@/components/ui/priority-icon';
 import { FilterPopover, SortableHeader } from '@/components/ui/table-filter-sort';
 import { UNASSIGNED_FILTER, UNASSIGNED_LABEL } from '@/lib/assignee-filter';
 import { isEpicTypeName } from '@/lib/issue-type';
@@ -133,6 +134,7 @@ export interface UnifiedTaskTableProps {
 const EMPTY_KEY_TYPES: Record<string, string> = {};
 const COL_ICON = 'flex-none w-[1.125rem] @max-[640px]:hidden';
 const COL_KEY = 'flex-none w-[5.5rem] whitespace-nowrap';
+const COL_PRIORITY = 'flex-none w-[1.125rem]';
 const COL_SUMMARY = 'flex-1 min-w-0';
 const COL_PERSON = 'flex-none w-[8.75rem] min-w-0 @max-[860px]:w-9';
 const COL_STATE = 'flex-none w-[6rem] @max-[400px]:hidden';
@@ -692,6 +694,7 @@ function ColumnHeaderStrip({
     >
       <span className={COL_ICON} aria-hidden="true" />
       <SortableHeader sortKey="key" label="Key" className={COL_KEY} {...headerProps} />
+      <span className={COL_PRIORITY} aria-hidden="true" />
       <SortableHeader sortKey="summary" label="Summary" className={COL_SUMMARY} {...headerProps} />
       <span className={COL_MR} title="Merge requests — merged / open">
         MRs
@@ -1670,6 +1673,16 @@ function TaskRow({
       >
         {issue.key}
       </button>
+      <span
+        data-testid="task-row-priority"
+        className={`pointer-events-none relative ${COL_PRIORITY} flex items-center justify-center`}
+        style={{ width: 18, height: 18 }}
+        aria-hidden={!issue.fields.priority}
+      >
+        <PriorityIcon
+          priority={issue.fields.priority as { name?: string; iconUrl?: string } | null | undefined}
+        />
+      </span>
       <span className={`pointer-events-none relative ${COL_SUMMARY} line-clamp-1`}>
         {issue.fields.summary}
       </span>

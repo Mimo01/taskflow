@@ -102,6 +102,7 @@ function makeIssue(
     statusCategory?: 'new' | 'indeterminate' | 'done';
     issuetype?: string;
     assignee?: string | null;
+    priority?: { name: string; iconUrl: string } | null;
   } = {},
 ): JiraIssue {
   issueSeq += 1;
@@ -116,6 +117,7 @@ function makeIssue(
         statusCategory: { key: overrides.statusCategory ?? 'new' },
       },
       assignee: overrides.assignee ? { displayName: overrides.assignee, avatarUrls: {} } : null,
+      priority: overrides.priority ?? null,
       customfield_10016: null,
       issuetype: { name: overrides.issuetype ?? 'Story', subtask: false },
     },
@@ -575,6 +577,30 @@ describe('WR-05: column header strip labels', () => {
     expect(strip.children).toHaveLength(rowCells.length);
     expect(strip.lastElementChild).toHaveTextContent('Assignee');
     expect(rowCells[rowCells.length - 1]).toHaveTextContent('Unassigned');
+  });
+
+  it('shows the priority icon after the key and before the summary', () => {
+    const issue = makeIssue({
+      key: 'PROJ-1',
+      summary: 'Sum text',
+      priority: { name: 'High', iconUrl: 'https://jira.example.test/high.svg' },
+    });
+    renderSection({ primaryRows: [{ issue, mrs: [] }] });
+
+    const row = screen.getByTestId('task-row');
+    const icon = within(row).getByRole('img', { name: 'Priority: High' });
+    const key = within(row).getByRole('button', { name: 'PROJ-1' });
+    const summary = within(row).getByText('Sum text');
+    expect(key.compareDocumentPosition(icon) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(icon.compareDocumentPosition(summary) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('keeps an empty priority slot when the issue has no priority', () => {
+    renderSection({ primaryRows: [{ issue: makeIssue({ key: 'PROJ-1' }), mrs: [] }] });
+
+    const row = screen.getByTestId('task-row');
+    expect(within(row).queryByRole('img', { name: /Priority/ })).toBeNull();
+    expect(within(row).getByTestId('task-row-priority')).toBeInTheDocument();
   });
 
   it('renders no element with role="table", role="row" or role="columnheader"', () => {
