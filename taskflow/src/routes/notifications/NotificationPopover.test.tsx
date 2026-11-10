@@ -119,16 +119,18 @@ describe('NotificationPopover', () => {
   describe('grouping', () => {
     beforeEach(() => seed([jiraItem('a'), jiraItem('b')]));
 
-    it('renders one group header with +1 and children visible', () => {
+    it('renders one collapsed group row with a +1 chip; the chip reveals the earlier event', () => {
       render(<NotificationPopover />);
       expect(screen.getByText('+1')).toBeInTheDocument();
-      expect(entryCount()).toBe(3);
+      expect(entryCount()).toBe(1);
+      fireEvent.click(screen.getByRole('button', { name: /^Show 1 earlier event/ }));
+      expect(entryCount()).toBe(2);
     });
 
     it('group click marks both read and navigates', () => {
       const onIssueClick = vi.fn();
       render(<NotificationPopover onIssueClick={onIssueClick} />);
-      fireEvent.click(screen.getByRole('button', { name: /2 updates/ }));
+      fireEvent.click(screen.getByRole('button', { name: /^Unread\. .* on PROJ-1/ }));
       expect(useNotificationsStore.getState().readIds).toEqual(expect.arrayContaining(['a', 'b']));
       expect(onIssueClick).toHaveBeenCalledWith('PROJ-1');
     });
@@ -149,7 +151,9 @@ describe('NotificationPopover', () => {
 
     it('collapse hides children and survives a store update', () => {
       render(<NotificationPopover />);
-      fireEvent.click(screen.getByRole('button', { name: /^Collapse/ }));
+      fireEvent.click(screen.getByRole('button', { name: /^Show 1 earlier event/ }));
+      expect(entryCount()).toBe(2);
+      fireEvent.click(screen.getByRole('button', { name: /^Hide 1 earlier event/ }));
       expect(entryCount()).toBe(1);
       act(() => {
         useNotificationsStore.setState({ readIds: [] });

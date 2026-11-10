@@ -20,7 +20,8 @@ function item(id: string, key: string, createdAt: string): NotificationItem {
   };
 }
 
-// group PROJ-1 (a, b; a is unread), single PROJ-2 (c). Order: header, group, b, a, c
+// group PROJ-1 (a, b; newest b is the group row, a is the earlier child), single PROJ-2 (c).
+// Expanded order: header, group, a, c
 const items = [
   item('a', 'PROJ-1', at(9)),
   item('b', 'PROJ-1', at(11)),
@@ -50,7 +51,7 @@ const stubRender = (entry: NotificationEntry) =>
     </div>
   );
 
-function setup(list = items, expandOverrides: Record<string, boolean> = {}) {
+function setup(list = items, expandOverrides: Record<string, boolean> = { 'jira:PROJ-1': true }) {
   const handlers = {
     onToggleRead: vi.fn(),
     onDone: vi.fn(),
@@ -103,15 +104,13 @@ describe('NotificationList keyboard', () => {
     setup();
     btn('group:jira:PROJ-1').focus();
     await user.keyboard('{ArrowDown}');
-    await waitFor(() => expect(btn('event:b')).toHaveFocus());
-    await user.keyboard('j');
     await waitFor(() => expect(btn('event:a')).toHaveFocus());
+    await user.keyboard('j');
+    await waitFor(() => expect(btn('event:c')).toHaveFocus());
     await user.keyboard('k');
-    await waitFor(() => expect(btn('event:b')).toHaveFocus());
+    await waitFor(() => expect(btn('event:a')).toHaveFocus());
     await user.keyboard('{ArrowUp}');
     await waitFor(() => expect(btn('group:jira:PROJ-1')).toHaveFocus());
-    await user.keyboard('{ArrowDown}');
-    await waitFor(() => expect(btn('event:b')).toHaveFocus());
     await user.keyboard('{ArrowDown}');
     await waitFor(() => expect(btn('event:a')).toHaveFocus());
     await user.keyboard('{ArrowDown}');
@@ -137,11 +136,11 @@ describe('NotificationList keyboard', () => {
   it('e and Delete call onDone; focus lands on the entry now at that position', async () => {
     const user = userEvent.setup();
     const { handlers, rerender, entries } = setup();
-    btn('event:b').focus();
+    btn('event:a').focus();
     await user.keyboard('e');
-    expect(handlers.onDone).toHaveBeenCalledWith(entries.find((e) => e.id === 'event:b'));
-    // remove b: group of one collapses to a plain event
-    const next = entriesFor(items.filter((i) => i.id !== 'b'));
+    expect(handlers.onDone).toHaveBeenCalledWith(entries.find((e) => e.id === 'event:a'));
+    // remove a: group of one collapses to a plain event
+    const next = entriesFor(items.filter((i) => i.id !== 'a'));
     rerender(<NotificationList entries={next} renderEntry={stubRender} {...handlers} />);
     // index 2 is now whatever follows the header and event:a/c
     const idx = next.findIndex((e) => e.kind !== 'header');
@@ -174,7 +173,7 @@ describe('NotificationList keyboard', () => {
     const expanded = setup();
     btn('group:jira:PROJ-1').focus();
     await user.keyboard('{ArrowRight}');
-    await waitFor(() => expect(btn('event:b')).toHaveFocus());
+    await waitFor(() => expect(btn('event:a')).toHaveFocus());
     expect(expanded.handlers.onSetExpanded).not.toHaveBeenCalled();
   });
 

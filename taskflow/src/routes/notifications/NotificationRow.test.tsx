@@ -55,12 +55,99 @@ describe('NotificationRow', () => {
     expect(screen.getByText('2h')).toBeInTheDocument();
   });
 
-  it('does not render fullBody or parent summary outside the tooltip', () => {
-    setup({
-      item: makeItem('jira', { parentKey: 'PROJ-1', parentSummary: 'Parent story' }),
-    });
+  it('does not render fullBody outside the tooltip', () => {
+    setup();
     expect(screen.queryByText(/in the auth flow/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/Parent story/)).not.toBeInTheDocument();
+  });
+
+  it('renders the parent before the title and names it in the aria label', () => {
+    const { container } = setup({
+      item: makeItem('jira', {
+        entityTitle: 'PROJ-123: Fix tax rounding',
+        parentKey: 'PROJ-100',
+        parentSummary: 'Checkout redesign',
+      }),
+    });
+    const parent = container.querySelector('[data-parent]') as HTMLElement;
+    expect(parent.textContent).toContain('PROJ-100');
+    expect(parent.textContent).toContain('Checkout redesign');
+    expect(parent.textContent).toContain('\u203A');
+    // subtask key stays in the fixed key column, parent shrinks before the title
+    expect(screen.getByText('PROJ-123')).toBeInTheDocument();
+    expect(parent.className).toContain('flex-[0_100_auto]');
+    expect(
+      screen.getByRole('button', {
+        name: 'Unread. Jane commented on PROJ-123 Fix tax rounding (in PROJ-100 Checkout redesign)',
+      }),
+    ).toBeInTheDocument();
+  });
+
+  it('shows what changed for an issue update, with +N more', () => {
+    const { container, unmount } = setup({
+      item: makeItem('jira', {
+        notificationType: 'issue-update',
+        bodyPreview: 'Priority: Minor \u2192 Major',
+        fullBody: 'Priority: Minor \u2192 Major',
+      }),
+    });
+    const tail = container.querySelector('[data-tail="change"]') as HTMLElement;
+    expect(tail.textContent).toContain('priority');
+    expect(tail.textContent).toContain('Minor');
+    expect(tail.textContent).toContain('Major');
+    unmount();
+    const multi = setup({
+      item: makeItem('jira', {
+        notificationType: 'issue-update',
+        bodyPreview: 'Sprint: S12 \u2192 S13\nLabels: a \u2192 a b\nDescription: updated',
+        fullBody: 'x',
+      }),
+    });
+    const t2 = multi.container.querySelector('[data-tail="change"]') as HTMLElement;
+    expect(t2.textContent).toContain('sprint');
+    expect(t2.textContent).toContain('+2');
+    multi.unmount();
+    const desc = setup({
+      item: makeItem('jira', {
+        notificationType: 'issue-update',
+        bodyPreview: 'Description: updated',
+        fullBody: 'x',
+      }),
+    });
+    expect(desc.container.querySelector('[data-tail="change"]')?.textContent).toBe(
+      'edited description',
+    );
+  });
+
+  it('grouped row looks like a single row plus a +N chip that toggles aria-expanded', () => {
+    const onToggleExpand = vi.fn();
+    const { container, rerender, ...h } = setup({ groupCount: 2, onToggleExpand });
+    expect(screen.getByText('PROJ-123')).toBeInTheDocument();
+    expect(screen.getByText('Fix login bug')).toBeInTheDocument();
+    expect(screen.getByText('commented')).toBeInTheDocument();
+    expect(container.querySelector('[data-event-badge]')).not.toBeNull();
+    const chip = screen.getByRole('button', { name: 'Show 2 earlier events on PROJ-123' });
+    expect(chip).toHaveTextContent('+2');
+    expect(chip).toHaveAttribute('aria-expanded', 'false');
+    fireEvent.click(chip);
+    expect(onToggleExpand).toHaveBeenCalledTimes(1);
+    expect(h.onOpen).not.toHaveBeenCalled();
+    rerender(
+      <NotificationRow
+        item={makeItem('jira')}
+        isUnread
+        now={NOW}
+        groupCount={2}
+        expanded
+        onToggleExpand={onToggleExpand}
+        onOpen={h.onOpen}
+        onToggleRead={h.onToggleRead}
+        onDone={h.onDone}
+      />,
+    );
+    const open = screen.getByRole('button', { name: 'Hide 2 earlier events on PROJ-123' });
+    expect(open).toHaveAttribute('aria-expanded', 'true');
+    expect(open).toHaveTextContent('\u22122');
+    expect(screen.getByRole('button', { name: 'Mark group read' })).toBeInTheDocument();
   });
 
   it('shows the actor avatar and an aria label naming actor, event and entity', () => {
@@ -74,14 +161,6 @@ describe('NotificationRow', () => {
         name: 'Unread. Jane assigned you on PROJ-123 Fix login bug',
       }),
     ).toBeInTheDocument();
-  });
-
-  it('nested rows hide key and title and show the snippet after the tail', () => {
-    setup({ nested: true });
-    expect(screen.queryByText('PROJ-123')).not.toBeInTheDocument();
-    expect(screen.queryByText('Fix login bug')).not.toBeInTheDocument();
-    expect(screen.getByText('commented')).toBeInTheDocument();
-    expect(screen.getByText('The issue was caused by a race condition')).toBeInTheDocument();
   });
 
   it('renders GitLab MR ref as !iid', () => {
@@ -219,11 +298,6 @@ describe('NotificationRow', () => {
     const after = document.querySelector('[data-entry-primary]');
     expect(after).toBe(before);
     expect(document.activeElement).toBe(before);
-  });
-
-  it('nested hides the key button', () => {
-    setup({ nested: true });
-    expect(screen.queryByRole('button', { name: 'PROJ-123' })).not.toBeInTheDocument();
   });
 
   it('has no div[role=button]', () => {

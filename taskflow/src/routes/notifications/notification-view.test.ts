@@ -6,6 +6,7 @@ import {
   buildEntries,
   describeEventAria,
   describeEventParts,
+  parseChangeLines,
   entryItemIds,
   filterItems,
   formatAbsoluteTime,
@@ -114,9 +115,44 @@ describe('describeEventParts', () => {
     expect(verb('pipeline-failure')).toBe('pipeline failed');
     expect(verb('due-date-reminder', 'Due tomorrow', '')).toBe('due tomorrow');
     expect(verb('due-date-reminder', 'whatever', '')).toBe('due');
-    expect(verb('issue-update', 'Priority: A \u2192 B')).toBe('updated');
+    expect(verb('issue-update', 'Priority: A \u2192 B')).toBe('changed priority');
+    expect(verb('issue-update', 'unrecognised text')).toBe('updated');
     expect(verb(undefined)).toBe('updated');
     expect(d('jira-comment').actor).toBe('Ann');
+  });
+  it('parses change lines incl. (none), description and unknown lines', () => {
+    expect(
+      parseChangeLines(
+        [
+          'Priority: Minor \u2192 Major',
+          'Assignee: (none) \u2192 Ben',
+          'Labels: a \u2192 a b',
+          'Description: updated',
+          'garbage line',
+        ].join('\n'),
+      ),
+    ).toEqual([
+      { field: 'priority', from: 'Minor', to: 'Major' },
+      { field: 'assignee', from: undefined, to: 'Ben' },
+      { field: 'labels', from: 'a', to: 'a b' },
+      { field: 'description' },
+    ]);
+    expect(parseChangeLines('nothing useful')).toEqual([]);
+    expect(parseChangeLines('Assignee: Ben \u2192 (none)')[0]).toEqual({
+      field: 'assignee',
+      from: 'Ben',
+      to: undefined,
+    });
+  });
+  it('puts status first (pills) and counts the other changes; multi shows first +N', () => {
+    const body = 'Priority: A \u2192 B\nStatus: To Do \u2192 Done\nSprint: S1 \u2192 S2';
+    const s = d('issue-update', body);
+    expect(s).toMatchObject({ to: 'Done', moreChanges: 2 });
+    const m = d('issue-update', 'Priority: A \u2192 B\nSprint: S1 \u2192 S2\nLabels: x \u2192 y');
+    expect(m.verb).toBe('changed priority');
+    expect(m.moreChanges).toBe(2);
+    expect(m.changes).toHaveLength(3);
+    expect(describeEventAria(m)).toBe('Ann changed priority from A to B');
   });
   it('extracts old and new status for status changes', () => {
     const p = d('issue-update', 'Status: To Do \u2192 In Progress');
@@ -241,19 +277,27 @@ describe('buildEntries', () => {
     expect(g.id).toBe('group:jira:PROJ-1');
     expect(g.items.map((i) => i.id)).toEqual(['b', 'a']);
     expect(g.unreadCount).toBe(1);
-    expect(g.expanded).toBe(true);
-    expect(e.slice(2, 4).map((x) => x.id)).toEqual(['event:b', 'event:a']);
-    for (const c of e.slice(2, 4)) {
+    expect(g.expanded).toBe(false);
+    expect(e).toHaveLength(3); // header, collapsed group, plain
+    const open = buildEntries({
+      ...base,
+      items: grouped,
+      readSet: new Set(['a']),
+      expandOverrides: { 'jira:PROJ-1': true },
+    });
+    // children are the EARLIER events only; the group row shows the newest
+    expect(open.slice(2, 3).map((x) => x.id)).toEqual(['event:a']);
+    for (const c of open.slice(2, 3)) {
       if (c.kind === 'event') {
         expect(c.nested).toBe(true);
         expect(c.groupId).toBe('group:jira:PROJ-1');
       }
     }
-    const plain = e[4];
+    const plain = open[3];
     expect(plain.kind === 'event' && plain.nested === false).toBe(true);
   });
 
-  it('collapses an all-read group with no children', () => {
+  it('keeps a group collapsed by default with no children', () => {
     const e = buildEntries({ ...base, items: grouped, readSet: new Set(['a', 'b']) });
     const g = e[1];
     expect(g.kind === 'group' && g.expanded).toBe(false);
@@ -274,7 +318,7 @@ describe('buildEntries', () => {
       readSet: new Set(['a', 'b']),
       expandOverrides: { 'jira:PROJ-1': true },
     });
-    expect(open.filter((x) => x.kind === 'event' && x.nested)).toHaveLength(2);
+    expect(open.filter((x) => x.kind === 'event' && x.nested)).toHaveLength(1);
   });
 
   it('places a group by its newest event', () => {
@@ -329,12 +373,12 @@ describe('entryItemIds / isFocusableEntry', () => {
       readSet: new Set(),
       source: 'all',
       unreadOnly: false,
-      expandOverrides: {},
+      expandOverrides: { 'jira:PROJ-1': true },
       now: NOW,
     });
     expect(entryItemIds(e[0])).toEqual([]);
     expect(entryItemIds(e[1])).toEqual(['b', 'a']);
-    expect(entryItemIds(e[2])).toEqual(['b']);
+    expect(entryItemIds(e[2])).toEqual(['a']);
     expect(isFocusableEntry(e[0])).toBe(false);
     expect(isFocusableEntry(e[1])).toBe(true);
   });

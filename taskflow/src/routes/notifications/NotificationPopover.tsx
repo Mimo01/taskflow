@@ -27,7 +27,6 @@ import { openExternal } from '../../lib/openExternal';
 import { cn } from '../../lib/utils';
 import type { NotificationItem } from '../../stores/notifications.store';
 import { useNotificationsStore } from '../../stores/notifications.store';
-import NotificationGroupHeader from './NotificationGroupHeader';
 import NotificationList from './NotificationList';
 import NotificationRow from './NotificationRow';
 import {
@@ -166,11 +165,14 @@ export default function NotificationPopover({
     }
     if (entry.kind === 'group') {
       return (
-        <NotificationGroupHeader
-          group={entry}
+        <NotificationRow
+          item={entry.newest}
+          isUnread={entry.unreadCount > 0}
           now={now}
+          groupCount={entry.items.length - 1}
+          expanded={entry.expanded}
+          onToggleExpand={() => setExpanded(entry, !entry.expanded)}
           onOpen={() => openGroup(entry)}
-          onToggleExpanded={() => setExpanded(entry, !entry.expanded)}
           onToggleRead={() => toggleRead(entry)}
           onDone={() => done(entry)}
         />
@@ -182,7 +184,6 @@ export default function NotificationPopover({
         item={ev.item}
         isUnread={ev.isUnread}
         now={now}
-        nested={ev.nested}
         onOpen={() => openEvent(ev.item)}
         onToggleRead={() => toggleRead(ev)}
         onDone={() => done(ev)}

@@ -140,6 +140,44 @@ export interface EventParts {
   /** Status change only: old status (may be absent) and new status. */
   from?: string;
   to?: string;
+  /** Issue update, non-status field changes (first is shown in the tail). */
+  changes?: ChangeLine[];
+  /** Extra changes not shown in the tail (including non-status ones behind a status pill). */
+  moreChanges?: number;
+}
+
+export interface ChangeLine {
+  /** Lower-cased field label, e.g. "priority", "sprint", "description". */
+  field: string;
+  /** Previous value; undefined when "(none)" or not applicable. */
+  from?: string;
+  /** New value; undefined for description edits / cleared values. */
+  to?: string;
+}
+
+const CHANGE_RE = /^([^:\n]+):\s*(.*?)\s*\u2192\s*(.*)$/;
+const NONE = '(none)';
+
+/** Parse `Field: old → new` / `Description: updated|set` body lines. Unknown lines are skipped. */
+export function parseChangeLines(body: string): ChangeLine[] {
+  const out: ChangeLine[] = [];
+  for (const raw of body.split('\n')) {
+    const line = raw.trim();
+    if (!line) continue;
+    const m = line.match(CHANGE_RE);
+    if (m) {
+      const from = m[2].trim();
+      const to = m[3].trim();
+      out.push({
+        field: m[1].trim().toLowerCase(),
+        from: from && from !== NONE ? from : undefined,
+        to: to && to !== NONE ? to : undefined,
+      });
+      continue;
+    }
+    if (/^Description:\s*(updated|set)$/i.test(line)) out.push({ field: 'description' });
+  }
+  return out;
 }
 
 function actorName(author: string): string | undefined {
@@ -171,16 +209,30 @@ export function describeEventParts(item: NotificationItem): EventParts {
       return { verb: m ? `due ${m[1].toLowerCase()}` : 'due', snippet: '' };
     }
     case 'issue-update': {
-      const m = item.bodyPreview.match(/^Status:\s*(.*?)\s*\u2192\s*(.+)$/m);
-      return m
-        ? {
-            verb: 'changed status',
-            actor,
-            snippet: '',
-            from: m[1].trim() || undefined,
-            to: m[2].trim(),
-          }
-        : { verb: 'updated', actor, snippet };
+      const lines = parseChangeLines(item.bodyPreview);
+      const status = lines.find((l) => l.field === 'status' && l.to);
+      const others = lines.filter((l) => l !== status);
+      if (status) {
+        return {
+          verb: 'changed status',
+          actor,
+          snippet: '',
+          from: status.from,
+          to: status.to,
+          changes: others,
+          moreChanges: others.length || undefined,
+        };
+      }
+      if (others.length > 0) {
+        return {
+          verb: `changed ${others[0].field}`,
+          actor,
+          snippet: '',
+          changes: others,
+          moreChanges: others.length > 1 ? others.length - 1 : undefined,
+        };
+      }
+      return { verb: 'updated', actor, snippet };
     }
     default:
       return { verb: 'updated', actor, snippet };
@@ -203,9 +255,12 @@ export function statusCategoryGuess(name: string): 'new' | 'indeterminate' | 'do
 
 /** Aria phrase with actor: "Ana mentioned you" / "Pipeline failed" / "Cara changed status from X to Y". */
 export function describeEventAria(parts: EventParts): string {
+  const c = parts.changes?.[0];
   const core = parts.to
     ? `${parts.verb}${parts.from ? ` from ${parts.from}` : ''} to ${parts.to}`
-    : parts.verb;
+    : c && (c.from || c.to)
+      ? `${parts.verb}${c.from ? ` from ${c.from}` : ''}${c.to ? ` to ${c.to}` : ''}`
+      : parts.verb;
   if (parts.actor) return `${parts.actor} ${core}`;
   return core.charAt(0).toUpperCase() + core.slice(1);
 }
@@ -269,13 +324,14 @@ export function buildEntries(input: {
       continue;
     }
     const unreadCount = items.filter((i) => !readSet.has(i.id)).length;
-    const expanded = expandOverrides[entityKey] ?? unreadCount > 0;
+    const expanded = expandOverrides[entityKey] ?? false;
     const id = `group:${entityKey}`;
     const out: NotificationEntry[] = [
       { kind: 'group', id, entityKey, bucket, items, newest, unreadCount, expanded },
     ];
     if (expanded) {
-      for (const item of items) {
+      // The group row itself shows the newest event; children are the earlier ones.
+      for (const item of items.slice(1)) {
         out.push({
           kind: 'event',
           id: `event:${item.id}`,
