@@ -256,6 +256,13 @@ describe('NotificationRow', () => {
     ).toBeInTheDocument();
   });
 
+  it('the whole card shows a pointer cursor (it is all one click target)', () => {
+    const { container } = setup();
+    expect((container.querySelector('[data-card]') as HTMLElement).className).toContain(
+      'cursor-pointer',
+    );
+  });
+
   it('overlay click calls onOpen once; the key is plain text, not its own link', () => {
     const { onOpen } = setup();
     fireEvent.click(screen.getByRole('button', { name: /^Unread\./ }));

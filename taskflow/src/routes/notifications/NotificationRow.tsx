@@ -455,7 +455,7 @@ export default function NotificationRow({
       data-card
       data-unread-card={isUnread ? 'true' : 'false'}
       className={cn(
-        'group/row relative flex items-start gap-3 rounded-xl border py-2.5 pr-3 pl-4 text-xs transition-colors density-compact:gap-2.5 density-compact:py-1.5 density-compact:pr-2.5 density-compact:pl-3.5 density-comfortable:gap-3.5 density-comfortable:py-3.5 density-comfortable:pr-3.5 density-comfortable:pl-5 hover:bg-accent hover:shadow-sm focus-within:bg-accent',
+        'group/row relative flex cursor-pointer items-start gap-3 rounded-xl border py-2.5 pr-3 pl-4 text-xs transition-colors density-compact:gap-2.5 density-compact:py-1.5 density-compact:pr-2.5 density-compact:pl-3.5 density-comfortable:gap-3.5 density-comfortable:py-3.5 density-comfortable:pr-3.5 density-comfortable:pl-5 hover:bg-accent hover:shadow-sm focus-within:bg-accent',
         isUnread
           ? 'border-border bg-primary/[0.03] dark:bg-primary/[0.07]'
           : 'border-border/60 bg-card',
