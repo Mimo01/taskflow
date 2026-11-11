@@ -43,6 +43,16 @@ const authStoreMock = {
   gitlabUserId: 42,
 };
 
+const sprintState = vi.hoisted(() => ({
+  value: { activeSprint: null, noActiveSprint: false, isResolving: false } as Record<
+    string,
+    unknown
+  >,
+}));
+vi.mock('@/hooks/useActiveSprint', () => ({
+  useActiveSprint: () => sprintState.value,
+}));
+
 vi.mock('@/stores/auth.store', () => ({
   useAuthStore: vi.fn((selector?: (s: typeof authStoreMock) => unknown) =>
     selector ? selector(authStoreMock) : authStoreMock,
@@ -133,6 +143,7 @@ function makeIssue(
 describe('TodayColumn', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    sprintState.value = { activeSprint: null, noActiveSprint: false, isResolving: false };
   });
 
   describe('Parent story with subtasks — gap #5 regression guard', () => {
@@ -361,6 +372,82 @@ describe('TodayColumn', () => {
 
       // The "MRs Awaiting You" section header must not be in the DOM
       expect(screen.queryByText('MRs Awaiting You')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('No active sprint (261111-uao)', () => {
+    const reviewerMR = {
+      id: 5000,
+      iid: 999,
+      project_id: 1,
+      title: 'Standalone review MR',
+      source_branch: 'feature/x',
+      state: 'opened' as const,
+      author: { id: 99, name: 'Author', username: 'author', avatar_url: '' },
+      reviewers: [],
+      updated_at: '2026-05-25T00:00:00Z',
+      web_url: 'https://gitlab.example.com/mr/999',
+      labels: [],
+      milestone: null,
+    };
+
+    async function mountWith(opts: { sprint: JiraIssue[]; mrs: unknown[] }) {
+      const { useQuery } = await import('@tanstack/react-query');
+      const { useAuthStore } = await import('@/stores/auth.store');
+      vi.mocked(useAuthStore).mockImplementation(((
+        selector?: (s: typeof authStoreMock) => unknown,
+      ) => (selector ? selector(authStoreMock) : authStoreMock)) as unknown as typeof useAuthStore);
+      vi.mocked(useQuery).mockImplementation((q) => {
+        const key = Array.isArray(q.queryKey) ? q.queryKey[1] : '';
+        const data =
+          key === 'sprint-board-today-full' ? opts.sprint : key === 'reviewer-mrs' ? opts.mrs : [];
+        return { data, isLoading: false, isError: false } as ReturnType<typeof useQuery>;
+      });
+      const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+      const { default: TodayColumn } = await import('./TodayColumn');
+      render(
+        <QueryClientProvider client={qc}>
+          <MemoryRouter>
+            <TodayColumn
+              onIssueClick={vi.fn()}
+              onMRClick={vi.fn()}
+              watchedGitlabUserId={42}
+              watchedDisplayName="Test User"
+              isWatched={false}
+            />
+          </MemoryRouter>
+        </QueryClientProvider>,
+      );
+    }
+
+    it('replaces sprint sections with a compact state but keeps MR sections', async () => {
+      sprintState.value = { activeSprint: null, noActiveSprint: true, isResolving: false };
+      await mountWith({ sprint: [], mrs: [reviewerMR] });
+      expect(screen.getByText('No active sprint')).toBeInTheDocument();
+      expect(screen.queryByText('Up Next')).not.toBeInTheDocument();
+      expect(screen.queryByText(/in progress/i)).not.toBeInTheDocument();
+      expect(screen.getByText('Standalone review MR')).toBeInTheDocument();
+      expect(screen.getByText('1 MRs')).toBeInTheDocument();
+    });
+
+    it('shows a single full-column state when there are no MRs either', async () => {
+      sprintState.value = { activeSprint: null, noActiveSprint: true, isResolving: false };
+      await mountWith({ sprint: [], mrs: [] });
+      expect(screen.getByText('No active sprint')).toBeInTheDocument();
+      expect(screen.queryByText('Nothing planned for today')).not.toBeInTheDocument();
+    });
+
+    it('shows neither empty state while the sprint lookup resolves', async () => {
+      sprintState.value = { activeSprint: null, noActiveSprint: false, isResolving: true };
+      await mountWith({ sprint: [], mrs: [] });
+      expect(screen.queryByText('No active sprint')).not.toBeInTheDocument();
+      expect(screen.queryByText('Nothing planned for today')).not.toBeInTheDocument();
+    });
+
+    it('keeps "Nothing planned for today" when a sprint exists', async () => {
+      await mountWith({ sprint: [], mrs: [] });
+      expect(screen.getByText('Nothing planned for today')).toBeInTheDocument();
+      expect(screen.queryByText('No active sprint')).not.toBeInTheDocument();
     });
   });
 });

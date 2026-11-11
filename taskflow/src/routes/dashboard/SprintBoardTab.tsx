@@ -29,7 +29,7 @@ import {
 } from '@dnd-kit/core';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { Columns3, RefreshCw } from 'lucide-react';
+import { CalendarOff, Columns3, RefreshCw } from 'lucide-react';
 import type React from 'react';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -39,11 +39,13 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StaleDataBanner } from '@/components/ui/stale-data-banner';
+import { useActiveSprint } from '@/hooks/useActiveSprint';
 import { useBoardId } from '@/hooks/useBoardId';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { buildAssigneeOptions, matchesAssigneeFilter } from '@/lib/assignee-filter';
 import { epicColorToTailwind } from '@/lib/epicColors';
 import { invalidateLightweightIssue } from '@/lib/issue-lightweight-cache';
+import { NO_ACTIVE_SPRINT_TITLE, resolveSprintScopeState } from '@/lib/sprint-empty-state';
 import { buildStoryPointOptions, matchesStoryPointsFilter } from '@/lib/story-points-filter';
 import { orderSubtasks } from '@/lib/subtask-order';
 import type { JiraIssue, JiraTransition } from '@/services/jira';
@@ -66,7 +68,6 @@ import {
   useGhTransitions,
 } from '@/services/jira';
 import { warnOnce } from '@/services/jira/greenhopper/warnOnce';
-import { fetchActiveSprint } from '@/services/jira/sprints';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useFilterStore } from '@/stores/filter.store';
@@ -1008,19 +1009,15 @@ export default function SprintBoardTab() {
     return m;
   }, [epicsBasic]);
 
-  // Fetch active sprint (for goal text and board ID)
-  const { data: activeSprint } = useQuery({
-    queryKey: ['jira-active-sprint', activeJiraProject, jiraBaseUrl, boardId],
-    queryFn: () =>
-      fetchActiveSprint(
-        jiraBaseUrl ?? '',
-        jiraToken ?? '',
-        activeJiraProject ?? '',
-        boardId ?? undefined,
-      ),
-    staleTime: 5 * 60 * 1000,
-    enabled: !!activeJiraProject && !!jiraBaseUrl && !!jiraToken,
+  // Active sprint (goal text + no-sprint detection) — shared hook, cache-deduped with Sidebar.
+  const sprintLookup = useActiveSprint(jiraBaseUrl, jiraToken, activeJiraProject);
+  const activeSprint = sprintLookup.activeSprint;
+  const boardState = resolveSprintScopeState({
+    itemsLoading: isLoading,
+    hasItems: (data?.length ?? 0) > 0,
+    sprint: sprintLookup,
   });
+  const noSprint = boardState === 'no-sprint';
 
   const [bannerDismissed, setBannerDismissed] = useState(false);
   // WR-06: reset the stale-data banner dismissal when the user switches
@@ -1662,10 +1659,12 @@ export default function SprintBoardTab() {
               />
             )
           )}
-          {!showSkeleton && !isError && data && (
+          {!showSkeleton && !isError && data && !noSprint && (
             <QuickFilterChipRow labels={filterOptions.labels} />
           )}
-          {!showSkeleton && !isError && data && <UnifiedFilterBar filterOptions={filterOptions} />}
+          {!showSkeleton && !isError && data && !noSprint && (
+            <UnifiedFilterBar filterOptions={filterOptions} />
+          )}
         </div>
         {/* Fixed column headers — never scroll. Shadow gives the fixed
             chrome/scroll-area boundary the same elevation cue as the
@@ -1684,9 +1683,11 @@ export default function SprintBoardTab() {
                   <span className="text-xs density-compact:text-[0.6875rem] font-semibold uppercase tracking-wide text-muted-foreground truncate">
                     {col.label}
                   </span>
-                  <span className="text-xs density-compact:text-[0.6875rem] text-muted-foreground/70 shrink-0">
-                    ({count})
-                  </span>
+                  {!noSprint && (
+                    <span className="text-xs density-compact:text-[0.6875rem] text-muted-foreground/70 shrink-0">
+                      ({count})
+                    </span>
+                  )}
                 </div>
               );
             })}
@@ -1832,13 +1833,25 @@ export default function SprintBoardTab() {
               )}
 
               {/* Empty */}
-              {!showSkeleton && !isError && data && swimlanes.length === 0 && (
+              {!showSkeleton && !isError && data && swimlanes.length === 0 && noSprint && (
                 <EmptyState
-                  icon={Columns3}
-                  title="No sprint issues"
-                  subtitle="This board will populate when issues are added to the active sprint"
+                  icon={CalendarOff}
+                  title={NO_ACTIVE_SPRINT_TITLE}
+                  subtitle="Start a sprint in Jira and its issues will appear here."
                 />
               )}
+              {!showSkeleton &&
+                !isError &&
+                data &&
+                swimlanes.length === 0 &&
+                boardState !== 'no-sprint' &&
+                boardState !== 'loading' && (
+                  <EmptyState
+                    icon={Columns3}
+                    title="No sprint issues"
+                    subtitle="This board will populate when issues are added to the active sprint"
+                  />
+                )}
 
               {/* Virtualized swimlane rows */}
               {!showSkeleton && !isError && data && filteredSwimlanes.length > 0 && (

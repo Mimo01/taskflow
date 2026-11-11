@@ -15,10 +15,12 @@
  */
 
 import { useQuery } from '@tanstack/react-query';
-import { Clock } from 'lucide-react';
+import { CalendarOff, Clock } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { EmptyState } from '@/components/ui/empty-state';
+import { useActiveSprint } from '@/hooks/useActiveSprint';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
+import { NO_ACTIVE_SPRINT_TITLE, resolveSprintScopeState } from '@/lib/sprint-empty-state';
 import type { GitLabMR, ParticipatedMR } from '@/services/gitlab';
 import { fetchParticipatedMRs, fetchReviewerMRs } from '@/services/gitlab';
 import type { JiraIssue } from '@/services/jira';
@@ -273,6 +275,17 @@ export default function TodayColumn({
   // ─── Loading state helpers (for empty-state gate) ─────────────────────────────
   const sprintLoading = useDelayedLoading(sprintQuery.isLoading);
 
+  // The sprint is board-level, so a watched person makes no difference here.
+  const sprintLookup = useActiveSprint(jiraBaseUrl ?? null, jiraToken, activeJiraProject ?? null);
+  const sprintState = resolveSprintScopeState({
+    itemsLoading: sprintQuery.isLoading,
+    hasItems: inProgress.length + upNext.length > 0,
+    sprint: sprintLookup,
+  });
+  // A failed issue query keeps its error UI rather than being masked as "no sprint".
+  const noSprint = sprintState === 'no-sprint' && !sprintQuery.isError;
+  const sprintPending = sprintState === 'loading';
+
   // ─── Full-column empty state gate ────────────────────────────────────────────
   // Fire only when ALL sections have resolved with 0 items and none are loading/erroring.
   // Nested MRs live under stories, so inProgress/upNext length already covers them.
@@ -286,6 +299,7 @@ export default function TodayColumn({
     !hasAnyData &&
     !sprintQuery.isLoading &&
     !sprintLoading &&
+    !sprintPending &&
     !reviewerMrsQuery.isLoading &&
     !participatingMrsQuery.isLoading &&
     !sprintQuery.isError &&
@@ -322,7 +336,14 @@ export default function TodayColumn({
         {/* Summary stat line — mirrors the Yesterday column so both stay vertically aligned */}
         {hasAnyData && (
           <p className="text-xs text-muted-foreground mb-4">
-            {inProgress.length} in progress &middot; {upNext.length} up next &middot; {mrCount} MRs
+            {noSprint ? (
+              <>{mrCount} MRs</>
+            ) : (
+              <>
+                {inProgress.length} in progress &middot; {upNext.length} up next &middot; {mrCount}{' '}
+                MRs
+              </>
+            )}
           </p>
         )}
 
@@ -331,33 +352,44 @@ export default function TodayColumn({
           Up Next's "nothing up next" doesn't compete with it. */}
         {!allSettledEmpty && (
           <div className="flex flex-col gap-6 density-compact:gap-4 density-comfortable:gap-8">
-            {/* Section 1: In Progress (D-01: fixed order) */}
-            <TodayInProgressSection
-              rows={inProgress}
-              mrsByStory={mrsByStory}
-              storyPointsFieldKey={storyPointsFieldKey}
-              isLoading={sprintQuery.isLoading}
-              isError={sprintQuery.isError}
-              error={sprintQuery.error}
-              onRetry={() => void sprintQuery.refetch()}
-              onIssueClick={onIssueClick}
-              onOpenIssue={onOpenIssue}
-              onMRClick={onMRClick}
-            />
+            {noSprint ? (
+              <EmptyState
+                compact
+                icon={CalendarOff}
+                title={NO_ACTIVE_SPRINT_TITLE}
+                subtitle="There's no open sprint on the board."
+              />
+            ) : (
+              <>
+                {/* Section 1: In Progress (D-01: fixed order) */}
+                <TodayInProgressSection
+                  rows={inProgress}
+                  mrsByStory={mrsByStory}
+                  storyPointsFieldKey={storyPointsFieldKey}
+                  isLoading={sprintQuery.isLoading || sprintPending}
+                  isError={sprintQuery.isError}
+                  error={sprintQuery.error}
+                  onRetry={() => void sprintQuery.refetch()}
+                  onIssueClick={onIssueClick}
+                  onOpenIssue={onOpenIssue}
+                  onMRClick={onMRClick}
+                />
 
-            {/* Section 2: Up Next (D-01: fixed order) */}
-            <TodayUpNextSection
-              rows={upNext}
-              mrsByStory={mrsByStory}
-              storyPointsFieldKey={storyPointsFieldKey}
-              isLoading={sprintQuery.isLoading}
-              isError={sprintQuery.isError}
-              error={sprintQuery.error}
-              onRetry={() => void sprintQuery.refetch()}
-              onIssueClick={onIssueClick}
-              onOpenIssue={onOpenIssue}
-              onMRClick={onMRClick}
-            />
+                {/* Section 2: Up Next (D-01: fixed order) */}
+                <TodayUpNextSection
+                  rows={upNext}
+                  mrsByStory={mrsByStory}
+                  storyPointsFieldKey={storyPointsFieldKey}
+                  isLoading={sprintQuery.isLoading || sprintPending}
+                  isError={sprintQuery.isError}
+                  error={sprintQuery.error}
+                  onRetry={() => void sprintQuery.refetch()}
+                  onIssueClick={onIssueClick}
+                  onOpenIssue={onOpenIssue}
+                  onMRClick={onMRClick}
+                />
+              </>
+            )}
 
             {/* Section 3: MRs Awaiting You — unmatched only; hidden when GitLab not
               connected (D-02, D-10) or when a watched person has no matched GitLab id
@@ -391,9 +423,13 @@ export default function TodayColumn({
         {/* Full-column empty state — only when all sections resolved empty */}
         {allSettledEmpty && (
           <EmptyState
-            icon={Clock}
-            title="Nothing planned for today"
-            subtitle="No items in progress, nothing up next, and no MRs awaiting review."
+            icon={noSprint ? CalendarOff : Clock}
+            title={noSprint ? NO_ACTIVE_SPRINT_TITLE : 'Nothing planned for today'}
+            subtitle={
+              noSprint
+                ? 'No open sprint on the board and no MRs awaiting review.'
+                : 'No items in progress, nothing up next, and no MRs awaiting review.'
+            }
           />
         )}
       </div>

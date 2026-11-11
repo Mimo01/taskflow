@@ -147,9 +147,15 @@ vi.mock('@/services/jira', () => ({
   resolveDropResolution: vi.fn(() => ({ kind: 'plain' })),
 }));
 
-// Sprints still hit REST per R-02
-vi.mock('@/services/jira/sprints', () => ({
-  fetchActiveSprint: vi.fn().mockResolvedValue(null),
+// Active sprint comes through the shared hook; tests drive it via this mutable result.
+const sprintState = vi.hoisted(() => ({
+  value: { activeSprint: null, noActiveSprint: false, isResolving: false } as Record<
+    string,
+    unknown
+  >,
+}));
+vi.mock('@/hooks/useActiveSprint', () => ({
+  useActiveSprint: () => sprintState.value,
 }));
 
 // Warn-once is imported directly from the greenhopper internal module by the
@@ -327,6 +333,7 @@ describe('SprintBoardTab — Phase 73 Plan 02 data-layer rewrite', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     warnOnceMock.mockClear();
+    sprintState.value = { activeSprint: null, noActiveSprint: false, isResolving: false };
   });
 
   // ─── Infrastructure ────────────────────────────────────────────────────────
@@ -375,6 +382,31 @@ describe('SprintBoardTab — Phase 73 Plan 02 data-layer rewrite', () => {
     renderWithQuery(<SprintBoardTab />);
 
     await screen.findByText(/No sprint issues/i);
+    expect(screen.queryByText('No active sprint')).toBeNull();
+  });
+
+  it('shows "No active sprint" instead of "No sprint issues" when the board has no sprint', async () => {
+    sprintState.value = { activeSprint: null, noActiveSprint: true, isResolving: false };
+    await seedAllData([]);
+
+    const { default: SprintBoardTab } = await import('./SprintBoardTab');
+    renderWithQuery(<SprintBoardTab />);
+
+    await screen.findByText('No active sprint');
+    expect(screen.queryByText(/No sprint issues/i)).toBeNull();
+    // Zero column counts are hidden too
+    expect(screen.queryByText('(0)')).toBeNull();
+  });
+
+  it('shows neither empty state while the sprint lookup is resolving', async () => {
+    sprintState.value = { activeSprint: null, noActiveSprint: false, isResolving: true };
+    await seedAllData([]);
+
+    const { default: SprintBoardTab } = await import('./SprintBoardTab');
+    renderWithQuery(<SprintBoardTab />);
+
+    await waitFor(() => expect(screen.queryByText(/No sprint issues/i)).toBeNull());
+    expect(screen.queryByText('No active sprint')).toBeNull();
   });
 
   // ─── Plan 02 new behavior ──────────────────────────────────────────────────
