@@ -42,6 +42,8 @@ export default function NotificationBanners({
   useEffect(() => {
     setSuppressed(open);
     if (open) clear();
+    // Never leave the global flag stuck if this unmounts while the panel is open.
+    return () => setSuppressed(false);
   }, [open, clear, setSuppressed]);
 
   if (open || ids.length === 0) return null;

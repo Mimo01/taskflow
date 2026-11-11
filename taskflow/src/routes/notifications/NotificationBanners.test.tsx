@@ -131,6 +131,13 @@ describe('NotificationBanners', () => {
     expect(banner.getAttribute('data-leaving')).toBe('true');
   });
 
+  it('WR-03: unmounting while the panel is open lifts the suppression', () => {
+    const { unmount } = setup({ open: true });
+    expect(useNotificationBanners.getState().suppressed).toBe(true);
+    unmount();
+    expect(useNotificationBanners.getState().suppressed).toBe(false);
+  });
+
   it('resume never leaves less than 800ms', () => {
     seed(['a']);
     setup();
