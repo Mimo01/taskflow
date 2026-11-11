@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-08-13)
 Phase: 95
 Plan: Not started
 Status: Milestone complete
-Last activity: 2026-11-11 - Completed quick task 261111-i2o: macOS-inspired notifications redesign (Ledger direction, per-issue/MR stacks, hover corner X, quick actions)
+Last activity: 2026-11-11 - Completed quick task 261111-m0g: floating notification panel with motion + in-app banners (awaiting UAT)
 
 ## Performance Metrics
 
@@ -279,6 +279,7 @@ Acknowledged and deferred at v1.14 milestone close (2026-08-13) — 111 open art
 | 261111-ezr | Unread notification redesign: dot removed, symmetric padding; unread cards lift (white card, blue ring + 3px halo + soft glow, blue avatar halo, semibold blue time), read cards sink onto the list surface with a 70% avatar. Flat blue tint tried first, user asked for something more interesting and picked avatar halo + lifted glow from rendered variants | 2026-11-11 | 8e745908, 5391d059, 3ba843e4 | Approved | [261111-ezr-better-design-for-unread-notifications](./quick/261111-ezr-better-design-for-unread-notifications/) |
 | 261111-h9a | Notifications polish: blue unread glow removed; unread = neutral border (ring-1.5px foreground/20) + avatar halo in the event's own colour + semibold title/time; read cards no longer greyed (card surface, foreground title, full avatar); card gap 6→8px. Picked from rendered variants in 2 rounds | 2026-11-11 | 1e9aebee, 0e61ce81, 839ef9e0 | Approved | [261111-h9a-polish-notifications-more-spacing-betwee](./quick/261111-h9a-polish-notifications-more-spacing-betwee/) |
 | 261111-i2o | Professional notifications redesign inspired by macOS: picked B · Ledger from 3 rendered directions; colour only on actionable action phrases, neutral badge, no halo; unread = card surface + ring + bold title, read never dimmed; per-issue/MR stacks (2+) with peek edges, +N, Show less/Clear; hover/focus corner X + read/open cluster; Reply/Review/View pipeline pills (Jira Reply focuses comment composer); single-row popover header, 30rem | 2026-11-11 | eec5a577, 4c605187, b2529379 | Needs Review | [261111-i2o-professional-notifications-redesign-insp](./quick/261111-i2o-professional-notifications-redesign-insp/) |
+| 261111-m0g | Floating notification panel (no box, content-sized feathered blur), depth + hover/slide motion (stagger intro, slide-out collapse, arrival into open list, stack fan), no swipe; bell ring + badge pop; in-app banners (max 3, hover pause, portal) + Banner duration setting Off/3/5/8s (default 5s, settings v35). Designed via 4-round interactive prototype | 2026-11-11 | 0da467d0, 44e10027, 714c093a, f87480e3 | Needs Review | [261111-m0g-floating-notification-panel-with-motion-](./quick/261111-m0g-floating-notification-panel-with-motion-/) |
 
 ## Session Continuity
 
