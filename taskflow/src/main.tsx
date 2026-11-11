@@ -262,6 +262,8 @@ function AppLayout() {
 
   const openFind = useCallback(() => {
     if (paletteOpenRef.current) return;
+    // Find and the notification panel are mutually exclusive: opening find closes notifications.
+    setNotifPopoverOpen(false);
     const resolved = resolveFindScope();
     if (findOpenRef.current) {
       // Re-target if a dialog/peek opened (or the old scope went away) since find was opened
@@ -286,6 +288,14 @@ function AppLayout() {
     findReturnFocusRef.current = null;
     if (prev instanceof HTMLElement && prev.isConnected) prev.focus();
   }, []);
+
+  // ...and opening notifications closes find (no focus restore: the panel takes focus).
+  useEffect(() => {
+    if (!notifPopoverOpen || !findOpenRef.current) return;
+    findOpenRef.current = false;
+    findReturnFocusRef.current = null;
+    setFindState(null);
+  }, [notifPopoverOpen]);
 
   // Close find on route change
   // biome-ignore lint/correctness/useExhaustiveDependencies: pathname is the trigger
