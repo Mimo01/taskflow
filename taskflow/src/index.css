@@ -285,3 +285,24 @@
   background-color: oklch(0.72 0.19 50 / 0.5);
   outline: 2px solid oklch(0.68 0.2 45);
 }
+
+/* Notification list row lifecycle (261111-m0g). Attribute-driven so rows are never remounted. */
+[data-notif-entry][data-leaving] [data-card] {
+  transform: translateX(115%);
+  opacity: 0;
+  transition:
+    transform 0.28s cubic-bezier(0.4, 0, 1, 1) var(--leave-delay, 0ms),
+    opacity 0.28s var(--leave-delay, 0ms);
+}
+[data-notif-entry][data-leaving] [data-corner-x],
+[data-notif-entry][data-leaving] [data-tray] {
+  opacity: 0 !important;
+  pointer-events: none;
+}
+[data-notif-entry][data-leaving][data-stack-header-entry] {
+  opacity: 0;
+  transition: opacity 0.2s var(--leave-delay, 0ms);
+}
+[data-notif-entry][data-flash] [data-card] {
+  animation: notif-flash 0.5s;
+}

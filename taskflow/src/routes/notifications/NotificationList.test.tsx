@@ -1,8 +1,9 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { NotificationItem } from '../../stores/notifications.store';
-import NotificationList from './NotificationList';
+import NotificationList, { type NotificationListMotion } from './NotificationList';
+import { NOTIF_EXIT_MS, NOTIF_SLIDE_MS } from './notification-motion';
 import { buildEntries, type NotificationEntry, stackEntries } from './notification-view';
 
 const NOW = new Date(2026, 10, 10, 15, 0).getTime();
@@ -339,5 +340,95 @@ describe('NotificationList stacks', () => {
     expect(
       container.querySelector('[data-entry-id^="stack-header"] [data-entry-primary]'),
     ).toBeNull();
+  });
+});
+
+describe('NotificationList motion (261111-m0g)', () => {
+  const motion = (over: Partial<NotificationListMotion> = {}): NotificationListMotion => ({
+    intro: false,
+    entering: new Set(),
+    leaving: new Map(),
+    flashing: new Set(),
+    justExpanded: null,
+    ...over,
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('turns motion state into attributes on the entry wrapper only', () => {
+    const entries = entriesFor(items);
+    const { container } = render(
+      <NotificationList
+        entries={entries}
+        renderEntry={stubRender}
+        onToggleRead={vi.fn()}
+        onDone={vi.fn()}
+        onToggleStack={vi.fn()}
+        motion={motion({
+          leaving: new Map([['event:c', 100]]),
+          flashing: new Set(['event:b']),
+          entering: new Set(['b']),
+        })}
+      />,
+    );
+    const w = (id: string) => container.querySelector(`[data-entry-id="${id}"]`) as HTMLElement;
+    expect(w('event:c').getAttribute('data-leaving')).toBe('true');
+    expect(w('event:c').style.getPropertyValue('--leave-delay')).toBe('100ms');
+    expect(w('event:b').getAttribute('data-flash')).toBe('true');
+    expect(w('event:b').getAttribute('data-entering')).toBe('true');
+    expect(w('event:a').hasAttribute('data-leaving')).toBe(false);
+  });
+
+  it('collapses a leaving row height after the slide-out, keeping the node', () => {
+    vi.useFakeTimers();
+    const entries = entriesFor(items);
+    const { container } = render(
+      <NotificationList
+        entries={entries}
+        renderEntry={stubRender}
+        onToggleRead={vi.fn()}
+        onDone={vi.fn()}
+        onToggleStack={vi.fn()}
+        motion={motion({ leaving: new Map([['event:c', 0]]) })}
+      />,
+    );
+    const row = container.querySelector('[data-entry-id="event:c"]') as HTMLElement;
+    expect(row.style.height).toBe('');
+    act(() => {
+      vi.advanceTimersByTime(NOTIF_SLIDE_MS + 10);
+    });
+    expect(row.style.height).toBe('0px');
+    act(() => {
+      vi.advanceTimersByTime(100);
+    });
+    expect(row.style.height).toBe('0px');
+    expect(row.style.overflow).toBe('hidden');
+    expect(row.isConnected).toBe(true);
+  });
+
+  it('a pending focus target expires if the entries never change (WR-06)', async () => {
+    vi.useFakeTimers();
+    const handlers = { onToggleRead: vi.fn(), onDone: vi.fn(), onToggleStack: vi.fn() };
+    const entries = entriesFor(items);
+    const { rerender } = render(
+      <NotificationList entries={entries} renderEntry={stubRender} {...handlers} />,
+    );
+    btn('event:c').focus();
+    fireEvent.keyDown(btn('event:c'), { key: 'e' });
+    expect(handlers.onDone).toHaveBeenCalledTimes(1);
+    act(() => {
+      vi.advanceTimersByTime(NOTIF_EXIT_MS + 400);
+    });
+    // A much later, unrelated change must not steal focus to a stale index.
+    (document.activeElement as HTMLElement).blur();
+    rerender(
+      <NotificationList entries={entries.slice(0, -1)} renderEntry={stubRender} {...handlers} />,
+    );
+    act(() => {
+      vi.advanceTimersByTime(200);
+    });
+    expect(document.body).toHaveFocus();
   });
 });

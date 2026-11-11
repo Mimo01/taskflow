@@ -21,7 +21,7 @@ import {
   TriangleAlert,
   X,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Button } from '../../components/ui/button';
 import {
   DropdownMenu,
@@ -40,13 +40,23 @@ import { cn } from '../../lib/utils';
 import { useComposerFocus } from '../../stores/composer-focus.store';
 import type { NotificationItem } from '../../stores/notifications.store';
 import { useNotificationsStore } from '../../stores/notifications.store';
-import NotificationList from './NotificationList';
+import NotificationList, { type NotificationListMotion } from './NotificationList';
 import NotificationRow, { StackCard, StackHeader } from './NotificationRow';
+import {
+  NOTIF_ENTER_MS,
+  NOTIF_EXIT_MS,
+  NOTIF_FAN_MS,
+  NOTIF_FLASH_MS,
+  NOTIF_INTRO_WINDOW_MS,
+  NOTIF_STACK_STAGGER_MS,
+  prefersReducedMotion,
+} from './notification-motion';
 import {
   buildEntries,
   countUnreadCards,
   describeEntryParts,
   type EventEntry,
+  entityKey,
   entryIds,
   filterItems,
   getEntityRef,
@@ -58,6 +68,7 @@ import {
   quickActionFor,
   type SourceFilter,
   type StackEntry,
+  type StackHeaderEntry,
   stackEntries,
   stackIds,
 } from './notification-view';
@@ -118,24 +129,117 @@ export default function NotificationPopover({
   );
 
   // Forget expanded keys whose stack is gone (cleared / dropped below 2 cards), so a later
-  // notification on the same issue does not reappear already expanded.
+  // notification on the same issue does not reappear already expanded. Checked against the
+  // UNFILTERED items (WR-04): switching Unread/All or the source must not collapse a stack that
+  // still exists, only the visible subset of it.
   useEffect(() => {
-    const live = new Set(
-      entries.flatMap((e) => (e.kind === 'stack' || e.kind === 'stack-header' ? [e.entity] : [])),
-    );
+    const all = buildEntries({
+      items,
+      readSet: new Set(readIds),
+      source: 'all',
+      unreadOnly: false,
+      now,
+    });
+    const counts = new Map<string, number>();
+    for (const e of all) {
+      if (e.kind !== 'event') continue;
+      const k = entityKey(e.item);
+      if (k) counts.set(k, (counts.get(k) ?? 0) + 1);
+    }
     setExpanded((prev) => {
-      const next = new Set([...prev].filter((k) => live.has(k)));
+      const next = new Set([...prev].filter((k) => (counts.get(k) ?? 0) >= 2));
       return next.size === prev.size ? prev : next;
     });
-  }, [entries]);
+  }, [items, readIds, now]);
+
+  // ── Motion lifecycle: ephemeral state only, never rebuilds the list ──
+  /** Rows stagger in on open and whenever the visible set is switched. */
+  const [intro, setIntro] = useState(true);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: re-run the intro on filter change
+  useEffect(() => {
+    setIntro(true);
+    const t = setTimeout(() => setIntro(false), NOTIF_INTRO_WINDOW_MS);
+    return () => clearTimeout(t);
+  }, [unreadOnly, activeTab]);
+
+  /** Item ids that arrived while open. Seeded on mount so initial items never count as arrivals. */
+  const [entering, setEntering] = useState<ReadonlySet<string>>(new Set());
+  const knownIds = useRef<Set<string> | null>(null);
+  useEffect(() => {
+    if (knownIds.current === null) {
+      knownIds.current = new Set(items.map((i) => i.id));
+      return;
+    }
+    const known = knownIds.current;
+    const fresh = items.map((i) => i.id).filter((id) => !known.has(id));
+    if (fresh.length === 0) return;
+    for (const id of fresh) known.add(id);
+    setEntering((prev) => new Set([...prev, ...fresh]));
+    setTimeout(() => {
+      setEntering((prev) => {
+        const next = new Set(prev);
+        for (const id of fresh) next.delete(id);
+        return next;
+      });
+    }, NOTIF_ENTER_MS);
+  }, [items]);
+
+  /** Entry id -> exit delay. Items are removed from the store only after the exit animation. */
+  const [leaving, setLeaving] = useState<ReadonlyMap<string, number>>(new Map());
+  const [flashing, setFlashing] = useState<ReadonlySet<string>>(new Set());
+  const [justExpanded, setJustExpanded] = useState<string | null>(null);
+  /** Exit timers still pending -> the store ids they will remove. */
+  const exitTimers = useRef(new Map<ReturnType<typeof setTimeout>, string[]>());
+
+  // Closing the panel mid-exit must not lose the clear: apply pending removals right away.
+  useEffect(
+    () => () => {
+      for (const [timer, ids] of exitTimers.current) {
+        clearTimeout(timer);
+        removeItems(ids);
+      }
+      exitTimers.current.clear();
+    },
+    [removeItems],
+  );
+
+  function leave(targets: { id: string; delay: number }[], storeIds: string[]) {
+    if (prefersReducedMotion()) {
+      removeItems(storeIds);
+      return;
+    }
+    // Already on its way out (double click / key repeat).
+    if (targets.every((t) => leaving.has(t.id))) return;
+    setLeaving((prev) => {
+      const next = new Map(prev);
+      for (const t of targets) next.set(t.id, t.delay);
+      return next;
+    });
+    const maxDelay = Math.max(0, ...targets.map((t) => t.delay));
+    const timer = setTimeout(() => {
+      exitTimers.current.delete(timer);
+      removeItems(storeIds);
+      setLeaving((prev) => {
+        const next = new Map(prev);
+        for (const t of targets) next.delete(t.id);
+        return next;
+      });
+    }, NOTIF_EXIT_MS + maxDelay);
+    exitTimers.current.set(timer, storeIds);
+  }
 
   function toggleStack(entity: string) {
+    const expanding = !expanded.has(entity);
     setExpanded((prev) => {
       const next = new Set(prev);
       if (next.has(entity)) next.delete(entity);
       else next.add(entity);
       return next;
     });
+    if (expanding) {
+      setJustExpanded(entity);
+      setTimeout(() => setJustExpanded((cur) => (cur === entity ? null : cur)), NOTIF_FAN_MS);
+    }
   }
 
   const scopedItems = filterItems(items, readSet, activeTab, false);
@@ -170,12 +274,31 @@ export default function NotificationPopover({
   }
 
   function toggleRead(entry: EventEntry | StackEntry) {
+    setFlashing((prev) => new Set(prev).add(entry.id));
+    setTimeout(() => {
+      setFlashing((prev) => {
+        const next = new Set(prev);
+        next.delete(entry.id);
+        return next;
+      });
+    }, NOTIF_FLASH_MS);
     if (entry.isUnread) markItemsRead(idsOf(entry));
     else markItemsUnread(idsOf(entry));
   }
 
   function done(entry: EventEntry | StackEntry) {
-    removeItems(idsOf(entry));
+    leave([{ id: entry.id, delay: 0 }], idsOf(entry));
+  }
+
+  /** Stack "Clear": the header and every member slide out, staggered. */
+  function clearStack(entry: StackHeaderEntry) {
+    leave(
+      [
+        { id: entry.id, delay: 0 },
+        ...entry.cards.map((c, i) => ({ id: c.id, delay: i * NOTIF_STACK_STAGGER_MS })),
+      ],
+      stackIds(entry),
+    );
   }
 
   function getOpenInBrowser(entry: EventEntry): (() => void) | undefined {
@@ -234,7 +357,7 @@ export default function NotificationPopover({
           entityRef={getEntityRef(top) ?? ''}
           title={getEntityTitle(top)}
           onCollapse={() => toggleStack(entry.entity)}
-          onClear={() => removeItems(stackIds(entry))}
+          onClear={() => clearStack(entry)}
         />
       );
     }
@@ -285,6 +408,8 @@ export default function NotificationPopover({
       Notification settings
     </Button>
   ) : undefined;
+
+  const motion: NotificationListMotion = { intro, entering, leaving, flashing, justExpanded };
 
   function renderBody() {
     if (items.length === 0 && fetchError) {
@@ -339,6 +464,7 @@ export default function NotificationPopover({
         onToggleRead={toggleRead}
         onDone={done}
         onToggleStack={toggleStack}
+        motion={motion}
       />
     );
   }

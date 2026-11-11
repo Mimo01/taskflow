@@ -2,11 +2,20 @@
 
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { openExternal } from '../../lib/openExternal';
 import { useComposerFocus } from '../../stores/composer-focus.store';
 import { useNotificationsStore } from '../../stores/notifications.store';
 import NotificationPopover from './NotificationPopover';
+import {
+  NOTIF_ENTER_MS,
+  NOTIF_EXIT_MS,
+  NOTIF_FAN_MS,
+  NOTIF_FLASH_MS,
+  NOTIF_INTRO_WINDOW_MS,
+  NOTIF_STACK_STAGGER_MS,
+  NOTIF_STAGGER_MS,
+} from './notification-motion';
 
 vi.mock('@tauri-apps/plugin-opener', () => ({ openUrl: vi.fn() }));
 
@@ -56,7 +65,18 @@ const seed = (items: unknown[], readIds: string[] = []) =>
     useNotificationsStore.setState({ items: items as never, readIds });
   });
 
+/** Let a pending clear animation finish so the store removal lands. */
+const finishExit = (extra = 0) =>
+  act(() => {
+    vi.advanceTimersByTime(NOTIF_EXIT_MS + extra + 50);
+  });
+
 describe('NotificationPopover', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     act(() => {
@@ -176,9 +196,11 @@ describe('NotificationPopover', () => {
 
     it('Clear in the stack header removes and tombstones every card', () => {
       seed([jiraItem('a'), jiraItem('b'), jiraItem('z', 'PROJ-9')]);
+      vi.useFakeTimers();
       render(<NotificationPopover />);
       fireEvent.click(screen.getByRole('button', { name: /expand/ }));
       fireEvent.click(screen.getByRole('button', { name: 'Clear' }));
+      finishExit(NOTIF_STACK_STAGGER_MS);
       const st = useNotificationsStore.getState();
       expect(st.items.map((i) => i.id)).toEqual(['z']);
       expect(st.dismissedIds).toEqual(expect.arrayContaining(['a', 'b']));
@@ -191,9 +213,11 @@ describe('NotificationPopover', () => {
         jiraItem('jira-allcomment-1', 'PROJ-1', { author: 'Ana Lee' }),
         jiraItem('jira-comment-2', 'PROJ-1', { author: 'Ben Ito' }),
       ]);
+      vi.useFakeTimers();
       render(<NotificationPopover />);
       // WR-02: the stack X is labelled with the number of cards it clears.
       fireEvent.click(screen.getByRole('button', { name: /^Clear \d+ notifications$/ }));
+      finishExit();
       const st = useNotificationsStore.getState();
       expect(st.items).toHaveLength(0);
       expect(st.dismissedIds).toEqual(
@@ -208,9 +232,11 @@ describe('NotificationPopover', () => {
     });
 
     it('expanded state is forgotten when the stack disappears', () => {
+      vi.useFakeTimers();
       render(<NotificationPopover />);
       fireEvent.click(screen.getByRole('button', { name: /expand/ }));
       fireEvent.click(screen.getByRole('button', { name: 'Clear' }));
+      finishExit(NOTIF_STACK_STAGGER_MS);
       seed([jiraItem('c'), jiraItem('d')]);
       expect(document.querySelector('[data-stack-header]')).toBeNull();
       expect(entryCount()).toBe(1);
@@ -356,8 +382,10 @@ describe('NotificationPopover', () => {
     });
 
     it('Done removes and tombstones every merged id', () => {
+      vi.useFakeTimers();
       render(<NotificationPopover />);
       fireEvent.click(screen.getAllByRole('button', { name: 'Clear notification' })[0]);
+      finishExit();
       const st = useNotificationsStore.getState();
       expect(st.items.map((i) => i.id)).toEqual(['z']);
       expect(st.dismissedIds).toEqual(expect.arrayContaining(['m1', 'm2', 'm3']));
@@ -381,12 +409,15 @@ describe('NotificationPopover', () => {
       expect(useNotificationsStore.getState().readIds).toEqual(
         expect.arrayContaining(['m1', 'm2', 'm3']),
       );
+      vi.useFakeTimers();
       fireEvent.keyDown(first, { key: 'e' });
+      finishExit();
       expect(useNotificationsStore.getState().items.map((i) => i.id)).toEqual(['z']);
     });
   });
 
   it('row Done removes the item and read toggle flips state', () => {
+    vi.useFakeTimers();
     seed([jiraItem('a')]);
     render(<NotificationPopover />);
     fireEvent.click(screen.getByRole('button', { name: 'Mark as read' }));
@@ -394,6 +425,7 @@ describe('NotificationPopover', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Mark as unread' }));
     expect(useNotificationsStore.getState().readIds).not.toContain('a');
     fireEvent.click(screen.getByRole('button', { name: 'Clear notification' }));
+    finishExit();
     expect(useNotificationsStore.getState().dismissedIds).toContain('a');
     expect(useNotificationsStore.getState().items).toHaveLength(0);
   });
@@ -584,5 +616,183 @@ describe('NotificationPopover', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Dismiss' }));
       expect(useNotificationsStore.getState().permissionDenied).toBe(false);
     });
+  });
+});
+
+describe('NotificationPopover motion (261111-m0g)', () => {
+  const entry = (id: string) => document.querySelector(`[data-entry-id="${id}"]`) as HTMLElement;
+  const advance = (ms: number) =>
+    act(() => {
+      vi.advanceTimersByTime(ms);
+    });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.useFakeTimers();
+    act(() => {
+      useNotificationsStore.setState({
+        items: [],
+        readIds: [],
+        dismissedIds: [],
+        fetchError: null,
+        retryFetch: null,
+      });
+    });
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
+  it('Done slides the card out first; removal waits for NOTIF_EXIT_MS and other rows keep their nodes', () => {
+    seed([jiraItem('a', 'PROJ-1'), jiraItem('z', 'PROJ-9')]);
+    render(<NotificationPopover />);
+    const other = entry('event:z');
+    const doomed = entry('event:a');
+    fireEvent.click(doomed.querySelector('[data-corner-x]') as HTMLElement);
+    expect(entry('event:a').getAttribute('data-leaving')).toBe('true');
+    expect(entry('event:a').querySelector('[data-card]')).not.toBeNull();
+    advance(NOTIF_EXIT_MS - 50);
+    expect(useNotificationsStore.getState().items).toHaveLength(2);
+    advance(100);
+    expect(useNotificationsStore.getState().items.map((i) => i.id)).toEqual(['z']);
+    expect(entry('event:z')).toBe(other);
+    expect(other.isConnected).toBe(true);
+    expect(other.hasAttribute('data-leaving')).toBe(false);
+  });
+
+  it('a double Done does not schedule a second removal', () => {
+    seed([jiraItem('a', 'PROJ-1')]);
+    const spy = vi.fn(useNotificationsStore.getState().removeItems);
+    act(() => {
+      useNotificationsStore.setState({ removeItems: spy });
+    });
+    render(<NotificationPopover />);
+    const x = screen.getByRole('button', { name: 'Clear notification' });
+    fireEvent.click(x);
+    fireEvent.click(x);
+    advance(NOTIF_EXIT_MS + 100);
+    expect(spy).toHaveBeenCalledTimes(1);
+  });
+
+  it('stack Clear staggers the header and every member out, then removes once', () => {
+    seed([jiraItem('a'), jiraItem('b'), jiraItem('c'), jiraItem('z', 'PROJ-9')]);
+    render(<NotificationPopover />);
+    fireEvent.click(screen.getByRole('button', { name: /expand/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Clear' }));
+    const header = document.querySelector('[data-stack-header-entry]') as HTMLElement;
+    expect(header.getAttribute('data-leaving')).toBe('true');
+    const members = [...document.querySelectorAll<HTMLElement>('[data-leaving="true"]')].filter(
+      (el) => el.getAttribute('data-entry-id')?.startsWith('event:'),
+    );
+    expect(members.length).toBeGreaterThanOrEqual(2);
+    const delays = members.map((m) => Number.parseInt(m.style.getPropertyValue('--leave-delay')));
+    expect(delays).toEqual([...delays].sort((x, y) => x - y));
+    expect(new Set(delays).size).toBe(delays.length);
+    expect(delays[0]).toBe(0);
+    expect(delays[1]).toBe(NOTIF_STACK_STAGGER_MS);
+    advance(NOTIF_EXIT_MS + 3 * NOTIF_STACK_STAGGER_MS + 100);
+    expect(useNotificationsStore.getState().items.map((i) => i.id)).toEqual(['z']);
+  });
+
+  it('a notification arriving while open slides in without rebuilding the other rows', () => {
+    seed([jiraItem('a', 'PROJ-1'), jiraItem('b', 'PROJ-2')]);
+    render(<NotificationPopover />);
+    const before = [entry('event:a'), entry('event:b')];
+    expect(before.every((el) => !el.hasAttribute('data-entering'))).toBe(true);
+    act(() => {
+      useNotificationsStore.getState().prependItems([jiraItem('n', 'PROJ-73') as never]);
+    });
+    expect(entry('event:n').getAttribute('data-entering')).toBe('true');
+    expect(entry('event:n').className).toContain('notif-enter');
+    expect(entry('event:a')).toBe(before[0]);
+    expect(entry('event:b')).toBe(before[1]);
+    advance(NOTIF_ENTER_MS + 50);
+    expect(entry('event:n').hasAttribute('data-entering')).toBe(false);
+  });
+
+  it('an arrival on an existing stack keeps the stack node and only bumps +N', () => {
+    seed([jiraItem('a'), jiraItem('b')]);
+    render(<NotificationPopover />);
+    const stack = entry('stack:jira:PROJ-1');
+    expect(stack.querySelector('[data-stack-more]')?.textContent).toBe('+1');
+    act(() => {
+      useNotificationsStore.getState().prependItems([jiraItem('c', 'PROJ-1') as never]);
+    });
+    expect(entry('stack:jira:PROJ-1')).toBe(stack);
+    expect(stack.hasAttribute('data-entering')).toBe(false);
+    expect(stack.querySelector('[data-stack-more]')?.textContent).toBe('+2');
+  });
+
+  it('staggers the opening rows, clears the intro, and replays it when the filter changes', () => {
+    seed([jiraItem('a', 'PROJ-1'), jiraItem('b', 'PROJ-2'), jiraItem('c', 'PROJ-3')]);
+    render(<NotificationPopover />);
+    const rows = [...document.querySelectorAll<HTMLElement>('[data-entry-id^="event:"]')];
+    expect(rows.every((r) => r.getAttribute('data-intro') === 'true')).toBe(true);
+    const delays = rows.map((r) => Number.parseInt(r.style.animationDelay));
+    expect(delays[1] - delays[0]).toBe(NOTIF_STAGGER_MS);
+    advance(NOTIF_INTRO_WINDOW_MS + 50);
+    expect(document.querySelector('[data-intro]')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Unread' }));
+    expect(document.querySelector('[data-intro="true"]')).not.toBeNull();
+  });
+
+  it('toggling read flashes the card in place and clears the flag', () => {
+    seed([jiraItem('a', 'PROJ-1')]);
+    render(<NotificationPopover />);
+    advance(NOTIF_INTRO_WINDOW_MS + 50);
+    const card = document.querySelector('[data-card]') as HTMLElement;
+    fireEvent.click(screen.getByRole('button', { name: 'Mark as read' }));
+    expect(entry('event:a').getAttribute('data-flash')).toBe('true');
+    expect(document.querySelector('[data-card]')).toBe(card);
+    advance(NOTIF_FLASH_MS + 50);
+    expect(entry('event:a').hasAttribute('data-flash')).toBe(false);
+  });
+
+  it('fans the members out once when a stack expands, and not again afterwards', () => {
+    seed([jiraItem('a'), jiraItem('b'), jiraItem('z', 'PROJ-9')]);
+    render(<NotificationPopover />);
+    fireEvent.click(screen.getByRole('button', { name: /expand/ }));
+    const members = [...document.querySelectorAll<HTMLElement>('[data-entry-id^="event:"]')].filter(
+      (el) => el.getAttribute('data-entry-id') !== 'event:z',
+    );
+    expect(members.length).toBe(2);
+    expect(members.every((m) => m.className.includes('notif-fan'))).toBe(true);
+    expect(members.map((m) => m.style.getPropertyValue('--i'))).toEqual(['0', '1']);
+    advance(NOTIF_FAN_MS + 50);
+    expect(members.some((m) => m.className.includes('notif-fan'))).toBe(false);
+  });
+
+  it('keeps a stack expanded when the Unread filter hides some of its cards (WR-04)', () => {
+    seed([jiraItem('a'), jiraItem('b'), jiraItem('c')], ['a']);
+    render(<NotificationPopover />);
+    fireEvent.click(screen.getByRole('button', { name: /expand/ }));
+    expect(document.querySelector('[data-stack-header]')).not.toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Unread' }));
+    fireEvent.click(screen.getByRole('button', { name: 'All' }));
+    expect(document.querySelector('[data-stack-header]')).not.toBeNull();
+  });
+
+  it('under prefers-reduced-motion Done removes immediately with no leaving state', () => {
+    vi.stubGlobal('matchMedia', (q: string) => ({
+      matches: q.includes('reduce'),
+      media: q,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }));
+    seed([jiraItem('a', 'PROJ-1')]);
+    render(<NotificationPopover />);
+    fireEvent.click(screen.getByRole('button', { name: 'Clear notification' }));
+    expect(useNotificationsStore.getState().items).toHaveLength(0);
+    expect(document.querySelector('[data-leaving]')).toBeNull();
+  });
+
+  it('closing mid-exit still applies the pending clear', () => {
+    seed([jiraItem('a', 'PROJ-1')]);
+    const { unmount } = render(<NotificationPopover />);
+    fireEvent.click(screen.getByRole('button', { name: 'Clear notification' }));
+    expect(useNotificationsStore.getState().items).toHaveLength(1);
+    unmount();
+    expect(useNotificationsStore.getState().items).toHaveLength(0);
   });
 });

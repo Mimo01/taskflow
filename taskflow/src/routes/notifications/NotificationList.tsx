@@ -1,6 +1,20 @@
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { type KeyboardEvent, type ReactNode, useCallback, useEffect, useRef } from 'react';
+import {
+  type CSSProperties,
+  type KeyboardEvent,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import { cn } from '../../lib/utils';
+import {
+  NOTIF_EXIT_MS,
+  NOTIF_INTRO_MAX,
+  NOTIF_SLIDE_MS,
+  NOTIF_STAGGER_MS,
+} from './notification-motion';
 import {
   type EventEntry,
   entityKey,
@@ -9,6 +23,28 @@ import {
   type NotificationEntry,
   type StackEntry,
 } from './notification-view';
+
+/** Ephemeral motion state owned by NotificationPopover; the list only turns it into attributes. */
+export interface NotificationListMotion {
+  /** True right after open / filter change: the first rows stagger in from the right. */
+  intro: boolean;
+  /** Item ids that just arrived while the panel is open (their event row slides in). */
+  entering: ReadonlySet<string>;
+  /** Entry id -> exit delay (ms): the card slides out, then the row collapses. */
+  leaving: ReadonlyMap<string, number>;
+  /** Entry ids whose read state just toggled (scale flash). */
+  flashing: ReadonlySet<string>;
+  /** Entity key of the stack that was just expanded (members fan out once). */
+  justExpanded: string | null;
+}
+
+const NO_MOTION: NotificationListMotion = {
+  intro: false,
+  entering: new Set(),
+  leaving: new Map(),
+  flashing: new Set(),
+  justExpanded: null,
+};
 
 interface NotificationListProps {
   entries: NotificationEntry[];
@@ -20,6 +56,7 @@ interface NotificationListProps {
   onDone: (entry: EventEntry | StackEntry) => void;
   /** Expand / collapse the stack of an entity key. */
   onToggleStack: (entity: string) => void;
+  motion?: NotificationListMotion;
   className?: string;
 }
 
@@ -37,10 +74,27 @@ export default function NotificationList({
   onToggleRead,
   onDone,
   onToggleStack,
+  motion = NO_MOTION,
   className,
 }: NotificationListProps) {
   const parentRef = useRef<HTMLDivElement>(null);
   const pendingFocus = useRef<number | null>(null);
+  const pendingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  /** Remember where focus should land once the entries change; expires if they never do (WR-06). */
+  const setPendingFocus = (index: number) => {
+    pendingFocus.current = index;
+    if (pendingTimer.current) clearTimeout(pendingTimer.current);
+    pendingTimer.current = setTimeout(() => {
+      pendingFocus.current = null;
+    }, NOTIF_EXIT_MS + 300);
+  };
+  useEffect(
+    () => () => {
+      if (pendingTimer.current) clearTimeout(pendingTimer.current);
+    },
+    [],
+  );
 
   const rowVirtualizer = useVirtualizer({
     count: entries.length,
@@ -81,6 +135,7 @@ export default function NotificationList({
     const pending = pendingFocus.current;
     if (pending == null) return;
     pendingFocus.current = null;
+    if (pendingTimer.current) clearTimeout(pendingTimer.current);
     let target = -1;
     for (let i = Math.min(pending, entries.length); i < entries.length; i++) {
       if (isFocusableEntry(entries[i])) {
@@ -103,6 +158,16 @@ export default function NotificationList({
   const expandedEntities = new Set(
     entries.flatMap((e) => (e.kind === 'stack-header' ? [e.entity] : [])),
   );
+
+  /** Position of an expanded member within its stack (drives the fan-out), else -1. */
+  const memberIndexOf = (index: number): number => {
+    const entry = entries[index];
+    if (!entry || entry.kind !== 'event' || !motion.justExpanded) return -1;
+    const entity = entityKey(entry.item);
+    if (entity !== motion.justExpanded) return -1;
+    const header = entries.findIndex((x) => x.kind === 'stack-header' && x.entity === entity);
+    return header >= 0 ? index - header - 1 : -1;
+  };
 
   const nextFocusable = (from: number, dir: 1 | -1): number => {
     for (let i = from + dir; i >= 0 && i < entries.length; i += dir) {
@@ -130,7 +195,7 @@ export default function NotificationList({
         if (e.key !== 'ArrowRight' && !onPrimary) return;
         e.preventDefault();
         // The stack row is replaced by header + members: land on the first member.
-        pendingFocus.current = current + 1;
+        setPendingFocus(current + 1);
         onToggleStack(focusable.entity);
         return;
       }
@@ -145,7 +210,7 @@ export default function NotificationList({
         const headerIndex = entries.findIndex(
           (x) => x.kind === 'stack-header' && x.entity === entity,
         );
-        pendingFocus.current = headerIndex >= 0 ? headerIndex : current;
+        setPendingFocus(headerIndex >= 0 ? headerIndex : current);
         onToggleStack(entity);
         return;
       }
@@ -167,7 +232,7 @@ export default function NotificationList({
         if (!focusable) return;
         e.preventDefault();
         // In the Unread view the card drops out once read; re-resolve focus like Done does.
-        pendingFocus.current = current;
+        setPendingFocus(current);
         onToggleRead(focusable);
         return;
       }
@@ -176,7 +241,7 @@ export default function NotificationList({
       case 'Backspace': {
         if (!focusable) return;
         e.preventDefault();
-        pendingFocus.current = current;
+        setPendingFocus(current);
         onDone(focusable);
         return;
       }
@@ -224,6 +289,8 @@ export default function NotificationList({
                     index={virtualRow.index}
                     renderEntry={renderEntry}
                     expandedEntities={expandedEntities}
+                    motion={motion}
+                    memberIndex={memberIndexOf(virtualRow.index)}
                   />
                 </div>
               );
@@ -235,6 +302,8 @@ export default function NotificationList({
                 index={i}
                 renderEntry={renderEntry}
                 expandedEntities={expandedEntities}
+                motion={motion}
+                memberIndex={memberIndexOf(i)}
               />
             ))}
       </div>
@@ -247,24 +316,81 @@ function EntryWrapper({
   index,
   renderEntry,
   expandedEntities,
+  motion,
+  memberIndex,
 }: {
   entry: NotificationEntry;
   index: number;
   renderEntry: (entry: NotificationEntry) => ReactNode;
   expandedEntities: ReadonlySet<string>;
+  motion: NotificationListMotion;
+  memberIndex: number;
 }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const leaveDelay = motion.leaving.get(entry.id);
+  const leaving = leaveDelay !== undefined;
+  // 0 = idle, 1 = height pinned to the measured value, 2 = collapsing to 0.
+  const [collapse, setCollapse] = useState<{ phase: 0 | 1 | 2; height: number }>({
+    phase: 0,
+    height: 0,
+  });
+
+  // After the slide-out, collapse this row's own height so the rows below glide up. The
+  // virtualizer's ResizeObserver re-measures the row; no row is rebuilt.
+  useEffect(() => {
+    if (leaveDelay === undefined) return;
+    let raf = 0;
+    const timer = setTimeout(() => {
+      setCollapse({ phase: 1, height: ref.current?.offsetHeight ?? 0 });
+      raf = requestAnimationFrame(() => {
+        raf = requestAnimationFrame(() => setCollapse((c) => ({ ...c, phase: 2 })));
+      });
+    }, NOTIF_SLIDE_MS + leaveDelay);
+    return () => {
+      clearTimeout(timer);
+      cancelAnimationFrame(raf);
+    };
+  }, [leaveDelay]);
+
   const key = entry.kind === 'event' ? entityKey(entry.item) : null;
   const isMember = key != null && expandedEntities.has(key);
+  const introDelay =
+    motion.intro && index < NOTIF_INTRO_MAX && entry.kind !== 'stack-header'
+      ? index * NOTIF_STAGGER_MS
+      : null;
+  const entering = entry.kind === 'event' && motion.entering.has(entry.item.id);
+  const fanning = memberIndex >= 0 && isMember;
+
+  const style: CSSProperties = {};
+  if (introDelay != null) style.animationDelay = `${introDelay}ms`;
+  if (fanning) (style as Record<string, string | number>)['--i'] = memberIndex;
+  if (leaving) (style as Record<string, string | number>)['--leave-delay'] = `${leaveDelay}ms`;
+  if (collapse.phase > 0) {
+    style.overflow = 'hidden';
+    style.height = collapse.phase === 1 ? collapse.height : 0;
+    if (collapse.phase === 2) style.paddingBottom = 0;
+    style.transition = 'height .28s var(--ease-out), padding-bottom .28s var(--ease-out)';
+  }
+
   return (
     <div
+      ref={ref}
+      data-notif-entry
       data-entry-index={index}
       data-entry-id={entry.id}
+      data-stack-header-entry={entry.kind === 'stack-header' ? '' : undefined}
+      data-intro={introDelay != null ? 'true' : undefined}
+      data-entering={entering ? 'true' : undefined}
+      data-leaving={leaving ? 'true' : undefined}
+      data-flash={motion.flashing.has(entry.id) ? 'true' : undefined}
+      style={Object.keys(style).length ? style : undefined}
       className={cn(
         (entry.kind === 'event' || entry.kind === 'stack') &&
           'pb-2 density-compact:pb-1.5 density-comfortable:pb-2.5',
-        // Expanded members slide in; rows are inserted, never height-animated inside a measured row.
-        isMember &&
-          'fade-in-0 slide-in-from-top-1 animate-in duration-150 motion-reduce:animate-none',
+        introDelay != null && 'animate-[notif-stagger_.4s_var(--ease-out)_both]',
+        entering && 'animate-[notif-enter_.45s_var(--ease-out)_both]',
+        // Expanded members fan out once per expand (not on every virtual remount).
+        fanning && 'animate-[notif-fan_.42s_var(--spring)_both]',
       )}
     >
       {renderEntry(entry)}
