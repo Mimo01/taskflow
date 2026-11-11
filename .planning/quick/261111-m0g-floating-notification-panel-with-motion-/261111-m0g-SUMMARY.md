@@ -118,3 +118,23 @@ None beyond the plan's threat model: URL handling is unchanged and shared throug
 Commits 0da467d0, 44e10027, 714c093a, f87480e3, 1eb811e2 exist; 4 PNGs, notification-motion.ts,
 useNotificationActions.ts, NotificationBanners.tsx and notification-banners.store.ts exist;
 `taskflow/preview` removed.
+
+## Follow-up (review + banner switches)
+
+### Desktop notifications switch
+- ff571098 gated banners by the two per-source desktop switches; superseded by a user decision and reverted in f043e497.
+- 3d3927c5: one "Desktop notifications" switch (`desktopNotificationsEnabled`, default on) replaces the Jira/GitLab ones. It gates only the OS dispatch in `useNotificationPolling`; the panel list and banners are unaffected (the per-type toggles still decide what is received at all). Settings persist v36 migrates it (on if either old switch was on, on when both are missing) and drops the old fields. Tests cover the migration, dispatch gating, banners/panel unaffected with the switch off, and the Settings UI.
+
+### Review warnings (261111-m0g-REVIEW.md), re-verified against current code
+| WR | Verdict | Commit |
+|----|---------|--------|
+| WR-01 banner hover/focus share one pause | Fixed (3 regression tests failed pre-fix): hover and focus tracked separately, resume only when neither holds; duration change while paused no longer restarts the clock | a73df11c |
+| WR-02 first-poll flag cleared before the fetch | Fixed (test failed pre-fix): cleared only after a successful fetch | 9947d539 |
+| WR-03 `suppressed` stuck on unmount | Fixed (test failed pre-fix): effect cleanup resets it | 4af8348e |
+| WR-04 removal fires before the collapse ends | Fixed (invariant test failed pre-fix: 500 < 514): `NOTIF_COLLAPSE_MS` shared constant, `NOTIF_EXIT_MS` 500 -> 560 | 4c338851 |
+| WR-05 virtualizer-recycled row replays mid-animation | Not fixed. Still present in theory (`collapse` state lives in `EntryWrapper`) but needs a leaving row scrolled more than 8 rows out of view and back within the 500 ms exit window; jsdom has no layout to reproduce it, so no honest failing test. Left as known minor. | none |
+| WR-06 untracked fire-and-forget timers | Fixed (test failed pre-fix: 1 pending timer after unmount): tracked in a ref set via `later()`, cleared on unmount | d751c9e8 |
+
+Info items IN-01..IN-03 were not in scope and are untouched.
+
+Test totals: full suite 4843 passed, 2 skipped, 7 todo (4852) at the last commit.
