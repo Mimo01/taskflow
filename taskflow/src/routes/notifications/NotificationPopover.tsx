@@ -366,7 +366,7 @@ export default function NotificationPopover({
       {/* Header: title + count subtitle, Mark all read, Clear all (inline macOS-style confirmation) */}
       <div className="flex flex-none items-center gap-2 px-4 pt-3.5 pb-1">
         <div className="min-w-0 flex-1">
-          <h2 className="truncate text-[17px] leading-tight font-semibold tracking-[-0.01em]">
+          <h2 className="truncate text-xl leading-tight font-semibold tracking-[-0.015em]">
             Notifications
           </h2>
           {cardTotal > 0 ? (
