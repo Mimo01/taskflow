@@ -23,8 +23,7 @@ const initialSettings = {
   onboardingComplete: false,
   staleMrThresholdDays: 3,
   notificationPollIntervalSecs: 60,
-  osNotifJiraEnabled: true,
-  osNotifGitlabEnabled: true,
+  desktopNotificationsEnabled: true,
   notifBannerDurationSecs: 5 as 0 | 3 | 5 | 8,
   storyPointsFieldKey: 'customfield_10016',
   epicLinkFieldKey: 'customfield_10014',
@@ -81,10 +80,8 @@ interface SettingsState {
   staleMrThresholdDays: number;
   /** Notification polling interval in seconds. Default: 60. Clamped to [30, 300]. */
   notificationPollIntervalSecs: number;
-  /** Enable OS desktop notifications for Jira comment mentions. Default: true. */
-  osNotifJiraEnabled: boolean;
-  /** Enable OS desktop notifications for GitLab MR notes. Default: true. */
-  osNotifGitlabEnabled: boolean;
+  /** Also push notifications as macOS system notifications. Does not affect the panel or banners. Default: true. */
+  desktopNotificationsEnabled: boolean;
   /** How long in-app notification banners stay on screen; 0 = banners off. Default: 5. */
   notifBannerDurationSecs: 0 | 3 | 5 | 8;
   /** Discovered story points custom field key. Defaults to customfield_10016. */
@@ -216,8 +213,7 @@ interface SettingsState {
   setStaleMrThresholdDays: (days: number) => void;
   /** Clamps input to [30, 300] before storing. */
   setNotificationPollIntervalSecs: (secs: number) => void;
-  setOsNotifJiraEnabled: (v: boolean) => void;
-  setOsNotifGitlabEnabled: (v: boolean) => void;
+  setDesktopNotificationsEnabled: (v: boolean) => void;
   setNotifBannerDurationSecs: (secs: 0 | 3 | 5 | 8) => void;
   setStoryPointsFieldKey: (key: string) => void;
   setEpicLinkFieldKey: (key: string) => void;
@@ -337,8 +333,7 @@ export const useSettingsStore = create<SettingsState>()(
       setStaleMrThresholdDays: (days) => set({ staleMrThresholdDays: days }),
       setNotificationPollIntervalSecs: (secs) =>
         set({ notificationPollIntervalSecs: Math.max(30, Math.min(300, secs)) }),
-      setOsNotifJiraEnabled: (v) => set({ osNotifJiraEnabled: v }),
-      setOsNotifGitlabEnabled: (v) => set({ osNotifGitlabEnabled: v }),
+      setDesktopNotificationsEnabled: (v) => set({ desktopNotificationsEnabled: v }),
       setNotifBannerDurationSecs: (secs) => set({ notifBannerDurationSecs: secs }),
       setStoryPointsFieldKey: (key) => set({ storyPointsFieldKey: key }),
       setEpicLinkFieldKey: (key) => set({ epicLinkFieldKey: key }),
@@ -378,7 +373,7 @@ export const useSettingsStore = create<SettingsState>()(
     {
       name: 'settings-store',
       storage: createTauriStorage('settings.json'),
-      version: 35,
+      version: 36,
       migrate: (persisted, version) => {
         const s = persisted as Record<string, unknown>;
         if (version < 1) {
@@ -520,6 +515,17 @@ export const useSettingsStore = create<SettingsState>()(
         if (version < 35) {
           // In-app notification banners (261111-m0g): default 5s.
           if (s.notifBannerDurationSecs === undefined) s.notifBannerDurationSecs = 5;
+        }
+        if (version < 36) {
+          // The two per-source OS switches collapse into one: on if either was on.
+          const jira = s.osNotifJiraEnabled;
+          const gitlab = s.osNotifGitlabEnabled;
+          if (s.desktopNotificationsEnabled === undefined) {
+            s.desktopNotificationsEnabled =
+              jira === undefined && gitlab === undefined ? true : jira === true || gitlab === true;
+          }
+          delete s.osNotifJiraEnabled;
+          delete s.osNotifGitlabEnabled;
         }
         return persisted as SettingsState;
       },

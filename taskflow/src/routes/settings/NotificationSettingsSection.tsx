@@ -5,7 +5,7 @@
  * - Poll interval (seconds) — clamped [30, 300] by setter in settings store
  * - Per-type notification toggles grouped by source (Jira / GitLab)
  * - In-app banner duration (Off / 3s / 5s / 8s)
- * - OS desktop notification toggles (Jira / GitLab)
+ * - OS desktop notification toggle
  *
  * Follows the same layout pattern as StaleMrThresholdSection.
  */
@@ -55,8 +55,7 @@ export default function NotificationSettingsSection() {
 
   const {
     notificationPollIntervalSecs,
-    osNotifJiraEnabled,
-    osNotifGitlabEnabled,
+    desktopNotificationsEnabled,
     notifCommentMentionEnabled,
     notifIssueUpdateEnabled,
     notifMrNoteEnabled,
@@ -69,8 +68,7 @@ export default function NotificationSettingsSection() {
     notifBannerDurationSecs,
     setNotifBannerDurationSecs,
     setNotificationPollIntervalSecs,
-    setOsNotifJiraEnabled,
-    setOsNotifGitlabEnabled,
+    setDesktopNotificationsEnabled,
     setNotifCommentMentionEnabled,
     setNotifIssueUpdateEnabled,
     setNotifMrNoteEnabled,
@@ -230,7 +228,7 @@ export default function NotificationSettingsSection() {
         {(notificationSendError ||
           (import.meta.env.DEV &&
             navigator.platform.startsWith('Mac') &&
-            (osNotifJiraEnabled || osNotifGitlabEnabled))) && (
+            desktopNotificationsEnabled)) && (
           <Alert>
             <AlertDescription>
               {notificationSendError
@@ -240,18 +238,11 @@ export default function NotificationSettingsSection() {
           </Alert>
         )}
         <ToggleRow
-          id="jira-os-notif"
-          label="Jira desktop notifications"
-          description="Requires OS notification permission to be granted"
-          checked={osNotifJiraEnabled}
-          onChange={setOsNotifJiraEnabled}
-        />
-        <ToggleRow
-          id="gitlab-os-notif"
-          label="GitLab desktop notifications"
-          description="Requires OS notification permission to be granted"
-          checked={osNotifGitlabEnabled}
-          onChange={setOsNotifGitlabEnabled}
+          id="desktop-os-notif"
+          label="Desktop notifications"
+          description="Pushes notifications as macOS system notifications as well. Requires OS notification permission."
+          checked={desktopNotificationsEnabled}
+          onChange={setDesktopNotificationsEnabled}
         />
       </div>
     </div>

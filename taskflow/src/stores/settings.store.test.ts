@@ -498,13 +498,13 @@ describe('settings.store — rankFieldKey (Phase 76)', () => {
     expect(src).toMatch(/if\s*\(version\s*<\s*30\)/);
   });
 
-  it('persist version is 34 (v31 moved the 288 default; v32 drops the field; v34 replaces the px standup width with a ratio)', () => {
+  it('persist version is 36 (v31 moved the 288 default; v32 drops the field; v34 replaces the px standup width with a ratio)', () => {
     const fs = require('node:fs') as typeof import('node:fs');
     const path = require('node:path') as typeof import('node:path');
     const src = fs.readFileSync(path.resolve(__dirname, 'settings.store.ts'), 'utf8');
     expect(src).toMatch(/if\s*\(version\s*<\s*31\)/);
     expect(src).toMatch(/releaseDetailPanelWidth === 288\) s\.releaseDetailPanelWidth = 256/);
-    expect(src).toMatch(/version: 35,/);
+    expect(src).toMatch(/version: 36,/);
     expect(src).toMatch(/if\s*\(version\s*<\s*32\)/);
     expect(src).toMatch(/if\s*\(version\s*<\s*33\)/);
     expect(src).toMatch(/if\s*\(version\s*<\s*34\)/);
@@ -597,5 +597,42 @@ describe('settings.store — my-tasks migration (quick 260616-ktv)', () => {
     expect(result).toBe(input); // same reference — no new array created
     const myTasksItem = result.find((i) => i.id === 'my-tasks');
     expect(myTasksItem?.visible).toBe(false);
+  });
+});
+
+describe('settings.store — v36 desktop notifications switch', () => {
+  const migrate = (persisted: Record<string, unknown>, version = 35) =>
+    (
+      useSettingsStore.persist.getOptions().migrate as (
+        p: unknown,
+        v: number,
+      ) => Record<string, unknown>
+    )(persisted, version);
+
+  it('defaults to true', () => {
+    expect(useSettingsStore.getState().desktopNotificationsEnabled).toBe(true);
+  });
+
+  it('is on if either old per-source switch was on, and drops the old fields', () => {
+    for (const [j, g, want] of [
+      [true, false, true],
+      [false, true, true],
+      [true, true, true],
+      [false, false, false],
+    ] as const) {
+      const out = migrate({ osNotifJiraEnabled: j, osNotifGitlabEnabled: g });
+      expect(out.desktopNotificationsEnabled).toBe(want);
+      expect('osNotifJiraEnabled' in out).toBe(false);
+      expect('osNotifGitlabEnabled' in out).toBe(false);
+    }
+  });
+
+  it('is safe with missing old values (defaults to true)', () => {
+    expect(migrate({}).desktopNotificationsEnabled).toBe(true);
+    expect(migrate({ osNotifJiraEnabled: false }).desktopNotificationsEnabled).toBe(false);
+  });
+
+  it('keeps an already-set value', () => {
+    expect(migrate({ desktopNotificationsEnabled: false }).desktopNotificationsEnabled).toBe(false);
   });
 });

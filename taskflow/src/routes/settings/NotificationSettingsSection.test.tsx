@@ -30,3 +30,26 @@ describe('NotificationSettingsSection banner duration', () => {
     expect(useSettingsStore.getState().notifBannerDurationSecs).toBe(0);
   });
 });
+
+describe('NotificationSettingsSection desktop notifications switch', () => {
+  beforeEach(() => {
+    act(() => {
+      useSettingsStore.setState({ desktopNotificationsEnabled: true, notifBannerDurationSecs: 5 });
+    });
+  });
+
+  it('shows one Desktop notifications toggle instead of per-source ones', () => {
+    render(<NotificationSettingsSection />);
+    expect(screen.getByText('Desktop notifications')).toBeInTheDocument();
+    expect(screen.getByText(/macOS system notifications/)).toBeInTheDocument();
+    expect(screen.queryByText('Jira desktop notifications')).toBeNull();
+    expect(screen.queryByText('GitLab desktop notifications')).toBeNull();
+  });
+
+  it('toggling flips the setting and leaves the banner duration alone', () => {
+    render(<NotificationSettingsSection />);
+    fireEvent.click(screen.getByLabelText('Desktop notifications'));
+    expect(useSettingsStore.getState().desktopNotificationsEnabled).toBe(false);
+    expect(useSettingsStore.getState().notifBannerDurationSecs).toBe(5);
+  });
+});

@@ -9,9 +9,10 @@ import { useSettingsStore } from '../stores/settings.store';
 import { useNotificationPolling } from './useNotificationPolling';
 
 const fetchNew = vi.fn();
+const dispatch = vi.fn().mockResolvedValue('sent');
 vi.mock('../services/notifications', () => ({
   fetchNewNotifications: (...a: unknown[]) => fetchNew(...a),
-  tryDispatchOsNotification: () => Promise.resolve('sent'),
+  tryDispatchOsNotification: (...a: unknown[]) => dispatch(...a),
 }));
 vi.mock('../services/stronghold', () => ({ readSecret: () => Promise.resolve('pat') }));
 vi.mock('../services/jira', () => ({ validateJira: () => Promise.resolve(null) }));
@@ -40,6 +41,7 @@ function wrapper({ children }: { children: ReactNode }) {
 describe('useNotificationPolling banners', () => {
   beforeEach(() => {
     fetchNew.mockReset();
+    dispatch.mockClear();
     act(() => {
       useAuthStore.setState({
         jiraBaseUrl: 'https://jira.example.test',
@@ -76,5 +78,40 @@ describe('useNotificationPolling banners', () => {
     await waitFor(() => expect(useNotificationsStore.getState().items.length).toBe(1));
     // Still the first *successful* poll: the backlog must not pop up.
     expect(useNotificationBanners.getState().ids).toEqual([]);
+  });
+
+  const pollOnce = async (desktop: boolean) => {
+    act(() => {
+      useSettingsStore.setState({ desktopNotificationsEnabled: desktop });
+      useNotificationsStore.setState({ lastSeenJiraCursor: '2026-11-11T09:00:00.000Z' } as never);
+    });
+    // First successful poll is the initial load, so run two: the second one produces banners.
+    fetchNew.mockResolvedValueOnce([]);
+    const { result } = renderHook(
+      () => {
+        useNotificationPolling();
+        return useNotificationsStore((s) => s.retryFetch);
+      },
+      { wrapper },
+    );
+    await waitFor(() => expect(result.current).toBeTypeOf('function'));
+    await waitFor(() => expect(fetchNew).toHaveBeenCalledTimes(1));
+    fetchNew.mockResolvedValueOnce([item('new-1')]);
+    await act(async () => {
+      result.current?.();
+    });
+    await waitFor(() => expect(useNotificationsStore.getState().items.length).toBe(1));
+  };
+
+  it('switch on: new items are pushed as OS notifications', async () => {
+    await pollOnce(true);
+    expect(dispatch).toHaveBeenCalledTimes(1);
+  });
+
+  it('switch off: no OS notification, but the panel list and the banner still get the item', async () => {
+    await pollOnce(false);
+    expect(dispatch).not.toHaveBeenCalled();
+    expect(useNotificationsStore.getState().items.map((i) => i.id)).toEqual(['new-1']);
+    expect(useNotificationBanners.getState().ids).toEqual(['new-1']);
   });
 });

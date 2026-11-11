@@ -53,8 +53,7 @@ export function useNotificationPolling() {
 
   const {
     notificationPollIntervalSecs,
-    osNotifJiraEnabled,
-    osNotifGitlabEnabled,
+    desktopNotificationsEnabled,
     notifCommentMentionEnabled,
     notifIssueUpdateEnabled,
     notifMrNoteEnabled,
@@ -96,11 +95,9 @@ export function useNotificationPolling() {
   const typeEnabledMapRef = useRef(typeEnabledMap);
   typeEnabledMapRef.current = typeEnabledMap;
 
-  // Keep stable refs to OS notification settings
-  const osNotifJiraEnabledRef = useRef(osNotifJiraEnabled);
-  osNotifJiraEnabledRef.current = osNotifJiraEnabled;
-  const osNotifGitlabEnabledRef = useRef(osNotifGitlabEnabled);
-  osNotifGitlabEnabledRef.current = osNotifGitlabEnabled;
+  // Stable ref to the OS notification switch (only gates OS dispatch, never the panel or banners)
+  const desktopNotificationsEnabledRef = useRef(desktopNotificationsEnabled);
+  desktopNotificationsEnabledRef.current = desktopNotificationsEnabled;
 
   // Bootstrap identity for existing sessions where identity fields were never persisted.
   // Runs when any of displayName, username, userKey, or avatarUrl is missing — the
@@ -235,12 +232,8 @@ export function useNotificationPolling() {
         // Dispatch OS notifications only for items not already known to the store
         for (const item of newItems) {
           if (existingIds.has(item.id)) continue;
-          const sourceEnabled =
-            item.source === 'jira'
-              ? osNotifJiraEnabledRef.current
-              : osNotifGitlabEnabledRef.current;
           // Per-type check already passed via filter above
-          if (sourceEnabled) {
+          if (desktopNotificationsEnabledRef.current) {
             const result = await tryDispatchOsNotification(
               `${item.source === 'jira' ? 'Jira' : 'GitLab'} — ${item.entityTitle}`,
               `${item.author}: ${item.bodyPreview}`,

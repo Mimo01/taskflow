@@ -62,8 +62,7 @@ const mockSettingsStore = {
   sprintCollapseByDefault: false,
   staleMrThresholdDays: 3,
   notificationPollIntervalSecs: 60,
-  osNotifJiraEnabled: true,
-  osNotifGitlabEnabled: true,
+  desktopNotificationsEnabled: true,
   devToolsEnabled: false,
   storyPointsFieldKey: 'customfield_10016',
   epicLinkFieldKey: 'customfield_10014',
@@ -76,8 +75,7 @@ const mockSettingsStore = {
   setSprintCollapseByDefault: vi.fn(),
   setStaleMrThresholdDays: vi.fn(),
   setNotificationPollIntervalSecs: vi.fn(),
-  setOsNotifJiraEnabled: vi.fn(),
-  setOsNotifGitlabEnabled: vi.fn(),
+  setDesktopNotificationsEnabled: vi.fn(),
   setDevToolsEnabled: vi.fn(),
 };
 
