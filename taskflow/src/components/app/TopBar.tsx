@@ -173,10 +173,13 @@ export default function TopBar({
       {/* Notification popover — single bell with tabbed source filter */}
       <Popover open={notifPopoverOpen} onOpenChange={onNotifPopoverChange}>
         <PopoverTrigger
-          className="relative flex items-center justify-center w-8 h-8 rounded hover:bg-muted transition-colors"
+          // Pressed while the panel is open: muted background + filled bell (261111-m0g UAT).
+          className={`relative flex items-center justify-center w-8 h-8 rounded hover:bg-muted transition-colors ${notifPopoverOpen ? 'bg-muted text-foreground' : ''}`}
+          data-active={notifPopoverOpen ? 'true' : undefined}
           aria-label="Notifications"
         >
           <Bell
+            fill={notifPopoverOpen ? 'currentColor' : 'none'}
             className={`w-5 h-5 transition-transform ${bellPulse ? 'animate-bell-ring' : ''}`}
           />
           {unreadCount > 0 && (

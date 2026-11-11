@@ -255,3 +255,18 @@ describe('TopBar notification panel initial focus (261111-m0g UAT)', () => {
     await waitFor(() => expect(document.activeElement).toBe(popup));
   });
 });
+
+describe('TopBar bell shows the open state (261111-m0g UAT)', () => {
+  it('pressed background and filled bell while the panel is open, plain when closed', () => {
+    const { unmount } = renderTopBar({ notifPopoverOpen: true });
+    const bell = screen.getByRole('button', { name: 'Notifications' });
+    expect(bell.getAttribute('data-active')).toBe('true');
+    expect(bell.className).toContain('bg-muted');
+    expect(bell.querySelector('svg')?.getAttribute('fill')).toBe('currentColor');
+    unmount();
+    renderTopBar({ notifPopoverOpen: false });
+    const closed = screen.getByRole('button', { name: 'Notifications' });
+    expect(closed.hasAttribute('data-active')).toBe(false);
+    expect(closed.querySelector('svg')?.getAttribute('fill')).toBe('none');
+  });
+});
