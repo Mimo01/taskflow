@@ -271,7 +271,11 @@ export const useNotificationsStore = create<NotificationsState>()(
       // Sanitize rehydrated data — old store versions serialized readIds/items as Set,
       // which JSON-stringifies to {}. Guard both fields so new Set(readIds) never throws.
       merge: (persisted, current) => {
-        const p = persisted as Partial<NotificationsState> & { lastSeenCursor?: string | null };
+        // Nothing stored yet (first launch) -> persisted is undefined; treat as empty so hydration
+        // completes and persist.hasHydrated() turns true.
+        const p = (persisted ?? {}) as Partial<NotificationsState> & {
+          lastSeenCursor?: string | null;
+        };
         // Migrate: if old shared cursor exists but per-source cursors don't, seed both
         const jiraCursor = p.lastSeenJiraCursor ?? p.lastSeenCursor ?? null;
         const gitlabCursor = p.lastSeenGitlabCursor ?? p.lastSeenCursor ?? null;

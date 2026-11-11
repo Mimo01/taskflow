@@ -13,7 +13,7 @@ import { Bell, Search } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import NotificationPopover from '../../routes/notifications/NotificationPopover';
 import { useUnreadCardCount } from '../../routes/notifications/useUnreadCardCount';
-import { useUnreadCount } from '../../stores/notifications.store';
+import { useNotificationsStore, useUnreadCount } from '../../stores/notifications.store';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import RecentItemsPopover from './RecentItemsPopover';
 
@@ -54,14 +54,28 @@ export default function TopBar({
   const prevCountRef = useRef(rawUnread);
   const [bellPulse, setBellPulse] = useState(false);
 
+  // Rehydrating persisted notifications on launch (0 -> N) is not an arrival: when hydration
+  // finishes, move the baseline to the hydrated count so the bell does not ring.
+  useEffect(
+    () =>
+      useNotificationsStore.persist.onFinishHydration((s) => {
+        prevCountRef.current = s._unreadCount;
+      }),
+    [],
+  );
+
   // Trigger pulse animation when unread count increases (new notifications arrived)
   useEffect(() => {
-    if (rawUnread > prevCountRef.current) {
-      setBellPulse(true);
-      const timer = setTimeout(() => setBellPulse(false), 2000);
-      return () => clearTimeout(timer);
-    }
+    const prev = prevCountRef.current;
     prevCountRef.current = rawUnread;
+    if (rawUnread <= prev || !useNotificationsStore.persist.hasHydrated()) return;
+    setBellPulse(true);
+    const timer = setTimeout(() => setBellPulse(false), 2000);
+    // Any later count change (including a drop) cancels the timer, so stop the pulse here too.
+    return () => {
+      clearTimeout(timer);
+      setBellPulse(false);
+    };
   }, [rawUnread]);
 
   // Clear pulse when popover is opened

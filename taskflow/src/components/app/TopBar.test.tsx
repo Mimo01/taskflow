@@ -4,7 +4,7 @@
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, fireEvent, render, screen } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { NotificationItem } from '../../stores/notifications.store';
 import { useNotificationsStore } from '../../stores/notifications.store';
 import TopBar from './TopBar';
@@ -130,5 +130,72 @@ describe('TopBar', () => {
     fireEvent.click(await screen.findByRole('menuitem', { name: 'Notification settings' }));
 
     expect(onOpenSettings).toHaveBeenCalledOnce();
+  });
+});
+
+describe('TopBar bell pulse (WR-04)', () => {
+  const ring = (c: HTMLElement) => c.querySelector('.animate-bell-ring');
+  const reset = () => {
+    act(() => {
+      useNotificationsStore.setState({
+        items: [],
+        readIds: [],
+        _unreadCount: 0,
+        _jiraUnreadCount: 0,
+        _gitlabUnreadCount: 0,
+      });
+    });
+  };
+
+  beforeEach(reset);
+  afterEach(() => {
+    vi.useRealTimers();
+    reset();
+  });
+
+  it('rings on a new arrival and stops after 2s', () => {
+    vi.useFakeTimers();
+    const { container } = renderTopBar();
+    act(() => {
+      useNotificationsStore.getState().prependItems([makeItem('n1')]);
+    });
+    expect(ring(container)).not.toBeNull();
+    act(() => {
+      vi.advanceTimersByTime(2100);
+    });
+    expect(ring(container)).toBeNull();
+  });
+
+  it('does not stick on when the count drops within the 2s window', () => {
+    vi.useFakeTimers();
+    const { container } = renderTopBar();
+    act(() => {
+      useNotificationsStore.getState().prependItems([makeItem('n1'), makeItem('n2')]);
+    });
+    expect(ring(container)).not.toBeNull();
+    act(() => {
+      vi.advanceTimersByTime(500);
+      useNotificationsStore.getState().markItemsRead(['n1', 'n2']);
+    });
+    act(() => {
+      vi.advanceTimersByTime(5000);
+    });
+    expect(ring(container)).toBeNull();
+  });
+
+  it('does not ring when persisted notifications rehydrate on launch', async () => {
+    const storage = useNotificationsStore.persist.getOptions().storage;
+    await storage?.setItem('notifications-store', {
+      state: { items: [makeItem('p1'), makeItem('p2')], readIds: [] },
+      version: 0,
+    } as never);
+    const { container } = renderTopBar();
+    expect(ring(container)).toBeNull();
+    await act(async () => {
+      await useNotificationsStore.persist.rehydrate();
+    });
+    expect(useNotificationsStore.getState()._unreadCount).toBe(2);
+    expect(ring(container)).toBeNull();
+    await storage?.removeItem('notifications-store');
   });
 });

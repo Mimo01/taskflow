@@ -390,3 +390,12 @@ describe('notifications.store', () => {
     });
   });
 });
+
+describe('hydration with nothing stored (WR-04)', () => {
+  it('completes, so persist.hasHydrated() turns true on a first launch', async () => {
+    const storage = useNotificationsStore.persist.getOptions().storage;
+    await storage?.removeItem('notifications-store');
+    await useNotificationsStore.persist.rehydrate();
+    expect(useNotificationsStore.persist.hasHydrated()).toBe(true);
+  });
+});
