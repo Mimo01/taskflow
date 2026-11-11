@@ -4,8 +4,12 @@
 export const NOTIF_ENTER_MS = 450;
 /** Clear: the card slides out for this long, then the row collapses its height. */
 export const NOTIF_SLIDE_MS = 200;
-/** Clear: total time before the items are actually removed from the store. */
-export const NOTIF_EXIT_MS = 500;
+/** Clear: the row's height collapse transition (after the slide-out). */
+export const NOTIF_COLLAPSE_MS = 280;
+/** Two animation frames between pinning the height and collapsing it. */
+export const NOTIF_COLLAPSE_FRAMES_MS = 34;
+/** Clear: total time before the items are removed from the store; must outlast slide + collapse. */
+export const NOTIF_EXIT_MS = 560;
 /** Stack Clear: delay between consecutive cards sliding out. */
 export const NOTIF_STACK_STAGGER_MS = 50;
 /** Clear all: delay between consecutive cards sliding out, and the cap on the last one. */

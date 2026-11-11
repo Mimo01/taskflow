@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { createSwipeRightTracker } from './notification-motion';
+import {
+  createSwipeRightTracker,
+  NOTIF_COLLAPSE_FRAMES_MS,
+  NOTIF_COLLAPSE_MS,
+  NOTIF_EXIT_MS,
+  NOTIF_SLIDE_MS,
+} from './notification-motion';
 
 const ev = (deltaX: number, timeStamp: number, deltaY = 0) => ({ deltaX, deltaY, timeStamp });
 
@@ -52,5 +58,13 @@ describe('createSwipeRightTracker', () => {
     expect(track(ev(-40, 0))).toBe(false);
     expect(track(ev(-40, 400))).toBe(false);
     expect(track(ev(-30, 416))).toBe(true);
+  });
+});
+
+describe('exit timing (WR-04)', () => {
+  it('the store removal outlasts the slide-out, the two pin frames and the height collapse', () => {
+    expect(NOTIF_EXIT_MS).toBeGreaterThanOrEqual(
+      NOTIF_SLIDE_MS + NOTIF_COLLAPSE_FRAMES_MS + NOTIF_COLLAPSE_MS,
+    );
   });
 });

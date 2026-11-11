@@ -11,6 +11,7 @@ import {
 } from 'react';
 import { cn } from '../../lib/utils';
 import {
+  NOTIF_COLLAPSE_MS,
   NOTIF_EXIT_MS,
   NOTIF_FOLD_MS,
   NOTIF_GROUP_EASE,
@@ -491,7 +492,7 @@ function EntryWrapper({
       style.paddingBottom = 0;
       style.paddingTop = 0;
     }
-    const d = folding ? `${NOTIF_FOLD_MS}ms` : '.28s';
+    const d = folding ? `${NOTIF_FOLD_MS}ms` : `${NOTIF_COLLAPSE_MS}ms`;
     const ease = folding ? NOTIF_GROUP_EASE : 'var(--ease-out)';
     style.transition = `height ${d} ${ease}, padding-bottom ${d} ${ease}, padding-top ${d} ${ease}`;
   }
