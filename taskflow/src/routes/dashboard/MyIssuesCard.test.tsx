@@ -14,6 +14,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { NO_ACTIVE_SPRINT_SUBTITLE } from '@/lib/sprint-empty-state';
 import type { JiraIssue } from '@/services/jira';
 import { filterNonSubtasks } from './dashboardMetrics';
 
@@ -207,6 +208,7 @@ describe('MyIssuesCard — no active sprint', () => {
     const MyIssuesCard = await importComponent();
     renderWithQuery(<MyIssuesCard {...defaultProps} />, { sprintIssues: [] });
     expect(screen.getByText('No active sprint')).toBeTruthy();
+    expect(screen.getByText(NO_ACTIVE_SPRINT_SUBTITLE)).toBeTruthy();
     expect(screen.queryByText('No issues assigned')).toBeNull();
     expect(screen.queryByRole('img')).toBeNull();
   });

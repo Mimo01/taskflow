@@ -13,6 +13,7 @@ import { QueryClient, QueryClientProvider, useQueries, useQuery } from '@tanstac
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { NO_ACTIVE_SPRINT_SUBTITLE } from '@/lib/sprint-empty-state';
 import { formatDuration } from '@/services/jira/duration';
 
 // ── Top-of-file mocks ─────────────────────────────────────────────────────────
@@ -522,6 +523,11 @@ describe('MyTasksPage — no active sprint (261111-uao)', () => {
   it('Current Sprint shows "No active sprint" and hides sprint chrome', () => {
     renderPage();
     expect(screen.getAllByText('No active sprint').length).toBeGreaterThanOrEqual(1);
+    expect(
+      screen.getByText(
+        `${NO_ACTIVE_SPRINT_SUBTITLE} Switch to All Assigned to see the rest of your work.`,
+      ),
+    ).toBeTruthy();
     expect(screen.queryByText("You're all caught up")).toBeNull();
     expect(screen.queryByText('pts done')).toBeNull();
     expect(screen.queryByText(/pts in flight/)).toBeNull();

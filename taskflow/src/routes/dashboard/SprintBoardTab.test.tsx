@@ -26,6 +26,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { NO_ACTIVE_SPRINT_SUBTITLE } from '@/lib/sprint-empty-state';
 import { useParentCompletionStore } from '@/stores/parent-completion.store';
 
 // Shared mock for onIssueClick — tests that need to assert on it can reference this variable.
@@ -381,8 +382,11 @@ describe('SprintBoardTab — Phase 73 Plan 02 data-layer rewrite', () => {
     const { default: SprintBoardTab } = await import('./SprintBoardTab');
     renderWithQuery(<SprintBoardTab />);
 
-    await screen.findByText(/No sprint issues/i);
+    const title = await screen.findByText(/No sprint issues/i);
     expect(screen.queryByText('No active sprint')).toBeNull();
+    expect(screen.getByText('Issues added to the active sprint will appear here.')).toBeTruthy();
+    // Centred in the board area via EmptyState fill
+    expect(title.closest('div.flex-col')?.classList.contains('flex-1')).toBe(true);
   });
 
   it('shows "No active sprint" instead of "No sprint issues" when the board has no sprint', async () => {
@@ -392,8 +396,10 @@ describe('SprintBoardTab — Phase 73 Plan 02 data-layer rewrite', () => {
     const { default: SprintBoardTab } = await import('./SprintBoardTab');
     renderWithQuery(<SprintBoardTab />);
 
-    await screen.findByText('No active sprint');
+    const title = await screen.findByText('No active sprint');
     expect(screen.queryByText(/No sprint issues/i)).toBeNull();
+    expect(screen.getByText(NO_ACTIVE_SPRINT_SUBTITLE)).toBeTruthy();
+    expect(title.closest('div.flex-col')?.classList.contains('flex-1')).toBe(true);
     // Zero column counts are hidden too
     expect(screen.queryByText('(0)')).toBeNull();
   });

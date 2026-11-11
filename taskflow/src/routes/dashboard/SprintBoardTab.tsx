@@ -45,7 +45,11 @@ import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { buildAssigneeOptions, matchesAssigneeFilter } from '@/lib/assignee-filter';
 import { epicColorToTailwind } from '@/lib/epicColors';
 import { invalidateLightweightIssue } from '@/lib/issue-lightweight-cache';
-import { NO_ACTIVE_SPRINT_TITLE, resolveSprintScopeState } from '@/lib/sprint-empty-state';
+import {
+  NO_ACTIVE_SPRINT_SUBTITLE,
+  NO_ACTIVE_SPRINT_TITLE,
+  resolveSprintScopeState,
+} from '@/lib/sprint-empty-state';
 import { buildStoryPointOptions, matchesStoryPointsFilter } from '@/lib/story-points-filter';
 import { orderSubtasks } from '@/lib/subtask-order';
 import type { JiraIssue, JiraTransition } from '@/services/jira';
@@ -1837,7 +1841,8 @@ export default function SprintBoardTab() {
                 <EmptyState
                   icon={CalendarOff}
                   title={NO_ACTIVE_SPRINT_TITLE}
-                  subtitle="Start a sprint in Jira and its issues will appear here."
+                  subtitle={NO_ACTIVE_SPRINT_SUBTITLE}
+                  fill
                 />
               )}
               {!showSkeleton &&
@@ -1849,7 +1854,8 @@ export default function SprintBoardTab() {
                   <EmptyState
                     icon={Columns3}
                     title="No sprint issues"
-                    subtitle="This board will populate when issues are added to the active sprint"
+                    subtitle="Issues added to the active sprint will appear here."
+                    fill
                   />
                 )}
 

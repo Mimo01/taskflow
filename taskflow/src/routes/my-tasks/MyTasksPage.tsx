@@ -33,7 +33,11 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useActiveSprint } from '@/hooks/useActiveSprint';
 import { buildMrHealthByKey, resolveMrHealth, selectMrsForHealth } from '@/lib/my-tasks-mr-health';
 import { groupByMyDay, type MyDayBand } from '@/lib/my-tasks-sort';
-import { NO_ACTIVE_SPRINT_TITLE, resolveSprintScopeState } from '@/lib/sprint-empty-state';
+import {
+  NO_ACTIVE_SPRINT_SUBTITLE,
+  NO_ACTIVE_SPRINT_TITLE,
+  resolveSprintScopeState,
+} from '@/lib/sprint-empty-state';
 import { orderSubtasks } from '@/lib/subtask-order';
 import { cn } from '@/lib/utils';
 import { fetchAuthoredMRs, fetchMRApprovals, fetchMRDiscussions } from '@/services/gitlab';
@@ -560,7 +564,8 @@ export default function MyTasksPage() {
         <EmptyState
           icon={CalendarOff}
           title={NO_ACTIVE_SPRINT_TITLE}
-          subtitle="There's no open sprint right now. Switch to All Assigned to see the rest of your work."
+          subtitle={`${NO_ACTIVE_SPRINT_SUBTITLE} Switch to All Assigned to see the rest of your work.`}
+          fill
         />
       );
     }
@@ -579,6 +584,7 @@ export default function MyTasksPage() {
             icon={ListFilter}
             title="No matches"
             subtitle="No tasks match the active filter. Click the filter again to clear it."
+            fill
           />
         );
       }
@@ -587,6 +593,7 @@ export default function MyTasksPage() {
           icon={CheckSquare}
           title="You're all caught up"
           subtitle="No tasks need your attention right now. Check back after standup."
+          fill
         />
       );
     }
@@ -653,6 +660,7 @@ export default function MyTasksPage() {
             icon={ListFilter}
             title="No matches"
             subtitle="No tasks match the active filter. Click the filter again to clear it."
+            fill
           />
         );
       }
@@ -666,6 +674,7 @@ export default function MyTasksPage() {
               ? 'You have no issues reported across all sprints and the backlog.'
               : 'You have no issues assigned across all sprints and the backlog.'
           }
+          fill
         />
       );
     }

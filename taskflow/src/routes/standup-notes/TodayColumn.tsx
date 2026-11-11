@@ -20,7 +20,11 @@ import { useEffect, useMemo, useState } from 'react';
 import { EmptyState } from '@/components/ui/empty-state';
 import { useActiveSprint } from '@/hooks/useActiveSprint';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
-import { NO_ACTIVE_SPRINT_TITLE, resolveSprintScopeState } from '@/lib/sprint-empty-state';
+import {
+  NO_ACTIVE_SPRINT_SUBTITLE,
+  NO_ACTIVE_SPRINT_TITLE,
+  resolveSprintScopeState,
+} from '@/lib/sprint-empty-state';
 import type { GitLabMR, ParticipatedMR } from '@/services/gitlab';
 import { fetchParticipatedMRs, fetchReviewerMRs } from '@/services/gitlab';
 import type { JiraIssue } from '@/services/jira';
@@ -357,7 +361,7 @@ export default function TodayColumn({
                 compact
                 icon={CalendarOff}
                 title={NO_ACTIVE_SPRINT_TITLE}
-                subtitle="There's no open sprint on the board."
+                subtitle={NO_ACTIVE_SPRINT_SUBTITLE}
               />
             ) : (
               <>
@@ -427,7 +431,7 @@ export default function TodayColumn({
             title={noSprint ? NO_ACTIVE_SPRINT_TITLE : 'Nothing planned for today'}
             subtitle={
               noSprint
-                ? 'No open sprint on the board and no MRs awaiting review.'
+                ? `${NO_ACTIVE_SPRINT_SUBTITLE} No MRs are awaiting review.`
                 : 'No items in progress, nothing up next, and no MRs awaiting review.'
             }
           />

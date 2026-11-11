@@ -20,7 +20,11 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useActiveSprint } from '@/hooks/useActiveSprint';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { clickableCard } from '@/lib/clickable-card';
-import { NO_ACTIVE_SPRINT_TITLE, resolveSprintScopeState } from '@/lib/sprint-empty-state';
+import {
+  NO_ACTIVE_SPRINT_SUBTITLE,
+  NO_ACTIVE_SPRINT_TITLE,
+  resolveSprintScopeState,
+} from '@/lib/sprint-empty-state';
 import { fetchSprintIssues } from '@/services/jira';
 import { filterNonSubtasks } from './dashboardMetrics';
 
@@ -120,7 +124,7 @@ export default function MyIssuesCard({
           <EmptyState
             icon={CalendarOff}
             title={NO_ACTIVE_SPRINT_TITLE}
-            subtitle="There's no open sprint on the board right now."
+            subtitle={NO_ACTIVE_SPRINT_SUBTITLE}
           />
         )}
         {!error && scopeState === 'empty' && (

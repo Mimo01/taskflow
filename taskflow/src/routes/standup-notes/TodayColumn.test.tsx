@@ -17,6 +17,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { NO_ACTIVE_SPRINT_SUBTITLE } from '@/lib/sprint-empty-state';
 import type { JiraIssue } from '@/services/jira';
 
 // ─── Mock TanStack Query ──────────────────────────────────────────────────────
@@ -424,6 +425,7 @@ describe('TodayColumn', () => {
       sprintState.value = { activeSprint: null, noActiveSprint: true, isResolving: false };
       await mountWith({ sprint: [], mrs: [reviewerMR] });
       expect(screen.getByText('No active sprint')).toBeInTheDocument();
+      expect(screen.getByText(NO_ACTIVE_SPRINT_SUBTITLE)).toBeInTheDocument();
       expect(screen.queryByText('Up Next')).not.toBeInTheDocument();
       expect(screen.queryByText(/in progress/i)).not.toBeInTheDocument();
       expect(screen.getByText('Standalone review MR')).toBeInTheDocument();
@@ -434,6 +436,9 @@ describe('TodayColumn', () => {
       sprintState.value = { activeSprint: null, noActiveSprint: true, isResolving: false };
       await mountWith({ sprint: [], mrs: [] });
       expect(screen.getByText('No active sprint')).toBeInTheDocument();
+      expect(
+        screen.getByText(`${NO_ACTIVE_SPRINT_SUBTITLE} No MRs are awaiting review.`),
+      ).toBeInTheDocument();
       expect(screen.queryByText('Nothing planned for today')).not.toBeInTheDocument();
     });
 
