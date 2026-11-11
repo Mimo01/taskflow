@@ -29,6 +29,7 @@ import {
 import type { ComponentType } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { NavLink } from 'react-router-dom';
+import { activeSprintQueryKey } from '@/hooks/useActiveSprint';
 import { useResizable } from '@/hooks/useResizable';
 import {
   EPICS_PAGE_ORDER,
@@ -152,7 +153,7 @@ export default function Sidebar() {
       resolveBoardId
         .then((boardId) => {
           queryClient.prefetchQuery({
-            queryKey: ['jira-active-sprint', activeJiraProject, jiraBaseUrl, boardId],
+            queryKey: activeSprintQueryKey(activeJiraProject, jiraBaseUrl, boardId),
             queryFn: () =>
               fetchActiveSprint(jiraBaseUrl, jiraToken, activeJiraProject, boardId ?? undefined),
             staleTime: 5 * 60 * 1000,
