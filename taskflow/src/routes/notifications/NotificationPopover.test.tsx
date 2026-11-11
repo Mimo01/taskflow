@@ -172,11 +172,30 @@ describe('NotificationPopover', () => {
   describe('stacks', () => {
     beforeEach(() => seed([jiraItem('a'), jiraItem('b')]));
 
-    it('collapses 2+ notifications on one issue into one stack with +N and peek edges', () => {
+    it('peek edges follow the hidden-card count, capped at 2', () => {
+      const t = (min: number) => new Date(Date.now() - min * 60_000).toISOString();
+      const card = (id: string, min: number, who: string) =>
+        jiraItem(id, 'PROJ-1', { author: who, createdAt: t(min) });
+      seed([card('a', 5, 'Ana Lee'), card('b', 10, 'Ben Ito'), card('c', 15, 'Cara Doe')]);
+      const { unmount } = render(<NotificationPopover />);
+      expect(document.querySelectorAll('[data-stack-edge]')).toHaveLength(2);
+      unmount();
+      seed([
+        card('a', 5, 'Ana Lee'),
+        card('b', 10, 'Ben Ito'),
+        card('c', 15, 'Cara Doe'),
+        card('d', 20, 'Dev Patel'),
+        card('e', 25, 'Eve Ruiz'),
+      ]);
+      render(<NotificationPopover />);
+      expect(document.querySelectorAll('[data-stack-edge]')).toHaveLength(2);
+    });
+
+    it('collapses 2+ notifications on one issue into one stack; one hidden card = one peek edge', () => {
       render(<NotificationPopover />);
       expect(entryCount()).toBe(1);
       expect(document.querySelector('[data-stack]')).not.toBeNull();
-      expect(document.querySelectorAll('[data-stack-edge]')).toHaveLength(2);
+      expect(document.querySelectorAll('[data-stack-edge]')).toHaveLength(1);
       expect(
         (document.querySelector('[data-entry-primary][aria-expanded]') as HTMLElement).getAttribute(
           'aria-label',

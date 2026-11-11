@@ -602,7 +602,7 @@ export default function NotificationRow({
           onDone();
         }}
         data-corner-x
-        className="absolute -top-[7px] -left-[7px] z-20 flex size-[22px] flex-none cursor-pointer items-center justify-center rounded-full bg-card text-muted-foreground opacity-0 shadow-(--notif-sh-hover) transition-opacity duration-150 ease-out hover:text-foreground focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring group-hover/row:opacity-100 group-focus-within/row:opacity-100"
+        className="pointer-events-none absolute -top-[7px] -left-[7px] z-20 flex size-[22px] flex-none cursor-pointer items-center justify-center rounded-full bg-card text-muted-foreground opacity-0 shadow-(--notif-sh-hover) transition-opacity duration-150 ease-out hover:text-foreground focus-visible:pointer-events-auto focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring group-hover/row:pointer-events-auto group-hover/row:opacity-100 group-focus-within/row:pointer-events-auto group-focus-within/row:opacity-100"
       >
         <X aria-hidden="true" className="size-3" />
       </button>
@@ -610,7 +610,9 @@ export default function NotificationRow({
       <NotificationAvatar item={item} style={style} />
 
       <div className="flex min-w-0 flex-1 flex-col justify-center">
-        <div className="relative flex h-5 items-center gap-1.5">
+        {/* pointer-events-none: this positioned line sits above the full-card overlay button;
+            without it, clicks on its gaps (around key / title / time) did nothing. */}
+        <div className="pointer-events-none relative flex h-5 items-center gap-1.5">
           {ref ? (
             <span
               data-entity-key
@@ -651,7 +653,8 @@ export default function NotificationRow({
           <span
             data-tray
             className={cn(
-              'absolute right-0 top-1/2 z-10 flex -translate-y-1/2 items-center gap-0.5 rounded-lg bg-card p-0.5 opacity-0 shadow-(--notif-hair) transition-opacity duration-150 ease-out group-hover/row:opacity-100 group-focus-within/row:opacity-100',
+              // Clickable only while shown: an invisible tray must not swallow clicks on the card.
+              'pointer-events-none absolute right-0 top-1/2 z-10 flex -translate-y-1/2 items-center gap-0.5 rounded-lg bg-card p-0.5 opacity-0 shadow-(--notif-hair) transition-opacity duration-150 ease-out group-hover/row:pointer-events-auto group-hover/row:opacity-100 group-focus-within/row:pointer-events-auto group-focus-within/row:opacity-100',
               isBanner && 'hidden',
             )}
           >
@@ -710,14 +713,22 @@ export default function NotificationRow({
 /* ── stacks ─────────────────────────────────────────── */
 
 /** Collapsed stack: the newest card with two peek edges behind it; they spread 3px / 6px on hover. */
-export function StackCard({ children }: { children: ReactNode }) {
+/**
+ * Collapsed group: the top card with peek edges behind it, one edge per hidden card, max 2
+ * (261111-m0g UAT: one hidden card must show one edge, not two). The row keeps its pb-3 either
+ * way so its height (and the open/close swap) does not depend on the count.
+ */
+export function StackCard({ children, hidden = 2 }: { children: ReactNode; hidden?: number }) {
+  const edges = Math.max(1, Math.min(hidden, 2));
   return (
     <div data-stack className="group/stack relative pb-3">
-      <div
-        aria-hidden="true"
-        data-stack-edge="2"
-        className="pointer-events-none absolute inset-x-5 bottom-0 h-5 rounded-b-xl bg-card opacity-60 shadow-(--notif-sh-rest)"
-      />
+      {edges >= 2 ? (
+        <div
+          aria-hidden="true"
+          data-stack-edge="2"
+          className="pointer-events-none absolute inset-x-5 bottom-0 h-5 rounded-b-xl bg-card opacity-60 shadow-(--notif-sh-rest)"
+        />
+      ) : null}
       <div
         aria-hidden="true"
         data-stack-edge="1"

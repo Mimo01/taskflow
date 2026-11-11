@@ -502,6 +502,20 @@ describe('NotificationRow', () => {
     expect(body.lastElementChild?.getAttribute('data-line')).toBe('detail');
   });
 
+  it('every part of the card reaches the full-card click target (no dead areas)', () => {
+    const { container } = setup();
+    // the positioned first line sits above the overlay: it must let clicks through
+    const line1 = container.querySelector('[data-entity-key]')?.parentElement as HTMLElement;
+    expect(line1.className).toContain('pointer-events-none');
+    // hidden controls are not clickable until shown (hover / focus)
+    const tray = container.querySelector('[data-tray]') as HTMLElement;
+    const x = container.querySelector('[data-corner-x]') as HTMLElement;
+    for (const el of [tray, x]) {
+      expect(el.className).toContain('pointer-events-none');
+      expect(el.className).toContain('group-hover/row:pointer-events-auto');
+    }
+  });
+
   it('stack card: no visible "+N" (count only in the label), expand semantics, peek edges', () => {
     const { container, onOpen } = setup({ stackMore: 2 });
     expect(container.querySelector('[data-stack-more]')).toBeNull();

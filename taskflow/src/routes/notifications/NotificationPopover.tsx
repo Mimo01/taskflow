@@ -330,7 +330,7 @@ export default function NotificationPopover({
     if (entry.kind === 'stack') {
       const top = entry.cards[0];
       return (
-        <StackCard>
+        <StackCard hidden={entry.cards.length - 1}>
           <NotificationRow
             item={top.item}
             items={top.items}
