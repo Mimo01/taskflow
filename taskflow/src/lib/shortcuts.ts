@@ -155,6 +155,14 @@ export const SHORTCUTS: ShortcutEntry[] = [
     navMeta: { label: 'Worklogs', route: '/worklogs' },
   },
   {
+    id: 'toggle-notifications',
+    defaultKey: 'mod+shift+i',
+    description: 'Open or close notifications',
+    category: 'Navigation',
+    displayKeys: ['⌘', '⇧', 'I'],
+    navMeta: { label: 'Notifications', action: 'open-notifications' },
+  },
+  {
     id: 'toggle-sidebar',
     defaultKey: '⌘B',
     description: 'Toggle sidebar',

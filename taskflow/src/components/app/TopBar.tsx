@@ -13,6 +13,7 @@ import { Bell, Search } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import NotificationBanners from '../../routes/notifications/NotificationBanners';
 import NotificationPopover from '../../routes/notifications/NotificationPopover';
+import { createSwipeRightTracker } from '../../routes/notifications/notification-motion';
 import { useUnreadCardCount } from '../../routes/notifications/useUnreadCardCount';
 import { useNotificationsStore, useUnreadCount } from '../../stores/notifications.store';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
@@ -82,8 +83,12 @@ export default function TopBar({
   // Clear the pulse once, on the closed -> open transition. Arrivals while the panel is open must
   // still ring the bell, so this must not re-run on every count change.
   const prevOpenRef = useRef(false);
+  // Two-finger swipe right over the open panel closes it, sliding out to the right (macOS NC).
+  const [trackSwipe] = useState(createSwipeRightTracker);
+  const [swipeClosing, setSwipeClosing] = useState(false);
   useEffect(() => {
     if (notifPopoverOpen && !prevOpenRef.current) {
+      setSwipeClosing(false);
       setBellPulse(false);
       prevCountRef.current = rawUnread;
     }
@@ -134,7 +139,13 @@ export default function TopBar({
           // width capped) or the overhang makes the document scrollable and WKWebView flickers the whole
           // page as scrollbars toggle on every layout change.
           data-notif-motion
-          className="notif-glass relative z-0 flex max-h-[calc(100vh-92px)] w-[31rem] max-w-[calc(100vw-3rem)] flex-col rounded-none border-0 bg-transparent p-0 shadow-none ring-0 data-[starting-style]:opacity-100 data-[ending-style]:opacity-0 data-[ending-style]:duration-[180ms] data-[ending-style]:ease-in"
+          data-swipe-closing={swipeClosing ? 'true' : undefined}
+          onWheel={(e) => {
+            if (!trackSwipe(e)) return;
+            setSwipeClosing(true);
+            onNotifPopoverChange(false);
+          }}
+          className={`notif-glass relative z-0 flex max-h-[calc(100vh-92px)] w-[31rem] max-w-[calc(100vw-3rem)] flex-col rounded-none border-0 bg-transparent p-0 shadow-none ring-0 data-[starting-style]:opacity-100 data-[ending-style]:opacity-0 data-[ending-style]:duration-[180ms] data-[ending-style]:ease-in ${swipeClosing ? 'transition-[opacity,translate] data-[ending-style]:translate-x-10' : ''}`}
         >
           <NotificationPopover
             onIssueClick={onIssueClick}

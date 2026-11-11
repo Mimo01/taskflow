@@ -604,7 +604,7 @@ export default function NotificationRow({
           onDone();
         }}
         data-corner-x
-        className="absolute -top-[7px] -left-[7px] z-20 flex size-[22px] flex-none scale-[.6] cursor-pointer items-center justify-center rounded-full bg-card text-muted-foreground opacity-0 shadow-(--notif-sh-hover) transition-[opacity,transform] duration-200 ease-(--spring) hover:text-foreground focus-visible:scale-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring group-hover/row:scale-100 group-hover/row:opacity-100 group-focus-within/row:scale-100 group-focus-within/row:opacity-100"
+        className="absolute -top-[7px] -left-[7px] z-20 flex size-[22px] flex-none cursor-pointer items-center justify-center rounded-full bg-card text-muted-foreground opacity-0 shadow-(--notif-sh-hover) transition-opacity duration-150 ease-out hover:text-foreground focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring group-hover/row:opacity-100 group-focus-within/row:opacity-100"
       >
         <X aria-hidden="true" className="size-3" />
       </button>
@@ -659,7 +659,7 @@ export default function NotificationRow({
           <span
             data-tray
             className={cn(
-              'absolute right-0 top-1/2 z-10 flex -translate-y-1/2 translate-x-1.5 items-center gap-0.5 rounded-lg bg-card p-0.5 opacity-0 shadow-(--notif-hair) transition-[opacity,transform] duration-200 ease-(--ease-out) group-hover/row:translate-x-0 group-hover/row:opacity-100 group-focus-within/row:translate-x-0 group-focus-within/row:opacity-100',
+              'absolute right-0 top-1/2 z-10 flex -translate-y-1/2 items-center gap-0.5 rounded-lg bg-card p-0.5 opacity-0 shadow-(--notif-hair) transition-opacity duration-150 ease-out group-hover/row:opacity-100 group-focus-within/row:opacity-100',
               isBanner && 'hidden',
             )}
           >
@@ -724,12 +724,12 @@ export function StackCard({ children }: { children: ReactNode }) {
       <div
         aria-hidden="true"
         data-stack-edge="2"
-        className="pointer-events-none absolute inset-x-5 bottom-0 h-5 rounded-b-xl bg-card opacity-60 shadow-(--notif-sh-rest) transition-transform duration-300 ease-(--ease-out) group-hover/stack:translate-y-1.5"
+        className="pointer-events-none absolute inset-x-5 bottom-0 h-5 rounded-b-xl bg-card opacity-60 shadow-(--notif-sh-rest)"
       />
       <div
         aria-hidden="true"
         data-stack-edge="1"
-        className="pointer-events-none absolute inset-x-2.5 bottom-1.5 h-5 rounded-b-xl bg-card opacity-85 shadow-(--notif-sh-rest) transition-transform duration-300 ease-(--ease-out) group-hover/stack:translate-y-[3px]"
+        className="pointer-events-none absolute inset-x-2.5 bottom-1.5 h-5 rounded-b-xl bg-card opacity-85 shadow-(--notif-sh-rest)"
       />
       <div className="relative">{children}</div>
     </div>

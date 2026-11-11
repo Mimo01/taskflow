@@ -75,16 +75,10 @@
   from { opacity: 0; transform: translateX(16px); }
 }
 @keyframes notif-enter {
-  from { opacity: 0; transform: translateY(-10px) scale(0.98); }
-}
-@keyframes notif-flash {
-  30% { transform: scale(0.985); }
+  from { opacity: 0; transform: translateY(-4px); }
 }
 @keyframes notif-fan {
-  from {
-    opacity: 0;
-    transform: translateY(calc(var(--i) * -48px)) scale(calc(1 - var(--i) * 0.03));
-  }
+  from { opacity: 0; }
 }
 @keyframes notif-fade-in {
   from { opacity: 0; }
@@ -183,11 +177,11 @@
     --sidebar-accent-foreground: oklch(0.205 0 0);
     --sidebar-border: oklch(0.922 0 0);
     --sidebar-ring: oklch(0.708 0 0);
-    --hair: oklch(0 0 0 / 7%);
-    --sh-rest: 0 1px 2px oklch(0 0 0 / 5%), 0 1px 1px oklch(0 0 0 / 3%);
-    --sh-hover: 0 6px 16px -4px oklch(0 0 0 / 12%), 0 2px 4px oklch(0 0 0 / 6%);
+    --hair: oklch(0 0 0 / 9%);
+    --sh-rest: 0 1px 2px oklch(0 0 0 / 6%), 0 3px 10px -3px oklch(0 0 0 / 10%);
+    --sh-hover: 0 10px 22px -6px oklch(0 0 0 / 16%), 0 2px 5px oklch(0 0 0 / 8%);
     --sh-pop: 0 24px 48px -12px oklch(0 0 0 / 22%), 0 8px 16px -8px oklch(0 0 0 / 10%);
-    --glass: oklch(0.99 0 0 / 72%);
+    --glass: oklch(0.985 0 0 / 80%);
     --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
     --spring: cubic-bezier(0.34, 1.4, 0.64, 1);
     --notif-hair: 0 0 0 1px var(--hair);
@@ -229,11 +223,11 @@
     --sidebar-accent-foreground: oklch(0.985 0 0);
     --sidebar-border: oklch(1 0 0 / 10%);
     --sidebar-ring: oklch(0.556 0 0);
-    --hair: oklch(1 0 0 / 8%);
-    --sh-rest: 0 1px 2px oklch(0 0 0 / 40%);
+    --hair: oklch(1 0 0 / 10%);
+    --sh-rest: 0 1px 2px oklch(0 0 0 / 45%), 0 4px 12px -4px oklch(0 0 0 / 50%);
     --sh-hover: 0 8px 20px -4px oklch(0 0 0 / 55%), 0 2px 4px oklch(0 0 0 / 30%);
     --sh-pop: 0 24px 60px -12px oklch(0 0 0 / 70%), 0 0 0 1px oklch(1 0 0 / 8%);
-    --glass: oklch(0.2 0 0 / 70%);
+    --glass: oklch(0.2 0 0 / 76%);
   }
   * {
     @apply border-border outline-ring/50;
@@ -303,6 +297,4 @@
   opacity: 0;
   transition: opacity 0.2s var(--leave-delay, 0ms);
 }
-[data-notif-entry][data-flash] [data-card] {
-  animation: notif-flash 0.5s;
-}
+/* Read/unread toggle: no scale bump on the card (261111-m0g UAT: inner motion too much). */

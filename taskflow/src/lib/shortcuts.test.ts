@@ -22,3 +22,14 @@ describe('shortcut registry: palette / find', () => {
     expect(dupes).toEqual([]);
   });
 });
+
+describe('shortcut registry: notifications', () => {
+  it('toggle-notifications is Cmd+Shift+I and opens notifications from the palette', () => {
+    const e = SHORTCUTS.find((s) => s.id === 'toggle-notifications');
+    expect(e?.defaultKey).toBe('mod+shift+i');
+    expect(e?.displayKeys).toEqual(['⌘', '⇧', 'I']);
+    expect(NAV_SHORTCUTS.find((s) => s.id === 'toggle-notifications')?.navMeta.action).toBe(
+      'open-notifications',
+    );
+  });
+});

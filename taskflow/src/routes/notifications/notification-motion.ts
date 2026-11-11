@@ -21,3 +21,42 @@ export function prefersReducedMotion(): boolean {
   if (typeof window === 'undefined') return false;
   return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
 }
+
+/** Horizontal trackpad swipe (two fingers to the right) that closes the open panel. */
+export const NOTIF_SWIPE_CLOSE_PX = 60;
+/** A pause this long between wheel events ends the gesture (momentum events arrive faster). */
+export const NOTIF_SWIPE_IDLE_MS = 200;
+
+export interface WheelLike {
+  deltaX: number;
+  deltaY: number;
+  timeStamp: number;
+}
+
+/**
+ * Tracks one horizontal wheel gesture and returns true exactly once when it has travelled
+ * NOTIF_SWIPE_CLOSE_PX to the right. Two-finger swipe right on a macOS trackpad reports
+ * negative deltaX. Vertical-dominant events (list scrolling) are ignored, and the trailing
+ * momentum of a fired gesture cannot fire it again until the gesture goes idle.
+ */
+export function createSwipeRightTracker(
+  threshold = NOTIF_SWIPE_CLOSE_PX,
+  idleMs = NOTIF_SWIPE_IDLE_MS,
+): (e: WheelLike) => boolean {
+  let travelled = 0;
+  let lastAt = Number.NEGATIVE_INFINITY;
+  let fired = false;
+  return (e) => {
+    if (Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return false;
+    if (e.timeStamp - lastAt > idleMs) {
+      travelled = 0;
+      fired = false;
+    }
+    lastAt = e.timeStamp;
+    if (fired) return false;
+    travelled = Math.max(0, travelled - e.deltaX);
+    if (travelled < threshold) return false;
+    fired = true;
+    return true;
+  };
+}

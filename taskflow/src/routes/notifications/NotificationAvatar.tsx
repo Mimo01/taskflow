@@ -62,7 +62,7 @@ export default function NotificationAvatar({ item, style }: NotificationAvatarPr
     <span
       data-event-kind={style.kind}
       className={cn(
-        'pointer-events-none relative mt-px flex size-8 flex-none transition-transform duration-[250ms] ease-(--spring) group-hover/row:scale-[1.06] density-compact:size-7 density-comfortable:size-9',
+        'pointer-events-none relative mt-px flex size-8 flex-none density-compact:size-7 density-comfortable:size-9',
       )}
     >
       {lead}

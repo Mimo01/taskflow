@@ -336,7 +336,8 @@ function AppLayout() {
       listen('menu-find', () => openFind()),
       listen('menu-nav-sprint', () => navigate('/sprint-board')),
       listen('menu-nav-backlog', () => navigate('/backlog')),
-      listen('menu-nav-notifications', () => setNotifPopoverOpen(true)),
+      // ⌘⇧I (menu accelerator) toggles; deliberately no JS useHotkeys twin, which would toggle twice.
+      listen('menu-nav-notifications', () => setNotifPopoverOpen((open) => !open)),
       listen('menu-nav-settings', () => navigate('/settings')),
       listen('menu-dev-tools', () => navigate('/dev-tools')),
       listen('menu-nav-dashboard', () => navigate('/dashboard')),

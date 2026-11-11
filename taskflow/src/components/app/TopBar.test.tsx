@@ -218,3 +218,25 @@ describe('TopBar bell pulse (WR-04)', () => {
     await storage?.removeItem('notifications-store');
   });
 });
+
+describe('TopBar swipe-right to close (261111-m0g UAT)', () => {
+  const popup = () => document.querySelector('[data-notif-motion]') as HTMLElement;
+
+  it('a two-finger swipe right over the open panel closes it with a slide-out', () => {
+    const onNotifPopoverChange = vi.fn();
+    renderTopBar({ notifPopoverOpen: true, onNotifPopoverChange });
+    fireEvent.wheel(popup(), { deltaX: -40, deltaY: 0 });
+    expect(onNotifPopoverChange).not.toHaveBeenCalled();
+    fireEvent.wheel(popup(), { deltaX: -40, deltaY: 0 });
+    expect(onNotifPopoverChange).toHaveBeenCalledWith(false);
+    expect(popup().getAttribute('data-swipe-closing')).toBe('true');
+  });
+
+  it('vertical scrolling and leftward swipes do not close the panel', () => {
+    const onNotifPopoverChange = vi.fn();
+    renderTopBar({ notifPopoverOpen: true, onNotifPopoverChange });
+    fireEvent.wheel(popup(), { deltaX: -5, deltaY: 120 });
+    fireEvent.wheel(popup(), { deltaX: 90, deltaY: 0 });
+    expect(onNotifPopoverChange).not.toHaveBeenCalled();
+  });
+});

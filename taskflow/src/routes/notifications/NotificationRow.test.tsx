@@ -272,19 +272,19 @@ describe('NotificationRow', () => {
     ).toBeInTheDocument();
   });
 
-  it('hover tray is a floating pill that slides in from the right (no gradient fade)', () => {
+  it('hover tray is a floating pill that fades in without sliding (no gradient fade)', () => {
     const { container } = setup();
     const tray = container.querySelector('[data-tray]') as HTMLElement;
     for (const c of [
       'bg-card',
       'rounded-lg',
       'p-0.5',
-      'translate-x-1.5',
-      'group-hover/row:translate-x-0',
+      'group-hover/row:opacity-100',
       'shadow-(--notif-hair)',
     ]) {
       expect(tray.className).toContain(c);
     }
+    expect(tray.className).not.toContain('translate-x-1.5');
     expect(tray.className).not.toContain('before:bg-linear-to-l');
     expect(tray.className).not.toContain('--card-hover');
   });
@@ -338,10 +338,10 @@ describe('NotificationRow', () => {
     expect(x.className).toContain('rounded-full');
     expect(x.className).toContain('size-[22px]');
     expect(x.className).toContain('flex-none');
-    // springs in from scale .6
-    expect(x.className).toContain('scale-[.6]');
-    expect(x.className).toContain('group-hover/row:scale-100');
-    expect(x.className).toContain('ease-(--spring)');
+    // fades in only — no spring scale (inner motion toned down)
+    expect(x.className).toContain('group-hover/row:opacity-100');
+    expect(x.className).not.toContain('scale-[.6]');
+    expect(x.className).not.toContain('ease-(--spring)');
   });
 
   it('read row offers "Mark as unread"', () => {
@@ -530,11 +530,12 @@ describe('NotificationRow', () => {
       expect(e.className).toContain('pointer-events-none');
     }
     expect(wrap.className).toContain('group/stack');
-    expect(container.querySelector('[data-stack-edge="1"]')?.className).toContain(
-      'group-hover/stack:translate-y-[3px]',
+    // edges stay put on hover (no spread)
+    expect(container.querySelector('[data-stack-edge="1"]')?.className).not.toContain(
+      'group-hover/stack:translate-y',
     );
-    expect(container.querySelector('[data-stack-edge="2"]')?.className).toContain(
-      'group-hover/stack:translate-y-1.5',
+    expect(container.querySelector('[data-stack-edge="2"]')?.className).not.toContain(
+      'group-hover/stack:translate-y',
     );
     expect(wrap.querySelector('[data-testid="top"]')).not.toBeNull();
   });
@@ -984,11 +985,11 @@ describe('NotificationRow', () => {
       expect(badge.className).toContain('ring-card');
     });
 
-    it('the avatar springs to 1.06 on card hover', () => {
+    it('the avatar does not scale on card hover', () => {
       const { container } = setup();
       const lead = container.querySelector('[data-event-kind]') as HTMLElement;
-      expect(lead.className).toContain('group-hover/row:scale-[1.06]');
-      expect(lead.className).toContain('ease-(--spring)');
+      expect(lead.className).not.toContain('group-hover/row:scale');
+      expect(lead.className).not.toContain('ease-(--spring)');
     });
 
     it('read vs unread only toggles surface tint, ring and title style', () => {

@@ -390,7 +390,7 @@ function EntryWrapper({
         introDelay != null && 'animate-[notif-stagger_.4s_var(--ease-out)_both]',
         entering && 'animate-[notif-enter_.45s_var(--ease-out)_both]',
         // Expanded members fan out once per expand (not on every virtual remount).
-        fanning && 'animate-[notif-fan_.42s_var(--spring)_both]',
+        fanning && 'animate-[notif-fan_.2s_var(--ease-out)_both]',
       )}
     >
       {renderEntry(entry)}

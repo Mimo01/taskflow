@@ -257,6 +257,7 @@ pub fn run() {
                 .build(handle)?;
             let nav_notifications_item = MenuItemBuilder::new("Notifications")
                 .id("menu-nav-notifications")
+                .accelerator("CmdOrCtrl+Shift+I")
                 .build(handle)?;
             let nav_settings_item = MenuItemBuilder::new("Settings")
                 .id("menu-nav-settings")
