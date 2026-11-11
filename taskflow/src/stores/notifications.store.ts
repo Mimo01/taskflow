@@ -41,6 +41,12 @@ export interface NotificationItem {
   parentSummary?: string; // Jira subtask parent summary, e.g. "User Login Flow"
   mrProjectId?: number; // GitLab MR project ID — for internal /mr/:projectId/:iid routing
   mrIid?: number; // GitLab MR iid — for internal /mr/:projectId/:iid routing
+  /**
+   * Person name as shown in the change body (Jira display name / GitLab username) -> avatar URL,
+   * captured at fetch time for the people named in the body. Optional: absent on older
+   * persisted items and when no avatar was resolvable (the card falls back to initials).
+   */
+  personAvatars?: Record<string, string>;
 }
 
 interface NotificationsState {

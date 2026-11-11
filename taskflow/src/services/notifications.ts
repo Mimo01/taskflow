@@ -142,8 +142,8 @@ async function fetchNewJiraComments(
         fields: {
           summary: string;
           status?: { name: string };
-          assignee?: { displayName: string } | null;
-          reporter?: { displayName: string } | null;
+          assignee?: { displayName: string; avatarUrls?: { '48x48'?: string } } | null;
+          reporter?: { displayName: string; avatarUrls?: { '48x48'?: string } } | null;
           updated: string;
           parent?: { id: string; key: string; fields: { summary: string } };
           issuetype?: { name: string; subtask: boolean };
@@ -165,9 +165,19 @@ async function fetchNewJiraComments(
       const changeLines: string[] = [];
       let changeAuthor: string | undefined;
       let changeAuthorAvatar: string | undefined;
+      // Person avatar candidates (display name -> URL) for the people named in the change lines.
+      const avatarCandidates: Array<[string, string | undefined]> = [];
+      for (const person of [issue.fields.assignee, issue.fields.reporter]) {
+        if (person?.displayName) {
+          avatarCandidates.push([person.displayName, person.avatarUrls?.['48x48']]);
+        }
+      }
       const histories = issue.changelog?.histories ?? [];
       for (const history of histories) {
         if (toUtcIso(history.created) <= since) continue;
+        if (history.author?.displayName) {
+          avatarCandidates.push([history.author.displayName, history.author.avatarUrls?.['48x48']]);
+        }
         // Skip changelog entries authored by the current user — they represent
         // the user's own actions and should not appear in their notification feed.
         if (displayName && history.author.displayName === displayName) continue;
@@ -227,6 +237,7 @@ async function fetchNewJiraComments(
       const bodyPreview = changeLines.join('\n');
       const fullBody = changeLines.join('\n');
       const author = changeAuthor ?? fallbackAuthor;
+      const personAvatars = pickPersonAvatars(avatarCandidates, fullBody);
 
       results.push({
         id: `jira-issue-${issue.key}-${issue.fields.updated}`,
@@ -242,6 +253,7 @@ async function fetchNewJiraComments(
         entityState: undefined,
         parentKey: issue.fields.parent?.key,
         parentSummary: issue.fields.parent?.fields?.summary,
+        ...(personAvatars ? { personAvatars } : {}),
       });
     }
 
@@ -562,6 +574,7 @@ async function fetchAllGitlabNotifications(
         if (note.system === true) {
           const parsedBody = parseSystemNote(body);
           if (!parsedBody) continue;
+          const personAvatars = pickPersonAvatars(mrPeopleAvatars(mr, note.author), parsedBody);
 
           items.push({
             id: `gitlab-system-${note.id}`,
@@ -577,6 +590,7 @@ async function fetchAllGitlabNotifications(
             entityState: mr.state,
             mrProjectId: mr.project_id,
             mrIid: mr.iid,
+            ...(personAvatars ? { personAvatars } : {}),
           });
           continue;
         }
@@ -677,6 +691,47 @@ async function fetchAllGitlabNotifications(
   }
 
   return results;
+}
+
+/**
+ * Keep only the (name -> avatar URL) candidates whose name appears in `body` and whose URL is a
+ * non-empty string. First URL per name wins. Returns undefined when nothing remains, so items
+ * never carry an empty map.
+ */
+export function pickPersonAvatars(
+  candidates: Iterable<[string, string | undefined | null]>,
+  body: string,
+): Record<string, string> | undefined {
+  const out: Record<string, string> = {};
+  let found = false;
+  for (const [name, url] of candidates) {
+    if (!name || typeof url !== 'string' || url === '' || name in out) continue;
+    if (!body.includes(name)) continue;
+    out[name] = url;
+    found = true;
+  }
+  return found ? out : undefined;
+}
+
+type GitLabPerson = { username?: string; avatar_url?: string | null } | null | undefined;
+
+/** username -> avatar_url candidates for everyone attached to an MR plus the note author. */
+function mrPeopleAvatars(
+  mr: GitLabMR,
+  noteAuthor: GitLabPerson,
+): Array<[string, string | null | undefined]> {
+  // `assignee` / `assignees` are returned by the MR list endpoint but not declared on GitLabMR.
+  const extra = mr as GitLabMR & { assignee?: GitLabPerson; assignees?: GitLabPerson[] };
+  const people: GitLabPerson[] = [
+    mr.author,
+    extra.assignee,
+    ...(extra.assignees ?? []),
+    ...(mr.reviewers ?? []),
+    noteAuthor,
+  ];
+  const out: Array<[string, string | null | undefined]> = [];
+  for (const p of people) if (p?.username) out.push([p.username, p.avatar_url]);
+  return out;
 }
 
 /** Parse a GitLab system note into a human-readable string, or null if non-actionable. */

@@ -2,7 +2,11 @@
 // NOTF-02: Polling with configurable interval, clamped to [30, 300] seconds
 // NOTF-03: OS desktop notification dispatch
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { fetchNewNotifications, tryDispatchOsNotification } from './notifications';
+import {
+  fetchNewNotifications,
+  pickPersonAvatars,
+  tryDispatchOsNotification,
+} from './notifications';
 
 vi.mock('@tauri-apps/plugin-notification', () => ({
   isPermissionGranted: vi.fn(),
@@ -1270,6 +1274,154 @@ describe('notifications service', () => {
       const b = await runWithDueDate('2026-11-13');
       expect(b.map((i) => i.id)).toContain('jira-duedate-PROJ-1-2026-11-13');
       expect(b.map((i) => i.id)).not.toContain('jira-duedate-PROJ-1-2026-11-12');
+    });
+  });
+
+  describe('personAvatars (261111-e1w)', () => {
+    it('pickPersonAvatars keeps names present in the body with a URL, else undefined', () => {
+      expect(
+        pickPersonAvatars(
+          [
+            ['Ann Lee', 'https://x/ann.png'],
+            ['Bo Chen', 'https://x/bo.png'],
+            ['Zed Away', 'https://x/zed.png'],
+            ['Cy NoUrl', undefined],
+            ['Ann Lee', 'https://x/ann-2.png'],
+          ],
+          'Assignee: Ann Lee → Bo Chen\nReporter: Cy NoUrl → Dee',
+        ),
+      ).toEqual({ 'Ann Lee': 'https://x/ann.png', 'Bo Chen': 'https://x/bo.png' });
+      expect(pickPersonAvatars([['Zed', 'https://x/z.png']], 'Priority: Minor → Major')).toBe(
+        undefined,
+      );
+      expect(
+        pickPersonAvatars(
+          [
+            ['Ann', ''],
+            ['Bo', null],
+          ],
+          'Ann Bo',
+        ),
+      ).toBe(undefined);
+    });
+
+    async function runIssueUpdate(
+      items: Array<{ field: string; fromString: string | null; toString: string | null }>,
+    ) {
+      const resp = {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          issues: [
+            {
+              key: 'PROJ-7',
+              fields: {
+                summary: 'Avatar issue',
+                status: { name: 'To Do' },
+                assignee: { displayName: 'Bo Chen', avatarUrls: { '48x48': 'https://x/bo.png' } },
+                reporter: { displayName: 'Rae Out', avatarUrls: { '48x48': 'https://x/rae.png' } },
+                updated: '2026-03-12T10:00:00.000Z',
+              },
+              changelog: {
+                histories: [
+                  {
+                    created: '2026-03-12T10:00:00.000Z',
+                    author: {
+                      displayName: 'Ann Lee',
+                      avatarUrls: { '48x48': 'https://x/ann.png' },
+                    },
+                    items,
+                  },
+                ],
+              },
+            },
+          ],
+        }),
+      };
+      const empty = { ok: true, status: 200, json: async () => ({ issues: [] }) };
+      vi.mocked(mockFetch)
+        .mockResolvedValueOnce(resp as unknown as Response)
+        .mockResolvedValueOnce(empty as unknown as Response)
+        .mockResolvedValueOnce(empty as unknown as Response)
+        .mockResolvedValueOnce(empty as unknown as Response);
+      const result = await fetchNewNotifications(
+        'https://jira.example.com',
+        null,
+        { jira: 'jira-token', gitlab: null },
+        {
+          activeJiraProject: 'PROJ',
+          jiraUserDisplayName: 'John Doe',
+          jiraUsername: 'jdoe',
+          gitlabUserId: null,
+          gitlabUsername: null,
+          mrList: [],
+          lastSeenJiraCursor: '2026-03-11T10:00:00.000Z',
+          lastSeenGitlabCursor: '2026-03-11T10:00:00.000Z',
+        },
+      );
+      return result.find((i) => i.notificationType === 'issue-update');
+    }
+
+    it('Jira issue-update captures avatars for people named in the change lines only', async () => {
+      const item = await runIssueUpdate([
+        { field: 'assignee', fromString: 'Ann Lee', toString: 'Bo Chen' },
+      ]);
+      expect(item?.personAvatars).toEqual({
+        'Bo Chen': 'https://x/bo.png',
+        'Ann Lee': 'https://x/ann.png',
+      });
+      // reporter "Rae Out" is not in the body -> dropped
+      expect(item?.personAvatars).not.toHaveProperty('Rae Out');
+    });
+
+    it('Jira issue-update with no person in the body has no personAvatars key', async () => {
+      const item = await runIssueUpdate([
+        { field: 'status', fromString: 'To Do', toString: 'In Progress' },
+      ]);
+      expect(item).toBeDefined();
+      expect(item && 'personAvatars' in item).toBe(false);
+    });
+
+    it('GitLab review request captures the reviewer avatar by username', async () => {
+      const notesResp = {
+        ok: true,
+        status: 200,
+        json: async () => [
+          {
+            id: 's1',
+            system: true,
+            author: { id: 99, name: 'B.Other', username: 'bother', avatar_url: 'https://g/b.png' },
+            body: 'requested review from @alice',
+            created_at: '2026-03-11T14:00:00.000Z',
+          },
+        ],
+      };
+      vi.mocked(mockFetch).mockResolvedValueOnce(notesResp as unknown as Response);
+      const result = await fetchNewNotifications(
+        null,
+        'https://gitlab.example.com',
+        { jira: null, gitlab: 'gitlab-token' },
+        {
+          activeJiraProject: null,
+          jiraUserDisplayName: null,
+          jiraUsername: null,
+          gitlabUserId: 42,
+          gitlabUsername: null,
+          mrList: [
+            {
+              ...mockJiraMR,
+              reviewers: [
+                { id: 7, name: 'Alice A', username: 'alice', avatar_url: 'https://g/a.png' },
+              ],
+            },
+          ],
+          lastSeenJiraCursor: '2026-03-11T10:00:00.000Z',
+          lastSeenGitlabCursor: '2026-03-11T10:00:00.000Z',
+        },
+      );
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe('gitlab-system-s1');
+      expect(result[0].personAvatars).toEqual({ alice: 'https://g/a.png' });
     });
   });
 });
