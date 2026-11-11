@@ -348,7 +348,6 @@ describe('NotificationList stacks', () => {
 
 describe('NotificationList motion (261111-m0g)', () => {
   const motion = (over: Partial<NotificationListMotion> = {}): NotificationListMotion => ({
-    intro: false,
     entering: new Set(),
     leaving: new Map(),
     flashing: new Set(),

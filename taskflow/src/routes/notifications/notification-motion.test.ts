@@ -11,6 +11,20 @@ describe('createSwipeRightTracker', () => {
     expect(track(ev(-25, 32))).toBe(true);
   });
 
+  it('a slightly diagonal swipe with vertical-heavy first/last events still fires', () => {
+    // Real trackpad swipe: starts and ends with events where |deltaY| >= |deltaX|.
+    const track = createSwipeRightTracker(40, 200, 1.5);
+    expect(track(ev(-3, 0, 4))).toBe(false);
+    expect(track(ev(-6, 8, 6))).toBe(false);
+    expect(track(ev(-14, 16, 3))).toBe(false);
+    expect(track(ev(-18, 24, 2))).toBe(true);
+  });
+
+  it('a mostly-vertical scroll with steady sideways drift never fires', () => {
+    const track = createSwipeRightTracker(40, 200, 1.5);
+    for (let t = 0; t < 600; t += 16) expect(track(ev(-12, t, 30))).toBe(false);
+  });
+
   it('ignores leftward swipes', () => {
     const track = createSwipeRightTracker(60, 200);
     for (let t = 0; t < 200; t += 16) expect(track(ev(40, t))).toBe(false);

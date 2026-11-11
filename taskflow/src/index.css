@@ -68,9 +68,6 @@
 }
 
 /* Notification panel motion (261111-m0g). Applied via arbitrary animate-[...] classes. */
-@keyframes notif-stagger {
-  from { opacity: 0; }
-}
 @keyframes notif-enter {
   from { opacity: 0; transform: translateY(-4px); }
 }

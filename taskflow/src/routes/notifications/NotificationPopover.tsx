@@ -44,7 +44,6 @@ import {
   NOTIF_EXIT_MS,
   NOTIF_FAN_MS,
   NOTIF_FLASH_MS,
-  NOTIF_INTRO_WINDOW_MS,
   NOTIF_STACK_STAGGER_MS,
   prefersReducedMotion,
 } from './notification-motion';
@@ -145,23 +144,8 @@ export default function NotificationPopover({
   }, [items, readIds, now]);
 
   // ── Motion lifecycle: ephemeral state only, never rebuilds the list ──
-  /**
-   * Rows fade in (staggered) when the visible set is switched by a filter. Not on open: the panel
-   * itself fades + slides in as one piece (TopBar / .notif-glass), and a second per-row entrance
-   * on top read as "appears, then slides" (261111-m0g UAT).
-   */
-  const [intro, setIntro] = useState(false);
-  // Compare the filter VALUES, not a "first run" flag: StrictMode re-runs mount effects, and a
-  // mount flag then reads the second run as a filter change and staggers the rows on open.
-  const filterKey = `${unreadOnly}|${activeTab}`;
-  const lastFilterKey = useRef(filterKey);
-  useEffect(() => {
-    if (lastFilterKey.current === filterKey) return;
-    lastFilterKey.current = filterKey;
-    setIntro(true);
-    const t = setTimeout(() => setIntro(false), NOTIF_INTRO_WINDOW_MS);
-    return () => clearTimeout(t);
-  }, [filterKey]);
+  // No row entrance on open or on filter switches: the panel slides + fades in as one piece
+  // (TopBar / .notif-glass), and per-row entrances read as a top-to-bottom build (261111-m0g UAT).
 
   /** Item ids that arrived while open. Seeded on mount so initial items never count as arrivals. */
   const [entering, setEntering] = useState<ReadonlySet<string>>(new Set());
@@ -356,7 +340,7 @@ export default function NotificationPopover({
     </Button>
   ) : undefined;
 
-  const motion: NotificationListMotion = { intro, entering, leaving, flashing, justExpanded };
+  const motion: NotificationListMotion = { entering, leaving, flashing, justExpanded };
 
   function renderBody() {
     if (items.length === 0 && fetchError) {

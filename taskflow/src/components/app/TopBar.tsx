@@ -83,9 +83,20 @@ export default function TopBar({
   // Clear the pulse once, on the closed -> open transition. Arrivals while the panel is open must
   // still ring the bell, so this must not re-run on every count change.
   const prevOpenRef = useRef(false);
-  // Two-finger swipe right over the open panel closes it, sliding out to the right (macOS NC).
+  // Two-finger swipe right anywhere in the window closes the open panel, sliding it out to the
+  // right (macOS NC). Window-level so it works wherever the pointer is, not only over the panel.
   const [trackSwipe] = useState(createSwipeRightTracker);
   const [swipeClosing, setSwipeClosing] = useState(false);
+  useEffect(() => {
+    if (!notifPopoverOpen) return;
+    const onWheel = (e: WheelEvent) => {
+      if (!trackSwipe(e)) return;
+      setSwipeClosing(true);
+      onNotifPopoverChange(false);
+    };
+    window.addEventListener('wheel', onWheel, { passive: true });
+    return () => window.removeEventListener('wheel', onWheel);
+  }, [notifPopoverOpen, trackSwipe, onNotifPopoverChange]);
   useEffect(() => {
     if (notifPopoverOpen && !prevOpenRef.current) {
       setSwipeClosing(false);
@@ -140,11 +151,6 @@ export default function TopBar({
           // page as scrollbars toggle on every layout change.
           data-notif-motion
           data-swipe-closing={swipeClosing ? 'true' : undefined}
-          onWheel={(e) => {
-            if (!trackSwipe(e)) return;
-            setSwipeClosing(true);
-            onNotifPopoverChange(false);
-          }}
           // Popup only slides; .notif-glass fades the blur + content (see index.css). Its opacity stays 1.
           className={`notif-glass relative z-0 flex max-h-[calc(100vh-92px)] w-[31rem] max-w-[calc(100vw-3rem)] flex-col rounded-none border-0 bg-transparent p-0 shadow-none ring-0 opacity-100 data-[starting-style]:opacity-100 data-[ending-style]:opacity-100 transition-[translate] duration-300 ease-(--ease-out) data-[starting-style]:translate-x-12 data-[ending-style]:duration-[180ms] data-[ending-style]:ease-in ${swipeClosing ? 'data-[ending-style]:translate-x-16' : 'data-[ending-style]:translate-x-6'}`}
         >

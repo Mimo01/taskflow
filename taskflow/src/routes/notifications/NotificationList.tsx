@@ -9,12 +9,7 @@ import {
   useState,
 } from 'react';
 import { cn } from '../../lib/utils';
-import {
-  NOTIF_EXIT_MS,
-  NOTIF_INTRO_MAX,
-  NOTIF_SLIDE_MS,
-  NOTIF_STAGGER_MS,
-} from './notification-motion';
+import { NOTIF_EXIT_MS, NOTIF_SLIDE_MS } from './notification-motion';
 import {
   type EventEntry,
   entityKey,
@@ -27,7 +22,6 @@ import {
 /** Ephemeral motion state owned by NotificationPopover; the list only turns it into attributes. */
 export interface NotificationListMotion {
   /** True right after open / filter change: the first rows stagger in from the right. */
-  intro: boolean;
   /** Item ids that just arrived while the panel is open (their event row slides in). */
   entering: ReadonlySet<string>;
   /** Entry id -> exit delay (ms): the card slides out, then the row collapses. */
@@ -39,7 +33,6 @@ export interface NotificationListMotion {
 }
 
 const NO_MOTION: NotificationListMotion = {
-  intro: false,
   entering: new Set(),
   leaving: new Map(),
   flashing: new Set(),
@@ -78,6 +71,7 @@ export default function NotificationList({
   className,
 }: NotificationListProps) {
   const parentRef = useRef<HTMLDivElement>(null);
+
   const pendingFocus = useRef<number | null>(null);
   const pendingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -361,15 +355,10 @@ function EntryWrapper({
 
   const key = entry.kind === 'event' ? entityKey(entry.item) : null;
   const isMember = key != null && expandedEntities.has(key);
-  const introDelay =
-    motion.intro && index < NOTIF_INTRO_MAX && entry.kind !== 'stack-header'
-      ? index * NOTIF_STAGGER_MS
-      : null;
   const entering = entry.kind === 'event' && motion.entering.has(entry.item.id);
   const fanning = memberIndex >= 0 && isMember;
 
   const style: CSSProperties = {};
-  if (introDelay != null) style.animationDelay = `${introDelay}ms`;
   if (fanning) (style as Record<string, string | number>)['--i'] = memberIndex;
   if (leaving) (style as Record<string, string | number>)['--leave-delay'] = `${leaveDelay}ms`;
   if (collapse.phase > 0) {
@@ -386,7 +375,6 @@ function EntryWrapper({
       data-entry-index={index}
       data-entry-id={entry.id}
       data-stack-header-entry={entry.kind === 'stack-header' ? '' : undefined}
-      data-intro={introDelay != null ? 'true' : undefined}
       data-entering={entering ? 'true' : undefined}
       data-leaving={leaving ? 'true' : undefined}
       data-flash={motion.flashing.has(entry.id) ? 'true' : undefined}
@@ -394,7 +382,6 @@ function EntryWrapper({
       className={cn(
         (entry.kind === 'event' || entry.kind === 'stack') &&
           'pb-2 density-compact:pb-1.5 density-comfortable:pb-2.5',
-        introDelay != null && 'animate-[notif-stagger_.4s_var(--ease-out)_both]',
         entering && 'animate-[notif-enter_.45s_var(--ease-out)_both]',
         // Expanded members fan out once per expand (not on every virtual remount).
         fanning && 'animate-[notif-fan_.2s_var(--ease-out)_both]',

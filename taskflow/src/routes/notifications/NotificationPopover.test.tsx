@@ -13,9 +13,7 @@ import {
   NOTIF_EXIT_MS,
   NOTIF_FAN_MS,
   NOTIF_FLASH_MS,
-  NOTIF_INTRO_WINDOW_MS,
   NOTIF_STACK_STAGGER_MS,
-  NOTIF_STAGGER_MS,
 } from './notification-motion';
 
 vi.mock('@tauri-apps/plugin-opener', () => ({ openUrl: vi.fn() }));
@@ -728,33 +726,25 @@ describe('NotificationPopover motion (261111-m0g)', () => {
     expect(stack.querySelector('[data-stack-more]')?.textContent).toBe('+2');
   });
 
-  it('rows do not stagger on open under StrictMode (double-run mount effects)', () => {
-    seed([jiraItem('a', 'PROJ-1'), jiraItem('b', 'PROJ-2')]);
+  it('rows have no entrance animation on open (StrictMode) or on a filter switch', () => {
+    seed([jiraItem('a', 'PROJ-1'), jiraItem('b', 'PROJ-2'), jiraItem('c', 'PROJ-3')]);
     render(
       <StrictMode>
         <NotificationPopover />
       </StrictMode>,
     );
-    expect(document.querySelector('[data-intro]')).toBeNull();
-  });
-
-  it('rows do not run their own entrance on open; a filter change staggers them in, then clears', () => {
-    seed([jiraItem('a', 'PROJ-1'), jiraItem('b', 'PROJ-2'), jiraItem('c', 'PROJ-3')]);
-    render(<NotificationPopover />);
-    expect(document.querySelector('[data-intro]')).toBeNull();
+    const animated = () =>
+      [...document.querySelectorAll<HTMLElement>('[data-notif-entry]')].filter((r) =>
+        /notif-(stagger|enter)/.test(r.className),
+      );
+    expect(animated()).toEqual([]);
     fireEvent.click(screen.getByRole('button', { name: 'Unread' }));
-    const rows = [...document.querySelectorAll<HTMLElement>('[data-entry-id^="event:"]')];
-    expect(rows.every((r) => r.getAttribute('data-intro') === 'true')).toBe(true);
-    const delays = rows.map((r) => Number.parseInt(r.style.animationDelay, 10));
-    expect(delays[1] - delays[0]).toBe(NOTIF_STAGGER_MS);
-    advance(NOTIF_INTRO_WINDOW_MS + 50);
-    expect(document.querySelector('[data-intro]')).toBeNull();
+    expect(animated()).toEqual([]);
   });
 
   it('toggling read flashes the card in place and clears the flag', () => {
     seed([jiraItem('a', 'PROJ-1')]);
     render(<NotificationPopover />);
-    advance(NOTIF_INTRO_WINDOW_MS + 50);
     const card = document.querySelector('[data-card]') as HTMLElement;
     fireEvent.click(screen.getByRole('button', { name: 'Mark as read' }));
     expect(entry('event:a').getAttribute('data-flash')).toBe('true');

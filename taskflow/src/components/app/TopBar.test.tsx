@@ -225,11 +225,25 @@ describe('TopBar swipe-right to close (261111-m0g UAT)', () => {
   it('a two-finger swipe right over the open panel closes it with a slide-out', () => {
     const onNotifPopoverChange = vi.fn();
     renderTopBar({ notifPopoverOpen: true, onNotifPopoverChange });
-    fireEvent.wheel(popup(), { deltaX: -40, deltaY: 0 });
+    fireEvent.wheel(popup(), { deltaX: -20, deltaY: 0 });
     expect(onNotifPopoverChange).not.toHaveBeenCalled();
-    fireEvent.wheel(popup(), { deltaX: -40, deltaY: 0 });
+    fireEvent.wheel(popup(), { deltaX: -25, deltaY: 0 });
     expect(onNotifPopoverChange).toHaveBeenCalledWith(false);
     expect(popup().getAttribute('data-swipe-closing')).toBe('true');
+  });
+
+  it('the swipe works with the pointer anywhere in the window, not only over the panel', () => {
+    const onNotifPopoverChange = vi.fn();
+    renderTopBar({ notifPopoverOpen: true, onNotifPopoverChange });
+    fireEvent.wheel(document.body, { deltaX: -50, deltaY: 0 });
+    expect(onNotifPopoverChange).toHaveBeenCalledWith(false);
+  });
+
+  it('no window swipe listener while the panel is closed', () => {
+    const onNotifPopoverChange = vi.fn();
+    renderTopBar({ notifPopoverOpen: false, onNotifPopoverChange });
+    fireEvent.wheel(document.body, { deltaX: -80, deltaY: 0 });
+    expect(onNotifPopoverChange).not.toHaveBeenCalled();
   });
 
   it('vertical scrolling and leftward swipes do not close the panel', () => {

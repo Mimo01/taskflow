@@ -1,10 +1,5 @@
 /** Motion timing for the notification panel (261111-m0g). Keep in sync with index.css `notif-*`. */
 
-/** Open stagger step between rows, and how many rows stagger at all. */
-export const NOTIF_STAGGER_MS = 35;
-export const NOTIF_INTRO_MAX = 12;
-/** How long `intro` stays on after the panel opens or the filter changes. */
-export const NOTIF_INTRO_WINDOW_MS = 700;
 /** Arrival-while-open slide-in. */
 export const NOTIF_ENTER_MS = 450;
 /** Clear: the card slides out for this long, then the row collapses its height. */
@@ -23,7 +18,9 @@ export function prefersReducedMotion(): boolean {
 }
 
 /** Horizontal trackpad swipe (two fingers to the right) that closes the open panel. */
-export const NOTIF_SWIPE_CLOSE_PX = 60;
+export const NOTIF_SWIPE_CLOSE_PX = 40;
+/** The gesture must be this much more horizontal than vertical (summed over the gesture). */
+export const NOTIF_SWIPE_DOMINANCE = 1.5;
 /** A pause this long between wheel events ends the gesture (momentum events arrive faster). */
 export const NOTIF_SWIPE_IDLE_MS = 200;
 
@@ -34,28 +31,33 @@ export interface WheelLike {
 }
 
 /**
- * Tracks one horizontal wheel gesture and returns true exactly once when it has travelled
- * NOTIF_SWIPE_CLOSE_PX to the right. Two-finger swipe right on a macOS trackpad reports
- * negative deltaX. Vertical-dominant events (list scrolling) are ignored, and the trailing
+ * Tracks one wheel gesture and returns true exactly once when it has travelled
+ * NOTIF_SWIPE_CLOSE_PX to the right while staying clearly horizontal. A two-finger swipe right
+ * on a macOS trackpad reports negative deltaX. Direction is judged over the WHOLE gesture, not per
+ * event: real swipes are never perfectly level, and dropping each slightly diagonal event made
+ * short or diagonal swipes miss the threshold (261111-m0g UAT "sometimes doesn't work"). Trailing
  * momentum of a fired gesture cannot fire it again until the gesture goes idle.
  */
 export function createSwipeRightTracker(
   threshold = NOTIF_SWIPE_CLOSE_PX,
   idleMs = NOTIF_SWIPE_IDLE_MS,
+  dominance = NOTIF_SWIPE_DOMINANCE,
 ): (e: WheelLike) => boolean {
-  let travelled = 0;
+  let right = 0;
+  let vertical = 0;
   let lastAt = Number.NEGATIVE_INFINITY;
   let fired = false;
   return (e) => {
-    if (Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return false;
     if (e.timeStamp - lastAt > idleMs) {
-      travelled = 0;
+      right = 0;
+      vertical = 0;
       fired = false;
     }
     lastAt = e.timeStamp;
     if (fired) return false;
-    travelled = Math.max(0, travelled - e.deltaX);
-    if (travelled < threshold) return false;
+    right -= e.deltaX;
+    vertical += Math.abs(e.deltaY);
+    if (right < threshold || right < vertical * dominance) return false;
     fired = true;
     return true;
   };
