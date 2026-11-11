@@ -149,7 +149,7 @@ export default function NotificationList({
     <div
       ref={parentRef}
       className={cn(
-        '@container relative max-h-[520px] overflow-y-auto bg-muted/50 px-2 py-1 dark:bg-muted/20',
+        '@container relative max-h-[520px] overflow-y-auto bg-muted/40 px-2 py-1 dark:bg-muted/20',
         className,
       )}
       onKeyDown={handleKeyDown}

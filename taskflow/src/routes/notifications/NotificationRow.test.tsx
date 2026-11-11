@@ -260,7 +260,7 @@ describe('NotificationRow', () => {
     const { container } = setup();
     const tray = container.querySelector('[data-tray]') as HTMLElement;
     expect(tray.className).toContain('before:bg-linear-to-l');
-    expect(tray.className).toContain('before:from-accent');
+    expect(tray.className).toContain('before:from-(--card-hover)');
   });
 
   it('initials avatar gets a lighter fill in dark mode', () => {
@@ -343,34 +343,36 @@ describe('NotificationRow', () => {
     expect(root.className).toContain('group/row');
     expect(root.className).not.toMatch(/(^|\s)group(\s|$)/);
     const badge = container.querySelector('[data-event-badge]') as HTMLElement;
-    expect(badge.className).toContain('group-hover/row:ring-accent');
+    expect(badge.className).toContain('group-hover/row:ring-(--card-hover)');
     expect(badge.className).not.toMatch(/(^|\s)group-hover:/);
     // badge stays inside the row box: small overhang only, no -1.5 spill into neighbours
     expect(badge.className).not.toContain('-bottom-1.5');
   });
 
-  it('is a rounded bordered card with density-aware padding, no divider', () => {
+  it('uses the shared Card surface (rounded-xl, bg-card, ring-1, no border/shadow), density-aware padding', () => {
     const { container } = setup({ isUnread: false });
     const r = container.firstElementChild as HTMLElement;
     expect(r.className).toContain('rounded-xl');
-    expect(r.className).toContain('border-border/60');
+    expect(r.className).toContain('ring-1');
+    expect(r.className).toContain('ring-foreground/10');
+    expect(r.className).not.toMatch(/(^|\s)(border|shadow-\w+)(\s|$)/);
     expect(r.className).toContain('bg-card');
     expect(r.className).not.toMatch(/(^|\s)border-b(\s|$)/);
     expect(r.className).toContain('density-compact:py-1.5');
     expect(r.className).toContain('density-comfortable:py-3.5');
   });
 
-  it('unread cards are raised bubbles with a semibold title; read cards sit flatter', () => {
+  it('unread cards get a stronger ring and semibold title; read cards the plain Card ring', () => {
     const unread = setup({ isUnread: true });
     const u = unread.container.firstElementChild as HTMLElement;
-    expect(u.className).toContain('shadow-sm');
+    expect(u.className).toContain('ring-foreground/20');
     expect(u.className).toContain('bg-card');
     expect(screen.getByText('Fix login bug').className).toContain('font-semibold');
     unread.unmount();
     const read = setup({ isUnread: false });
     const r = read.container.firstElementChild as HTMLElement;
-    expect(r.className).toContain('shadow-xs');
-    expect(r.className).not.toMatch(/(^|\s)shadow-sm(\s|$)/);
+    expect(r.className).toContain('ring-foreground/10');
+    expect(r.className).not.toContain('shadow');
     expect(screen.getByText('Fix login bug').className).toContain('font-normal');
   });
 

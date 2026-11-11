@@ -68,7 +68,7 @@ export default function NotificationAvatar({ item, style }: NotificationAvatarPr
         <span
           data-event-badge={style.kind}
           className={cn(
-            'absolute -right-1 -bottom-1 flex size-[18px] items-center justify-center rounded-full text-white density-compact:size-4 ring-2 ring-card group-hover/row:ring-accent group-focus-within/row:ring-accent',
+            'absolute -right-1 -bottom-1 flex size-[18px] items-center justify-center rounded-full text-white density-compact:size-4 ring-2 ring-card group-hover/row:ring-(--card-hover) group-focus-within/row:ring-(--card-hover)',
             style.badge,
           )}
         >
