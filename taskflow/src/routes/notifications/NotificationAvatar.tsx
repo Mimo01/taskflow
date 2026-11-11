@@ -13,9 +13,15 @@ import type { EventStyle } from './notification-colours';
 interface NotificationAvatarProps {
   item: NotificationItem;
   style: EventStyle;
+  /** Unread = blue halo around the lead; read = dimmed lead. Classes only, same tree. */
+  isUnread?: boolean;
 }
 
-export default function NotificationAvatar({ item, style }: NotificationAvatarProps) {
+export default function NotificationAvatar({
+  item,
+  style,
+  isUnread = false,
+}: NotificationAvatarProps) {
   const type = item.notificationType;
   const Icon = style.Icon;
   let lead: React.ReactNode;
@@ -61,9 +67,23 @@ export default function NotificationAvatar({ item, style }: NotificationAvatarPr
   return (
     <span
       data-event-kind={style.kind}
-      className="pointer-events-none relative mt-px flex size-9 flex-none density-compact:size-8 density-comfortable:size-10"
+      className={cn(
+        'pointer-events-none relative mt-px flex size-9 flex-none density-compact:size-8 density-comfortable:size-10',
+        !isUnread && 'opacity-70',
+      )}
     >
       {lead}
+      <span
+        aria-hidden="true"
+        data-unread-halo={isUnread ? 'true' : 'false'}
+        className={cn(
+          'absolute -inset-0.5 ring-2 ring-blue-500 dark:ring-blue-400',
+          type === 'pipeline-failure' || type === 'due-date-reminder'
+            ? 'rounded-[10px]'
+            : 'rounded-full',
+          !isUnread && 'opacity-0',
+        )}
+      />
       {showBadge ? (
         <span
           data-event-badge={style.kind}

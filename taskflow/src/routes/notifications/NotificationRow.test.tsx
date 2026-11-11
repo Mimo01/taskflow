@@ -365,14 +365,17 @@ describe('NotificationRow', () => {
     expect(badge.className).not.toContain('-bottom-1.5');
   });
 
-  it('uses the shared Card surface (rounded-xl, bg-card, ring-1, no border/shadow), density-aware padding', () => {
+  it('read cards sit flat on the list surface (rounded-xl, ring-1, no border/shadow), density-aware padding', () => {
     const { container } = setup({ isUnread: false });
     const r = container.firstElementChild as HTMLElement;
     expect(r.className).toContain('rounded-xl');
     expect(r.className).toContain('ring-1');
     expect(r.className).toContain('ring-foreground/10');
     expect(r.className).not.toMatch(/(^|\s)(border|shadow-\w+)(\s|$)/);
-    expect(r.className).toContain('bg-card');
+    expect(r.className).toContain('bg-(--card-bg)');
+    expect(r.className).toContain(
+      '[--card-bg:color-mix(in_oklab,var(--color-muted)_40%,var(--color-popover))]',
+    );
     expect(r.className).not.toMatch(/(^|\s)border-b(\s|$)/);
     expect(r.className).toContain('density-compact:py-1.5');
     expect(r.className).toContain('density-comfortable:py-3.5');
@@ -385,22 +388,30 @@ describe('NotificationRow', () => {
     expect(r.className).toContain('hover:bg-(--card-hover)');
   });
 
-  it('unread cards get a stronger ring and semibold title; read cards the plain Card ring', () => {
+  it('unread cards lift with a blue ring + glow, avatar halo and blue time; read cards sit flat', () => {
     const unread = setup({ isUnread: true });
     const u = unread.container.firstElementChild as HTMLElement;
-    expect(u.className).toContain('ring-blue-500/30');
-    expect(u.className).toContain('bg-(--card-bg)');
-    expect(u.className).toMatch(/var\(--color-blue-500\)_\d+%/);
+    expect(u.className).toContain('ring-blue-500/45');
+    expect(u.className).toContain('[--card-bg:var(--color-card)]');
+    expect(u.className).toMatch(/shadow-\[0_0_0_3px_color-mix\(in_oklab,var\(--color-blue-500\)/);
     expect(u.className).not.toContain('ring-foreground/20');
     expect(screen.getByText('Fix login bug').className).toContain('font-semibold');
+    expect(unread.container.querySelector('[data-unread-halo="true"]')?.className).not.toContain(
+      'opacity-0',
+    );
+    expect(unread.container.querySelector('time')?.className).toContain('text-blue-600');
     unread.unmount();
     const read = setup({ isUnread: false });
     const r = read.container.firstElementChild as HTMLElement;
     expect(r.className).toContain('ring-foreground/10');
-    expect(r.className).toContain('bg-card');
     expect(r.className).not.toContain('--color-blue-500');
     expect(r.className).not.toContain('shadow');
     expect(screen.getByText('Fix login bug').className).toContain('font-normal');
+    expect(read.container.querySelector('[data-unread-halo="false"]')?.className).toContain(
+      'opacity-0',
+    );
+    expect(read.container.querySelector('[data-event-kind]')?.className).toContain('opacity-70');
+    expect(read.container.querySelector('time')?.className).toContain('text-muted-foreground');
   });
 
   it('pipeline failure shows the pipeline number and branch', () => {
@@ -837,7 +848,7 @@ describe('NotificationRow', () => {
           .split(/\s+/)
           .filter(
             (c) =>
-              !/^(bg-primary|dark:bg-primary|bg-card|bg-\(--card-bg\)|\[--card-bg:|dark:bg-card|border-border|shadow-|ring-|dark:ring-|font-|text-foreground|text-muted-foreground|opacity-0)/.test(
+              !/^(bg-primary|dark:bg-primary|bg-card|bg-\(--card-bg\)|\[--card-bg:|dark:\[--card-bg:|dark:bg-card|border-border|shadow-|ring-|dark:ring-|font-|text-foreground|text-muted-foreground|opacity-0)/.test(
                 c,
               ),
           )

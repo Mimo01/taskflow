@@ -22,11 +22,13 @@
  *     label chips (and "none") size to content.
  *  G. Type scale: title 12px; key, time, line 2, lists, chips 11px. Single ellipsis at the end
  *     of whatever overflows; lines are h-5 so nothing clips vertically.
- *  H. Card surface = the app's shared Card look (rounded-xl bg-card ring-1, no border/shadow) on a
- *     lightly muted list. Read = bg-card ring-foreground/10. Unread = faint blue tint (--card-bg =
- *     blue-500 8% mixed into card) + ring-blue-500/30. Hover = accent 50% mixed into --card-bg (the
- *     tray uses the same --card-hover, so no seam). Read vs unread changes ONLY surface tint, ring,
- *     title weight/colour. Nothing moves.
+ *  H. Unread LIFTS, read SINKS (261111-ezr, "avatar halo + lifted glow"): unread = white card
+ *     (--card-bg = card) + ring-blue-500/45 + 3px blue/10 halo + soft blue drop glow, a blue ring
+ *     around the avatar (NotificationAvatar halo) and a semibold blue timestamp. Read = flat on the
+ *     list (--card-bg = the list's muted-over-popover colour) + ring-foreground/10, avatar at 70%.
+ *     Hover = accent 50% mixed into --card-bg (tray + badge cut-out use the same vars, no seam).
+ *     Read vs unread changes ONLY classes (surface, ring, shadow, halo/avatar opacity, title and
+ *     time weight/colour). Nothing moves.
  *  I. Merged and single cards share the skeleton; merged only adds the list.
  *  J. The hover tray sits in the time slot of line 1 (right-0, centred) in every card.
  *  K. Densities scale padding / gaps / lead size; grammar is identical.
@@ -545,8 +547,8 @@ export default function NotificationRow({
       className={cn(
         'group/row relative flex cursor-pointer items-start gap-3 rounded-xl py-2.5 [--card-hover:color-mix(in_oklab,var(--color-accent)_50%,var(--card-bg))] px-3 text-xs transition-colors density-compact:gap-2.5 density-compact:py-1.5 density-compact:px-2.5 density-comfortable:gap-3.5 density-comfortable:py-3.5 density-comfortable:px-3.5 hover:bg-(--card-hover) focus-within:bg-(--card-hover)',
         isUnread
-          ? '[--card-bg:color-mix(in_oklab,var(--color-blue-500)_8%,var(--color-card))] bg-(--card-bg) ring-1 ring-blue-500/30'
-          : '[--card-bg:var(--color-card)] bg-card ring-1 ring-foreground/10',
+          ? '[--card-bg:var(--color-card)] bg-(--card-bg) ring-1 ring-blue-500/45 shadow-[0_0_0_3px_color-mix(in_oklab,var(--color-blue-500)_10%,transparent),0_6px_18px_-8px_color-mix(in_oklab,var(--color-blue-500)_55%,transparent)]'
+          : '[--card-bg:color-mix(in_oklab,var(--color-muted)_40%,var(--color-popover))] dark:[--card-bg:color-mix(in_oklab,var(--color-muted)_20%,var(--color-popover))] bg-(--card-bg) ring-1 ring-foreground/10',
         peeked && PEEKED_ROW_CLASS,
       )}
       data-peeked={peeked ? 'true' : undefined}
@@ -559,7 +561,7 @@ export default function NotificationRow({
         className="absolute inset-0 cursor-pointer rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       />
 
-      <NotificationAvatar item={item} style={style} />
+      <NotificationAvatar item={item} style={style} isUnread={isUnread} />
 
       <div className="flex min-w-0 flex-1 flex-col justify-center">
         <div className="relative flex h-5 items-center gap-1.5">
@@ -594,7 +596,10 @@ export default function NotificationRow({
           </span>
           <time
             dateTime={item.createdAt}
-            className="pointer-events-none relative min-w-9 flex-none whitespace-nowrap text-right text-[11px] tabular-nums text-muted-foreground group-hover/row:opacity-0 group-focus-within/row:opacity-0"
+            className={cn(
+              'pointer-events-none relative min-w-9 flex-none whitespace-nowrap text-right text-[11px] tabular-nums group-hover/row:opacity-0 group-focus-within/row:opacity-0',
+              isUnread ? 'font-semibold text-blue-600 dark:text-blue-400' : 'text-muted-foreground',
+            )}
           >
             {relTime(item.createdAt, now)}
           </time>
