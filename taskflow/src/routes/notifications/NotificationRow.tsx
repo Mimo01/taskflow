@@ -640,14 +640,8 @@ export default function NotificationRow({
               {title}
             </span>
           </span>
-          {stackMore ? (
-            <span
-              data-stack-more
-              className="pointer-events-none relative flex-none text-[11px] font-medium tabular-nums text-muted-foreground group-hover/row:opacity-0 group-focus-within/row:opacity-0"
-            >
-              +{stackMore}
-            </span>
-          ) : null}
+          {/* No visible "+N" on stacks: the peek edges show it is a group (261111-m0g UAT); the
+              count stays in the overlay's aria-label and the Clear label. */}
           <time
             dateTime={item.createdAt}
             className="pointer-events-none relative min-w-9 flex-none whitespace-nowrap text-right text-[11px] tabular-nums text-muted-foreground group-hover/row:opacity-0 group-focus-within/row:opacity-0"

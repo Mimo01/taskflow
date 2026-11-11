@@ -71,7 +71,15 @@
 @keyframes notif-enter {
   from { opacity: 0; transform: translateY(-4px); }
 }
+/* Group open: each card unfolds down from under the header (subtle, staggered via --i). */
 @keyframes notif-fan {
+  from { opacity: 0; transform: translateY(calc(-6px - var(--i, 0) * 4px)); }
+}
+/* Group close: header + cards fold up into the stack while their rows shrink. */
+@keyframes notif-fold {
+  to { opacity: 0; transform: translateY(-8px); }
+}
+@keyframes notif-fade {
   from { opacity: 0; }
 }
 @keyframes notif-banner-in {

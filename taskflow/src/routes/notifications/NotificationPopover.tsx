@@ -31,6 +31,7 @@ import {
   NOTIF_EXIT_MS,
   NOTIF_FAN_MS,
   NOTIF_FLASH_MS,
+  NOTIF_FOLD_MS,
   NOTIF_STACK_STAGGER_MS,
   prefersReducedMotion,
 } from './notification-motion';
@@ -198,35 +199,63 @@ export default function NotificationPopover({
     exitTimers.current.set(timer, storeIds);
   }
 
-  function toggleStack(entity: string) {
-    const expanding = !expanded.has(entity);
-    if (expanding) {
-      // Remember the neighbours of the collapsed stack so the open group stays in this slot.
-      const idx = entries.findIndex((e) => e.kind === 'stack' && e.entity === entity);
-      const prev = idx > 0 ? entries[idx - 1] : undefined;
-      const next = entries.slice(idx + 1).find((e) => e.kind !== 'header');
-      const anchor: StackAnchor = {
-        after: prev && prev.kind !== 'header' ? prev.id : undefined,
-        before: next?.id,
-      };
-      setAnchors((cur) => new Map(cur).set(entity, anchor));
-    } else {
-      setAnchors((cur) => {
-        const m = new Map(cur);
-        m.delete(entity);
-        return m;
-      });
-    }
-    setExpanded((prev) => {
-      const next = new Set(prev);
-      if (next.has(entity)) next.delete(entity);
-      else next.add(entity);
+  /** Open groups currently folding closed (their rows fold up before the stack collapses). */
+  const [folding, setFolding] = useState<ReadonlySet<string>>(new Set());
+  const [justCollapsed, setJustCollapsed] = useState<string | null>(null);
+
+  function expandStack(entity: string) {
+    // Remember the neighbours of the collapsed stack so the open group stays in this slot.
+    const idx = entries.findIndex((e) => e.kind === 'stack' && e.entity === entity);
+    const prev = idx > 0 ? entries[idx - 1] : undefined;
+    const next = entries.slice(idx + 1).find((e) => e.kind !== 'header');
+    const anchor: StackAnchor = {
+      after: prev && prev.kind !== 'header' ? prev.id : undefined,
+      // First item of its bucket: anchor under that bucket's header, so opening a group that is
+      // alone in "Yesterday" does not land under "This week" (261111-m0g UAT).
+      header: prev && prev.kind === 'header' ? prev.id : undefined,
+      before: next?.id,
+    };
+    setAnchors((cur) => new Map(cur).set(entity, anchor));
+    setExpanded((cur) => new Set(cur).add(entity));
+    setJustExpanded(entity);
+    setTimeout(() => setJustExpanded((cur) => (cur === entity ? null : cur)), NOTIF_FAN_MS);
+  }
+
+  function collapseStack(entity: string) {
+    setExpanded((cur) => {
+      const next = new Set(cur);
+      next.delete(entity);
       return next;
     });
-    if (expanding) {
-      setJustExpanded(entity);
-      setTimeout(() => setJustExpanded((cur) => (cur === entity ? null : cur)), NOTIF_FAN_MS);
+    setAnchors((cur) => {
+      const m = new Map(cur);
+      m.delete(entity);
+      return m;
+    });
+    setJustCollapsed(entity);
+    setTimeout(() => setJustCollapsed((cur) => (cur === entity ? null : cur)), NOTIF_FOLD_MS + 60);
+  }
+
+  function toggleStack(entity: string) {
+    if (folding.has(entity)) return; // already closing
+    if (!expanded.has(entity)) {
+      expandStack(entity);
+      return;
     }
+    if (prefersReducedMotion()) {
+      collapseStack(entity);
+      return;
+    }
+    // Fold the open group up first (rows shrink, the list below glides up), then collapse.
+    setFolding((cur) => new Set(cur).add(entity));
+    setTimeout(() => {
+      collapseStack(entity);
+      setFolding((cur) => {
+        const next = new Set(cur);
+        next.delete(entity);
+        return next;
+      });
+    }, NOTIF_FOLD_MS);
   }
 
   const unreadIds = items.filter((i) => !readSet.has(i.id)).map((i) => i.id);
@@ -349,7 +378,14 @@ export default function NotificationPopover({
     </Button>
   ) : undefined;
 
-  const motion: NotificationListMotion = { entering, leaving, flashing, justExpanded };
+  const motion: NotificationListMotion = {
+    entering,
+    leaving,
+    flashing,
+    justExpanded,
+    folding,
+    justCollapsed,
+  };
 
   const scrollHeader = (
     <>

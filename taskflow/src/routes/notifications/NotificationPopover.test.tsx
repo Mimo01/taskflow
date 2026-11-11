@@ -11,6 +11,7 @@ import NotificationPopover from './NotificationPopover';
 import {
   NOTIF_ENTER_MS,
   NOTIF_EXIT_MS,
+  NOTIF_FOLD_MS,
   NOTIF_FAN_MS,
   NOTIF_FLASH_MS,
   NOTIF_STACK_STAGGER_MS,
@@ -176,11 +177,16 @@ describe('NotificationPopover', () => {
       expect(entryCount()).toBe(1);
       expect(document.querySelector('[data-stack]')).not.toBeNull();
       expect(document.querySelectorAll('[data-stack-edge]')).toHaveLength(2);
-      expect(document.querySelector('[data-stack-more]')?.textContent).toBe('+1');
+      expect(
+        (document.querySelector('[data-entry-primary][aria-expanded]') as HTMLElement).getAttribute(
+          'aria-label',
+        ),
+      ).toContain('1 more notification');
       expect(document.querySelector('[data-stack-header]')).toBeNull();
     });
 
-    it('clicking the stack expands it in place (header + every card); Show less collapses', () => {
+    it('clicking the stack expands it in place (header + every card); Show less folds then collapses', () => {
+      vi.useFakeTimers();
       const onIssueClick = vi.fn();
       render(<NotificationPopover onIssueClick={onIssueClick} />);
       fireEvent.click(screen.getByRole('button', { name: /expand/ }));
@@ -188,6 +194,11 @@ describe('NotificationPopover', () => {
       expect(document.querySelector('[data-stack-header]')).not.toBeNull();
       expect(entryCount()).toBe(2);
       fireEvent.click(screen.getByRole('button', { name: 'Show less' }));
+      // folds up first (rows marked folding), then collapses
+      expect(document.querySelectorAll('[data-folding="true"]').length).toBeGreaterThan(0);
+      act(() => {
+        vi.advanceTimersByTime(NOTIF_FOLD_MS + 20);
+      });
       expect(document.querySelector('[data-stack-header]')).toBeNull();
       expect(entryCount()).toBe(1);
     });
@@ -364,7 +375,11 @@ describe('NotificationPopover', () => {
       seed([comment('a', 30), comment('x', 20, 'Cara Diaz'), comment('b', 10)]);
       render(<NotificationPopover />);
       expect(entryCount()).toBe(1);
-      expect(document.querySelector('[data-stack-more]')?.textContent).toBe('+2');
+      expect(
+        (document.querySelector('[data-entry-primary][aria-expanded]') as HTMLElement).getAttribute(
+          'aria-label',
+        ),
+      ).toContain('2 more notification');
       fireEvent.click(screen.getByRole('button', { name: /expand/ }));
       expect(entryCount()).toBe(3);
     });
@@ -706,6 +721,39 @@ describe('NotificationPopover motion (261111-m0g)', () => {
     expect(header.className).toContain('pt-3');
   });
 
+  it('opening a group that is alone in its bucket keeps it under that bucket header', () => {
+    const daysAgo = (d: number, h = 12) => {
+      const t = new Date();
+      t.setDate(t.getDate() - d);
+      t.setHours(h, 0, 0, 0);
+      return t.toISOString();
+    };
+    seed([
+      jiraItem('t', 'PROJ-1', { author: 'Ana Lee', createdAt: new Date().toISOString() }),
+      jiraItem('g1', 'PROJ-5', { author: 'Ben Ito', createdAt: daysAgo(1, 14) }),
+      jiraItem('g2', 'PROJ-5', { author: 'Cara Doe', createdAt: daysAgo(1, 9) }),
+      jiraItem('o', 'PROJ-2', { author: 'Dev Patel', createdAt: daysAgo(20) }),
+    ]);
+    render(<NotificationPopover />);
+    const ids = () =>
+      [...document.querySelectorAll<HTMLElement>('[data-notif-entry]')].map(
+        (r) => r.getAttribute('data-entry-id') ?? '',
+      );
+    /** The bucket header directly above the group (collapsed or open). */
+    const bucketOfGroup = () => {
+      const list = ids();
+      const at = list.findIndex((id) => id.includes('PROJ-5') && id.startsWith('stack'));
+      return list
+        .slice(0, at)
+        .reverse()
+        .find((id) => id.startsWith('header:'));
+    };
+    const before = bucketOfGroup();
+    expect(before).toBe('header:yesterday');
+    fireEvent.click(screen.getByRole('button', { name: /expand/ }));
+    expect(bucketOfGroup()).toBe(before);
+  });
+
   it('a notification arriving while open slides in without rebuilding the other rows', () => {
     seed([jiraItem('a', 'PROJ-1'), jiraItem('b', 'PROJ-2')]);
     render(<NotificationPopover />);
@@ -726,13 +774,17 @@ describe('NotificationPopover motion (261111-m0g)', () => {
     seed([jiraItem('a'), jiraItem('b')]);
     render(<NotificationPopover />);
     const stack = entry('stack:jira:PROJ-1');
-    expect(stack.querySelector('[data-stack-more]')?.textContent).toBe('+1');
+    expect(stack.querySelector('[data-entry-primary]')?.getAttribute('aria-label')).toContain(
+      '1 more notification',
+    );
     act(() => {
       useNotificationsStore.getState().prependItems([jiraItem('c', 'PROJ-1') as never]);
     });
     expect(entry('stack:jira:PROJ-1')).toBe(stack);
     expect(stack.hasAttribute('data-entering')).toBe(false);
-    expect(stack.querySelector('[data-stack-more]')?.textContent).toBe('+2');
+    expect(stack.querySelector('[data-entry-primary]')?.getAttribute('aria-label')).toContain(
+      '2 more notification',
+    );
   });
 
   it('rows have no entrance animation on open (StrictMode)', () => {

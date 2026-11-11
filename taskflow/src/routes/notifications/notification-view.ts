@@ -765,6 +765,8 @@ export function stackIds(stack: StackEntry | StackHeaderEntry): string[] {
 /** Where an expanded stack sat when it was opened: ids of the entries just above / below it. */
 export interface StackAnchor {
   after?: string;
+  /** Bucket header right above the group when it was the first item of its bucket. */
+  header?: string;
   before?: string;
 }
 
@@ -804,11 +806,10 @@ export function stackEntries(
     }
   }
   if (blocks.size === 0) return natural;
-  let out = natural.filter((e) => ![...blocks.values()].some((b) => b.includes(e)));
-  // Drop headers left with nothing under them.
-  out = out.filter(
-    (e, i) => e.kind !== 'header' || (out[i + 1] !== undefined && out[i + 1].kind !== 'header'),
-  );
+  // Remove the blocks but KEEP every header for now: a group anchored under its own bucket header
+  // (e.g. the only item in "Yesterday") must be re-inserted under that header, not the next
+  // bucket's. Headers left empty are dropped after insertion.
+  const out = natural.filter((e) => ![...blocks.values()].some((b) => b.includes(e)));
   /** Index range [first, last] of the entry `id` in `out`, treating a stack id in either form. */
   const locate = (id: string): [number, number] | null => {
     const direct = out.findIndex((e) => e.id === id);
@@ -831,6 +832,11 @@ export function stackEntries(
       out.splice(after[1] + 1, 0, ...block);
       continue;
     }
+    const header = anchor.header ? out.findIndex((e) => e.id === anchor.header) : -1;
+    if (header >= 0) {
+      out.splice(header + 1, 0, ...block);
+      continue;
+    }
     const before = anchor.before ? locate(anchor.before) : null;
     if (before) {
       out.splice(before[0], 0, ...block);
@@ -839,7 +845,10 @@ export function stackEntries(
     // No surviving neighbour: natural position.
     return stackEntriesNatural(entries, expanded);
   }
-  return out;
+  // Drop headers left with nothing under them.
+  return out.filter(
+    (e, i) => e.kind !== 'header' || (out[i + 1] !== undefined && out[i + 1].kind !== 'header'),
+  );
 }
 
 function stackEntriesNatural(

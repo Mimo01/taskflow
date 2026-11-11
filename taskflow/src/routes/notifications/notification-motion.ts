@@ -13,6 +13,9 @@ export const NOTIF_CLEAR_ALL_STAGGER_MS = 30;
 export const NOTIF_CLEAR_ALL_MAX_DELAY_MS = 240;
 export const NOTIF_FLASH_MS = 500;
 export const NOTIF_FAN_MS = 450;
+/** Group open: rows grow from 0 (cards unfold down, staggered). Group close: rows fold up. */
+export const NOTIF_UNFOLD_MS = 260;
+export const NOTIF_FOLD_MS = 220;
 
 /** A missing matchMedia (jsdom) means motion is allowed. */
 export function prefersReducedMotion(): boolean {

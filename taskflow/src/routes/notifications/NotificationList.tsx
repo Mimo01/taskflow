@@ -10,7 +10,13 @@ import {
   useState,
 } from 'react';
 import { cn } from '../../lib/utils';
-import { NOTIF_EXIT_MS, NOTIF_SLIDE_MS } from './notification-motion';
+import {
+  NOTIF_EXIT_MS,
+  NOTIF_FOLD_MS,
+  NOTIF_SLIDE_MS,
+  NOTIF_UNFOLD_MS,
+  prefersReducedMotion,
+} from './notification-motion';
 import {
   type EventEntry,
   entityKey,
@@ -22,15 +28,18 @@ import {
 
 /** Ephemeral motion state owned by NotificationPopover; the list only turns it into attributes. */
 export interface NotificationListMotion {
-  /** True right after open / filter change: the first rows stagger in from the right. */
   /** Item ids that just arrived while the panel is open (their event row slides in). */
   entering: ReadonlySet<string>;
   /** Entry id -> exit delay (ms): the card slides out, then the row collapses. */
   leaving: ReadonlyMap<string, number>;
   /** Entry ids whose read state just toggled (scale flash). */
   flashing: ReadonlySet<string>;
-  /** Entity key of the stack that was just expanded (members fan out once). */
+  /** Entity key of the stack that was just expanded (header + members unfold once). */
   justExpanded: string | null;
+  /** Entity keys of open stacks that are folding closed (header + members fold up, then collapse). */
+  folding?: ReadonlySet<string>;
+  /** Entity key of the stack that just collapsed (its stack card fades in). */
+  justCollapsed?: string | null;
 }
 
 const NO_MOTION: NotificationListMotion = {
@@ -38,6 +47,8 @@ const NO_MOTION: NotificationListMotion = {
   leaving: new Map(),
   flashing: new Set(),
   justExpanded: null,
+  folding: new Set(),
+  justCollapsed: null,
 };
 
 interface NotificationListProps {
@@ -395,15 +406,61 @@ function EntryWrapper({
   const isMember = key != null && expandedEntities.has(key);
   const entering = entry.kind === 'event' && motion.entering.has(entry.item.id);
   const fanning = memberIndex >= 0 && isMember;
+  const groupKey =
+    entry.kind === 'stack-header' || entry.kind === 'stack' ? entry.entity : isMember ? key : null;
+  /** Open group folding closed: header + members fold up while their rows shrink to 0. */
+  const folding =
+    groupKey != null && entry.kind !== 'stack' && (motion.folding?.has(groupKey) ?? false);
+  /** Open group just opened: header + members grow from 0 so the rows below glide down. */
+  const unfolding =
+    fanning || (entry.kind === 'stack-header' && motion.justExpanded === entry.entity);
+  const justCollapsed = entry.kind === 'stack' && motion.justCollapsed === entry.entity;
+
+  // Unfold: measure the natural height, start at 0, grow to it, then release the height.
+  const [grow, setGrow] = useState<{ phase: 0 | 1 | 2; height: number }>({ phase: 0, height: 0 });
+  useLayoutEffect(() => {
+    if (!unfolding || prefersReducedMotion()) return;
+    const height = ref.current?.offsetHeight ?? 0;
+    setGrow({ phase: 1, height });
+    let raf = requestAnimationFrame(() => {
+      raf = requestAnimationFrame(() => setGrow({ phase: 2, height }));
+    });
+    const done = setTimeout(() => setGrow({ phase: 0, height: 0 }), NOTIF_UNFOLD_MS + 60);
+    return () => {
+      cancelAnimationFrame(raf);
+      clearTimeout(done);
+    };
+  }, [unfolding]);
+
+  // Fold: pin the measured height, then shrink to 0 (the popover collapses the stack after).
+  useEffect(() => {
+    if (!folding) return;
+    setCollapse({ phase: 1, height: ref.current?.offsetHeight ?? 0 });
+    let raf = requestAnimationFrame(() => {
+      raf = requestAnimationFrame(() => setCollapse((c) => ({ ...c, phase: 2 })));
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [folding]);
 
   const style: CSSProperties = {};
-  if (fanning) (style as Record<string, string | number>)['--i'] = memberIndex;
+  if (fanning) {
+    (style as Record<string, string | number>)['--i'] = memberIndex;
+    style.animationDelay = `${Math.min(memberIndex, 6) * 30}ms`;
+  }
   if (leaving) (style as Record<string, string | number>)['--leave-delay'] = `${leaveDelay}ms`;
   if (collapse.phase > 0) {
     style.overflow = 'hidden';
     style.height = collapse.phase === 1 ? collapse.height : 0;
-    if (collapse.phase === 2) style.paddingBottom = 0;
-    style.transition = 'height .28s var(--ease-out), padding-bottom .28s var(--ease-out)';
+    if (collapse.phase === 2) {
+      style.paddingBottom = 0;
+      style.paddingTop = 0;
+    }
+    const d = folding ? `${NOTIF_FOLD_MS}ms` : '.28s';
+    style.transition = `height ${d} var(--ease-out), padding-bottom ${d} var(--ease-out), padding-top ${d} var(--ease-out)`;
+  } else if (grow.phase > 0) {
+    style.overflow = 'hidden';
+    style.height = grow.phase === 1 ? 0 : grow.height;
+    if (grow.phase === 2) style.transition = `height ${NOTIF_UNFOLD_MS}ms var(--ease-out)`;
   }
 
   return (
@@ -417,6 +474,7 @@ function EntryWrapper({
       data-leaving={leaving ? 'true' : undefined}
       data-flash={motion.flashing.has(entry.id) ? 'true' : undefined}
       data-group-end={groupEnd ? 'true' : undefined}
+      data-folding={folding ? 'true' : undefined}
       style={Object.keys(style).length ? style : undefined}
       className={cn(
         (entry.kind === 'event' || entry.kind === 'stack') &&
@@ -426,8 +484,13 @@ function EntryWrapper({
         // An open group also gets space above its header, so it reads as one block.
         entry.kind === 'stack-header' && 'pt-3 density-compact:pt-2.5 density-comfortable:pt-3.5',
         entering && 'animate-[notif-enter_.45s_var(--ease-out)_both]',
-        // Expanded members fan out once per expand (not on every virtual remount).
-        fanning && 'animate-[notif-fan_.2s_var(--ease-out)_both]',
+        // Expanded members unfold once per expand (not on every virtual remount).
+        fanning && 'animate-[notif-fan_.26s_var(--ease-out)_both]',
+        entry.kind === 'stack-header' &&
+          motion.justExpanded === entry.entity &&
+          'animate-[notif-fade_.2s_var(--ease-out)_both]',
+        folding && 'animate-[notif-fold_.2s_ease-in_both]',
+        justCollapsed && 'animate-[notif-fade_.2s_var(--ease-out)_both]',
       )}
     >
       {renderEntry(entry)}

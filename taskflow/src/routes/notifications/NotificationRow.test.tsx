@@ -502,9 +502,10 @@ describe('NotificationRow', () => {
     expect(body.lastElementChild?.getAttribute('data-line')).toBe('detail');
   });
 
-  it('stack card: "+N", expand semantics on the overlay, two peek edges behind the card', () => {
+  it('stack card: no visible "+N" (count only in the label), expand semantics, peek edges', () => {
     const { container, onOpen } = setup({ stackMore: 2 });
-    expect(container.querySelector('[data-stack-more]')?.textContent).toBe('+2');
+    expect(container.querySelector('[data-stack-more]')).toBeNull();
+    expect(container.textContent).not.toContain('+2');
     const overlay = container.querySelector('[data-entry-primary]') as HTMLElement;
     expect(overlay.getAttribute('aria-expanded')).toBe('false');
     expect(overlay.getAttribute('aria-label')).toContain('2 more notifications');
