@@ -1,7 +1,7 @@
 import { StrictMode } from 'react';
 // Tests for NotificationPopover — header, filters, flat list, triage, navigation, states
 
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { openExternal } from '../../lib/openExternal';
@@ -639,6 +639,54 @@ describe('NotificationPopover motion (261111-m0g)', () => {
     expect(delays[1]).toBe(NOTIF_STACK_STAGGER_MS);
     advance(NOTIF_EXIT_MS + 3 * NOTIF_STACK_STAGGER_MS + 100);
     expect(useNotificationsStore.getState().items.map((i) => i.id)).toEqual(['z']);
+  });
+
+  it('an expanded stack stays in place when its top (newest) card is cleared', () => {
+    const at = (min: number) => new Date(Date.now() - min * 60_000).toISOString();
+    seed([
+      // stack PROJ-5: newest card is the newest notification overall, the others are oldest
+      jiraItem('g1', 'PROJ-5', { author: 'Ana Lee', createdAt: at(5) }),
+      jiraItem('a', 'PROJ-1', { author: 'Ben Ito', createdAt: at(10) }),
+      jiraItem('b', 'PROJ-2', { author: 'Cara Doe', createdAt: at(20) }),
+      jiraItem('g2', 'PROJ-5', { author: 'Dev Patel', createdAt: at(30) }),
+      jiraItem('g3', 'PROJ-5', { author: 'Eve Ruiz', createdAt: at(40) }),
+    ]);
+    render(<NotificationPopover />);
+    fireEvent.click(screen.getByRole('button', { name: /expand/ }));
+    const order = () =>
+      [...document.querySelectorAll<HTMLElement>('[data-notif-entry]')]
+        .map((r) => r.getAttribute('data-entry-id') ?? '')
+        .filter((id) => !id.startsWith('header:'));
+    const headerIdx = () => order().findIndex((id) => id.startsWith('stack-header:'));
+    expect(headerIdx()).toBe(0);
+    // clear the top card of the open stack
+    const top = document.querySelector('[data-entry-id="event:g1"]') as HTMLElement;
+    fireEvent.click(within(top).getByRole('button', { name: 'Clear notification' }));
+    advance(NOTIF_EXIT_MS + 100);
+    expect(useNotificationsStore.getState().items.map((i) => i.id)).not.toContain('g1');
+    // the open group is still first, above PROJ-1 and PROJ-2, not re-sorted to the bottom
+    expect(headerIdx()).toBe(0);
+    expect(order().indexOf('event:a')).toBeGreaterThan(order().indexOf('event:g3'));
+  });
+
+  it('a 2-card open group cleared to one card keeps that card in the same slot', () => {
+    const at = (min: number) => new Date(Date.now() - min * 60_000).toISOString();
+    seed([
+      jiraItem('g1', 'PROJ-5', { author: 'Ana Lee', createdAt: at(5) }),
+      jiraItem('a', 'PROJ-1', { author: 'Ben Ito', createdAt: at(10) }),
+      jiraItem('b', 'PROJ-2', { author: 'Cara Doe', createdAt: at(20) }),
+      jiraItem('g2', 'PROJ-5', { author: 'Dev Patel', createdAt: at(30) }),
+    ]);
+    render(<NotificationPopover />);
+    fireEvent.click(screen.getByRole('button', { name: /expand/ }));
+    const top = document.querySelector('[data-entry-id="event:g1"]') as HTMLElement;
+    fireEvent.click(within(top).getByRole('button', { name: 'Clear notification' }));
+    advance(NOTIF_EXIT_MS + 100);
+    const order = [...document.querySelectorAll<HTMLElement>('[data-notif-entry]')]
+      .map((r) => r.getAttribute('data-entry-id') ?? '')
+      .filter((id) => !id.startsWith('header:'));
+    // the remaining card stays first instead of dropping below PROJ-1 / PROJ-2
+    expect(order).toEqual(['event:g2', 'event:a', 'event:b']);
   });
 
   it('a notification arriving while open slides in without rebuilding the other rows', () => {

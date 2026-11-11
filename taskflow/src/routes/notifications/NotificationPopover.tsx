@@ -42,6 +42,7 @@ import {
   getEntityRef,
   getEntityTitle,
   type NotificationEntry,
+  type StackAnchor,
   type StackEntry,
   type StackHeaderEntry,
   stackEntries,
@@ -90,7 +91,12 @@ export default function NotificationPopover({
     unreadOnly: false,
     now,
   });
-  const entries = stackEntries(flatEntries, expanded);
+  /**
+   * Expanded stacks stay where they were opened (neighbour ids recorded at expand time), so
+   * removing the top card does not re-sort the open group away from under the pointer.
+   */
+  const [anchors, setAnchors] = useState<ReadonlyMap<string, StackAnchor>>(new Map());
+  const entries = stackEntries(flatEntries, expanded, anchors);
 
   // Forget expanded keys whose stack is gone (cleared / dropped below 2 cards), so a later
   // notification on the same issue does not reappear already expanded. Checked against the
@@ -112,6 +118,12 @@ export default function NotificationPopover({
     }
     setExpanded((prev) => {
       const next = new Set([...prev].filter((k) => (counts.get(k) ?? 0) >= 2));
+      return next.size === prev.size ? prev : next;
+    });
+    // Keep an anchor while its entity still has a card: a group cleared down to one card keeps
+    // that card in place (it stops being a stack, but must not jump away).
+    setAnchors((prev) => {
+      const next = new Map([...prev].filter(([k]) => (counts.get(k) ?? 0) >= 1));
       return next.size === prev.size ? prev : next;
     });
   }, [items, readIds, now]);
@@ -188,6 +200,23 @@ export default function NotificationPopover({
 
   function toggleStack(entity: string) {
     const expanding = !expanded.has(entity);
+    if (expanding) {
+      // Remember the neighbours of the collapsed stack so the open group stays in this slot.
+      const idx = entries.findIndex((e) => e.kind === 'stack' && e.entity === entity);
+      const prev = idx > 0 ? entries[idx - 1] : undefined;
+      const next = entries.slice(idx + 1).find((e) => e.kind !== 'header');
+      const anchor: StackAnchor = {
+        after: prev && prev.kind !== 'header' ? prev.id : undefined,
+        before: next?.id,
+      };
+      setAnchors((cur) => new Map(cur).set(entity, anchor));
+    } else {
+      setAnchors((cur) => {
+        const m = new Map(cur);
+        m.delete(entity);
+        return m;
+      });
+    }
     setExpanded((prev) => {
       const next = new Set(prev);
       if (next.has(entity)) next.delete(entity);

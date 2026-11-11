@@ -762,7 +762,87 @@ export function stackIds(stack: StackEntry | StackHeaderEntry): string[] {
  * at the position of the newest card; an expanded entity becomes a `stack-header` followed by its
  * cards (ids unchanged). Bucket headers are re-derived so none is left empty.
  */
+/** Where an expanded stack sat when it was opened: ids of the entries just above / below it. */
+export interface StackAnchor {
+  after?: string;
+  before?: string;
+}
+
+/**
+ * Same as stackEntriesNatural, but an expanded stack with an anchor stays where it was opened:
+ * right after its upper neighbour (else right before its lower one) instead of re-sorting by its
+ * newest card — removing the top card must not make the open group jump away (261111-m0g UAT).
+ * A neighbour that is itself a stack is matched in either form (collapsed `stack:k` or expanded
+ * `stack-header:k` + members). Without a surviving neighbour the stack falls back to its natural
+ * position.
+ */
 export function stackEntries(
+  entries: NotificationEntry[],
+  expanded: ReadonlySet<string>,
+  anchors?: ReadonlyMap<string, StackAnchor>,
+): NotificationEntry[] {
+  if (!anchors || anchors.size === 0) return stackEntriesNatural(entries, expanded);
+  const natural = stackEntriesNatural(entries, expanded);
+  const blockKey = (e: NotificationEntry): string | null => {
+    if (e.kind === 'stack' || e.kind === 'stack-header') return e.entity;
+    return null;
+  };
+  // Pull out each anchored block: an open stack (header + member cards), or — once clearing has
+  // left a single card — that card, so the last one stays in the slot too instead of re-sorting.
+  const blocks = new Map<string, NotificationEntry[]>();
+  for (const [key] of anchors) {
+    const start = natural.findIndex((e) => e.kind === 'stack-header' && e.entity === key);
+    if (start >= 0 && expanded.has(key)) {
+      const head = natural[start];
+      const size = head.kind === 'stack-header' ? head.cards.length : 0;
+      blocks.set(key, natural.slice(start, start + 1 + size));
+      continue;
+    }
+    const singles = natural.filter((e) => e.kind === 'event' && entityKey(e.item) === key);
+    if (singles.length === 1 && !natural.some((e) => e.kind === 'stack' && e.entity === key)) {
+      blocks.set(key, singles);
+    }
+  }
+  if (blocks.size === 0) return natural;
+  let out = natural.filter((e) => ![...blocks.values()].some((b) => b.includes(e)));
+  // Drop headers left with nothing under them.
+  out = out.filter(
+    (e, i) => e.kind !== 'header' || (out[i + 1] !== undefined && out[i + 1].kind !== 'header'),
+  );
+  /** Index range [first, last] of the entry `id` in `out`, treating a stack id in either form. */
+  const locate = (id: string): [number, number] | null => {
+    const direct = out.findIndex((e) => e.id === id);
+    if (direct >= 0) {
+      const e = out[direct];
+      if (e.kind === 'stack-header') return [direct, direct + e.cards.length];
+      return [direct, direct];
+    }
+    const m = id.match(/^stack(?:-header)?:(.+)$/);
+    if (!m) return null;
+    const idx = out.findIndex((e) => blockKey(e) === m[1]);
+    if (idx < 0) return null;
+    const e = out[idx];
+    return e.kind === 'stack-header' ? [idx, idx + e.cards.length] : [idx, idx];
+  };
+  for (const [key, block] of blocks) {
+    const anchor = anchors.get(key) ?? {};
+    const after = anchor.after ? locate(anchor.after) : null;
+    if (after) {
+      out.splice(after[1] + 1, 0, ...block);
+      continue;
+    }
+    const before = anchor.before ? locate(anchor.before) : null;
+    if (before) {
+      out.splice(before[0], 0, ...block);
+      continue;
+    }
+    // No surviving neighbour: natural position.
+    return stackEntriesNatural(entries, expanded);
+  }
+  return out;
+}
+
+function stackEntriesNatural(
   entries: NotificationEntry[],
   expanded: ReadonlySet<string>,
 ): NotificationEntry[] {

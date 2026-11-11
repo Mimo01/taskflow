@@ -972,6 +972,59 @@ describe('stackEntries', () => {
     expect(s.isUnread).toBe(true);
   });
 
+  describe('anchored expanded stacks', () => {
+    // newest-first: d(PROJ-1) 12:00, c(PROJ-2) 11:30, z(PROJ-3) 11:00, b(PROJ-1) 10:11, a(PROJ-1) 10:09
+    const items = [
+      jira('a', 'PROJ-1', local(10, 10, 9), { author: 'Ana Lee' }),
+      jira('b', 'PROJ-1', local(10, 10, 11), { author: 'Ben Ito' }),
+      jira('z', 'PROJ-3', local(10, 11, 0), { author: 'Zed Ng' }),
+      jira('c', 'PROJ-2', local(10, 11, 30), { author: 'Cara Doe' }),
+      jira('d', 'PROJ-1', local(10, 12, 0), { author: 'Dev Patel' }),
+    ];
+    const open = new Set(['jira:PROJ-1']);
+    const ids = (out: { id: string }[]) =>
+      out.map((x) => x.id).filter((id) => !id.startsWith('header:'));
+
+    it('without an anchor, removing the top card re-sorts the open stack (natural order)', () => {
+      const out = stackEntries(build(items.filter((i) => i.id !== 'd')), open);
+      expect(ids(out)).toEqual([
+        'event:c',
+        'event:z',
+        'stack-header:jira:PROJ-1',
+        'event:b',
+        'event:a',
+      ]);
+    });
+
+    it('anchored before its lower neighbour, it keeps its slot after the top card goes', () => {
+      const anchors = new Map([['jira:PROJ-1', { before: 'event:c' }]]);
+      const out = stackEntries(build(items.filter((i) => i.id !== 'd')), open, anchors);
+      expect(ids(out)).toEqual([
+        'stack-header:jira:PROJ-1',
+        'event:b',
+        'event:a',
+        'event:c',
+        'event:z',
+      ]);
+    });
+
+    it('prefers the upper neighbour; falls back to natural order when no neighbour survives', () => {
+      const after = new Map([['jira:PROJ-1', { after: 'event:c', before: 'event:z' }]]);
+      expect(ids(stackEntries(build(items), open, after))).toEqual([
+        'event:c',
+        'stack-header:jira:PROJ-1',
+        'event:d',
+        'event:b',
+        'event:a',
+        'event:z',
+      ]);
+      const gone = new Map([['jira:PROJ-1', { after: 'event:x', before: 'event:y' }]]);
+      expect(ids(stackEntries(build(items), open, gone))).toEqual(
+        ids(stackEntries(build(items), open)),
+      );
+    });
+  });
+
   it('isUnread is false when every card is read', () => {
     const out = stackEntries(build(three, ['a', 'b', 'c', 'd']), new Set());
     const s = out[1];
