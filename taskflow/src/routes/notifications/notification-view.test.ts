@@ -896,3 +896,40 @@ describe('CR-03: merging multi-value field changes keeps every value', () => {
     expect(out.map((c) => c.to)).toEqual(['ana', 'ben']);
   });
 });
+
+describe('WR-01: GitLab system notes parse from the untruncated body', () => {
+  const note = (body: string, id = 'gitlab-system-77', min = 0): NotificationItem => ({
+    id,
+    source: 'gitlab',
+    entityTitle: 'Add export',
+    author: 'Ana Lee',
+    bodyPreview: body.substring(0, 120),
+    fullBody: body,
+    createdAt: local(10, 10, 12, min),
+    notificationType: 'mr-note',
+    mrProjectId: 5,
+    mrIid: 9,
+  });
+  const oldTitle = `Old ${'a'.repeat(66)}`;
+  const newTitle = `New ${'b'.repeat(66)}`;
+
+  it('keeps the whole new title', () => {
+    const parts = describeEventParts(note(`Title: ${oldTitle} → ${newTitle}`));
+    expect(parts.changes?.[0]).toMatchObject({ field: 'title', from: oldTitle, to: newTitle });
+  });
+
+  it('a long old title still parses (arrow past the 120-char cut) and still merges', () => {
+    const longOld = 'x'.repeat(115);
+    const item = note(`Title: ${longOld} → short`);
+    expect(describeEventParts(item).verb).toBe('changed title');
+    expect(mergeCategory(item)).toBe('changes');
+  });
+
+  it('keeps the last label of a long label list (single and merged)', () => {
+    const labels = Array.from({ length: 14 }, (_, i) => `label-${i}`);
+    const item = note(`Labels added: ${labels.join(', ')}`);
+    expect(describeEventParts(item).changes?.[0].text?.split(' ')).toHaveLength(14);
+    const merged = describeEntryParts([note('Labels added: extra', 'gitlab-system-78', 5), item]);
+    expect(merged.changes?.[0].text?.split(' ')).toHaveLength(15);
+  });
+});

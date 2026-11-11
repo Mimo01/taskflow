@@ -263,6 +263,15 @@ export function parseSystemLines(body: string): ChangeLine[] {
   return out;
 }
 
+/**
+ * Text to parse change lines from: the untruncated body. The service cuts `bodyPreview`
+ * (120 chars for system notes), which would chop titles and drop the last labels. Like
+ * commentPreview, `fullBody` counts as the untruncated preview only when it extends it.
+ */
+function changeSource(item: Pick<NotificationItem, 'bodyPreview' | 'fullBody'>): string {
+  return item.fullBody?.startsWith(item.bodyPreview) ? item.fullBody : item.bodyPreview;
+}
+
 /** Light cleanup of Jira wiki / GitLab markdown so a comment reads as plain text. */
 /**
  * Preview text for a comment: the stored preview is cut server-side (80/120 chars) with no marker,
@@ -463,7 +472,7 @@ export function describeEventParts(item: NotificationItem): EventParts {
   const snippet = commentPreview(item);
   const actor = actorName(item.author);
   if (item.notificationType === 'mr-note' && isSystemNote(item)) {
-    const lines = parseSystemLines(item.bodyPreview);
+    const lines = parseSystemLines(changeSource(item));
     if (lines.length > 0) return changesParts(actor, orderChanges(lines));
     return { verb: 'updated', actor, snippet: '' };
   }
@@ -490,7 +499,7 @@ export function describeEventParts(item: NotificationItem): EventParts {
       return { verb: m ? `due ${m[1].toLowerCase()}` : 'due', snippet: '' };
     }
     case 'issue-update': {
-      const lines = parseChangeLines(item.bodyPreview);
+      const lines = parseChangeLines(changeSource(item));
       if (lines.length > 0) return changesParts(actor, orderChanges(lines));
       return { verb: 'updated', actor, snippet };
     }
@@ -570,14 +579,14 @@ type MergeCategory = 'conversation' | 'changes';
 
 function changesOf(item: NotificationItem): ChangeLine[] {
   return isSystemNote(item)
-    ? parseSystemLines(item.bodyPreview)
-    : parseChangeLines(item.bodyPreview);
+    ? parseSystemLines(changeSource(item))
+    : parseChangeLines(changeSource(item));
 }
 
 /** Which merge family an item belongs to; null = never merges (assignment, approval, pipeline, due, MR state). */
 export function mergeCategory(item: NotificationItem): MergeCategory | null {
   if (item.notificationType === 'mr-note' && isSystemNote(item)) {
-    const lines = parseSystemLines(item.bodyPreview);
+    const lines = parseSystemLines(changeSource(item));
     if (lines.length === 0 || lines.some(isStateAction)) return null;
     return 'changes';
   }
@@ -588,7 +597,7 @@ export function mergeCategory(item: NotificationItem): MergeCategory | null {
     case 'gitlab-mention':
       return 'conversation';
     case 'issue-update':
-      return parseChangeLines(item.bodyPreview).length > 0 ? 'changes' : null;
+      return parseChangeLines(changeSource(item)).length > 0 ? 'changes' : null;
     default:
       return null;
   }
