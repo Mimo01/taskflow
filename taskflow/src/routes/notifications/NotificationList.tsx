@@ -204,7 +204,7 @@ function EntryWrapper({
       data-entry-index={index}
       data-entry-id={entry.id}
       className={cn(
-        entry.kind === 'event' && 'pb-1.5 density-compact:pb-1 density-comfortable:pb-2',
+        entry.kind === 'event' && 'pb-2 density-compact:pb-1.5 density-comfortable:pb-2.5',
       )}
     >
       {renderEntry(entry)}

@@ -886,8 +886,8 @@ export function listRowCount(total: number): number {
 export function estimateEntryHeight(entry: NotificationEntry): number {
   if (entry.kind === 'header') return 32;
   const parts = describeEntryParts(entry.items);
-  // card: py-2.5 (20) + border (2) + line 1 h-5 (20) + line 2 h-5 (20) + wrapper pb-1.5 (6)
-  let h = 68;
+  // card: py-2.5 (20) + border (2) + line 1 h-5 (20) + line 2 h-5 (20) + wrapper pb-2 (8)
+  let h = 70;
   // list: mt-1 (4) + rows of h-5 (20) separated by gap-1 (4), plus a "+N more" row when capped
   const list = (n: number) => {
     if (n < 2) return 0;

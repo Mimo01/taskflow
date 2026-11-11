@@ -388,18 +388,18 @@ describe('NotificationRow', () => {
     expect(r.className).toContain('hover:bg-(--card-hover)');
   });
 
-  it('unread cards lift with a blue ring + glow, avatar halo and blue time; read cards sit flat', () => {
+  it('unread cards lift with an ink ring, avatar halo and ink time (no blue, no glow); read cards sit flat', () => {
     const unread = setup({ isUnread: true });
     const u = unread.container.firstElementChild as HTMLElement;
-    expect(u.className).toContain('ring-blue-500/45');
+    expect(u.className).toContain('ring-foreground/15');
+    expect(u.className).not.toMatch(/blue|shadow-/);
     expect(u.className).toContain('[--card-bg:var(--color-card)]');
-    expect(u.className).toMatch(/shadow-\[0_0_0_3px_color-mix\(in_oklab,var\(--color-blue-500\)/);
     expect(u.className).not.toContain('ring-foreground/20');
     expect(screen.getByText('Fix login bug').className).toContain('font-semibold');
     expect(unread.container.querySelector('[data-unread-halo="true"]')?.className).not.toContain(
       'opacity-0',
     );
-    expect(unread.container.querySelector('time')?.className).toContain('text-blue-600');
+    expect(unread.container.querySelector('time')?.className).toContain('text-foreground');
     unread.unmount();
     const read = setup({ isUnread: false });
     const r = read.container.firstElementChild as HTMLElement;

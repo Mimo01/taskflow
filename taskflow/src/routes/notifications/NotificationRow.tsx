@@ -22,9 +22,10 @@
  *     label chips (and "none") size to content.
  *  G. Type scale: title 12px; key, time, line 2, lists, chips 11px. Single ellipsis at the end
  *     of whatever overflows; lines are h-5 so nothing clips vertically.
- *  H. Unread LIFTS, read SINKS (261111-ezr, "avatar halo + lifted glow"): unread = white card
- *     (--card-bg = card) + ring-blue-500/45 + 3px blue/10 halo + soft blue drop glow, a blue ring
- *     around the avatar (NotificationAvatar halo) and a semibold blue timestamp. Read = flat on the
+ *  H. Unread LIFTS, read SINKS (261111-ezr, neutralised in 261111-h9a "ink halo"): unread = card
+ *     surface (--card-bg = card) + ring-foreground/15, no shadow/glow, an ink (foreground) ring
+ *     around the avatar (NotificationAvatar halo) and a semibold foreground timestamp. No blue:
+ *     the app palette is neutral. Read = flat on the
  *     list (--card-bg = the list's muted-over-popover colour) + ring-foreground/10, avatar at 70%.
  *     Hover = accent 50% mixed into --card-bg (tray + badge cut-out use the same vars, no seam).
  *     Read vs unread changes ONLY classes (surface, ring, shadow, halo/avatar opacity, title and
@@ -547,7 +548,7 @@ export default function NotificationRow({
       className={cn(
         'group/row relative flex cursor-pointer items-start gap-3 rounded-xl py-2.5 [--card-hover:color-mix(in_oklab,var(--color-accent)_50%,var(--card-bg))] px-3 text-xs transition-colors density-compact:gap-2.5 density-compact:py-1.5 density-compact:px-2.5 density-comfortable:gap-3.5 density-comfortable:py-3.5 density-comfortable:px-3.5 hover:bg-(--card-hover) focus-within:bg-(--card-hover)',
         isUnread
-          ? '[--card-bg:var(--color-card)] bg-(--card-bg) ring-1 ring-blue-500/45 shadow-[0_0_0_3px_color-mix(in_oklab,var(--color-blue-500)_10%,transparent),0_6px_18px_-8px_color-mix(in_oklab,var(--color-blue-500)_55%,transparent)]'
+          ? '[--card-bg:var(--color-card)] bg-(--card-bg) ring-1 ring-foreground/15'
           : '[--card-bg:color-mix(in_oklab,var(--color-muted)_40%,var(--color-popover))] dark:[--card-bg:color-mix(in_oklab,var(--color-muted)_20%,var(--color-popover))] bg-(--card-bg) ring-1 ring-foreground/10',
         peeked && PEEKED_ROW_CLASS,
       )}
@@ -598,7 +599,7 @@ export default function NotificationRow({
             dateTime={item.createdAt}
             className={cn(
               'pointer-events-none relative min-w-9 flex-none whitespace-nowrap text-right text-[11px] tabular-nums group-hover/row:opacity-0 group-focus-within/row:opacity-0',
-              isUnread ? 'font-semibold text-blue-600 dark:text-blue-400' : 'text-muted-foreground',
+              isUnread ? 'font-semibold text-foreground' : 'text-muted-foreground',
             )}
           >
             {relTime(item.createdAt, now)}
