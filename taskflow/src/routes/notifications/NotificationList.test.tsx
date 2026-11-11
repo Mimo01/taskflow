@@ -125,6 +125,33 @@ describe('NotificationList keyboard', () => {
     expect(handlers.onToggleRead).toHaveBeenCalledWith(entries.find((e) => e.id === 'event:c'));
   });
 
+  it('WR-03: u in the Unread view (card disappears) keeps focus in the list', async () => {
+    const user = userEvent.setup();
+    const { handlers, rerender, entries } = setup();
+    btn('event:c').focus();
+    await user.keyboard('u');
+    expect(handlers.onToggleRead).toHaveBeenCalledWith(entries.find((e) => e.id === 'event:c'));
+    // Unread filter: the now-read card drops out of the list.
+    const next = entriesFor(items.filter((i) => i.id !== 'c'));
+    rerender(<NotificationList entries={next} renderEntry={stubRender} {...handlers} />);
+    await waitFor(() => expect(btn(next[2].id)).toHaveFocus());
+    // ...so triage keys keep working.
+    await user.keyboard('k');
+    await waitFor(() => expect(btn('event:b')).toHaveFocus());
+  });
+
+  it('u in the All view leaves focus on the same card', async () => {
+    const user = userEvent.setup();
+    const { handlers, rerender } = setup();
+    btn('event:c').focus();
+    await user.keyboard('u');
+    rerender(
+      <NotificationList entries={entriesFor(items)} renderEntry={stubRender} {...handlers} />,
+    );
+    await new Promise((r) => setTimeout(r, 50));
+    expect(btn('event:c')).toHaveFocus();
+  });
+
   it('e and Delete call onDone; focus lands on the entry now at that position', async () => {
     const user = userEvent.setup();
     const { handlers, rerender, entries } = setup();

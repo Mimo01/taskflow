@@ -126,6 +126,8 @@ export default function NotificationList({
       case 'u': {
         if (!focusable) return;
         e.preventDefault();
+        // In the Unread view the card drops out once read; re-resolve focus like Done does.
+        pendingFocus.current = current;
         onToggleRead(focusable);
         return;
       }
