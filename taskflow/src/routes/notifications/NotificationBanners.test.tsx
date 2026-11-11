@@ -131,6 +131,44 @@ describe('NotificationBanners', () => {
     expect(banner.getAttribute('data-leaving')).toBe('true');
   });
 
+  it('WR-01: pointer leaving while focus is inside does not resume the timer', () => {
+    seed(['a']);
+    setup();
+    const banner = document.querySelector('[data-notif-banner]') as HTMLElement;
+    advance(1000);
+    fireEvent.focus(banner);
+    fireEvent.mouseEnter(banner);
+    fireEvent.mouseLeave(banner);
+    advance(20_000);
+    expect(banner.hasAttribute('data-leaving')).toBe(false);
+    fireEvent.blur(banner);
+    advance(4100);
+    expect(banner.getAttribute('data-leaving')).toBe('true');
+  });
+
+  it('WR-01: blur while the pointer still hovers does not resume the timer', () => {
+    seed(['a']);
+    setup();
+    const banner = document.querySelector('[data-notif-banner]') as HTMLElement;
+    fireEvent.mouseEnter(banner);
+    fireEvent.focus(banner);
+    fireEvent.blur(banner);
+    advance(20_000);
+    expect(banner.hasAttribute('data-leaving')).toBe(false);
+  });
+
+  it('WR-01: changing the duration setting while paused does not restart the clock', () => {
+    seed(['a']);
+    setup();
+    const banner = document.querySelector('[data-notif-banner]') as HTMLElement;
+    fireEvent.mouseEnter(banner);
+    act(() => {
+      useSettingsStore.setState({ notifBannerDurationSecs: 3 });
+    });
+    advance(20_000);
+    expect(banner.hasAttribute('data-leaving')).toBe(false);
+  });
+
   it('WR-03: unmounting while the panel is open lifts the suppression', () => {
     const { unmount } = setup({ open: true });
     expect(useNotificationBanners.getState().suppressed).toBe(true);

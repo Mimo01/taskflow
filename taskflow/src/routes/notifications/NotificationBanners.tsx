@@ -83,6 +83,9 @@ function Banner({
   const remaining = useRef(durationSecs * 1000);
   const startedAt = useRef(0);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Hover and focus each hold the pause; the clock only resumes when neither does.
+  const hovered = useRef(false);
+  const focused = useRef(false);
 
   const stop = () => {
     if (timer.current) clearTimeout(timer.current);
@@ -97,7 +100,7 @@ function Banner({
   // biome-ignore lint/correctness/useExhaustiveDependencies: start/stop only touch refs
   useEffect(() => {
     remaining.current = durationSecs * 1000;
-    start(remaining.current);
+    if (!hovered.current && !focused.current) start(remaining.current);
     return stop;
   }, [durationSecs]);
 
@@ -131,7 +134,7 @@ function Banner({
     stop();
   };
   const resume = () => {
-    if (leaving || timer.current) return;
+    if (leaving || timer.current || hovered.current || focused.current) return;
     start(Math.max(MIN_RESUME_MS, remaining.current));
   };
 
@@ -140,10 +143,22 @@ function Banner({
     <div
       data-notif-banner
       data-leaving={leaving ? 'true' : undefined}
-      onMouseEnter={pause}
-      onMouseLeave={resume}
-      onFocus={pause}
-      onBlur={resume}
+      onMouseEnter={() => {
+        hovered.current = true;
+        pause();
+      }}
+      onMouseLeave={() => {
+        hovered.current = false;
+        resume();
+      }}
+      onFocus={() => {
+        focused.current = true;
+        pause();
+      }}
+      onBlur={() => {
+        focused.current = false;
+        resume();
+      }}
       className={cn(
         '@container pointer-events-auto relative animate-[notif-banner-in_.5s_var(--spring)_both]',
         leaving && 'animate-[notif-banner-out_.3s_cubic-bezier(.4,0,1,1)_forwards]',
