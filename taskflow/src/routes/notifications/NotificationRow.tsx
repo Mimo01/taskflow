@@ -10,6 +10,8 @@
  *     optional detail = comment text (muted) or a value change. System events omit the actor.
  *  C. Value changes use ONE component (ValueChange), inline for a single change and in every
  *     list row: old (muted) -> new (foreground, medium); status = status pill; labels = chips.
+ *     Person values (assignee, reporter, reviewers) = 16px avatar (initials fallback) + name,
+ *     inline; the "none" chip has no avatar.
  *  D. Single change: "Cara changed priority  Minor -> Major"; several: "Cara updated 3 fields"
  *     + list. Phrase = "changed <field>" (state events / description: "merged", "edited description").
  *  E. List rows share one geometry: 12px coloured icon, gap-1.5, h-5, 11px. Comment rows: icon + text.
@@ -36,7 +38,8 @@
  * - Absolute time and full body live in a 600ms tooltip; the hover tray replaces the time.
  */
 import { Check, ExternalLink, Mail, MailOpen } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { createContext, type ReactNode, useContext } from 'react';
+import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { LinkContextMenu } from '@/components/ui/link-context-menu';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { PEEKED_ROW_CLASS } from '@/lib/peek-highlight';
@@ -171,13 +174,64 @@ const ARROW = (
   </span>
 );
 
+/** Change fields whose values are people (ChangeLine.field is lower-cased). */
+const PERSON_FIELDS = new Set(['assignee', 'reporter', 'review', 'reviewer', 'reviewers']);
+
 /**
- * THE value-change renderer: old (muted) -> new (foreground, medium). Used inline on line 2
- * (single change) and in every change-list row. Inline-level only, so one ellipsis ends the line.
+ * Avatars for the people named in a card: merged from every item's personAvatars. `lists`:
+ * values are comma-joined names (GitLab usernames); Jira values are ONE display name that may
+ * itself contain a comma ("Smith, John"), so they are never split.
  */
+const PersonAvatarsContext = createContext<{ avatars: Record<string, string>; lists: boolean }>({
+  avatars: {},
+  lists: false,
+});
+
+/**
+ * Person value: 16px avatar (real image when captured, else initials) + name, per name.
+ * Inline-level only (inline-block avatar + inline text) so line 2 keeps a single ellipsis and
+ * the 16px avatar fits the h-5 row.
+ */
+function PersonValue({ value, className }: { value: string; className?: string }) {
+  const { avatars, lists } = useContext(PersonAvatarsContext);
+  const names = lists
+    ? value
+        .split(/,\s*/)
+        .map((n) => n.trim())
+        .filter(Boolean)
+    : [value];
+  return (
+    <>
+      {names.map((name, i) => (
+        <span key={name}>
+          {i > 0 ? ', ' : null}
+          <span data-person className={className}>
+            <span aria-hidden="true" className="mr-1 inline-block align-middle">
+              <CachedAvatar url={avatars[name] ?? null} name={name} size={16} />
+            </span>
+            {name}
+          </span>
+        </span>
+      ))}
+    </>
+  );
+}
+
 /** Text-only changes (labels diff, "edited", review list) — no old/new pair. */
 function TextValue({ change }: { change: ChangeLine }) {
   if (change.field === 'labels') return <LabelChips text={change.text ?? ''} />;
+  const text = change.text ?? '';
+  if (PERSON_FIELDS.has(change.field) && text && text !== 'removed' && text !== 'edited') {
+    // GitLab "−alice" (unassigned / review removed); single-change mode passes it sign-stripped.
+    const signed = text.startsWith('\u2212');
+    const rest = signed ? text.slice(1) : text;
+    return (
+      <span className="font-medium text-foreground">
+        {signed ? '\u2212' : null}
+        <PersonValue value={rest} />
+      </span>
+    );
+  }
   return change.text === 'edited' ? (
     <span className="text-muted-foreground">{change.text}</span>
   ) : (
@@ -202,6 +256,9 @@ const NONE = (
 function FromValue({ change }: { change: ChangeLine }) {
   // Review requests have no "old" side (it's a request to people, not a field value).
   if (!change.from) return change.action === 'review' ? null : NONE;
+  if (PERSON_FIELDS.has(change.field)) {
+    return <PersonValue value={change.from} className="text-muted-foreground" />;
+  }
   return change.field === 'status' ? (
     <StatusPill name={change.from} />
   ) : (
@@ -212,6 +269,9 @@ function FromValue({ change }: { change: ChangeLine }) {
 /** New value cell (foreground medium; status as pill; "none" when cleared). */
 function ToValue({ change }: { change: ChangeLine }) {
   if (!change.to) return NONE;
+  if (PERSON_FIELDS.has(change.field)) {
+    return <PersonValue value={change.to} className="font-medium text-foreground" />;
+  }
   return change.field === 'status' ? (
     <StatusPill name={change.to} />
   ) : (
@@ -451,6 +511,11 @@ export default function NotificationRow({
   const ariaText = describeEventAriaText(parts);
   const ariaLabel = `${isUnread ? 'Unread. ' : ''}${describeEventAria(parts)} on ${ref ? `${ref} ` : ''}${title}${parentLabel ? ` (in ${parentLabel})` : ''}${ariaText ? `: ${ariaText}` : ''}`;
   const listChanges = parts.changes && parts.changes.length >= 2 ? parts.changes : null;
+  // Merged cards mix changes from several items: look avatars up across all of them.
+  const personAvatars = {
+    avatars: Object.assign({}, ...all.map((i) => i.personAvatars ?? {})) as Record<string, string>,
+    lists: item.source === 'gitlab',
+  };
 
   return (
     <div
@@ -541,20 +606,22 @@ export default function NotificationRow({
             </NotificationTrayButton>
           </span>
         </div>
-        <NotificationDetailLine
-          parts={parts}
-          colour={style.text}
-          actor={
-            item.notificationType === 'pipeline-failure' ||
-            item.notificationType === 'due-date-reminder'
-              ? undefined
-              : item.author || undefined
-          }
-        />
-        {listChanges ? <NotificationChangeList changes={listChanges} /> : null}
-        {parts.comments && parts.comments.length > 1 ? (
-          <NotificationCommentList comments={parts.comments} />
-        ) : null}
+        <PersonAvatarsContext.Provider value={personAvatars}>
+          <NotificationDetailLine
+            parts={parts}
+            colour={style.text}
+            actor={
+              item.notificationType === 'pipeline-failure' ||
+              item.notificationType === 'due-date-reminder'
+                ? undefined
+                : item.author || undefined
+            }
+          />
+          {listChanges ? <NotificationChangeList changes={listChanges} /> : null}
+          {parts.comments && parts.comments.length > 1 ? (
+            <NotificationCommentList comments={parts.comments} />
+          ) : null}
+        </PersonAvatarsContext.Provider>
       </div>
     </div>
   );

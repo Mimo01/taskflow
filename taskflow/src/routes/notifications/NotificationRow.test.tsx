@@ -34,6 +34,14 @@ function makeItem(
   };
 }
 
+/** textContent without the aria-hidden person-avatar initials (what a reader sees as words). */
+function textOf(el: Element | null | undefined): string | undefined {
+  if (!el) return undefined;
+  const clone = el.cloneNode(true) as Element;
+  for (const a of clone.querySelectorAll('[data-person] [aria-hidden="true"]')) a.remove();
+  return clone.textContent ?? '';
+}
+
 function setup(props?: Partial<React.ComponentProps<typeof NotificationRow>>) {
   const handlers = {
     onOpen: vi.fn(),
@@ -438,7 +446,7 @@ describe('NotificationRow', () => {
     for (const [body, kind, line] of cases) {
       const { container, unmount } = setup({ item: sys(body) });
       expect(container.querySelector(`[data-event-badge="${kind}"]`), body).not.toBeNull();
-      expect(container.querySelector('[data-line="detail"]')?.textContent, body).toBe(
+      expect(textOf(container.querySelector('[data-line="detail"]')), body).toBe(
         `Jane Smith ${line}`,
       );
       expect(container.textContent).not.toContain('commented');
@@ -505,7 +513,7 @@ describe('NotificationRow', () => {
       );
       const rows = [...container.querySelectorAll('[data-change-row]')];
       expect(rows).toHaveLength(6);
-      expect(rows.slice(0, 3).map((r) => r.textContent)).toEqual([
+      expect(rows.slice(0, 3).map((r) => textOf(r))).toEqual([
         'statusTo Do\u2192In Progress',
         'assigneeBen\u2192Cara',
         'priorityMinor\u2192Major',
@@ -665,7 +673,7 @@ describe('NotificationRow', () => {
       expect(rm.container.querySelector('[data-value-removed]')).not.toBeNull();
       rm.unmount();
       const who = setup({ item: issue('Assignee: (none) \u2192 Ben Carter') });
-      expect(who.container.querySelector('[data-line="detail"]')?.textContent).toBe(
+      expect(textOf(who.container.querySelector('[data-line="detail"]'))).toBe(
         'Jane Smith assigned Ben Carter',
       );
     });
@@ -819,6 +827,102 @@ describe('NotificationRow', () => {
       expect(strip(read.container.querySelector('[data-card]'))).toBe(u.card);
       expect(read.container.querySelector('[data-line="detail"]')?.outerHTML).toBe(u.detail);
       expect(strip(read.container.querySelector('[data-unread]'))).toBe(u.dot);
+    });
+  });
+  describe('person avatars (261111-e1w)', () => {
+    const issue = (body: string, extra?: Partial<NotificationItem>) =>
+      makeItem('jira', { notificationType: 'issue-update', bodyPreview: body, ...extra });
+    const sys = (body: string, extra?: Partial<NotificationItem>) =>
+      makeItem('gitlab', {
+        id: 'gitlab-system-1',
+        notificationType: 'mr-note',
+        bodyPreview: body,
+        ...extra,
+      });
+    const people = (el: Element | null | undefined) =>
+      [...(el?.querySelectorAll('[data-person]') ?? [])].map((p) => textOf(p));
+
+    it('Jira assignee change: avatar before each name, image when captured, initials otherwise', () => {
+      const { container } = setup({
+        item: issue('Assignee: Ann Lee → Bo Chen', {
+          personAvatars: { 'Bo Chen': 'https://x/bo.png' },
+        }),
+      });
+      const line = container.querySelector('[data-line="detail"]');
+      const ps = [...(line?.querySelectorAll('[data-person]') ?? [])];
+      expect(ps.map((p) => textOf(p))).toEqual(['Ann Lee', 'Bo Chen']);
+      // avatar comes first, then the name
+      for (const p of ps) {
+        expect(p.firstElementChild?.getAttribute('aria-hidden')).toBe('true');
+        expect(p.lastChild?.textContent).toBe(textOf(p));
+      }
+      expect(ps[0].querySelector('[role="img"]')?.textContent).toBe('AL');
+      expect(ps[0].querySelector('img')).toBeNull();
+      expect(textOf(line)).toBe('Jane Smith changed assignee Ann Lee → Bo Chen');
+    });
+
+    it('unassigned: from side has an avatar, the none chip does not', () => {
+      const { container } = setup({ item: issue('Assignee: Ann Lee → (none)') });
+      const line = container.querySelector('[data-line="detail"]');
+      expect(people(line)).toEqual(['Ann Lee']);
+      const none = container.querySelectorAll('[data-value-none]');
+      for (const n of none) expect(n.querySelector('[data-person]')).toBeNull();
+    });
+
+    it('GitLab review request: one avatar per username, separated by ", "', () => {
+      const { container } = setup({ item: sys('Review requested: alice, bob') });
+      const line = container.querySelector('[data-line="detail"]');
+      expect(people(line)).toEqual(['alice', 'bob']);
+      expect(textOf(line)).toBe('Jane Smith requested review from alice, bob');
+    });
+
+    it('GitLab unassigned: sign then a person avatar', () => {
+      const { container } = setup({
+        item: sys('Unassigned: alice\nLabels added: x'),
+      });
+      const row = [...container.querySelectorAll('[data-change-row]')].find((r) =>
+        r.textContent?.includes('alice'),
+      );
+      const value = row?.querySelector('[data-list-value]');
+      expect(people(value)).toEqual(['alice']);
+      expect(textOf(value)).toBe('−alice');
+    });
+
+    it('Jira names with a comma are one person (never split)', () => {
+      const { container } = setup({ item: issue('Assignee: (none) → Smith, John') });
+      expect(people(container.querySelector('[data-line="detail"]'))).toEqual(['Smith, John']);
+    });
+
+    it('non-person fields render no person avatar', () => {
+      const { container } = setup({
+        item: issue('Priority: Minor → Major\nSprint: S1 → S2\nStatus: To Do → Done'),
+      });
+      expect(container.querySelector('[data-person]')).toBeNull();
+    });
+
+    it('reporter row in a change list carries avatars in its from/to cells and keeps h-5', () => {
+      const { container } = setup({
+        item: issue('Reporter: Ann Lee → Bo Chen\nPriority: Minor → Major'),
+      });
+      const row = [...container.querySelectorAll('[data-change-row]')].find(
+        (r) => r.querySelector('[data-list-field]')?.textContent === 'reporter',
+      );
+      const from = row?.querySelector('[data-list-from]');
+      const to = row?.querySelector('[data-list-value]');
+      expect(people(from)).toEqual(['Ann Lee']);
+      expect(people(to)).toEqual(['Bo Chen']);
+      expect(from?.className).toContain('h-5');
+      expect(to?.className).toContain('h-5');
+    });
+
+    it('merged cards look avatars up across every item', () => {
+      const newer = issue('Priority: Minor → Major', { id: 'a', personAvatars: undefined });
+      const older = issue('Assignee: (none) → Bo Chen', {
+        id: 'b',
+        personAvatars: { 'Bo Chen': 'https://x/bo.png' },
+      });
+      const { container } = setup({ item: newer, items: [newer, older] });
+      expect(people(container)).toContain('Bo Chen');
     });
   });
 });
