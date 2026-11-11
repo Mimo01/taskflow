@@ -166,6 +166,7 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 - ✓ Ranked global search: instant title hits from the cached backlog index, ordered by sprint tier then field (title > description > comment), subtasks grouped under a faded parent, an Epics section, one debounced Jira body request (with highlighted description/comment excerpts on a second line), and Recent Items rows enriched with status/assignee/epic — Phase 92
 - ✓ Fix-version-driven, GitLab-free Releases list as an agenda rail (overdue first, TODAY line, next-release card, month groups, planned rows expanding once they have issues, muted Released panel), in the standard header bar with planned/overdue/undated counts and release cadence; one batched paginated Jira search per visible chunk with instant cached revisits; the release detail header echoes the list row, with each figure shown once — Phase 93
 - ✓ Full-width release detail page: CycleHeader-style header with an icon facts row, a compact one-row graph band (progress burnup or release timeline, MR donut with GitLab-style label pills or By status, By type waffle, By assignee), a deployment-package mismatch action table with assignee/reporter and Apply, and a sticky task table header; sidebar removed — Phase 94
+- ✓ Notification centre redesign: a flat list of two-line cards. Each card shows the actor's avatar with a per-action colour/icon badge, then key and parent › title, then the actor and a coloured action (added/removed/changed, values, comment text). Consecutive same-actor events are merged into one card with up to 10 listed changes or comments. GitLab system notes show as changes, not comments. The bell and tab counts are card-based, there is keyboard triage, and the surface is the shared Card — Phase 95
 
 ### Active
 
@@ -188,6 +189,20 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 - Planned-worklog-targets / Log Work action on Standup Notes Today (STAND-09) — built in Phase 70 then removed in the standup redesign (commit b7984f2f); Log Work stays on the Worklogs page and issue detail
 
 ## Current State
+
+**Phase 95 complete 2026-11-11** (post-v1.14, standalone): the notifications popover was redesigned. Research first produced grouped one-line rows. Live UAT then ran 13+ rounds and replaced them with a flat list of two-line cards. Grouping UI was removed, and system-side merging of consecutive same-actor events took its place. Cards gained per-action icons and colours, explicit "added / removed / changed" phrasing, a dashed "none" chip, an aligned change grid, and the app's shared Card surface. They no longer have hover tooltips.
+
+A 66-card combination matrix with a written style contract fixed visual consistency. The code review found 3 blockers, all fixed with failing-first regression tests:
+- a duplicate Jira mention from two queries;
+- multi-word GitLab labels split on NBSP;
+- merged multi-value fields losing values.
+
+Four warnings were also fixed. Verification passed 10/10, and real-avatar human UAT passed. Follow-up todos:
+- Jira polls are capped at `maxResults=20` (**data loss on busy days, high priority**);
+- status colours are keyword-guessed;
+- due reminders lack overdue/in-Nd;
+- @you is not highlighted;
+- due-reminder id rollover and client-clock cursor (WR-05/06).
 
 **Phase 94 complete 2026-10-30** (post-v1.14, standalone): the release detail page was redesigned to full width with four graphs and no sidebar. Live UAT ran 12 polish rounds against real-app screenshots: informative stand-ins instead of empty graphs, a compact band sized like the AIO cycle page, MR labels as pills in the MR cell, and mismatches as a highlighted action table. A code review found 3 critical and 8 warning issues, all reproduced and fixed. One of them: a `try/finally` made the React Compiler skip the page. The page now has a compile-check test. Verification 12/12.
 
@@ -406,4 +421,4 @@ This document evolves at phase transitions and milestone boundaries.
 | `fetchEpicsBasic` ordering is a per-caller parameter, in the query key (v1.14 Phase 91.2) | The fetcher is shared with the Sidebar, Backlog and Sprint Board pickers under one cache key — this phase's `created ASC` was silently reordering all of them | ✓ Good — defaults to the original `updated DESC`; the two orderings cannot serve each other's cache |
 
 ---
-*Last updated: 2026-10-30 — after Phase 94 (Release detail redesign)*
+*Last updated: 2026-11-11 — after Phase 95 (Notifications redesign)*
