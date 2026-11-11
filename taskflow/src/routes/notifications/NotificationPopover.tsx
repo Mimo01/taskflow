@@ -32,6 +32,7 @@ import {
   buildEntries,
   countUnreadCards,
   type EventEntry,
+  entryIds,
   filterItems,
   getJiraKey,
   isSafeHttpUrl,
@@ -108,7 +109,7 @@ export default function NotificationPopover({
     // No navigable target: stays open, already marked read.
   }
 
-  const idsOf = (entry: EventEntry) => entry.items.map((i) => i.id);
+  const idsOf = (entry: EventEntry) => entryIds(entry);
 
   function openEvent(entry: EventEntry) {
     markItemsRead(idsOf(entry));

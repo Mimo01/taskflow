@@ -42,6 +42,11 @@ export interface EventEntry {
   items: NotificationItem[];
   /** True when ANY merged item is unread. */
   isUnread: boolean;
+  /**
+   * Store ids of hidden duplicate copies of merged items (the same Jira comment stored under
+   * both jira-comment-X and jira-allcomment-X). Read / Done must act on them too — use entryIds().
+   */
+  duplicateIds?: string[];
 }
 
 export type NotificationEntry = HeaderEntry | EventEntry;
@@ -694,6 +699,52 @@ export function describeEntryParts(items: NotificationItem[]): EventParts {
   };
 }
 
+/** Every store id a card stands for: merged items plus hidden duplicate copies. */
+export function entryIds(entry: EventEntry): string[] {
+  return [...entry.items.map((i) => i.id), ...(entry.duplicateIds ?? [])];
+}
+
+const JIRA_COMMENT_ID_RE = /^jira-(?:all)?comment-(.+)$/;
+
+/** The underlying Jira comment, whichever query (mention / all comments) produced the item. */
+function jiraCommentIdentity(item: NotificationItem): string | null {
+  if (item.source !== 'jira') return null;
+  const m = item.id.match(JIRA_COMMENT_ID_RE);
+  return m ? m[1] : null;
+}
+
+/**
+ * Collapse copies of one Jira comment to a single item; the mention copy wins. Returns the
+ * kept items (order preserved) and kept id -> ids of the dropped copies.
+ */
+function dedupeJiraComments(items: NotificationItem[]): {
+  items: NotificationItem[];
+  duplicates: Map<string, string[]>;
+} {
+  const best = new Map<string, NotificationItem>();
+  const copies = new Map<string, string[]>();
+  for (const item of items) {
+    const key = jiraCommentIdentity(item);
+    if (!key) continue;
+    const prev = best.get(key);
+    if (!prev || (isMention(item) && !isMention(prev))) best.set(key, item);
+    copies.set(key, [...(copies.get(key) ?? []), item.id]);
+  }
+  const duplicates = new Map<string, string[]>();
+  for (const [key, kept] of best) {
+    const others = (copies.get(key) ?? []).filter((id) => id !== kept.id);
+    if (others.length > 0) duplicates.set(kept.id, others);
+  }
+  if (duplicates.size === 0) return { items, duplicates };
+  return {
+    items: items.filter((i) => {
+      const key = jiraCommentIdentity(i);
+      return !key || best.get(key) === i;
+    }),
+    duplicates,
+  };
+}
+
 export function buildEntries(input: {
   items: NotificationItem[];
   readSet: ReadonlySet<string>;
@@ -704,7 +755,12 @@ export function buildEntries(input: {
   const { readSet, now } = input;
   // Merge over everything in the source scope so read state never splits a run,
   // then drop runs with nothing unread when unreadOnly.
-  const sorted = filterItems(input.items, readSet, input.source, false);
+  const { items: sorted, duplicates } = dedupeJiraComments(
+    filterItems(input.items, readSet, input.source, false),
+  );
+  // A comment is read when any stored copy of it is read.
+  const isRead = (i: NotificationItem) =>
+    readSet.has(i.id) || (duplicates.get(i.id) ?? []).some((id) => readSet.has(id));
   const groups = new Map<string, NotificationItem[]>();
   const byEntity = new Map<string, NotificationItem[]>();
   for (const item of [...sorted].reverse()) {
@@ -747,14 +803,22 @@ export function buildEntries(input: {
   for (const item of sorted) {
     const group = groups.get(item.id);
     if (!group) continue; // older member of a merged run
-    const isUnread = group.some((i) => !readSet.has(i.id));
+    const isUnread = group.some((i) => !isRead(i));
     if (input.unreadOnly && !isUnread) continue;
+    const duplicateIds = group.flatMap((i) => duplicates.get(i.id) ?? []);
     const bucket = bucketOf(item.createdAt, now);
     if (bucket !== current) {
       current = bucket;
       entries.push({ kind: 'header', id: `header:${bucket}`, bucket, label: BUCKET_LABEL[bucket] });
     }
-    entries.push({ kind: 'event', id: `event:${item.id}`, item, items: group, isUnread });
+    entries.push({
+      kind: 'event',
+      id: `event:${item.id}`,
+      item,
+      items: group,
+      isUnread,
+      ...(duplicateIds.length > 0 ? { duplicateIds } : {}),
+    });
   }
   return entries;
 }

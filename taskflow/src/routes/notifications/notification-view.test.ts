@@ -12,6 +12,7 @@ import {
   buildEntries,
   describeEventAria,
   describeEntryParts,
+  entryIds,
   describeEventParts,
   commentPreview,
   countUnreadCards,
@@ -746,5 +747,55 @@ describe('countUnreadCards', () => {
     ];
     expect(countUnreadCards(items, new Set(['e']), 'all', now)).toBe(2);
     expect(countUnreadCards(items, new Set(['e']), 'gitlab', now)).toBe(0);
+  });
+});
+
+describe('CR-01: one Jira comment returned by two queries', () => {
+  const base = { source: 'all' as const, unreadOnly: false, now: NOW };
+  const at = local(10, 10, 12);
+  const mention = jira('jira-comment-501', 'PROJ-7', at, {
+    author: 'Ben Carter',
+    notificationType: 'comment-mention',
+    bodyPreview: 'Hey [~me] look',
+    fullBody: 'Hey [~me] look',
+  });
+  const plain = {
+    ...mention,
+    id: 'jira-allcomment-501',
+    notificationType: 'jira-comment' as const,
+  };
+  const events = (items: NotificationItem[], readSet = new Set<string>()) =>
+    buildEntries({ ...base, items, readSet }).filter(isFocusableEntry);
+
+  it('renders a single mention card, not "mentioned you in 2 comments"', () => {
+    const e = events([plain, mention]);
+    expect(e).toHaveLength(1);
+    expect(e[0].items.map((i) => i.id)).toEqual(['jira-comment-501']);
+    const parts = describeEntryParts(e[0].items);
+    expect(parts.verb).toBe('mentioned you');
+    expect(parts.count).toBeUndefined();
+  });
+
+  it('keeps the mention even when the plain copy sorts first', () => {
+    const e = events([mention, plain]);
+    expect(e).toHaveLength(1);
+    expect(e[0].item.notificationType).toBe('comment-mention');
+  });
+
+  it('read / Done act on both stored copies', () => {
+    const e = events([plain, mention]);
+    expect(entryIds(e[0]).sort()).toEqual(['jira-allcomment-501', 'jira-comment-501']);
+  });
+
+  it('a comment is read when either copy is read; counted once', () => {
+    expect(events([plain, mention], new Set(['jira-allcomment-501']))[0].isUnread).toBe(false);
+    expect(countUnreadCards([plain, mention], new Set(), 'all', NOW)).toBe(1);
+  });
+
+  it('a lone plain copy still renders as a comment', () => {
+    const e = events([plain]);
+    expect(e).toHaveLength(1);
+    expect(describeEntryParts(e[0].items).verb).toBe('commented');
+    expect(entryIds(e[0])).toEqual(['jira-allcomment-501']);
   });
 });

@@ -470,7 +470,19 @@ async function fetchNewJiraComments(
     if (result.status === 'fulfilled') results.push(...result.value);
   }
 
-  return results;
+  // A comment that mentions the user on an issue they are involved in comes back from both
+  // Query B (jira-comment-X) and Query C (jira-allcomment-X). Keep only the mention copy.
+  const mentionIds = new Set(
+    results
+      .filter((r) => r.notificationType === 'comment-mention')
+      .map((r) => r.id.slice('jira-comment-'.length)),
+  );
+  return results.filter(
+    (r) =>
+      !(
+        r.id.startsWith('jira-allcomment-') && mentionIds.has(r.id.slice('jira-allcomment-'.length))
+      ),
+  );
 }
 
 // ─── GitLab Combined Fetcher ─────────────────────────────────────────────────

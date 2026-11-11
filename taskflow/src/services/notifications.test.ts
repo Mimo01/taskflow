@@ -178,6 +178,62 @@ describe('notifications service', () => {
     });
   });
 
+  describe('CR-01: one Jira comment matched by the mention and all-comments queries', () => {
+    it('returns it once, as the mention', async () => {
+      const issueWithComment = {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          issues: [
+            {
+              key: 'PROJ-7',
+              fields: {
+                summary: 'Shared comment',
+                comment: {
+                  comments: [
+                    {
+                      id: 'c501',
+                      author: { displayName: 'B.Carter' },
+                      body: 'Hey [~jdoe] please look',
+                      updated: '2026-03-11T12:00:00.000Z',
+                      created: '2026-03-11T12:00:00.000Z',
+                    },
+                  ],
+                },
+              },
+            },
+          ],
+        }),
+      };
+      const empty = { ok: true, status: 200, json: async () => ({ issues: [] }) };
+      vi.mocked(mockFetch).mockImplementation(async (input) => {
+        const jql = decodeURIComponent(String(input));
+        // Query B (comment ~) and Query C (all comments, fields=comment) both see the comment.
+        if (jql.includes('fields=summary,comment')) return issueWithComment as unknown as Response;
+        return empty as unknown as Response;
+      });
+
+      const result = await fetchNewNotifications(
+        'https://jira.example.com',
+        null,
+        { jira: 'jira-token', gitlab: null },
+        {
+          activeJiraProject: 'PROJ',
+          jiraUserDisplayName: 'John Doe',
+          jiraUsername: 'jdoe',
+          gitlabUserId: null,
+          gitlabUsername: null,
+          mrList: [],
+          lastSeenJiraCursor: '2026-03-11T10:00:00.000Z',
+          lastSeenGitlabCursor: '2026-03-11T10:00:00.000Z',
+        },
+      );
+
+      expect(result.map((r) => r.id)).toEqual(['jira-comment-c501']);
+      expect(result[0].notificationType).toBe('comment-mention');
+    });
+  });
+
   describe('NOTF-01: fetchNewNotifications — GitLab note items', () => {
     it('skips system notes and own-user notes, only returns notes newer than cursor', async () => {
       const notesResp = {
