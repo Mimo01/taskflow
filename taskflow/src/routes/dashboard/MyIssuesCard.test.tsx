@@ -22,6 +22,16 @@ vi.mock('@/services/jira', () => ({
   fetchSprintIssues: vi.fn().mockResolvedValue([]),
 }));
 
+const sprintState = vi.hoisted(() => ({
+  value: { activeSprint: null, noActiveSprint: false, isResolving: false } as Record<
+    string,
+    unknown
+  >,
+}));
+vi.mock('@/hooks/useActiveSprint', () => ({
+  useActiveSprint: () => sprintState.value,
+}));
+
 const SP_KEY = 'customfield_10016';
 const SPRINT_BOARD_KEY = ['jira-issues', 'sprint-board', 'PROJ', SP_KEY];
 
@@ -183,6 +193,46 @@ describe('MyIssuesCard — D-05 empty state', () => {
     renderWithQuery(<MyIssuesCard {...defaultProps} />, { sprintIssues: [] });
 
     expect(screen.getByText('You have no issues assigned in the current sprint.')).toBeTruthy();
+  });
+});
+
+describe('MyIssuesCard — no active sprint', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    sprintState.value = { activeSprint: null, noActiveSprint: false, isResolving: false };
+  });
+
+  it('shows "No active sprint" instead of "No issues assigned"', async () => {
+    sprintState.value = { activeSprint: null, noActiveSprint: true, isResolving: false };
+    const MyIssuesCard = await importComponent();
+    renderWithQuery(<MyIssuesCard {...defaultProps} />, { sprintIssues: [] });
+    expect(screen.getByText('No active sprint')).toBeTruthy();
+    expect(screen.queryByText('No issues assigned')).toBeNull();
+    expect(screen.queryByRole('img')).toBeNull();
+  });
+
+  it('keeps "No issues assigned" when a sprint exists', async () => {
+    const MyIssuesCard = await importComponent();
+    renderWithQuery(<MyIssuesCard {...defaultProps} />, { sprintIssues: [] });
+    expect(screen.getByText('No issues assigned')).toBeTruthy();
+    expect(screen.queryByText('No active sprint')).toBeNull();
+  });
+
+  it('shows neither empty title while the sprint lookup is resolving', async () => {
+    sprintState.value = { activeSprint: null, noActiveSprint: false, isResolving: true };
+    const MyIssuesCard = await importComponent();
+    renderWithQuery(<MyIssuesCard {...defaultProps} />, { sprintIssues: [] });
+    expect(screen.queryByText('No active sprint')).toBeNull();
+    expect(screen.queryByText('No issues assigned')).toBeNull();
+  });
+
+  it('renders the data view when issues exist even if noActiveSprint', async () => {
+    sprintState.value = { activeSprint: null, noActiveSprint: true, isResolving: false };
+    const MyIssuesCard = await importComponent();
+    const issues = [makeIssue({ subtask: false, assignee: 'Alice', statusCategory: 'done' })];
+    renderWithQuery(<MyIssuesCard {...defaultProps} />, { sprintIssues: issues });
+    expect(screen.getByText(/of 1 done/)).toBeTruthy();
+    expect(screen.queryByText('No active sprint')).toBeNull();
   });
 });
 

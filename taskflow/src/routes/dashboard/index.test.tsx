@@ -53,9 +53,15 @@ vi.mock('@/services/stronghold', () => ({
   readSecret: vi.fn().mockResolvedValue('test-jira-token'),
 }));
 
-// Mock useBoardId — stub so tests need no real board resolution
-vi.mock('@/hooks/useBoardId', () => ({
-  useBoardId: () => ({ boardId: null, isLoading: false }),
+// Mock useActiveSprint — tests control the sprint via this mutable result
+const activeSprintResult = vi.hoisted(() => ({
+  value: { activeSprint: null, noActiveSprint: false, isResolving: false } as Record<
+    string,
+    unknown
+  >,
+}));
+vi.mock('@/hooks/useActiveSprint', () => ({
+  useActiveSprint: () => activeSprintResult.value,
 }));
 
 // Mock react-router-dom — useOutletContext returns stub context
@@ -70,7 +76,6 @@ vi.mock('react-router-dom', async () => {
 // Mock fetchSprintIssues + fetchActiveSprint (no network calls in tests)
 vi.mock('@/services/jira', () => ({
   fetchSprintIssues: vi.fn().mockResolvedValue([]),
-  fetchActiveSprint: vi.fn().mockResolvedValue(null),
 }));
 
 import { useAuthStore } from '@/stores/auth.store';
@@ -91,6 +96,7 @@ function renderDashboard() {
 
 describe('Dashboard — Phase 86 3-region layout', () => {
   beforeEach(() => {
+    activeSprintResult.value = { activeSprint: null, noActiveSprint: false, isResolving: false };
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-05-21T12:00:00Z'));
     vi.mocked(useAuthStore).mockReturnValue({
@@ -130,24 +136,19 @@ describe('Dashboard — Phase 86 3-region layout', () => {
   });
 
   it('Test 3 (D-13 — sprint-day clause with active sprint): subline contains "Sprint day N of M"', async () => {
-    const { fetchActiveSprint } = await import('@/services/jira');
-    vi.mocked(fetchActiveSprint).mockResolvedValue({
-      id: 42,
-      name: 'Sprint 42',
-      state: 'active',
-      startDate: '2026-05-18T00:00:00.000Z', // Mon — 3 days before 2026-05-21
-      endDate: '2026-05-31T00:00:00.000Z', // Sun — 13 days after start (14-day sprint)
-    });
+    activeSprintResult.value = {
+      activeSprint: {
+        id: 42,
+        name: 'Sprint 42',
+        state: 'active',
+        startDate: '2026-05-18',
+        endDate: '2026-05-31',
+      },
+      noActiveSprint: false,
+      isResolving: false,
+    };
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
-    });
-    // Pre-seed activeSprint into cache so the component reads it synchronously
-    queryClient.setQueryData(['jira-active-sprint', 'PROJ', 'https://jira.example.com', null], {
-      id: 42,
-      name: 'Sprint 42',
-      state: 'active',
-      startDate: '2026-05-18',
-      endDate: '2026-05-31',
     });
     render(
       <QueryClientProvider client={queryClient}>

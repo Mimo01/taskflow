@@ -4,8 +4,8 @@ import { useQuery } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import { AmbientCurves } from '@/components/ambient-curves';
-import { useBoardId } from '@/hooks/useBoardId';
-import { fetchActiveSprint, fetchSprintIssues } from '@/services/jira';
+import { useActiveSprint } from '@/hooks/useActiveSprint';
+import { fetchSprintIssues } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useSettingsStore } from '@/stores/settings.store';
@@ -116,10 +116,6 @@ export default function Dashboard() {
     }
   }, [gitlabBaseUrl]);
 
-  // Resolve the per-project chosen board id (falls back to first board) so the
-  // active-sprint query honors the user's board choice.
-  const { boardId } = useBoardId(jiraBaseUrl, jiraToken, activeJiraProject);
-
   // Sprint-board query — ONE shared cache key (dedupes against MyIssuesCard via same key)
   useQuery({
     queryKey: ['jira-issues', 'sprint-board', activeJiraProject, storyPointsFieldKey],
@@ -135,21 +131,8 @@ export default function Dashboard() {
     enabled: !!jiraBaseUrl && !!jiraToken && !!activeJiraProject,
   });
 
-  // Active sprint — cache-deduped with the Sidebar prefetch.
-  // Reuses the EXACT same queryKey ['jira-active-sprint', activeJiraProject, jiraBaseUrl, boardId]
-  // so TanStack Query returns the cached result with zero extra network calls (D-09).
-  const { data: activeSprint } = useQuery({
-    queryKey: ['jira-active-sprint', activeJiraProject, jiraBaseUrl, boardId],
-    queryFn: () =>
-      fetchActiveSprint(
-        jiraBaseUrl ?? '',
-        jiraToken ?? '',
-        activeJiraProject ?? '',
-        boardId ?? undefined,
-      ),
-    staleTime: 5 * 60_000,
-    enabled: !!jiraBaseUrl && !!jiraToken && !!activeJiraProject && boardId != null,
-  });
+  // Active sprint — shared hook, cache-deduped with the Sidebar prefetch (D-09).
+  const { activeSprint } = useActiveSprint(jiraBaseUrl, jiraToken, activeJiraProject);
 
   // Jira displayName varies by instance format, e.g.:
   //   "Jane Doe"            — Firstname Surname (standard)

@@ -12,13 +12,15 @@
  * Auth values are loaded once in index.tsx and passed down as props.
  */
 import { useQuery } from '@tanstack/react-query';
-import { ListChecks } from 'lucide-react';
+import { CalendarOff, ListChecks } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useActiveSprint } from '@/hooks/useActiveSprint';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { clickableCard } from '@/lib/clickable-card';
+import { NO_ACTIVE_SPRINT_TITLE, resolveSprintScopeState } from '@/lib/sprint-empty-state';
 import { fetchSprintIssues } from '@/services/jira';
 import { filterNonSubtasks } from './dashboardMetrics';
 
@@ -55,7 +57,7 @@ export default function MyIssuesCard({
     enabled: !!jiraBaseUrl && !!jiraToken && !!activeJiraProject,
   });
 
-  const showSkeleton = useDelayedLoading(isLoading);
+  const sprint = useActiveSprint(jiraBaseUrl || null, jiraToken || null, activeJiraProject || null);
 
   // Normalise: fetchSprintIssues returns JiraIssue[] directly
   const sprintIssues = Array.isArray(sprintIssuesRaw) ? sprintIssuesRaw : [];
@@ -73,6 +75,13 @@ export default function MyIssuesCard({
   // D-03 invariant by construction: derive total from the three segments so the bar always
   // sums to full and the "{done} of {total}" headline can't drift on an unknown status key (WR-03).
   const total = toDo + inProgress + done;
+
+  const scopeState = resolveSprintScopeState({
+    itemsLoading: isLoading,
+    hasItems: total > 0,
+    sprint,
+  });
+  const showSkeleton = useDelayedLoading(scopeState === 'loading');
 
   return (
     <Card
@@ -107,7 +116,14 @@ export default function MyIssuesCard({
         )}
 
         {/* Empty state — 0 issues is valid (D-05); never an error */}
-        {!showSkeleton && !error && total === 0 && (
+        {!error && scopeState === 'no-sprint' && (
+          <EmptyState
+            icon={CalendarOff}
+            title={NO_ACTIVE_SPRINT_TITLE}
+            subtitle="There's no open sprint on the board right now."
+          />
+        )}
+        {!error && scopeState === 'empty' && (
           <EmptyState
             icon={ListChecks}
             title="No issues assigned"
@@ -116,7 +132,7 @@ export default function MyIssuesCard({
         )}
 
         {/* Data view */}
-        {!showSkeleton && !error && total > 0 && (
+        {!error && scopeState === 'items' && (
           <>
             {/* Big number row */}
             <div className="flex items-baseline gap-1">

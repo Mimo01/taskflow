@@ -10,7 +10,7 @@
  */
 
 import { QueryClient, QueryClientProvider, useQueries, useQuery } from '@tanstack/react-query';
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { formatDuration } from '@/services/jira/duration';
@@ -31,6 +31,16 @@ vi.mock('@tanstack/react-query', async () => {
     useQueries: vi.fn().mockReturnValue([]),
   };
 });
+
+const sprintState = vi.hoisted(() => ({
+  value: { activeSprint: null, noActiveSprint: false, isResolving: false } as Record<
+    string,
+    unknown
+  >,
+}));
+vi.mock('@/hooks/useActiveSprint', () => ({
+  useActiveSprint: () => sprintState.value,
+}));
 
 vi.mock('@/stores/auth.store', () => ({
   useAuthStore: vi.fn(() => ({
@@ -116,6 +126,7 @@ function renderPage(outletCtx?: Record<string, unknown>) {
 describe('MyTasksPage — MYTASK-01 smoke render (82-DESIGN-TARGET)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    sprintState.value = { activeSprint: null, noActiveSprint: false, isResolving: false };
   });
 
   it('renders the "My Tasks" page title without throwing', () => {
@@ -496,5 +507,44 @@ describe('MyTasksPage — Testing band and workflow order (260929-fz1)', () => {
       Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
     expect(follows(p, t)).toBe(true);
     expect(follows(t, d)).toBe(true);
+  });
+});
+
+describe('MyTasksPage — no active sprint (261111-uao)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    sprintState.value = { activeSprint: null, noActiveSprint: true, isResolving: false };
+    // Earlier describes leave mockImplementation behind; reset to the empty-data default.
+    vi.mocked(useQuery).mockImplementation((() => NO_DATA_RESPONSE) as never);
+    vi.mocked(useQueries).mockReturnValue([]);
+  });
+
+  it('Current Sprint shows "No active sprint" and hides sprint chrome', () => {
+    renderPage();
+    expect(screen.getAllByText('No active sprint').length).toBeGreaterThanOrEqual(1);
+    expect(screen.queryByText("You're all caught up")).toBeNull();
+    expect(screen.queryByText('pts done')).toBeNull();
+    expect(screen.queryByText(/pts in flight/)).toBeNull();
+    expect(screen.queryByRole('button', { name: /To Do/ })).toBeNull();
+  });
+
+  it('keeps "You\'re all caught up" when a sprint exists', () => {
+    sprintState.value = { activeSprint: { id: 1 }, noActiveSprint: false, isResolving: false };
+    renderPage();
+    expect(screen.getByText("You're all caught up")).toBeDefined();
+    expect(screen.queryByText('No active sprint')).toBeNull();
+  });
+
+  it('shows neither empty copy while the sprint lookup resolves', () => {
+    sprintState.value = { activeSprint: null, noActiveSprint: false, isResolving: true };
+    renderPage();
+    expect(screen.queryByText('No active sprint')).toBeNull();
+    expect(screen.queryByText("You're all caught up")).toBeNull();
+  });
+
+  it('All Assigned scope is unaffected by noActiveSprint', () => {
+    renderPage();
+    fireEvent.click(screen.getByText('All Assigned'));
+    expect(screen.queryByText('No active sprint')).toBeNull();
   });
 });

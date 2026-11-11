@@ -23,15 +23,17 @@
  */
 
 import { useQueries, useQuery } from '@tanstack/react-query';
-import { BadgeCheck, CheckSquare, Hourglass, ListFilter, Zap } from 'lucide-react';
+import { BadgeCheck, CalendarOff, CheckSquare, Hourglass, ListFilter, Zap } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { PageHeader } from '@/components/ui/page-header';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useActiveSprint } from '@/hooks/useActiveSprint';
 import { buildMrHealthByKey, resolveMrHealth, selectMrsForHealth } from '@/lib/my-tasks-mr-health';
 import { groupByMyDay, type MyDayBand } from '@/lib/my-tasks-sort';
+import { NO_ACTIVE_SPRINT_TITLE, resolveSprintScopeState } from '@/lib/sprint-empty-state';
 import { orderSubtasks } from '@/lib/subtask-order';
 import { cn } from '@/lib/utils';
 import { fetchAuthoredMRs, fetchMRApprovals, fetchMRDiscussions } from '@/services/gitlab';
@@ -395,9 +397,24 @@ export default function MyTasksPage() {
     })),
   );
 
+  const allIssues = activeData?.issues ?? [];
+
+  // Active-sprint lookup (cache-shared with the Sidebar prefetch). Only meaningful
+  // for the Current Sprint scope.
+  const sprintLookup = useActiveSprint(jiraBaseUrl ?? null, jiraToken, activeJiraProject ?? null);
+  const sprintScopeState =
+    scope === 'current-sprint'
+      ? resolveSprintScopeState({
+          itemsLoading: sprintLoading,
+          hasItems: allIssues.length > 0,
+          sprint: sprintLookup,
+        })
+      : null;
+  const noSprint = sprintScopeState === 'no-sprint';
+
   const isLoading =
     scope === 'current-sprint'
-      ? sprintLoading
+      ? sprintScopeState === 'loading'
       : scope === 'all-assigned'
         ? allLoading
         : reportedLoading;
@@ -410,7 +427,6 @@ export default function MyTasksPage() {
         ? allRefetch
         : reportedRefetch;
 
-  const allIssues = activeData?.issues ?? [];
   const myIssueKeys = activeData?.myIssueKeys ?? new Set<string>();
 
   // ── Status line derivation ─────────────────────────────────────────────────
@@ -539,6 +555,15 @@ export default function MyTasksPage() {
   // ── Render grouped list ────────────────────────────────────────────────────
 
   function renderMyDayList() {
+    if (noSprint) {
+      return (
+        <EmptyState
+          icon={CalendarOff}
+          title={NO_ACTIVE_SPRINT_TITLE}
+          subtitle="There's no open sprint right now. Switch to All Assigned to see the rest of your work."
+        />
+      );
+    }
     const filtered = applyBucketFilter(allIssues);
     const bands = groupByMyDay(
       filtered,
@@ -726,84 +751,92 @@ export default function MyTasksPage() {
       <PageHeader
         title="My Tasks"
         subtitle={
-          <span className="tabular-nums">
-            <span className="text-slate-600 dark:text-slate-300 font-medium">{openCount} open</span>
-            <span className="mx-1">·</span>
-            <span className="text-emerald-600 dark:text-emerald-400 font-medium">
-              {doneCount} done
+          noSprint ? (
+            <span className="text-muted-foreground">No active sprint</span>
+          ) : (
+            <span className="tabular-nums">
+              <span className="text-slate-600 dark:text-slate-300 font-medium">
+                {openCount} open
+              </span>
+              <span className="mx-1">·</span>
+              <span className="text-emerald-600 dark:text-emerald-400 font-medium">
+                {doneCount} done
+              </span>
+              <span className="mx-1">·</span>
+              <span className="text-blue-600 dark:text-blue-400 font-medium">
+                {pointsInFlight} pts in flight
+              </span>
+              {overdueCount > 0 && (
+                <>
+                  <span className="mx-1">·</span>
+                  <span className="text-red-600 dark:text-red-400 font-medium">
+                    {overdueCount} overdue
+                  </span>
+                </>
+              )}
+              {flaggedCount > 0 && (
+                <>
+                  <span className="mx-1">·</span>
+                  <span className="text-amber-600 dark:text-amber-400 font-medium">
+                    {flaggedCount} flagged
+                  </span>
+                </>
+              )}
+              {mrsAwaitingCount > 0 && (
+                <>
+                  <span className="mx-1">·</span>
+                  <span className="text-blue-600 dark:text-blue-400 font-medium">
+                    {mrsAwaitingCount} MRs awaiting you
+                  </span>
+                </>
+              )}
             </span>
-            <span className="mx-1">·</span>
-            <span className="text-blue-600 dark:text-blue-400 font-medium">
-              {pointsInFlight} pts in flight
-            </span>
-            {overdueCount > 0 && (
-              <>
-                <span className="mx-1">·</span>
-                <span className="text-red-600 dark:text-red-400 font-medium">
-                  {overdueCount} overdue
-                </span>
-              </>
-            )}
-            {flaggedCount > 0 && (
-              <>
-                <span className="mx-1">·</span>
-                <span className="text-amber-600 dark:text-amber-400 font-medium">
-                  {flaggedCount} flagged
-                </span>
-              </>
-            )}
-            {mrsAwaitingCount > 0 && (
-              <>
-                <span className="mx-1">·</span>
-                <span className="text-blue-600 dark:text-blue-400 font-medium">
-                  {mrsAwaitingCount} MRs awaiting you
-                </span>
-              </>
-            )}
-          </span>
+          )
         }
         actions={
           <div className="flex items-center gap-4 shrink-0">
             {/* Sprint-progress donut — hidden when the CONTAINER (not viewport) is narrow,
               so it also disappears when a drawer shrinks the content area. */}
-            <div className="hidden @[1000px]:flex items-center gap-3">
-              <svg
-                width="56"
-                height="56"
-                viewBox="0 0 60 60"
-                aria-hidden="true"
-                style={{ transform: 'rotate(-90deg)', flexShrink: 0 }}
-              >
-                {/* Track */}
-                <circle
-                  cx="30"
-                  cy="30"
-                  r={DONUT_R}
-                  fill="none"
-                  className="stroke-muted"
-                  strokeWidth="8"
-                />
-                {/* Fill */}
-                <circle
-                  cx="30"
-                  cy="30"
-                  r={DONUT_R}
-                  fill="none"
-                  stroke="#10b981"
-                  strokeWidth="8"
-                  strokeLinecap="round"
-                  strokeDasharray={DONUT_CIRCUMFERENCE}
-                  strokeDashoffset={donutOffset}
-                />
-              </svg>
-              <div className="leading-tight">
-                <div className="text-lg font-semibold tabular-nums text-foreground leading-none">
-                  {ptsDone}
-                  <span className="text-muted-foreground font-normal">/{ptsTotal}</span>
+            {!noSprint && (
+              <div className="hidden @[1000px]:flex items-center gap-3">
+                <svg
+                  width="56"
+                  height="56"
+                  viewBox="0 0 60 60"
+                  aria-hidden="true"
+                  style={{ transform: 'rotate(-90deg)', flexShrink: 0 }}
+                >
+                  {/* Track */}
+                  <circle
+                    cx="30"
+                    cy="30"
+                    r={DONUT_R}
+                    fill="none"
+                    className="stroke-muted"
+                    strokeWidth="8"
+                  />
+                  {/* Fill */}
+                  <circle
+                    cx="30"
+                    cy="30"
+                    r={DONUT_R}
+                    fill="none"
+                    stroke="#10b981"
+                    strokeWidth="8"
+                    strokeLinecap="round"
+                    strokeDasharray={DONUT_CIRCUMFERENCE}
+                    strokeDashoffset={donutOffset}
+                  />
+                </svg>
+                <div className="leading-tight">
+                  <div className="text-lg font-semibold tabular-nums text-foreground leading-none">
+                    {ptsDone}
+                    <span className="text-muted-foreground font-normal">/{ptsTotal}</span>
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-0.5">pts done</div>
                 </div>
-                <div className="text-xs text-muted-foreground mt-0.5">pts done</div>
               </div>
-            </div>
+            )}
 
             {/* Scope segmented control */}
             <fieldset className="inline-flex rounded-lg bg-muted p-0.5 border-0 m-0">
@@ -836,114 +869,116 @@ export default function MyTasksPage() {
       />
 
       {/* ── 2. Enriched stat tiles ───────────────────────────────────────────── */}
-      <div className="px-6 py-4 border-b border-border/50 shrink-0">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          {/* To Do tile */}
-          <button
-            type="button"
-            aria-pressed={activeBucket === 'toDo'}
-            onClick={() => handleBucketClick('toDo')}
-            className={cn(
-              'relative overflow-hidden rounded-lg border p-3 text-left transition-colors',
-              activeBucket === 'toDo'
-                ? 'ring-1 ring-inset ring-primary/60 bg-primary/5 border-primary/30'
-                : 'border-border/60 bg-card hover:bg-muted/30',
-            )}
-          >
-            <Hourglass
-              className="pointer-events-none absolute -top-4 -right-3 size-20 text-slate-500/10 dark:text-slate-400/10"
-              aria-hidden
-            />
-            <div className="relative">
-              <span className="text-2xl font-semibold tabular-nums text-foreground leading-none">
-                {tileToDoCount}
-              </span>
-              <div className="mt-2 text-sm text-muted-foreground">To Do</div>
-              <div className="mt-2 h-1.5 rounded-full bg-muted overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-slate-400 dark:bg-slate-500 transition-all"
-                  style={{
-                    width:
-                      tileTotalCount > 0
-                        ? `${Math.round((tileToDoCount / tileTotalCount) * 100)}%`
-                        : '0%',
-                  }}
-                />
+      {!noSprint && (
+        <div className="px-6 py-4 border-b border-border/50 shrink-0">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {/* To Do tile */}
+            <button
+              type="button"
+              aria-pressed={activeBucket === 'toDo'}
+              onClick={() => handleBucketClick('toDo')}
+              className={cn(
+                'relative overflow-hidden rounded-lg border p-3 text-left transition-colors',
+                activeBucket === 'toDo'
+                  ? 'ring-1 ring-inset ring-primary/60 bg-primary/5 border-primary/30'
+                  : 'border-border/60 bg-card hover:bg-muted/30',
+              )}
+            >
+              <Hourglass
+                className="pointer-events-none absolute -top-4 -right-3 size-20 text-slate-500/10 dark:text-slate-400/10"
+                aria-hidden
+              />
+              <div className="relative">
+                <span className="text-2xl font-semibold tabular-nums text-foreground leading-none">
+                  {tileToDoCount}
+                </span>
+                <div className="mt-2 text-sm text-muted-foreground">To Do</div>
+                <div className="mt-2 h-1.5 rounded-full bg-muted overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-slate-400 dark:bg-slate-500 transition-all"
+                    style={{
+                      width:
+                        tileTotalCount > 0
+                          ? `${Math.round((tileToDoCount / tileTotalCount) * 100)}%`
+                          : '0%',
+                    }}
+                  />
+                </div>
               </div>
-            </div>
-          </button>
+            </button>
 
-          {/* In Progress tile */}
-          <button
-            type="button"
-            aria-pressed={activeBucket === 'inProgress'}
-            onClick={() => handleBucketClick('inProgress')}
-            className={cn(
-              'relative overflow-hidden rounded-lg border p-3 text-left transition-colors',
-              activeBucket === 'inProgress'
-                ? 'ring-1 ring-inset ring-primary/60 bg-primary/5 border-primary/30'
-                : 'border-border/60 bg-card hover:bg-muted/30',
-            )}
-          >
-            <Zap
-              className="pointer-events-none absolute -top-4 -right-3 size-20 text-blue-500/10 dark:text-blue-400/15"
-              aria-hidden
-            />
-            <div className="relative">
-              <span className="text-2xl font-semibold tabular-nums text-blue-600 dark:text-blue-400 leading-none">
-                {tileInProgressCount}
-              </span>
-              <div className="mt-2 text-sm text-muted-foreground">In Progress</div>
-              <div className="mt-2 h-1.5 rounded-full bg-muted overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-blue-500 transition-all"
-                  style={{
-                    width:
-                      tileTotalCount > 0
-                        ? `${Math.round((tileInProgressCount / tileTotalCount) * 100)}%`
-                        : '0%',
-                  }}
-                />
+            {/* In Progress tile */}
+            <button
+              type="button"
+              aria-pressed={activeBucket === 'inProgress'}
+              onClick={() => handleBucketClick('inProgress')}
+              className={cn(
+                'relative overflow-hidden rounded-lg border p-3 text-left transition-colors',
+                activeBucket === 'inProgress'
+                  ? 'ring-1 ring-inset ring-primary/60 bg-primary/5 border-primary/30'
+                  : 'border-border/60 bg-card hover:bg-muted/30',
+              )}
+            >
+              <Zap
+                className="pointer-events-none absolute -top-4 -right-3 size-20 text-blue-500/10 dark:text-blue-400/15"
+                aria-hidden
+              />
+              <div className="relative">
+                <span className="text-2xl font-semibold tabular-nums text-blue-600 dark:text-blue-400 leading-none">
+                  {tileInProgressCount}
+                </span>
+                <div className="mt-2 text-sm text-muted-foreground">In Progress</div>
+                <div className="mt-2 h-1.5 rounded-full bg-muted overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-blue-500 transition-all"
+                    style={{
+                      width:
+                        tileTotalCount > 0
+                          ? `${Math.round((tileInProgressCount / tileTotalCount) * 100)}%`
+                          : '0%',
+                    }}
+                  />
+                </div>
               </div>
-            </div>
-          </button>
+            </button>
 
-          {/* Done tile */}
-          <button
-            type="button"
-            aria-pressed={activeBucket === 'done'}
-            onClick={() => handleBucketClick('done')}
-            className={cn(
-              'relative overflow-hidden rounded-lg border p-3 text-left transition-colors',
-              activeBucket === 'done'
-                ? 'ring-1 ring-inset ring-primary/60 bg-primary/5 border-primary/30'
-                : 'border-border/60 bg-card hover:bg-muted/30',
-            )}
-          >
-            <BadgeCheck
-              className="pointer-events-none absolute -top-4 -right-3 size-20 text-emerald-500/10 dark:text-emerald-400/15"
-              aria-hidden
-            />
-            <div className="relative">
-              <span className="text-2xl font-semibold tabular-nums text-emerald-600 dark:text-emerald-400 leading-none">
-                {tileDoneCount}
-              </span>
-              <div className="mt-2 text-sm text-muted-foreground">Done</div>
-              <div className="mt-2 h-1.5 rounded-full bg-muted overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-emerald-500 transition-all"
-                  style={{
-                    width:
-                      tileTotalCount > 0
-                        ? `${Math.round((tileDoneCount / tileTotalCount) * 100)}%`
-                        : '0%',
-                  }}
-                />
+            {/* Done tile */}
+            <button
+              type="button"
+              aria-pressed={activeBucket === 'done'}
+              onClick={() => handleBucketClick('done')}
+              className={cn(
+                'relative overflow-hidden rounded-lg border p-3 text-left transition-colors',
+                activeBucket === 'done'
+                  ? 'ring-1 ring-inset ring-primary/60 bg-primary/5 border-primary/30'
+                  : 'border-border/60 bg-card hover:bg-muted/30',
+              )}
+            >
+              <BadgeCheck
+                className="pointer-events-none absolute -top-4 -right-3 size-20 text-emerald-500/10 dark:text-emerald-400/15"
+                aria-hidden
+              />
+              <div className="relative">
+                <span className="text-2xl font-semibold tabular-nums text-emerald-600 dark:text-emerald-400 leading-none">
+                  {tileDoneCount}
+                </span>
+                <div className="mt-2 text-sm text-muted-foreground">Done</div>
+                <div className="mt-2 h-1.5 rounded-full bg-muted overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-emerald-500 transition-all"
+                    style={{
+                      width:
+                        tileTotalCount > 0
+                          ? `${Math.round((tileDoneCount / tileTotalCount) * 100)}%`
+                          : '0%',
+                    }}
+                  />
+                </div>
               </div>
-            </div>
-          </button>
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* ── 3. Issue list ────────────────────────────────────────────────────── */}
       <div className="flex-1 overflow-auto min-h-0">
