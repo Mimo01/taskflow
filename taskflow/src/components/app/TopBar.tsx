@@ -129,7 +129,7 @@ export default function TopBar({
           side="bottom"
           align="end"
           sideOffset={12}
-          alignOffset={8}
+          alignOffset={-8}
           data-notif-motion
           className="notif-glass relative z-0 flex max-h-[calc(100vh-64px)] w-[31rem] max-w-[calc(100vw-1rem)] flex-col rounded-none border-0 bg-transparent p-0 shadow-none ring-0 data-[starting-style]:opacity-100 data-[ending-style]:opacity-0 data-[ending-style]:duration-[180ms] data-[ending-style]:ease-in"
         >
