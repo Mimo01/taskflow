@@ -129,9 +129,12 @@ export default function TopBar({
           side="bottom"
           align="end"
           sideOffset={12}
-          alignOffset={-8}
+          // The .notif-glass blur layer overhangs the panel by 14px on every side. Keep the panel
+          // >= 16px from each viewport edge (end-aligned to the bell = 16px from the right; height and
+          // width capped) or the overhang makes the document scrollable and WKWebView flickers the whole
+          // page as scrollbars toggle on every layout change.
           data-notif-motion
-          className="notif-glass relative z-0 flex max-h-[calc(100vh-64px)] w-[31rem] max-w-[calc(100vw-1rem)] flex-col rounded-none border-0 bg-transparent p-0 shadow-none ring-0 data-[starting-style]:opacity-100 data-[ending-style]:opacity-0 data-[ending-style]:duration-[180ms] data-[ending-style]:ease-in"
+          className="notif-glass relative z-0 flex max-h-[calc(100vh-92px)] w-[31rem] max-w-[calc(100vw-3rem)] flex-col rounded-none border-0 bg-transparent p-0 shadow-none ring-0 data-[starting-style]:opacity-100 data-[ending-style]:opacity-0 data-[ending-style]:duration-[180ms] data-[ending-style]:ease-in"
         >
           <NotificationPopover
             onIssueClick={onIssueClick}
