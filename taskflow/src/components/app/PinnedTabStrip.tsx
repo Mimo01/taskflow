@@ -197,6 +197,7 @@ export default function PinnedTabStrip({
     <>
       <div
         ref={containerRef}
+        data-pinned-tab-strip
         className="h-10 border-b border-border flex items-end gap-1 px-3 flex-shrink-0 bg-background overflow-x-auto overflow-y-hidden no-scrollbar"
         role="tablist"
         aria-label="Pinned tabs"

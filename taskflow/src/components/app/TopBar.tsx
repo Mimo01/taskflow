@@ -19,15 +19,8 @@ import { useNotificationsStore, useUnreadCount } from '../../stores/notification
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import RecentItemsPopover from './RecentItemsPopover';
 
-/**
- * Gap between the bell's bottom and the top bar's bottom line, so the panel's top lands exactly on
- * that line ("drops from the top bar"). The bar is h-12 (3rem) and the bell h-8 (2rem), centred,
- * so the gap is 0.5rem — computed from the root font size so it holds at every font scale.
- */
-function topBarGap(): number {
-  const rem = Number.parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
-  return rem * 0.5;
-}
+/** Panel inset from the window's right edge; .notif-glass extends 11px past it (to 1px of the edge). */
+const NOTIF_RIGHT_INSET_PX = 12;
 
 interface TopBarProps {
   /**
@@ -93,6 +86,48 @@ export default function TopBar({
   // Clear the pulse once, on the closed -> open transition. Arrivals while the panel is open must
   // still ring the bell, so this must not re-run on every count change.
   const prevOpenRef = useRef(false);
+  // The panel "drops from" the lowest bar: the bottom of the pinned-issues strip when it is
+  // showing, else the top bar's bottom line — so it never covers the pinned tabs (261111-m0g UAT).
+  // Horizontally it is a sheet attached to the window's right edge (align="end").
+  const headerRef = useRef<HTMLElement>(null);
+  /** Top edge of the panel: strictly below the lowest bar's divider (whole pixel). */
+  const panelTop = () => {
+    const bar = headerRef.current?.getBoundingClientRect();
+    const strip = document.querySelector('[data-pinned-tab-strip]')?.getBoundingClientRect();
+    return Math.ceil(Math.max(bar?.bottom ?? 0, strip?.bottom ?? 0));
+  };
+  const panelAnchor = {
+    getBoundingClientRect: () => {
+      const top = panelTop();
+      // Sheet attached to the right edge: panel 12px in; the frost runs to the edge (index.css).
+      const left = window.innerWidth - NOTIF_RIGHT_INSET_PX;
+      return {
+        x: left,
+        y: top,
+        left,
+        top,
+        right: left,
+        bottom: top,
+        width: 0,
+        height: 0,
+      } as DOMRect;
+    },
+    // Getter: read the ref lazily (when Floating UI asks), never during render.
+    get contextElement() {
+      return headerRef.current ?? undefined;
+    },
+  };
+  // Explicit height cap from the real space below the panel's top, leaving room for the frost's
+  // 14px bottom overhang + margin. If the panel were taller than that, the positioner would shift
+  // it UP over the bars' divider (the "sidebar too high" bug) — collision shifting is also off.
+  const [panelMaxH, setPanelMaxH] = useState<number | undefined>(undefined);
+  useEffect(() => {
+    if (!notifPopoverOpen) return;
+    const measure = () => setPanelMaxH(Math.max(200, window.innerHeight - panelTop() - 28));
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, [notifPopoverOpen]);
   // Two-finger swipe right anywhere in the window closes the open panel, sliding it out to the
   // right (macOS NC). Window-level so it works wherever the pointer is, not only over the panel.
   const [trackSwipe] = useState(createSwipeRightTracker);
@@ -117,7 +152,7 @@ export default function TopBar({
   }, [notifPopoverOpen, rawUnread]);
 
   return (
-    <header className="h-12 border-b flex items-center px-4 flex-shrink-0 gap-2">
+    <header ref={headerRef} className="h-12 border-b flex items-center px-4 flex-shrink-0 gap-2">
       {/* Spacer — branding moved to Sidebar */}
       <div className="mr-auto" />
 
@@ -154,7 +189,10 @@ export default function TopBar({
         <PopoverContent
           side="bottom"
           align="end"
-          sideOffset={topBarGap}
+          sideOffset={0}
+          anchor={panelAnchor}
+          collisionAvoidance={{ side: 'none', align: 'none', fallbackAxisSide: 'none' }}
+          style={panelMaxH ? { maxHeight: panelMaxH } : undefined}
           // The .notif-glass blur layer overhangs the panel by 14px on every side. Keep the panel
           // >= 16px from each viewport edge (end-aligned to the bell = 16px from the right; height and
           // width capped) or the overhang makes the document scrollable and WKWebView flickers the whole
@@ -162,7 +200,7 @@ export default function TopBar({
           data-notif-motion
           data-swipe-closing={swipeClosing ? 'true' : undefined}
           // Popup only slides; .notif-glass fades the blur + content (see index.css). Its opacity stays 1.
-          className={`notif-glass relative z-0 flex max-h-[calc(100vh-92px)] w-[31rem] max-w-[calc(100vw-3rem)] flex-col rounded-none border-0 bg-transparent p-0 shadow-none ring-0 opacity-100 data-[starting-style]:opacity-100 data-[ending-style]:opacity-100 transition-[translate] duration-300 ease-(--ease-out) data-[starting-style]:translate-x-12 data-[ending-style]:duration-[180ms] data-[ending-style]:ease-in ${swipeClosing ? 'data-[ending-style]:translate-x-16' : 'data-[ending-style]:translate-x-6'}`}
+          className={`notif-glass relative z-0 flex max-h-[calc(100vh-132px)] w-[31rem] max-w-[calc(100vw-3rem)] flex-col rounded-none border-0 bg-transparent p-0 shadow-none ring-0 opacity-100 data-[starting-style]:opacity-100 data-[ending-style]:opacity-100 transition-[translate] duration-300 ease-(--ease-out) data-[starting-style]:translate-x-12 data-[ending-style]:duration-[180ms] data-[ending-style]:ease-in ${swipeClosing ? 'data-[ending-style]:translate-x-16' : 'data-[ending-style]:translate-x-6'}`}
         >
           <NotificationPopover
             onIssueClick={onIssueClick}

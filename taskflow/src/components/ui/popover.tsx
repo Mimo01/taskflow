@@ -21,6 +21,8 @@ function PopoverContent({
   align,
   sideOffset,
   alignOffset,
+  anchor,
+  collisionAvoidance,
   ...props
 }: PopoverPrimitive.Popup.Props & {
   keepMounted?: boolean;
@@ -28,6 +30,9 @@ function PopoverContent({
   align?: PopoverPrimitive.Positioner.Props['align'];
   sideOffset?: PopoverPrimitive.Positioner.Props['sideOffset'];
   alignOffset?: PopoverPrimitive.Positioner.Props['alignOffset'];
+  /** Position against this instead of the trigger (e.g. a virtual rect). */
+  anchor?: PopoverPrimitive.Positioner.Props['anchor'];
+  collisionAvoidance?: PopoverPrimitive.Positioner.Props['collisionAvoidance'];
 }) {
   return (
     <PopoverPrimitive.Portal keepMounted={keepMounted}>
@@ -37,6 +42,8 @@ function PopoverContent({
         align={align}
         sideOffset={sideOffset}
         alignOffset={alignOffset}
+        anchor={anchor}
+        collisionAvoidance={collisionAvoidance}
       >
         <PopoverPrimitive.Popup
           data-slot="popover-content"

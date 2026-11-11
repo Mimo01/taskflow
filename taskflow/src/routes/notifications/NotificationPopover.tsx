@@ -361,11 +361,11 @@ export default function NotificationPopover({
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       {/*
-        Header: title, Mark all read, Clear all (inline macOS-style confirmation). Compact so the
-        cards start high; title left edge aligns with the "Today" bucket label (14px).
+        Header: title (22px, set a little low for air under the bar the panel drops from), Mark all
+        read, Clear all (inline macOS-style confirmation). Title left edge aligns with "Today" (14px).
       */}
-      <div className="flex h-11 flex-none items-center gap-1.5 pt-1 pr-3 pl-3.5">
-        <h2 className="min-w-0 flex-1 truncate text-xl leading-none font-semibold tracking-[-0.015em]">
+      <div className="flex h-14 flex-none items-center gap-1.5 pt-3 pr-3 pl-3.5">
+        <h2 className="min-w-0 flex-1 truncate text-[22px] leading-none font-semibold tracking-[-0.02em]">
           Notifications
         </h2>
         <Button
