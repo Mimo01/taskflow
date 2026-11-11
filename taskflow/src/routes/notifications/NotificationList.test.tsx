@@ -84,9 +84,19 @@ describe('NotificationList rendering', () => {
   it('scroller has the expected classes', () => {
     const { container } = setup();
     const scroller = container.firstElementChild as HTMLElement;
-    for (const c of ['relative', 'overflow-y-auto', 'max-h-[520px]', '@container']) {
+    // Really scrolls: a min-h-0 flex-1 overflow-y-auto child of a max-height-capped flex column.
+    for (const c of [
+      'relative',
+      'overflow-y-auto',
+      'min-h-0',
+      'flex-1',
+      'select-none',
+      '@container',
+    ]) {
       expect(scroller.classList.contains(c)).toBe(true);
     }
+    expect(scroller.className).not.toContain('max-h-[520px]');
+    expect(scroller.className).not.toContain('bg-muted');
   });
 });
 

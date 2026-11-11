@@ -78,12 +78,15 @@ export default function TopBar({
     };
   }, [rawUnread]);
 
-  // Clear pulse when popover is opened
+  // Clear the pulse once, on the closed -> open transition. Arrivals while the panel is open must
+  // still ring the bell, so this must not re-run on every count change.
+  const prevOpenRef = useRef(false);
   useEffect(() => {
-    if (notifPopoverOpen) {
+    if (notifPopoverOpen && !prevOpenRef.current) {
       setBellPulse(false);
       prevCountRef.current = rawUnread;
     }
+    prevOpenRef.current = notifPopoverOpen;
   }, [notifPopoverOpen, rawUnread]);
 
   return (
@@ -115,13 +118,20 @@ export default function TopBar({
           />
           {unreadCount > 0 && (
             <span
-              className={`absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full min-w-[1.1rem] h-[1.1rem] flex items-center justify-center px-0.5 ${bellPulse ? 'animate-pulse' : ''}`}
+              className={`absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full min-w-[1.1rem] h-[1.1rem] flex items-center justify-center px-0.5 ${bellPulse ? 'animate-[notif-badge-pop_600ms_var(--spring)]' : ''}`}
             >
               {unreadCount > 99 ? '99+' : unreadCount}
             </span>
           )}
         </PopoverTrigger>
-        <PopoverContent className="p-0 w-[30rem] max-w-[calc(100vw-1rem)]">
+        <PopoverContent
+          side="bottom"
+          align="end"
+          sideOffset={12}
+          alignOffset={8}
+          data-notif-motion
+          className="notif-glass relative z-0 flex max-h-[calc(100vh-64px)] w-[31rem] max-w-[calc(100vw-1rem)] flex-col rounded-none border-0 bg-transparent p-0 shadow-none ring-0 data-[starting-style]:opacity-100 data-[ending-style]:opacity-0 data-[ending-style]:duration-[180ms] data-[ending-style]:ease-in"
+        >
           <NotificationPopover
             onIssueClick={onIssueClick}
             onMRClick={onMRClick}

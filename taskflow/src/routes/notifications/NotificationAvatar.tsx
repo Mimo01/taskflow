@@ -62,7 +62,7 @@ export default function NotificationAvatar({ item, style }: NotificationAvatarPr
     <span
       data-event-kind={style.kind}
       className={cn(
-        'pointer-events-none relative mt-px flex size-8 flex-none density-compact:size-7 density-comfortable:size-9',
+        'pointer-events-none relative mt-px flex size-8 flex-none transition-transform duration-[250ms] ease-(--spring) group-hover/row:scale-[1.06] density-compact:size-7 density-comfortable:size-9',
       )}
     >
       {lead}
@@ -70,7 +70,7 @@ export default function NotificationAvatar({ item, style }: NotificationAvatarPr
         <span
           data-event-badge={style.kind}
           className={cn(
-            'absolute -right-1 -bottom-1 flex size-4 items-center justify-center rounded-full bg-muted text-muted-foreground density-compact:size-[14px] ring-2 ring-(--card-bg) group-hover/row:ring-(--card-hover) group-focus-within/row:ring-(--card-hover)',
+            'absolute -right-1 -bottom-1 flex size-4 items-center justify-center rounded-full bg-muted text-muted-foreground density-compact:size-[14px] ring-2 ring-card',
           )}
         >
           <Icon aria-hidden="true" className="size-[11px]" />

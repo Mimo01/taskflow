@@ -69,6 +69,9 @@ interface NotificationPopoverProps {
   onOpenSettings?: () => void;
 }
 
+/** Empty/error states sit on glass: give them a card surface so they stay readable. */
+const EMPTY_CARD = 'mx-2.5 mb-3 flex-none rounded-[14px] bg-card shadow-(--notif-sh-rest)';
+
 const SOURCE_TABS: { key: SourceFilter; label: string }[] = [
   { key: 'all', label: 'All sources' },
   { key: 'jira', label: 'Jira' },
@@ -286,7 +289,7 @@ export default function NotificationPopover({
   function renderBody() {
     if (items.length === 0 && fetchError) {
       return (
-        <div className="p-2">
+        <div className="mx-2.5 mb-3 flex-none rounded-[14px] bg-card p-2 shadow-(--notif-sh-rest)">
           <ErrorState
             error={fetchError}
             onRetry={retryFetch ?? undefined}
@@ -299,6 +302,7 @@ export default function NotificationPopover({
       return (
         <EmptyState
           compact
+          className={EMPTY_CARD}
           icon={Bell}
           title="No notifications yet"
           subtitle="Activity on your Jira issues and GitLab merge requests will show up here."
@@ -310,6 +314,7 @@ export default function NotificationPopover({
       return (
         <EmptyState
           compact
+          className={EMPTY_CARD}
           icon={BellOff}
           title="All caught up"
           subtitle="You have no unread notifications."
@@ -320,6 +325,7 @@ export default function NotificationPopover({
       return (
         <EmptyState
           compact
+          className={EMPTY_CARD}
           icon={BellOff}
           title={`Nothing from ${activeTab === 'jira' ? 'Jira' : 'GitLab'}`}
           subtitle="No notifications from this source."
@@ -338,10 +344,12 @@ export default function NotificationPopover({
   }
 
   return (
-    <div>
+    <div className="flex min-h-0 flex-1 flex-col">
       {/* One header row: title, Unread | All, source filter, Mark all read, overflow */}
-      <div className="flex h-11 items-center gap-2 px-3">
-        <h2 className="min-w-0 flex-1 truncate text-sm font-semibold">Notifications</h2>
+      <div className="flex flex-none animate-[notif-hd-in_.3s_var(--ease-out)_both] items-center gap-2 px-4 pt-3.5 pb-2.5">
+        <h2 className="min-w-0 flex-1 truncate text-base font-semibold tracking-[-0.01em]">
+          Notifications
+        </h2>
         <fieldset className="m-0 inline-flex flex-none rounded-lg border-0 bg-muted p-0.5">
           <legend className="sr-only">Show</legend>
           {(
@@ -449,7 +457,7 @@ export default function NotificationPopover({
 
       {/* Permission-denied banner — same pattern as StaleDataBanner (icon, muted text, ghost X) */}
       {permissionDenied && (
-        <div className="m-2">
+        <div className="m-2 flex-none">
           <PopoverBanner
             icon={<BellOff className="size-4 shrink-0 text-muted-foreground" />}
             onDismiss={() => setPermissionDenied(false)}
@@ -461,7 +469,7 @@ export default function NotificationPopover({
 
       {/* Notification send error banner (e.g. dev mode on macOS) */}
       {notificationSendError && !permissionDenied && (
-        <div className="m-2">
+        <div className="m-2 flex-none">
           <PopoverBanner
             icon={<TriangleAlert className="size-4 shrink-0 text-muted-foreground" />}
             onDismiss={() => setNotificationSendError(false)}
@@ -473,7 +481,7 @@ export default function NotificationPopover({
 
       {/* Stale-data banner: fetch failed but cached items are shown */}
       {fetchError && items.length > 0 && fetchError !== dismissedError && (
-        <div className="m-2">
+        <div className="m-2 flex-none">
           <StaleDataBanner
             onRetry={() => retryFetch?.()}
             onDismiss={() => setDismissedError(fetchError)}

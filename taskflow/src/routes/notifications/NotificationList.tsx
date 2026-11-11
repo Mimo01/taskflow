@@ -190,7 +190,7 @@ export default function NotificationList({
     <div
       ref={parentRef}
       className={cn(
-        '@container relative max-h-[520px] overflow-y-auto bg-muted/40 px-3 pt-2 pb-1 dark:bg-muted/20',
+        '@container relative min-h-0 flex-1 select-none overflow-y-auto overscroll-contain pt-2 pr-1 pb-3.5 pl-2.5 [scrollbar-width:thin]',
         className,
       )}
       onKeyDown={handleKeyDown}

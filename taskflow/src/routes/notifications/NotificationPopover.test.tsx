@@ -73,6 +73,21 @@ describe('NotificationPopover', () => {
     });
   });
 
+  it('is a chrome-less flex column whose header floats (no background) and the list can scroll', () => {
+    act(() => {
+      useNotificationsStore.setState({ items: [jiraItem('a')] });
+    });
+    const { container } = render(<NotificationPopover />);
+    const root = container.firstElementChild as HTMLElement;
+    for (const c of ['flex', 'min-h-0', 'flex-1', 'flex-col']) {
+      expect(root.classList.contains(c)).toBe(true);
+    }
+    const header = root.firstElementChild as HTMLElement;
+    expect(header.className).toContain('flex-none');
+    expect(header.className).toContain('notif-hd-in');
+    expect(header.className).not.toMatch(/(^|\s)bg-/);
+  });
+
   it('renders Alert containing "System notifications are blocked" when permissionDenied', () => {
     act(() => {
       useNotificationsStore.setState({ permissionDenied: true });
@@ -177,7 +192,8 @@ describe('NotificationPopover', () => {
         jiraItem('jira-comment-2', 'PROJ-1', { author: 'Ben Ito' }),
       ]);
       render(<NotificationPopover />);
-      fireEvent.click(screen.getByRole('button', { name: 'Clear notification' }));
+      // WR-02: the stack X is labelled with the number of cards it clears.
+      fireEvent.click(screen.getByRole('button', { name: /^Clear \d+ notifications$/ }));
       const st = useNotificationsStore.getState();
       expect(st.items).toHaveLength(0);
       expect(st.dismissedIds).toEqual(

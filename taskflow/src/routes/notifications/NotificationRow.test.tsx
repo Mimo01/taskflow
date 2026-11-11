@@ -272,11 +272,21 @@ describe('NotificationRow', () => {
     ).toBeInTheDocument();
   });
 
-  it('hover tray fades into the title instead of a hard edge', () => {
+  it('hover tray is a floating pill that slides in from the right (no gradient fade)', () => {
     const { container } = setup();
     const tray = container.querySelector('[data-tray]') as HTMLElement;
-    expect(tray.className).toContain('before:bg-linear-to-l');
-    expect(tray.className).toContain('before:from-(--card-hover)');
+    for (const c of [
+      'bg-card',
+      'rounded-lg',
+      'p-0.5',
+      'translate-x-1.5',
+      'group-hover/row:translate-x-0',
+      'shadow-(--notif-hair)',
+    ]) {
+      expect(tray.className).toContain(c);
+    }
+    expect(tray.className).not.toContain('before:bg-linear-to-l');
+    expect(tray.className).not.toContain('--card-hover');
   });
 
   it('initials avatar gets a lighter fill in dark mode', () => {
@@ -326,8 +336,12 @@ describe('NotificationRow', () => {
     // sibling of the overlay button, round, fixed size so WebKit never collapses it
     expect(x.closest('[data-entry-primary]')).toBeNull();
     expect(x.className).toContain('rounded-full');
-    expect(x.className).toContain('size-5');
+    expect(x.className).toContain('size-[22px]');
     expect(x.className).toContain('flex-none');
+    // springs in from scale .6
+    expect(x.className).toContain('scale-[.6]');
+    expect(x.className).toContain('group-hover/row:scale-100');
+    expect(x.className).toContain('ease-(--spring)');
   });
 
   it('read row offers "Mark as unread"', () => {
@@ -376,41 +390,38 @@ describe('NotificationRow', () => {
     expect(root.className).toContain('group/row');
     expect(root.className).not.toMatch(/(^|\s)group(\s|$)/);
     const badge = container.querySelector('[data-event-badge]') as HTMLElement;
-    expect(badge.className).toContain('group-hover/row:ring-(--card-hover)');
+    expect(root.className).toContain('hover:-translate-y-px');
+    expect(root.className).toContain('active:scale-[.99]');
     expect(badge.className).not.toMatch(/(^|\s)group-hover:/);
     // badge stays inside the row box: small overhang only, no -1.5 spill into neighbours
     expect(badge.className).not.toContain('-bottom-1.5');
   });
 
-  it('read cards are transparent with a faint ring (rounded-xl, ring-1, no border/shadow), density-aware padding', () => {
+  it('read cards are translucent (solid on hover), floating with --sh-rest, density-aware padding', () => {
     const { container } = setup({ isUnread: false });
     const r = container.firstElementChild as HTMLElement;
-    expect(r.className).toContain('rounded-xl');
-    expect(r.className).toContain('ring-1');
-    expect(r.className).toContain('ring-foreground/10');
-    expect(r.className).not.toMatch(/(^|\s)(border|shadow-\w+)(\s|$)/);
-    expect(r.className).toContain('bg-transparent');
-    expect(r.className).not.toContain('bg-(--card-bg)');
-    expect(r.className).not.toMatch(/(^|\s)border-b(\s|$)/);
-    expect(r.className).toContain('density-compact:py-1.5');
+    expect(r.className).toContain('rounded-[14px]');
+    expect(r.className).toContain('shadow-(--notif-sh-rest)');
+    expect(r.className).toContain('hover:shadow-(--notif-sh-hover)');
+    expect(r.className).toContain('bg-[color-mix(in_oklch,var(--color-card)_82%,transparent)]');
+    expect(r.className).toContain('hover:bg-card');
+    expect(r.className).not.toContain('bg-transparent');
+    expect(r.className).not.toContain('ring-foreground');
+    expect(r.className).not.toMatch(/(^|\s)border(\s|$)/);
+    expect(r.className).toContain('density-compact:py-2');
     expect(r.className).toContain('density-comfortable:py-3.5');
-    expect(r.className).toContain('px-3');
-    expect(r.className).toContain('density-compact:px-2.5');
-    expect(r.className).toContain('density-comfortable:px-3.5');
-    expect(r.className).toContain(
-      '--card-hover:color-mix(in_oklab,var(--color-accent)_50%,var(--card-bg))',
-    );
-    expect(r.className).toContain('hover:bg-(--card-hover)');
+    expect(r.className).toContain('px-3.5');
+    expect(r.className).toContain('density-compact:px-3');
+    expect(r.className).toContain('density-comfortable:px-4');
+    expect(r.className).not.toContain('--card-hover');
   });
 
-  it('Ledger: unread = card surface + stronger ring + bold title; read = transparent + faint ring + regular title, never dimmed', () => {
+  it('Ledger: unread = solid card + bold title; read = translucent card + regular title, never dimmed', () => {
     const unread = setup({ isUnread: true });
     const u = unread.container.firstElementChild as HTMLElement;
-    expect(u.className).toContain('bg-(--card-bg)');
-    expect(u.className).toContain('[--card-bg:var(--color-card)]');
-    expect(u.className).toContain('ring-1');
-    expect(u.className).toContain('ring-foreground/25');
-    expect(u.className).not.toMatch(/ring-\[1\.5px\]|blue|shadow-/);
+    expect(u.className).toMatch(/(^|\s)bg-card(\s|$)/);
+    expect(u.className).not.toContain('color-mix');
+    expect(u.className).toContain('shadow-(--notif-sh-rest)');
     expect(screen.getByText('Fix login bug').className).toContain('font-semibold');
     // no halo anywhere: the badge is the only avatar decoration
     expect(unread.container.querySelector('[data-unread-halo]')).toBeNull();
@@ -418,11 +429,8 @@ describe('NotificationRow', () => {
     unread.unmount();
     const read = setup({ isUnread: false });
     const r = read.container.firstElementChild as HTMLElement;
-    expect(r.className).toContain('bg-transparent');
-    expect(r.className).toContain('ring-foreground/10');
-    expect(r.className).not.toContain('ring-foreground/25');
-    expect(r.className).not.toContain('shadow');
-    expect(r.className).not.toMatch(/(^|\s)(opacity-|dark:opacity-)/);
+    expect(r.className).toContain('color-mix');
+    expect(r.className).not.toMatch(/(^|\s)opacity-|dark:opacity-/);
     expect(screen.getByText('Fix login bug').className).toContain('font-normal');
     expect(screen.getByText('Fix login bug').className).toContain('text-foreground');
     expect(screen.getByText('Fix login bug').className).not.toContain('muted');
@@ -504,7 +512,7 @@ describe('NotificationRow', () => {
     expect(onOpen).toHaveBeenCalledTimes(1);
   });
 
-  it('StackCard draws peek edges with ring + surface only (no shadow), no extra height beyond pb-3', () => {
+  it('StackCard draws peek edges with surface + rest shadow that spread on hover, no extra height beyond pb-3', () => {
     const { container } = render(
       <StackCard>
         <div data-testid="top">card</div>
@@ -516,11 +524,18 @@ describe('NotificationRow', () => {
     const edges = container.querySelectorAll('[data-stack-edge]');
     expect(edges).toHaveLength(2);
     for (const e of edges) {
-      expect(e.className).toContain('ring-1');
-      expect(e.className).not.toContain('shadow');
+      expect(e.className).toContain('bg-card');
+      expect(e.className).toContain('shadow-(--notif-sh-rest)');
       expect(e.getAttribute('aria-hidden')).toBe('true');
       expect(e.className).toContain('pointer-events-none');
     }
+    expect(wrap.className).toContain('group/stack');
+    expect(container.querySelector('[data-stack-edge="1"]')?.className).toContain(
+      'group-hover/stack:translate-y-[3px]',
+    );
+    expect(container.querySelector('[data-stack-edge="2"]')?.className).toContain(
+      'group-hover/stack:translate-y-1.5',
+    );
     expect(wrap.querySelector('[data-testid="top"]')).not.toBeNull();
   });
 
@@ -966,8 +981,14 @@ describe('NotificationRow', () => {
     it('badge cut-out ring follows the card surface', () => {
       const { container } = setup();
       const badge = container.querySelector('[data-event-badge]') as HTMLElement;
-      expect(badge.className).toContain('ring-(--card-bg)');
-      expect(badge.className).toContain('group-hover/row:ring-(--card-hover)');
+      expect(badge.className).toContain('ring-card');
+    });
+
+    it('the avatar springs to 1.06 on card hover', () => {
+      const { container } = setup();
+      const lead = container.querySelector('[data-event-kind]') as HTMLElement;
+      expect(lead.className).toContain('group-hover/row:scale-[1.06]');
+      expect(lead.className).toContain('ease-(--spring)');
     });
 
     it('read vs unread only toggles surface tint, ring and title style', () => {
@@ -976,7 +997,7 @@ describe('NotificationRow', () => {
           .split(/\s+/)
           .filter(
             (c) =>
-              !/^(bg-primary|dark:bg-primary|bg-card|bg-\(--card-bg\)|\[--card-bg:|dark:\[--card-bg:|dark:bg-card|bg-transparent|border-border|shadow-|ring-|dark:ring-|font-|text-foreground|text-muted-foreground|opacity-0)/.test(
+              !/^(bg-primary|dark:bg-primary|bg-card|bg-\[color-mix|hover:bg-card|focus-within:bg-card|dark:bg-card|bg-transparent|border-border|shadow-|ring-|dark:ring-|font-|text-foreground|text-muted-foreground|opacity-0)/.test(
                 c,
               ),
           )

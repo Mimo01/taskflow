@@ -19,6 +19,10 @@ import {
   listRowCount,
   MAX_LIST_ROWS,
   visibleCount,
+  EST_CARD_BASE,
+  EST_CARD_GAP,
+  EST_QUICK_ROW,
+  EST_STACK_PEEK,
   estimateEntryHeight,
   mergeChanges,
   mergeCategory,
@@ -700,6 +704,13 @@ describe('merging', () => {
       32,
     );
   });
+
+  it('adds the quick-action row to the estimate only for cards that have one', () => {
+    const [withQuick] = run([com('c', 'PROJ-9', 'Zed', 8, 0)]);
+    const [plain] = run([upd('u', 'PROJ-8', 'Ana', 8, 0, 'Priority: A \u2192 B')]);
+    expect(estimateEntryHeight(withQuick)).toBe(EST_CARD_BASE + EST_CARD_GAP + EST_QUICK_ROW);
+    expect(estimateEntryHeight(plain)).toBe(EST_CARD_BASE + EST_CARD_GAP);
+  });
 });
 
 describe('commentPreview', () => {
@@ -1022,7 +1033,7 @@ describe('stackEntries', () => {
     const out = stackEntries(build(three), new Set());
     const s = out[1];
     if (s.kind !== 'stack') throw new Error('stack expected');
-    expect(estimateEntryHeight(s)).toBe(estimateEntryHeight(s.cards[0]) + 12);
+    expect(estimateEntryHeight(s)).toBe(estimateEntryHeight(s.cards[0]) + EST_STACK_PEEK);
     expect(isFocusableEntry(s)).toBe(true);
     const h = stackEntries(build(three), new Set(['jira:PROJ-1']))[1];
     expect(estimateEntryHeight(h)).toBe(28);

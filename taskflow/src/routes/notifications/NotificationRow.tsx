@@ -22,15 +22,16 @@
  *     label chips (and "none") size to content.
  *  G. Type scale: title 12px; key, time, line 2, lists, chips 11px. Single ellipsis at the end
  *     of whatever overflows; lines are h-5 so nothing clips vertically.
- *  H. Ledger unread vs read (261111-i2o): ONE colour carrier = the action phrase, and only for events
- *     that ask something of you (mention, review request, assignment, pipeline failed, due; see
- *     isActionableKind). Plain updates are neutral. The avatar badge is a small neutral glyph, no
- *     halo. ONE unread signal = surface: unread = bg-card + ring-foreground/25 + semibold title;
- *     read = transparent + faint ring + normal-weight title. Text colours are identical: read cards
- *     are never dimmed. Hover = accent 50% mixed into --card-bg (tray + badge cut-out use the same
- *     vars, no seam). Read vs unread changes ONLY classes. Nothing moves.
+ *  H. Ledger unread vs read (261111-i2o, restyled 261111-m0g): ONE colour carrier = the action phrase,
+ *     and only for events that ask something of you (mention, review request, assignment, pipeline
+ *     failed, due; see isActionableKind). Plain updates are neutral. The avatar badge is a small neutral
+ *     glyph, no halo. ONE unread signal = surface: unread = solid bg-card + semibold title; read = 82%
+ *     translucent card (solid on hover) + normal-weight title. Text colours are identical: read cards
+ *     are never dimmed. Cards float: --sh-rest + --hair ring; hover lifts 1px (--sh-hover) and springs
+ *     the avatar to 1.06; press scales .99. Read vs unread changes ONLY classes. Nothing moves.
  *  I. Merged and single cards share the skeleton; merged only adds the list.
- *  J. The hover tray sits in the time slot of line 1 (right-0, centred) in every card.
+ *  J. The hover tray is a floating pill (bg-card, hairline) in the time slot of line 1 (right-0, centred):
+ *     it slides in from 6px right on hover while the time fades out. The corner X springs in from .6.
  *  K. Densities scale padding / gaps / lead size; grammar is identical.
  *  L. Key: inline right before the title, same 12px size (muted, medium, tabular), fixed 6px gap; no fixed column, never wraps.
  *
@@ -94,6 +95,8 @@ interface NotificationRowProps {
   onOpenInBrowser?: () => void;
   /** One context action (Reply / Review / View pipeline), rendered as a pill under line 2. */
   quick?: { label: string; onClick: () => void };
+  /** `banner` = in-app banner: pop shadow, no hover tray, "Dismiss notification" on the X. */
+  variant?: 'list' | 'banner';
   /** Set on a collapsed stack's top card: notifications hidden behind it ("+N"); the card expands, not opens. */
   stackMore?: number;
 }
@@ -535,7 +538,9 @@ export default function NotificationRow({
   onOpenInBrowser,
   quick,
   stackMore,
+  variant = 'list',
 }: NotificationRowProps) {
+  const isBanner = variant === 'banner';
   const all = items && items.length > 0 ? items : [item];
   const ref = getEntityRef(item);
   const title = getEntityTitle(item);
@@ -565,10 +570,13 @@ export default function NotificationRow({
       data-card
       data-unread-card={isUnread ? 'true' : 'false'}
       className={cn(
-        'group/row relative flex cursor-pointer items-start gap-3 rounded-xl px-3 py-2.5 text-xs transition-colors [--card-hover:color-mix(in_oklab,var(--color-accent)_50%,var(--card-bg))] hover:bg-(--card-hover) focus-within:bg-(--card-hover) density-compact:gap-2.5 density-compact:px-2.5 density-compact:py-1.5 density-comfortable:gap-3.5 density-comfortable:px-3.5 density-comfortable:py-3.5',
+        'group/row relative flex cursor-pointer items-start gap-3 rounded-[14px] px-3.5 py-3 text-xs transition-[transform,box-shadow,background-color] duration-200 ease-(--ease-out) hover:-translate-y-px active:scale-[.99] active:duration-75 density-compact:gap-2.5 density-compact:px-3 density-compact:py-2 density-comfortable:gap-3.5 density-comfortable:px-4 density-comfortable:py-3.5',
+        isBanner
+          ? 'bg-card shadow-(--notif-sh-pop) hover:shadow-(--notif-sh-pop)'
+          : 'shadow-(--notif-sh-rest) hover:shadow-(--notif-sh-hover)',
         isUnread
-          ? '[--card-bg:var(--color-card)] bg-(--card-bg) ring-1 ring-foreground/25'
-          : '[--card-bg:color-mix(in_oklab,var(--color-muted)_40%,var(--color-background))] bg-transparent ring-1 ring-foreground/10 dark:[--card-bg:color-mix(in_oklab,var(--color-muted)_20%,var(--color-background))]',
+          ? 'bg-card'
+          : 'bg-[color-mix(in_oklch,var(--color-card)_82%,transparent)] hover:bg-card focus-within:bg-card',
         peeked && PEEKED_ROW_CLASS,
       )}
       data-peeked={peeked ? 'true' : undefined}
@@ -579,17 +587,24 @@ export default function NotificationRow({
         aria-label={ariaLabel}
         aria-expanded={stackMore ? false : undefined}
         onClick={onOpen}
-        className="absolute inset-0 cursor-pointer rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="absolute inset-0 cursor-pointer rounded-[14px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       />
 
       <button
         type="button"
-        aria-label="Clear notification"
+        aria-label={
+          isBanner
+            ? 'Dismiss notification'
+            : stackMore
+              ? `Clear ${stackMore + 1} notifications`
+              : 'Clear notification'
+        }
         onClick={(e) => {
           e.stopPropagation();
           onDone();
         }}
-        className="absolute -top-1.5 -left-1.5 z-20 flex size-5 flex-none cursor-pointer items-center justify-center rounded-full bg-card text-muted-foreground opacity-0 ring-1 ring-foreground/15 transition-opacity hover:text-foreground focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring group-hover/row:opacity-100 group-focus-within/row:opacity-100"
+        data-corner-x
+        className="absolute -top-[7px] -left-[7px] z-20 flex size-[22px] flex-none scale-[.6] cursor-pointer items-center justify-center rounded-full bg-card text-muted-foreground opacity-0 shadow-(--notif-sh-hover) transition-[opacity,transform] duration-200 ease-(--spring) hover:text-foreground focus-visible:scale-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring group-hover/row:scale-100 group-hover/row:opacity-100 group-focus-within/row:scale-100 group-focus-within/row:opacity-100"
       >
         <X aria-hidden="true" className="size-3" />
       </button>
@@ -643,7 +658,10 @@ export default function NotificationRow({
           </time>
           <span
             data-tray
-            className="absolute right-0 top-1/2 z-10 flex -translate-y-1/2 items-center gap-0.5 bg-(--card-hover) pl-1 opacity-0 before:pointer-events-none before:absolute before:inset-y-0 before:right-full before:w-6 before:bg-linear-to-l before:from-(--card-hover) before:to-transparent before:content-[''] group-hover/row:opacity-100 group-focus-within/row:opacity-100"
+            className={cn(
+              'absolute right-0 top-1/2 z-10 flex -translate-y-1/2 translate-x-1.5 items-center gap-0.5 rounded-lg bg-card p-0.5 opacity-0 shadow-(--notif-hair) transition-[opacity,transform] duration-200 ease-(--ease-out) group-hover/row:translate-x-0 group-hover/row:opacity-100 group-focus-within/row:translate-x-0 group-focus-within/row:opacity-100',
+              isBanner && 'hidden',
+            )}
           >
             <NotificationTrayButton
               label={isUnread ? 'Mark as read' : 'Mark as unread'}
@@ -699,19 +717,19 @@ export default function NotificationRow({
 
 /* ── stacks ─────────────────────────────────────────── */
 
-/** Collapsed stack: the newest card with two peek edges behind it (ring + surface only, no shadow). */
+/** Collapsed stack: the newest card with two peek edges behind it; they spread 3px / 6px on hover. */
 export function StackCard({ children }: { children: ReactNode }) {
   return (
-    <div data-stack className="relative pb-3">
+    <div data-stack className="group/stack relative pb-3">
       <div
         aria-hidden="true"
         data-stack-edge="2"
-        className="pointer-events-none absolute inset-x-4 bottom-0 h-5 rounded-b-xl bg-card opacity-70 ring-1 ring-foreground/15"
+        className="pointer-events-none absolute inset-x-5 bottom-0 h-5 rounded-b-xl bg-card opacity-60 shadow-(--notif-sh-rest) transition-transform duration-300 ease-(--ease-out) group-hover/stack:translate-y-1.5"
       />
       <div
         aria-hidden="true"
         data-stack-edge="1"
-        className="pointer-events-none absolute inset-x-2 bottom-1.5 h-5 rounded-b-xl bg-card ring-1 ring-foreground/15"
+        className="pointer-events-none absolute inset-x-2.5 bottom-1.5 h-5 rounded-b-xl bg-card opacity-85 shadow-(--notif-sh-rest) transition-transform duration-300 ease-(--ease-out) group-hover/stack:translate-y-[3px]"
       />
       <div className="relative">{children}</div>
     </div>

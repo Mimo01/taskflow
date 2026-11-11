@@ -970,23 +970,37 @@ export function listRowCount(total: number): number {
   return total <= MAX_LIST_ROWS ? total : MAX_LIST_ROWS;
 }
 
+/** Geometry (px, default density) behind estimateEntryHeight; mirror NotificationRow / NotificationList. */
+export const EST_HEADER_HEIGHT = 32;
+export const EST_STACK_HEADER_HEIGHT = 28;
+/** Collapsed-stack peek edges (StackCard pb-3). */
+export const EST_STACK_PEEK = 12;
+/** Card padding py-3 (24) + line 1 h-5 (20) + line 2 h-5 (20). */
+export const EST_CARD_BASE = 64;
+/** Gap under every card (wrapper pb-2). */
+export const EST_CARD_GAP = 8;
+/** List rows: h-5 rows, gap-1 between them, mt-1 above the list. */
+export const EST_LIST_ROW = 20;
+export const EST_LIST_ROW_GAP = 4;
+export const EST_LIST_MARGIN = 4;
+/** Quick-action pill row: mt-1.5 (6) + h-5 (20). */
+export const EST_QUICK_ROW = 26;
+
 /** Pixel height for the virtualizer's first paint (default density); real heights are measured. */
 export function estimateEntryHeight(entry: NotificationEntry): number {
-  if (entry.kind === 'header') return 32;
-  if (entry.kind === 'stack-header') return 28;
-  // Top card + peek edges (pb-3 = 12)
-  if (entry.kind === 'stack') return estimateEntryHeight(entry.cards[0]) + 12;
+  if (entry.kind === 'header') return EST_HEADER_HEIGHT;
+  if (entry.kind === 'stack-header') return EST_STACK_HEADER_HEIGHT;
+  if (entry.kind === 'stack') return estimateEntryHeight(entry.cards[0]) + EST_STACK_PEEK;
   const parts = describeEntryParts(entry.items);
-  // card: py-2.5 (20) + border (2) + line 1 h-5 (20) + line 2 h-5 (20) + wrapper pb-2 (8)
-  let h = 70;
-  // list: mt-1 (4) + rows of h-5 (20) separated by gap-1 (4), plus a "+N more" row when capped
+  let h = EST_CARD_BASE + EST_CARD_GAP;
   const list = (n: number) => {
     if (n < 2) return 0;
     const rows = listRowCount(n);
-    return 4 + rows * 20 + (rows - 1) * 4;
+    return EST_LIST_MARGIN + rows * EST_LIST_ROW + (rows - 1) * EST_LIST_ROW_GAP;
   };
   h += list(parts.changes?.length ?? 0);
   h += list(parts.comments?.length ?? 0);
+  if (quickActionFor(entry.item, parts)) h += EST_QUICK_ROW;
   return h;
 }
 

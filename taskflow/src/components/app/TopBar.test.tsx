@@ -166,6 +166,25 @@ describe('TopBar bell pulse (WR-04)', () => {
     expect(ring(container)).toBeNull();
   });
 
+  it('rings the bell and pops the badge on an arrival while the panel is open', () => {
+    vi.useFakeTimers();
+    const { container } = renderTopBar({ notifPopoverOpen: true });
+    act(() => {
+      useNotificationsStore.getState().prependItems([makeItem('n1')]);
+    });
+    expect(ring(container)).not.toBeNull();
+    expect(container.querySelector('[class*="notif-badge-pop"]')).not.toBeNull();
+    // a second arrival while still open rings again (the open-effect must not swallow it)
+    act(() => {
+      vi.advanceTimersByTime(2100);
+    });
+    expect(ring(container)).toBeNull();
+    act(() => {
+      useNotificationsStore.getState().prependItems([makeItem('n2')]);
+    });
+    expect(ring(container)).not.toBeNull();
+  });
+
   it('does not stick on when the count drops within the 2s window', () => {
     vi.useFakeTimers();
     const { container } = renderTopBar();
