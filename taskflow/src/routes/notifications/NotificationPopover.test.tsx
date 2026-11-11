@@ -1,3 +1,4 @@
+import { StrictMode } from 'react';
 // Tests for NotificationPopover — header, filters, flat list, triage, navigation, states
 
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
@@ -725,6 +726,16 @@ describe('NotificationPopover motion (261111-m0g)', () => {
     expect(entry('stack:jira:PROJ-1')).toBe(stack);
     expect(stack.hasAttribute('data-entering')).toBe(false);
     expect(stack.querySelector('[data-stack-more]')?.textContent).toBe('+2');
+  });
+
+  it('rows do not stagger on open under StrictMode (double-run mount effects)', () => {
+    seed([jiraItem('a', 'PROJ-1'), jiraItem('b', 'PROJ-2')]);
+    render(
+      <StrictMode>
+        <NotificationPopover />
+      </StrictMode>,
+    );
+    expect(document.querySelector('[data-intro]')).toBeNull();
   });
 
   it('rows do not run their own entrance on open; a filter change staggers them in, then clears', () => {

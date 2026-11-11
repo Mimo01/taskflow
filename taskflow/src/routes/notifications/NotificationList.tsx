@@ -104,6 +104,13 @@ export default function NotificationList({
     // Stable identity keys: entries remap indices on read/done, so an index-keyed
     // size cache would apply a row's height to a different entry.
     getItemKey: (i) => entries[i]?.id ?? i,
+    // Virtualize from the very first frame. Without a rect the first render falls back to the
+    // plain list, then remounts the rows as virtual rows and re-positions them as they measure,
+    // which made the panel look like it unrolled top-to-bottom while fading in (261111-m0g UAT).
+    initialRect: {
+      width: 0,
+      height: typeof window === 'undefined' ? 800 : window.innerHeight,
+    },
   });
 
   const virtualItems = rowVirtualizer.getVirtualItems();

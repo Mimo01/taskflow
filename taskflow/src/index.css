@@ -107,7 +107,7 @@
       linear-gradient(to bottom, transparent, #000 22px, #000 calc(100% - 22px), transparent);
     mask-composite: intersect;
     pointer-events: none;
-    transition: opacity 220ms var(--ease-out);
+    transition: opacity 240ms var(--ease-out);
   }
   /*
    * Open/close as ONE piece: the popup only slides (TopBar classes); the glass and the content fade
@@ -115,7 +115,7 @@
    * the backdrop root, so the blur would vanish instantly instead of fading (261111-m0g UAT).
    */
   .notif-glass > * {
-    transition: opacity 220ms var(--ease-out);
+    transition: opacity 240ms var(--ease-out);
   }
   .notif-glass[data-starting-style]::before,
   .notif-glass[data-starting-style] > *,

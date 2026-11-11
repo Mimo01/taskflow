@@ -146,7 +146,7 @@ export default function TopBar({
             onNotifPopoverChange(false);
           }}
           // Popup only slides; .notif-glass fades the blur + content (see index.css). Its opacity stays 1.
-          className={`notif-glass relative z-0 flex max-h-[calc(100vh-92px)] w-[31rem] max-w-[calc(100vw-3rem)] flex-col rounded-none border-0 bg-transparent p-0 shadow-none ring-0 opacity-100 data-[starting-style]:opacity-100 data-[ending-style]:opacity-100 transition-[translate] duration-[220ms] ease-(--ease-out) data-[starting-style]:translate-x-3 data-[ending-style]:duration-[180ms] data-[ending-style]:ease-in ${swipeClosing ? 'data-[ending-style]:translate-x-10' : 'data-[ending-style]:translate-x-2'}`}
+          className={`notif-glass relative z-0 flex max-h-[calc(100vh-92px)] w-[31rem] max-w-[calc(100vw-3rem)] flex-col rounded-none border-0 bg-transparent p-0 shadow-none ring-0 opacity-100 data-[starting-style]:opacity-100 data-[ending-style]:opacity-100 transition-[translate] duration-300 ease-(--ease-out) data-[starting-style]:translate-x-12 data-[ending-style]:duration-[180ms] data-[ending-style]:ease-in ${swipeClosing ? 'data-[ending-style]:translate-x-16' : 'data-[ending-style]:translate-x-6'}`}
         >
           <NotificationPopover
             onIssueClick={onIssueClick}

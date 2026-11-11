@@ -151,17 +151,17 @@ export default function NotificationPopover({
    * on top read as "appears, then slides" (261111-m0g UAT).
    */
   const [intro, setIntro] = useState(false);
-  const filterMounted = useRef(false);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: re-run the intro on filter change
+  // Compare the filter VALUES, not a "first run" flag: StrictMode re-runs mount effects, and a
+  // mount flag then reads the second run as a filter change and staggers the rows on open.
+  const filterKey = `${unreadOnly}|${activeTab}`;
+  const lastFilterKey = useRef(filterKey);
   useEffect(() => {
-    if (!filterMounted.current) {
-      filterMounted.current = true;
-      return;
-    }
+    if (lastFilterKey.current === filterKey) return;
+    lastFilterKey.current = filterKey;
     setIntro(true);
     const t = setTimeout(() => setIntro(false), NOTIF_INTRO_WINDOW_MS);
     return () => clearTimeout(t);
-  }, [unreadOnly, activeTab]);
+  }, [filterKey]);
 
   /** Item ids that arrived while open. Seeded on mount so initial items never count as arrivals. */
   const [entering, setEntering] = useState<ReadonlySet<string>>(new Set());

@@ -77,9 +77,12 @@ describe('NotificationList rendering', () => {
     });
   });
 
-  it('calls renderEntry once per entry', () => {
+  it('renders every entry (virtualized from the first frame; re-renders after measuring are fine)', () => {
     const { renderEntry, entries } = setup();
-    expect(renderEntry).toHaveBeenCalledTimes(entries.length);
+    const rendered = new Set(
+      renderEntry.mock.calls.map((c: unknown[]) => (c[0] as { id: string }).id),
+    );
+    expect(rendered).toEqual(new Set(entries.map((e) => e.id)));
   });
 
   it('scroller has the expected classes', () => {
