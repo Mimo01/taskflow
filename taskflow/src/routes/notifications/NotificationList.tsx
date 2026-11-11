@@ -5,6 +5,7 @@ import {
   type ReactNode,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
 } from 'react';
@@ -50,6 +51,8 @@ interface NotificationListProps {
   /** Expand / collapse the stack of an entity key. */
   onToggleStack: (entity: string) => void;
   motion?: NotificationListMotion;
+  /** Rendered inside the scroller above the rows, so it scrolls away with them. */
+  header?: ReactNode;
   className?: string;
 }
 
@@ -68,9 +71,26 @@ export default function NotificationList({
   onDone,
   onToggleStack,
   motion = NO_MOTION,
+  header,
   className,
 }: NotificationListProps) {
   const parentRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLDivElement>(null);
+  /** Height of the scrolling header above the rows = the virtualizer's scrollMargin. */
+  const [headerHeight, setHeaderHeight] = useState(0);
+  useLayoutEffect(() => {
+    const el = headerRef.current;
+    if (!el) {
+      setHeaderHeight(0);
+      return;
+    }
+    const measure = () => setHeaderHeight(el.offsetHeight);
+    measure();
+    if (typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   const pendingFocus = useRef<number | null>(null);
   const pendingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -105,6 +125,8 @@ export default function NotificationList({
       width: 0,
       height: typeof window === 'undefined' ? 800 : window.innerHeight,
     },
+    // The header scrolls with the rows; rows start after it.
+    scrollMargin: headerHeight,
   });
 
   const virtualItems = rowVirtualizer.getVirtualItems();
@@ -261,6 +283,7 @@ export default function NotificationList({
       )}
       onKeyDown={handleKeyDown}
     >
+      {header ? <div ref={headerRef}>{header}</div> : null}
       <div
         style={
           useVirtual
@@ -282,7 +305,7 @@ export default function NotificationList({
                     top: 0,
                     left: 0,
                     width: '100%',
-                    transform: `translateY(${virtualRow.start}px)`,
+                    transform: `translateY(${virtualRow.start - headerHeight}px)`,
                   }}
                 >
                   <EntryWrapper

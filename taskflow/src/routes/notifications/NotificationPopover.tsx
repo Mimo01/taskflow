@@ -322,49 +322,15 @@ export default function NotificationPopover({
 
   const motion: NotificationListMotion = { entering, leaving, flashing, justExpanded };
 
-  function renderBody() {
-    if (items.length === 0 && fetchError) {
-      return (
-        <div className="mx-2.5 mb-3 flex-none rounded-[14px] bg-card p-2 shadow-(--notif-sh-rest)">
-          <ErrorState
-            error={fetchError}
-            onRetry={retryFetch ?? undefined}
-            viewName="notifications"
-          />
-        </div>
-      );
-    }
-    if (items.length === 0) {
-      return (
-        <EmptyState
-          compact
-          className={EMPTY_CARD}
-          icon={Bell}
-          title="No notifications yet"
-          subtitle="Activity on your Jira issues and GitLab merge requests will show up here."
-          action={settingsAction}
-        />
-      );
-    }
-    return (
-      <NotificationList
-        entries={entries}
-        renderEntry={renderEntry}
-        onToggleRead={toggleRead}
-        onDone={done}
-        onToggleStack={toggleStack}
-        motion={motion}
-      />
-    );
-  }
-
-  return (
-    <div className="flex min-h-0 flex-1 flex-col">
+  const scrollHeader = (
+    <>
       {/*
         Header: title (22px, set a little low for air under the bar the panel drops from), Mark all
-        read, Clear all (inline macOS-style confirmation). Title left edge aligns with "Today" (14px).
+        read, Clear all (inline macOS-style confirmation). It lives INSIDE the scroller and scrolls
+        away with the cards (261111-m0g UAT); paddings are relative to the scroller's (title still
+        aligns with "Today" at 14px).
       */}
-      <div className="flex h-14 flex-none items-center gap-1.5 pt-3 pr-3 pl-3.5">
+      <div className="flex h-14 flex-none items-center gap-1.5 pt-3 pr-2 pl-1">
         <h2 className="min-w-0 flex-1 truncate text-[22px] leading-none font-semibold tracking-[-0.02em]">
           Notifications
         </h2>
@@ -384,7 +350,7 @@ export default function NotificationPopover({
 
       {/* Permission-denied banner — same pattern as StaleDataBanner (icon, muted text, ghost X) */}
       {permissionDenied && (
-        <div className="m-2 flex-none">
+        <div className="my-2 mr-1.5 flex-none">
           <PopoverBanner
             icon={<BellOff className="size-4 shrink-0 text-muted-foreground" />}
             onDismiss={() => setPermissionDenied(false)}
@@ -396,7 +362,7 @@ export default function NotificationPopover({
 
       {/* Notification send error banner (e.g. dev mode on macOS) */}
       {notificationSendError && !permissionDenied && (
-        <div className="m-2 flex-none">
+        <div className="my-2 mr-1.5 flex-none">
           <PopoverBanner
             icon={<TriangleAlert className="size-4 shrink-0 text-muted-foreground" />}
             onDismiss={() => setNotificationSendError(false)}
@@ -408,17 +374,56 @@ export default function NotificationPopover({
 
       {/* Stale-data banner: fetch failed but cached items are shown */}
       {fetchError && items.length > 0 && fetchError !== dismissedError && (
-        <div className="m-2 flex-none">
+        <div className="my-2 mr-1.5 flex-none">
           <StaleDataBanner
             onRetry={() => retryFetch?.()}
             onDismiss={() => setDismissedError(fetchError)}
           />
         </div>
       )}
-
-      {renderBody()}
-    </div>
+    </>
   );
+
+  function renderBody() {
+    if (items.length === 0) {
+      return (
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1 pb-3.5 pl-2.5">
+          {scrollHeader}
+          {fetchError ? (
+            <div className="mr-1.5 rounded-[14px] bg-card p-2 shadow-(--notif-sh-rest)">
+              <ErrorState
+                error={fetchError}
+                onRetry={retryFetch ?? undefined}
+                viewName="notifications"
+              />
+            </div>
+          ) : (
+            <EmptyState
+              compact
+              className={EMPTY_CARD}
+              icon={Bell}
+              title="No notifications yet"
+              subtitle="Activity on your Jira issues and GitLab merge requests will show up here."
+              action={settingsAction}
+            />
+          )}
+        </div>
+      );
+    }
+    return (
+      <NotificationList
+        entries={entries}
+        renderEntry={renderEntry}
+        onToggleRead={toggleRead}
+        onDone={done}
+        onToggleStack={toggleStack}
+        motion={motion}
+        header={scrollHeader}
+      />
+    );
+  }
+
+  return <div className="flex min-h-0 flex-1 flex-col">{renderBody()}</div>;
 }
 
 /** Popover-local info banner; mirrors the shared StaleDataBanner box so all banners match. */

@@ -90,6 +90,7 @@ export default function TopBar({
   // showing, else the top bar's bottom line — so it never covers the pinned tabs (261111-m0g UAT).
   // Horizontally it is a sheet attached to the window's right edge (align="end").
   const headerRef = useRef<HTMLElement>(null);
+  const notifPopupRef = useRef<HTMLDivElement>(null);
   /** Top edge of the panel: strictly below the lowest bar's divider (whole pixel). */
   const panelTop = () => {
     const bar = headerRef.current?.getBoundingClientRect();
@@ -191,6 +192,12 @@ export default function TopBar({
           align="end"
           sideOffset={0}
           anchor={panelAnchor}
+          ref={notifPopupRef}
+          // Focus the popup itself on open: Base UI focuses the first tabbable WITHOUT preventScroll,
+          // and mid slide-in the panel overhangs the right edge, so the browser scrolled the whole
+          // page sideways to reveal the button (page stayed shifted while open). Popup focus uses
+          // preventScroll; Tab still reaches the buttons and cards (261111-m0g UAT).
+          initialFocus={() => notifPopupRef.current}
           collisionAvoidance={{ side: 'none', align: 'none', fallbackAxisSide: 'none' }}
           style={panelMaxH ? { maxHeight: panelMaxH } : undefined}
           // The .notif-glass blur layer overhangs the panel by 14px on every side. Keep the panel

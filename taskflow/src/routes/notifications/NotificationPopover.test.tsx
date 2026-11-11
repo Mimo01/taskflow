@@ -97,11 +97,22 @@ describe('NotificationPopover', () => {
     for (const c of ['flex', 'min-h-0', 'flex-1', 'flex-col']) {
       expect(root.classList.contains(c)).toBe(true);
     }
-    const header = root.firstElementChild as HTMLElement;
+    const heading = screen.getByRole('heading', { name: 'Notifications' });
+    const header = heading.parentElement as HTMLElement;
     expect(header.className).toContain('flex-none');
     // no separate header entrance: the whole panel fades + slides in as one piece
     expect(header.className).not.toContain('notif-hd-in');
     expect(header.className).not.toMatch(/(^|\s)bg-/);
+  });
+
+  it('the header scrolls WITH the cards (inside the list scroller), no top shadow', () => {
+    seed([jiraItem('a'), jiraItem('b', 'PROJ-2')]);
+    render(<NotificationPopover />);
+    const heading = screen.getByRole('heading', { name: 'Notifications' });
+    const scroller = heading.closest('.overflow-y-auto') as HTMLElement;
+    expect(scroller).not.toBeNull();
+    expect(scroller.contains(document.querySelector('[data-notif-entry]'))).toBe(true);
+    expect(document.querySelector('[data-scroll-shadow]')).toBeNull();
   });
 
   it('renders Alert containing "System notifications are blocked" when permissionDenied', () => {

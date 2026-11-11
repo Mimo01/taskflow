@@ -3,7 +3,7 @@
 // RECENT-01: Clock icon (RecentItemsPopover) rendered
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { NotificationItem } from '../../stores/notifications.store';
 import { useNotificationsStore } from '../../stores/notifications.store';
@@ -251,5 +251,16 @@ describe('TopBar swipe-right to close (261111-m0g UAT)', () => {
     fireEvent.wheel(popup(), { deltaX: -5, deltaY: 120 });
     fireEvent.wheel(popup(), { deltaX: 90, deltaY: 0 });
     expect(onNotifPopoverChange).not.toHaveBeenCalled();
+  });
+});
+
+describe('TopBar notification panel initial focus (261111-m0g UAT)', () => {
+  it('focuses the popup itself on open (preventScroll path), not the first button', async () => {
+    act(() => {
+      useNotificationsStore.setState({ items: [makeItem('a')], readIds: [] });
+    });
+    renderTopBar({ notifPopoverOpen: true });
+    const popup = document.querySelector('[data-notif-motion]') as HTMLElement;
+    await waitFor(() => expect(document.activeElement).toBe(popup));
   });
 });
