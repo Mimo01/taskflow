@@ -389,8 +389,8 @@ describe('NotificationRow', () => {
   it('unread = bold neutral border, event-colour avatar halo, bold title/time; read is not greyed out', () => {
     const unread = setup({ isUnread: true });
     const u = unread.container.firstElementChild as HTMLElement;
-    expect(u.className).toContain('ring-2');
-    expect(u.className).toContain('ring-foreground/25');
+    expect(u.className).toContain('ring-[1.5px]');
+    expect(u.className).toContain('ring-foreground/20');
     expect(u.className).not.toMatch(/blue|shadow-/);
     expect(u.className).toContain('[--card-bg:var(--color-card)]');
     expect(screen.getByText('Fix login bug').className).toContain('font-semibold');

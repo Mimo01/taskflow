@@ -23,7 +23,7 @@
  *  G. Type scale: title 12px; key, time, line 2, lists, chips 11px. Single ellipsis at the end
  *     of whatever overflows; lines are h-5 so nothing clips vertically.
  *  H. Unread vs read (261111-h9a): both are plain cards (--card-bg = card). Unread = bold neutral
- *     border (ring-2 ring-foreground/25, no colour, no shadow), a ring around the avatar in the
+ *     border (ring-[1.5px] ring-foreground/20, no colour, no shadow), a ring around the avatar in the
  *     EVENT colour (style.halo = the verb/badge colour), semibold title + foreground time. Read =
  *     ring-1 ring-foreground/10, normal-weight title in foreground, full-opacity avatar, muted
  *     time: never greyed out. Hover = accent 50% mixed into --card-bg (tray + badge cut-out use
@@ -546,7 +546,7 @@ export default function NotificationRow({
       className={cn(
         'group/row relative flex cursor-pointer items-start gap-3 rounded-xl py-2.5 [--card-hover:color-mix(in_oklab,var(--color-accent)_50%,var(--card-bg))] px-3 text-xs transition-colors density-compact:gap-2.5 density-compact:py-1.5 density-compact:px-2.5 density-comfortable:gap-3.5 density-comfortable:py-3.5 density-comfortable:px-3.5 hover:bg-(--card-hover) focus-within:bg-(--card-hover)',
         isUnread
-          ? '[--card-bg:var(--color-card)] bg-(--card-bg) ring-2 ring-foreground/25'
+          ? '[--card-bg:var(--color-card)] bg-(--card-bg) ring-[1.5px] ring-foreground/20'
           : '[--card-bg:var(--color-card)] bg-(--card-bg) ring-1 ring-foreground/10',
         peeked && PEEKED_ROW_CLASS,
       )}
