@@ -83,16 +83,17 @@ export default function NotificationPopover({
   const setNotificationSendError = useNotificationsStore((s) => s.setNotificationSendError);
 
   const readSet = new Set(readIds);
-  const entries = stackEntries(
-    buildEntries({
-      items,
-      readSet,
-      source: 'all',
-      unreadOnly: false,
-      now,
-    }),
-    expanded,
-  );
+  const flatEntries = buildEntries({
+    items,
+    readSet,
+    source: 'all',
+    unreadOnly: false,
+    now,
+  });
+  const entries = stackEntries(flatEntries, expanded);
+  /** Header subtitle counts CARDS (merged runs count once), the same unit as the bell badge. */
+  const cardTotal = flatEntries.filter((e) => e.kind === 'event').length;
+  const cardUnread = flatEntries.filter((e) => e.kind === 'event' && e.isUnread).length;
 
   // Forget expanded keys whose stack is gone (cleared / dropped below 2 cards), so a later
   // notification on the same issue does not reappear already expanded. Checked against the
@@ -362,11 +363,21 @@ export default function NotificationPopover({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      {/* One header row: title, Mark all read, Clear all (inline macOS-style confirmation) */}
-      <div className="flex flex-none items-center gap-2 px-4 pt-3.5 pb-2.5">
-        <h2 className="min-w-0 flex-1 truncate text-base font-semibold tracking-[-0.01em]">
-          Notifications
-        </h2>
+      {/* Header: title + count subtitle, Mark all read, Clear all (inline macOS-style confirmation) */}
+      <div className="flex flex-none items-center gap-2 px-4 pt-3.5 pb-1">
+        <div className="min-w-0 flex-1">
+          <h2 className="truncate text-[17px] leading-tight font-semibold tracking-[-0.01em]">
+            Notifications
+          </h2>
+          {cardTotal > 0 ? (
+            <p
+              data-header-subtitle
+              className="truncate text-[11px] text-muted-foreground tabular-nums"
+            >
+              {cardUnread > 0 ? `${cardUnread} unread` : 'All caught up'} · {cardTotal} total
+            </p>
+          ) : null}
+        </div>
         <Button
           variant="ghost"
           size="icon-xs"
