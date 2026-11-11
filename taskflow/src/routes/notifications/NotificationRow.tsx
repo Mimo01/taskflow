@@ -16,6 +16,8 @@
  *     Change rows: a grid (icon | field | old | arrow | new) so arrows align down the list; empty side = "none".
  *     Comment rows: text right after the icon. "+N more" rows align with the row text.
  *  F. Chips (status pill, label chip) share CHIP_CLASS: h-4, rounded, px-1.5, 11px medium.
+ *     Status pills additionally have a 5rem min width with centred text so they line up;
+ *     label chips (and "none") size to content.
  *  G. Type scale: title 12px; key, time, line 2, lists, chips 11px. Single ellipsis at the end
  *     of whatever overflows; lines are h-5 so nothing clips vertically.
  *  H. Card surface = the app's shared Card look (rounded-xl bg-card ring-1, no border/shadow; hover
@@ -130,11 +132,18 @@ export function NotificationTrayButton({
 export const CHIP_CLASS =
   'inline-flex h-4 items-center whitespace-nowrap rounded px-1.5 align-middle text-[11px] font-medium leading-none';
 
+/** Status pills only: a shared minimum width with centred text so pills line up down a list. */
+const STATUS_PILL_WIDTH_CLASS = 'min-w-[5rem] justify-center text-center';
+
 function StatusPill({ name }: { name: string }) {
   return (
     <span
       data-chip="status"
-      className={cn(CHIP_CLASS, statusCategoryBadgeClass(statusCategoryGuess(name)))}
+      className={cn(
+        CHIP_CLASS,
+        STATUS_PILL_WIDTH_CLASS,
+        statusCategoryBadgeClass(statusCategoryGuess(name)),
+      )}
     >
       {name}
     </span>

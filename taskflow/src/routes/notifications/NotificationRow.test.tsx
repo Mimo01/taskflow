@@ -702,6 +702,28 @@ describe('NotificationRow', () => {
       }
     });
 
+    it('status pills share a min width with centred text; label chips and none size to content', () => {
+      const a = setup({ item: issue('Status: To Do \u2192 In Review') });
+      const inline = [...a.container.querySelectorAll('[data-chip="status"]')];
+      expect(inline).toHaveLength(2);
+      a.unmount();
+      const b = setup({
+        item: issue(
+          'Status: To Do \u2192 Done\nLabels: a \u2192 a perf\nFix Version: \u2192 1.14.0',
+        ),
+      });
+      const listed = [...b.container.querySelectorAll('[data-change-list] [data-chip="status"]')];
+      expect(listed).toHaveLength(2);
+      for (const pill of [...inline, ...listed]) {
+        expect(pill.className).toContain('min-w-[5rem]');
+        expect(pill.className).toContain('justify-center');
+      }
+      const labels = [...b.container.querySelectorAll('[data-chip="label"]')];
+      expect(labels.length).toBeGreaterThan(0);
+      for (const chip of labels) expect(chip.className).not.toContain('min-w-');
+      expect(b.container.querySelector('[data-value-none]')?.className).not.toContain('min-w-');
+    });
+
     it('change rows and comment rows share the list-row geometry and the more-row indent', () => {
       const ch = setup({ item: issue(changeLines(12)) });
       const list = ch.container.querySelector('[data-change-list]') as HTMLElement;
