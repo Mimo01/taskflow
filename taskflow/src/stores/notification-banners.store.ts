@@ -46,6 +46,8 @@ interface BannerGate {
   isFirstPoll: boolean;
   /** Persisted notifications have been rehydrated (otherwise everything looks new). */
   hydrated: boolean;
+  /** Per-source desktop-notification switches: off for a source = no banners for it either. */
+  sourceEnabled: { jira: boolean; gitlab: boolean };
 }
 
 /**
@@ -54,11 +56,16 @@ interface BannerGate {
  */
 export function selectBannerItems(
   newItems: NotificationItem[],
-  { existingIds, priorCursors, isFirstPoll, hydrated }: BannerGate,
+  { existingIds, priorCursors, isFirstPoll, hydrated, sourceEnabled }: BannerGate,
 ): NotificationItem[] {
   if (isFirstPoll || !hydrated) return [];
   return newItems
-    .filter((item) => !existingIds.has(item.id) && priorCursors[item.source] != null)
+    .filter(
+      (item) =>
+        sourceEnabled[item.source] &&
+        !existingIds.has(item.id) &&
+        priorCursors[item.source] != null,
+    )
     .sort((a, b) => (a.createdAt < b.createdAt ? 1 : a.createdAt > b.createdAt ? -1 : 0))
     .slice(0, MAX_BANNERS);
 }

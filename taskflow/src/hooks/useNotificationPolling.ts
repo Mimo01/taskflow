@@ -225,6 +225,10 @@ export function useNotificationPolling() {
             priorCursors,
             isFirstPoll,
             hydrated: useNotificationsStore.persist.hasHydrated(),
+            sourceEnabled: {
+              jira: osNotifJiraEnabledRef.current,
+              gitlab: osNotifGitlabEnabledRef.current,
+            },
           }).map((i) => i.id),
         );
         // Use allItems to advance cursors (avoid cursor drift from filtered items)
