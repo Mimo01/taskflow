@@ -22,17 +22,21 @@
  *     label chips (and "none") size to content.
  *  G. Type scale: title 12px; key, time, line 2, lists, chips 11px. Single ellipsis at the end
  *     of whatever overflows; lines are h-5 so nothing clips vertically.
- *  H. Unread vs read (261111-h9a): both are plain cards (--card-bg = card). Unread = bold neutral
- *     border (ring-[1.5px] ring-foreground/20, no colour, no shadow), a ring around the avatar in the
- *     EVENT colour (style.halo = the verb/badge colour), semibold title + foreground time. Read =
- *     ring-1 ring-foreground/10, normal-weight title in foreground, full-opacity avatar, muted
- *     time: never greyed out. Hover = accent 50% mixed into --card-bg (tray + badge cut-out use
- *     the same vars, no seam). Read vs unread changes ONLY classes. Nothing moves.
+ *  H. Ledger unread vs read (261111-i2o): ONE colour carrier = the action phrase, and only for events
+ *     that ask something of you (mention, review request, assignment, pipeline failed, due; see
+ *     isActionableKind). Plain updates are neutral. The avatar badge is a small neutral glyph, no
+ *     halo. ONE unread signal = surface: unread = bg-card + ring-foreground/25 + semibold title;
+ *     read = transparent + faint ring + normal-weight title. Text colours are identical: read cards
+ *     are never dimmed. Hover = accent 50% mixed into --card-bg (tray + badge cut-out use the same
+ *     vars, no seam). Read vs unread changes ONLY classes. Nothing moves.
  *  I. Merged and single cards share the skeleton; merged only adds the list.
  *  J. The hover tray sits in the time slot of line 1 (right-0, centred) in every card.
  *  K. Densities scale padding / gaps / lead size; grammar is identical.
  *  L. Key: inline right before the title, same 12px size (muted, medium, tabular), fixed 6px gap; no fixed column, never wraps.
  *
+ * - Corner X (Done), hover cluster (read/unread, open in browser) and the optional quick-action pill are
+ *   siblings of the overlay button. Only the hovered / focus-within card (group/row) shows its X + cluster.
+ * - A StackCard is the newest card plus peek edges and "+N"; its overlay button expands the stack.
  * - One card may stand for several merged notifications (same actor, same entity, <= 60 min apart);
  *   read / done / open act on all of them.
  * - An absolute inset-0 overlay <button> is the primary target; the key and tray
@@ -40,8 +44,9 @@
  * - Unread vs read only changes class strings / the aria prefix, never the tree (D-05).
  * - Absolute time and full body live in a 600ms tooltip; the hover tray replaces the time.
  */
-import { Check, ExternalLink, Mail, MailOpen } from 'lucide-react';
+import { ExternalLink, Mail, MailOpen, X } from 'lucide-react';
 import { createContext, type ReactNode, useContext } from 'react';
+import { Button } from '@/components/ui/button';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { LinkContextMenu } from '@/components/ui/link-context-menu';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -55,6 +60,7 @@ import {
   ACTION_STYLE,
   EVENT_STYLE,
   type EventStyle,
+  isActionableKind,
   MENTION_STYLE,
   UPDATE_STYLE,
 } from './notification-colours';
@@ -86,6 +92,10 @@ interface NotificationRowProps {
   onToggleRead: () => void;
   onDone: () => void;
   onOpenInBrowser?: () => void;
+  /** One context action (Reply / Review / View pipeline), rendered as a pill under line 2. */
+  quick?: { label: string; onClick: () => void };
+  /** Set on a collapsed stack's top card: notifications hidden behind it ("+N"); the card expands, not opens. */
+  stackMore?: number;
 }
 
 /* ── shared tray button ─────────────────────────────── */
@@ -446,7 +456,7 @@ export function NotificationChangeList({ changes }: { changes: ChangeLine[] }) {
             data-list-row
             className="contents"
           >
-            <Icon aria-hidden="true" className={cn('size-3 flex-none', style.text)} />
+            <Icon aria-hidden="true" className="size-3 flex-none text-muted-foreground" />
             <span data-list-field className="h-5 max-w-[5.5rem] truncate text-muted-foreground">
               {c.field}
             </span>
@@ -492,7 +502,12 @@ export function NotificationCommentList({ comments }: { comments: CommentLine[] 
       {shown.map((c) => {
         const style = c.mention ? MENTION_STYLE : EVENT_STYLE['jira-comment'];
         return (
-          <ListRow key={c.id} rowAttr="data-comment-row" Icon={style.Icon} iconClass={style.text}>
+          <ListRow
+            key={c.id}
+            rowAttr="data-comment-row"
+            Icon={style.Icon}
+            iconClass="text-muted-foreground"
+          >
             <span className="text-muted-foreground">{c.text}</span>
           </ListRow>
         );
@@ -518,6 +533,8 @@ export default function NotificationRow({
   onToggleRead,
   onDone,
   onOpenInBrowser,
+  quick,
+  stackMore,
 }: NotificationRowProps) {
   const all = items && items.length > 0 ? items : [item];
   const ref = getEntityRef(item);
@@ -529,9 +546,13 @@ export default function NotificationRow({
     ? `${item.parentKey}${item.parentSummary ? ` ${item.parentSummary}` : ''}`
     : '';
   const ariaText = describeEventAriaText(parts);
-  const ariaLabel = `${isUnread ? 'Unread. ' : ''}${describeEventAria(parts)} on ${ref ? `${ref} ` : ''}${title}${parentLabel ? ` (in ${parentLabel})` : ''}${ariaText ? `: ${ariaText}` : ''}`;
+  const stackAria = stackMore
+    ? ` (${stackMore} more notification${stackMore === 1 ? '' : 's'}, expand)`
+    : '';
+  const ariaLabel = `${isUnread ? 'Unread. ' : ''}${describeEventAria(parts)} on ${ref ? `${ref} ` : ''}${title}${parentLabel ? ` (in ${parentLabel})` : ''}${ariaText ? `: ${ariaText}` : ''}${stackAria}`;
   const listChanges = parts.changes && parts.changes.length >= 2 ? parts.changes : null;
   // Merged cards mix changes from several items: look avatars up across all of them.
+  const actionable = isActionableKind(style.kind);
   const personAvatars = {
     avatars: Object.assign({}, ...all.map((i) => i.personAvatars ?? {})) as Record<string, string>,
     lists: item.source === 'gitlab',
@@ -544,10 +565,10 @@ export default function NotificationRow({
       data-card
       data-unread-card={isUnread ? 'true' : 'false'}
       className={cn(
-        'group/row relative flex cursor-pointer items-start gap-3 rounded-xl py-2.5 [--card-hover:color-mix(in_oklab,var(--color-accent)_50%,var(--card-bg))] px-3 text-xs transition-colors density-compact:gap-2.5 density-compact:py-1.5 density-compact:px-2.5 density-comfortable:gap-3.5 density-comfortable:py-3.5 density-comfortable:px-3.5 hover:bg-(--card-hover) focus-within:bg-(--card-hover)',
+        'group/row relative flex cursor-pointer items-start gap-3 rounded-xl px-3 py-2.5 text-xs transition-colors [--card-hover:color-mix(in_oklab,var(--color-accent)_50%,var(--card-bg))] hover:bg-(--card-hover) focus-within:bg-(--card-hover) density-compact:gap-2.5 density-compact:px-2.5 density-compact:py-1.5 density-comfortable:gap-3.5 density-comfortable:px-3.5 density-comfortable:py-3.5',
         isUnread
-          ? '[--card-bg:var(--color-card)] bg-(--card-bg) ring-[1.5px] ring-foreground/20'
-          : '[--card-bg:var(--color-card)] bg-(--card-bg) ring-1 ring-foreground/10',
+          ? '[--card-bg:var(--color-card)] bg-(--card-bg) ring-1 ring-foreground/25'
+          : '[--card-bg:color-mix(in_oklab,var(--color-muted)_40%,var(--color-background))] bg-transparent ring-1 ring-foreground/10 dark:[--card-bg:color-mix(in_oklab,var(--color-muted)_20%,var(--color-background))]',
         peeked && PEEKED_ROW_CLASS,
       )}
       data-peeked={peeked ? 'true' : undefined}
@@ -556,11 +577,24 @@ export default function NotificationRow({
         type="button"
         data-entry-primary
         aria-label={ariaLabel}
+        aria-expanded={stackMore ? false : undefined}
         onClick={onOpen}
         className="absolute inset-0 cursor-pointer rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       />
 
-      <NotificationAvatar item={item} style={style} isUnread={isUnread} />
+      <button
+        type="button"
+        aria-label="Clear notification"
+        onClick={(e) => {
+          e.stopPropagation();
+          onDone();
+        }}
+        className="absolute -top-1.5 -left-1.5 z-20 flex size-5 flex-none cursor-pointer items-center justify-center rounded-full bg-card text-muted-foreground opacity-0 ring-1 ring-foreground/15 transition-opacity hover:text-foreground focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring group-hover/row:opacity-100 group-focus-within/row:opacity-100"
+      >
+        <X aria-hidden="true" className="size-3" />
+      </button>
+
+      <NotificationAvatar item={item} style={style} />
 
       <div className="flex min-w-0 flex-1 flex-col justify-center">
         <div className="relative flex h-5 items-center gap-1.5">
@@ -593,12 +627,17 @@ export default function NotificationRow({
               {title}
             </span>
           </span>
+          {stackMore ? (
+            <span
+              data-stack-more
+              className="pointer-events-none relative flex-none text-[11px] font-medium tabular-nums text-muted-foreground group-hover/row:opacity-0 group-focus-within/row:opacity-0"
+            >
+              +{stackMore}
+            </span>
+          ) : null}
           <time
             dateTime={item.createdAt}
-            className={cn(
-              'pointer-events-none relative min-w-9 flex-none whitespace-nowrap text-right text-[11px] tabular-nums group-hover/row:opacity-0 group-focus-within/row:opacity-0',
-              isUnread ? 'font-semibold text-foreground' : 'text-muted-foreground',
-            )}
+            className="pointer-events-none relative min-w-9 flex-none whitespace-nowrap text-right text-[11px] tabular-nums text-muted-foreground group-hover/row:opacity-0 group-focus-within/row:opacity-0"
           >
             {relTime(item.createdAt, now)}
           </time>
@@ -620,15 +659,12 @@ export default function NotificationRow({
                 </NotificationTrayButton>
               </LinkContextMenu>
             ) : null}
-            <NotificationTrayButton label="Done" shortcut="E" onClick={onDone}>
-              <Check className="size-3.5" />
-            </NotificationTrayButton>
           </span>
         </div>
         <PersonAvatarsContext.Provider value={personAvatars}>
           <NotificationDetailLine
             parts={parts}
-            colour={style.text}
+            colour={actionable ? style.text : 'text-foreground'}
             actor={
               item.notificationType === 'pipeline-failure' ||
               item.notificationType === 'due-date-reminder'
@@ -641,6 +677,75 @@ export default function NotificationRow({
             <NotificationCommentList comments={parts.comments} />
           ) : null}
         </PersonAvatarsContext.Provider>
+        {quick ? (
+          <div className="mt-1.5 flex justify-end">
+            <button
+              type="button"
+              data-quick-action
+              onClick={(e) => {
+                e.stopPropagation();
+                quick.onClick();
+              }}
+              className="relative z-10 h-5 cursor-pointer rounded-full px-2 text-[11px] font-medium text-foreground ring-1 ring-foreground/15 transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              {quick.label}
+            </button>
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+/* ── stacks ─────────────────────────────────────────── */
+
+/** Collapsed stack: the newest card with two peek edges behind it (ring + surface only, no shadow). */
+export function StackCard({ children }: { children: ReactNode }) {
+  return (
+    <div data-stack className="relative pb-3">
+      <div
+        aria-hidden="true"
+        data-stack-edge="2"
+        className="pointer-events-none absolute inset-x-4 bottom-0 h-5 rounded-b-xl bg-card opacity-70 ring-1 ring-foreground/15"
+      />
+      <div
+        aria-hidden="true"
+        data-stack-edge="1"
+        className="pointer-events-none absolute inset-x-2 bottom-1.5 h-5 rounded-b-xl bg-card ring-1 ring-foreground/15"
+      />
+      <div className="relative">{children}</div>
+    </div>
+  );
+}
+
+/** Header of an expanded stack: entity ref + title, "Show less" and "Clear". */
+export function StackHeader({
+  entityRef,
+  title,
+  onCollapse,
+  onClear,
+}: {
+  entityRef: string;
+  title: string;
+  onCollapse: () => void;
+  onClear: () => void;
+}) {
+  return (
+    <div data-stack-header className="flex h-7 items-center justify-between gap-2 px-1">
+      <p className="min-w-0 truncate text-xs font-semibold text-foreground">
+        {entityRef ? (
+          <span className="mr-1 font-medium tabular-nums text-muted-foreground">{entityRef}</span>
+        ) : null}
+        {title}
+      </p>
+      <div className="flex flex-none items-center gap-1">
+        <Button variant="ghost" size="xs" onClick={onCollapse}>
+          Show less
+        </Button>
+        <Button variant="ghost" size="xs" className="text-muted-foreground" onClick={onClear}>
+          <X aria-hidden="true" />
+          Clear
+        </Button>
       </div>
     </div>
   );

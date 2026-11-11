@@ -3,17 +3,23 @@ import { type KeyboardEvent, type ReactNode, useCallback, useEffect, useRef } fr
 import { cn } from '../../lib/utils';
 import {
   type EventEntry,
+  entityKey,
   estimateEntryHeight,
   isFocusableEntry,
   type NotificationEntry,
+  type StackEntry,
 } from './notification-view';
 
 interface NotificationListProps {
   entries: NotificationEntry[];
   /** Row/header markup. Each focusable render must contain one `[data-entry-primary]` element. */
   renderEntry: (entry: NotificationEntry) => ReactNode;
-  onToggleRead: (entry: EventEntry) => void;
-  onDone: (entry: EventEntry) => void;
+  /** Toggle read on a card, or on every card of a collapsed stack. */
+  onToggleRead: (entry: EventEntry | StackEntry) => void;
+  /** Done a card, or a whole collapsed stack. */
+  onDone: (entry: EventEntry | StackEntry) => void;
+  /** Expand / collapse the stack of an entity key. */
+  onToggleStack: (entity: string) => void;
   className?: string;
 }
 
@@ -21,7 +27,8 @@ const MAX_FOCUS_ATTEMPTS = 5;
 
 /**
  * Virtualized notification entry list with a popover-scoped keyboard triage layer
- * (j/k/arrows to move, u toggle read, e/Delete done). Handlers are bound to the
+ * (j/k/arrows to move, u toggle read, e/Delete/Backspace done, Enter/Space/ArrowRight expand a
+ * stack, Esc/ArrowLeft collapse the stack of the focused member). Handlers are bound to the
  * scroller only — never global hotkeys.
  */
 export default function NotificationList({
@@ -29,6 +36,7 @@ export default function NotificationList({
   renderEntry,
   onToggleRead,
   onDone,
+  onToggleStack,
   className,
 }: NotificationListProps) {
   const parentRef = useRef<HTMLDivElement>(null);
@@ -91,6 +99,11 @@ export default function NotificationList({
     if (target >= 0) focusEntry(target);
   }, [entries]);
 
+  // Entities currently expanded (their stack-header is in the list): members of these collapse on Esc.
+  const expandedEntities = new Set(
+    entries.flatMap((e) => (e.kind === 'stack-header' ? [e.entity] : [])),
+  );
+
   const nextFocusable = (from: number, dir: 1 | -1): number => {
     for (let i = from + dir; i >= 0 && i < entries.length; i += dir) {
       if (isFocusableEntry(entries[i])) return i;
@@ -107,8 +120,35 @@ export default function NotificationList({
     const current = attr == null ? -1 : Number(attr);
     const entry = current >= 0 ? entries[current] : undefined;
     const focusable = entry && isFocusableEntry(entry) ? entry : undefined;
+    const onPrimary = Boolean((e.target as HTMLElement).closest('[data-entry-primary]'));
 
     switch (e.key) {
+      case 'Enter':
+      case ' ':
+      case 'ArrowRight': {
+        if (!focusable || focusable.kind !== 'stack') return;
+        if (e.key !== 'ArrowRight' && !onPrimary) return;
+        e.preventDefault();
+        // The stack row is replaced by header + members: land on the first member.
+        pendingFocus.current = current + 1;
+        onToggleStack(focusable.entity);
+        return;
+      }
+      case 'Escape':
+      case 'ArrowLeft': {
+        if (!focusable || focusable.kind !== 'event') return;
+        const entity = entityKey(focusable.item);
+        if (!entity || !expandedEntities.has(entity)) return;
+        e.preventDefault();
+        e.stopPropagation();
+        // Collapsing puts the stack where the stack-header is now.
+        const headerIndex = entries.findIndex(
+          (x) => x.kind === 'stack-header' && x.entity === entity,
+        );
+        pendingFocus.current = headerIndex >= 0 ? headerIndex : current;
+        onToggleStack(entity);
+        return;
+      }
       case 'ArrowDown':
       case 'j': {
         e.preventDefault();
@@ -132,7 +172,8 @@ export default function NotificationList({
         return;
       }
       case 'e':
-      case 'Delete': {
+      case 'Delete':
+      case 'Backspace': {
         if (!focusable) return;
         e.preventDefault();
         pendingFocus.current = current;
@@ -149,7 +190,7 @@ export default function NotificationList({
     <div
       ref={parentRef}
       className={cn(
-        '@container relative max-h-[520px] overflow-y-auto bg-muted/40 px-2 py-1 dark:bg-muted/20',
+        '@container relative max-h-[520px] overflow-y-auto bg-muted/40 px-3 pt-2 pb-1 dark:bg-muted/20',
         className,
       )}
       onKeyDown={handleKeyDown}
@@ -178,12 +219,23 @@ export default function NotificationList({
                     transform: `translateY(${virtualRow.start}px)`,
                   }}
                 >
-                  <EntryWrapper entry={entry} index={virtualRow.index} renderEntry={renderEntry} />
+                  <EntryWrapper
+                    entry={entry}
+                    index={virtualRow.index}
+                    renderEntry={renderEntry}
+                    expandedEntities={expandedEntities}
+                  />
                 </div>
               );
             })
           : entries.map((entry, i) => (
-              <EntryWrapper key={entry.id} entry={entry} index={i} renderEntry={renderEntry} />
+              <EntryWrapper
+                key={entry.id}
+                entry={entry}
+                index={i}
+                renderEntry={renderEntry}
+                expandedEntities={expandedEntities}
+              />
             ))}
       </div>
     </div>
@@ -194,17 +246,25 @@ function EntryWrapper({
   entry,
   index,
   renderEntry,
+  expandedEntities,
 }: {
   entry: NotificationEntry;
   index: number;
   renderEntry: (entry: NotificationEntry) => ReactNode;
+  expandedEntities: ReadonlySet<string>;
 }) {
+  const key = entry.kind === 'event' ? entityKey(entry.item) : null;
+  const isMember = key != null && expandedEntities.has(key);
   return (
     <div
       data-entry-index={index}
       data-entry-id={entry.id}
       className={cn(
-        entry.kind === 'event' && 'pb-2 density-compact:pb-1.5 density-comfortable:pb-2.5',
+        (entry.kind === 'event' || entry.kind === 'stack') &&
+          'pb-2 density-compact:pb-1.5 density-comfortable:pb-2.5',
+        // Expanded members slide in; rows are inserted, never height-animated inside a measured row.
+        isMember &&
+          'fade-in-0 slide-in-from-top-1 animate-in duration-150 motion-reduce:animate-none',
       )}
     >
       {renderEntry(entry)}

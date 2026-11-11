@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import type { NotificationItem } from '../../stores/notifications.store';
 import NotificationList from './NotificationList';
-import { buildEntries, type NotificationEntry } from './notification-view';
+import { buildEntries, type NotificationEntry, stackEntries } from './notification-view';
 
 const NOW = new Date(2026, 10, 10, 15, 0).getTime();
 const at = (h: number, min = 0) => new Date(2026, 10, 10, h, min).toISOString();
@@ -38,8 +38,8 @@ function entriesFor(list: NotificationItem[]) {
 }
 
 const stubRender = (entry: NotificationEntry) =>
-  entry.kind === 'header' ? (
-    <div>{entry.label}</div>
+  entry.kind === 'header' || entry.kind === 'stack-header' ? (
+    <div>{entry.kind === 'header' ? entry.label : entry.id}</div>
   ) : (
     <div>
       <button type="button" data-entry-primary>
@@ -53,6 +53,7 @@ function setup(list = items) {
   const handlers = {
     onToggleRead: vi.fn(),
     onDone: vi.fn(),
+    onToggleStack: vi.fn(),
   };
   const renderEntry = vi.fn(stubRender);
   const entries = entriesFor(list);
@@ -177,7 +178,7 @@ describe('NotificationList keyboard', () => {
     await waitFor(() => expect(btn(shorter[shorter.length - 1].id)).toHaveFocus());
   });
 
-  it('has no expand/collapse keys (flat list)', async () => {
+  it('ArrowRight / ArrowLeft on a plain card do nothing (no stack to expand or collapse)', async () => {
     const user = userEvent.setup();
     const { container } = setup();
     btn('event:c').focus();
@@ -211,7 +212,7 @@ describe('NotificationList keyboard', () => {
     expect(handlers.onDone).not.toHaveBeenCalled();
   });
 
-  it('does not handle Enter, Space or Escape (default not prevented)', async () => {
+  it('does not handle Enter, Space or Escape on a plain card (default not prevented)', async () => {
     const user = userEvent.setup();
     const { handlers, container } = setup();
     btn('event:c').focus();
@@ -221,5 +222,112 @@ describe('NotificationList keyboard', () => {
     expect(prevented.every((p) => !p)).toBe(true);
     expect(handlers.onDone).not.toHaveBeenCalled();
     expect(handlers.onToggleRead).not.toHaveBeenCalled();
+    expect(handlers.onToggleStack).not.toHaveBeenCalled();
+  });
+});
+
+describe('NotificationList stacks', () => {
+  const ENTITY = 'jira:PROJ-1';
+  const stacked = (expanded: string[] = []) => stackEntries(entriesFor(items), new Set(expanded));
+
+  function setupStack(expanded: string[] = []) {
+    const handlers = { onToggleRead: vi.fn(), onDone: vi.fn(), onToggleStack: vi.fn() };
+    const entries = stacked(expanded);
+    const utils = render(
+      <NotificationList entries={entries} renderEntry={stubRender} {...handlers} />,
+    );
+    return { ...utils, handlers, entries };
+  }
+
+  it('lays out header, stack, event when collapsed', () => {
+    const { entries } = setupStack();
+    expect(entries.map((e) => e.id)).toEqual(['header:today', `stack:${ENTITY}`, 'event:c']);
+  });
+
+  it('Enter on a collapsed stack expands it and focus lands on the first member', async () => {
+    const user = userEvent.setup();
+    const { handlers, rerender } = setupStack();
+    btn(`stack:${ENTITY}`).focus();
+    await user.keyboard('{Enter}');
+    expect(handlers.onToggleStack).toHaveBeenCalledWith(ENTITY);
+    rerender(
+      <NotificationList entries={stacked([ENTITY])} renderEntry={stubRender} {...handlers} />,
+    );
+    await waitFor(() => expect(btn('event:b')).toHaveFocus());
+  });
+
+  it('Space and ArrowRight also expand a collapsed stack', async () => {
+    const user = userEvent.setup();
+    const { handlers } = setupStack();
+    btn(`stack:${ENTITY}`).focus();
+    await user.keyboard(' ');
+    await user.keyboard('{ArrowRight}');
+    expect(handlers.onToggleStack).toHaveBeenCalledTimes(2);
+    expect(handlers.onToggleStack).toHaveBeenCalledWith(ENTITY);
+  });
+
+  it('Escape / ArrowLeft inside an expanded stack collapse it and focus the stack', async () => {
+    const user = userEvent.setup();
+    const { handlers, rerender } = setupStack([ENTITY]);
+    btn('event:a').focus();
+    await user.keyboard('{Escape}');
+    expect(handlers.onToggleStack).toHaveBeenCalledWith(ENTITY);
+    rerender(<NotificationList entries={stacked()} renderEntry={stubRender} {...handlers} />);
+    await waitFor(() => expect(btn(`stack:${ENTITY}`)).toHaveFocus());
+
+    handlers.onToggleStack.mockClear();
+    rerender(
+      <NotificationList entries={stacked([ENTITY])} renderEntry={stubRender} {...handlers} />,
+    );
+    await waitFor(() => expect(btn('event:b')).toBeInTheDocument());
+    btn('event:b').focus();
+    await user.keyboard('{ArrowLeft}');
+    expect(handlers.onToggleStack).toHaveBeenCalledWith(ENTITY);
+  });
+
+  it('Escape on a card outside any expanded stack is left alone', async () => {
+    const user = userEvent.setup();
+    const { handlers } = setupStack([ENTITY]);
+    btn('event:c').focus();
+    await user.keyboard('{Escape}');
+    expect(handlers.onToggleStack).not.toHaveBeenCalled();
+  });
+
+  it('e, Delete and Backspace on a collapsed stack Done the whole stack entry', async () => {
+    const user = userEvent.setup();
+    const { handlers, entries } = setupStack();
+    const stack = entries.find((e) => e.kind === 'stack');
+    btn(`stack:${ENTITY}`).focus();
+    await user.keyboard('e');
+    await user.keyboard('{Delete}');
+    await user.keyboard('{Backspace}');
+    expect(handlers.onDone).toHaveBeenCalledTimes(3);
+    expect(handlers.onDone).toHaveBeenCalledWith(stack);
+  });
+
+  it('Backspace Dones a plain card too (alias of e / Delete)', async () => {
+    const user = userEvent.setup();
+    const { handlers, entries } = setupStack();
+    btn('event:c').focus();
+    await user.keyboard('{Backspace}');
+    expect(handlers.onDone).toHaveBeenCalledWith(entries.find((e) => e.id === 'event:c'));
+  });
+
+  it('u toggles read on the stack entry; the stack-header is not focusable', async () => {
+    const user = userEvent.setup();
+    const { handlers, entries } = setupStack();
+    btn(`stack:${ENTITY}`).focus();
+    await user.keyboard('u');
+    expect(handlers.onToggleRead).toHaveBeenCalledWith(entries.find((e) => e.kind === 'stack'));
+    const { container } = render(
+      <NotificationList entries={stacked([ENTITY])} renderEntry={stubRender} {...handlers} />,
+    );
+    fireEvent.keyDown(container.firstElementChild as HTMLElement, { key: 'ArrowDown' });
+    await waitFor(() =>
+      expect(container.querySelector('[data-entry-primary]:focus')).not.toBeNull(),
+    );
+    expect(
+      container.querySelector('[data-entry-id^="stack-header"] [data-entry-primary]'),
+    ).toBeNull();
   });
 });

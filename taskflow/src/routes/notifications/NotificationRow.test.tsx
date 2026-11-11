@@ -3,7 +3,7 @@ import { resolve } from 'node:path';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { NotificationItem } from '../../stores/notifications.store';
-import NotificationRow from './NotificationRow';
+import NotificationRow, { StackCard, StackHeader } from './NotificationRow';
 
 vi.mock('@tauri-apps/plugin-opener', () => ({ openUrl: vi.fn() }));
 
@@ -308,9 +308,26 @@ describe('NotificationRow', () => {
     expect(onToggleRead).toHaveBeenCalledTimes(1);
     fireEvent.click(screen.getByRole('button', { name: 'Open in browser' }));
     expect(onOpenInBrowser).toHaveBeenCalledTimes(1);
-    fireEvent.click(screen.getByRole('button', { name: 'Done' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Clear notification' }));
     expect(onDone).toHaveBeenCalledTimes(1);
     expect(onOpen).not.toHaveBeenCalled();
+  });
+
+  it('Done is the corner X, not part of the hover tray; both only show on hover/focus of THIS card', () => {
+    const { container } = setup();
+    const x = screen.getByRole('button', { name: 'Clear notification' });
+    expect(container.querySelector('[data-tray]')?.contains(x)).toBe(false);
+    expect(container.querySelector('[data-tray]')?.textContent).toBe('');
+    for (const el of [x, container.querySelector('[data-tray]') as HTMLElement]) {
+      expect(el.className).toContain('opacity-0');
+      expect(el.className).toContain('group-hover/row:opacity-100');
+      expect(el.className).toContain('group-focus-within/row:opacity-100');
+    }
+    // sibling of the overlay button, round, fixed size so WebKit never collapses it
+    expect(x.closest('[data-entry-primary]')).toBeNull();
+    expect(x.className).toContain('rounded-full');
+    expect(x.className).toContain('size-5');
+    expect(x.className).toContain('flex-none');
   });
 
   it('read row offers "Mark as unread"', () => {
@@ -365,15 +382,15 @@ describe('NotificationRow', () => {
     expect(badge.className).not.toContain('-bottom-1.5');
   });
 
-  it('read cards are plain cards (rounded-xl, card surface, ring-1, no border/shadow), density-aware padding', () => {
+  it('read cards are transparent with a faint ring (rounded-xl, ring-1, no border/shadow), density-aware padding', () => {
     const { container } = setup({ isUnread: false });
     const r = container.firstElementChild as HTMLElement;
     expect(r.className).toContain('rounded-xl');
     expect(r.className).toContain('ring-1');
     expect(r.className).toContain('ring-foreground/10');
     expect(r.className).not.toMatch(/(^|\s)(border|shadow-\w+)(\s|$)/);
-    expect(r.className).toContain('bg-(--card-bg)');
-    expect(r.className).toContain('[--card-bg:var(--color-card)]');
+    expect(r.className).toContain('bg-transparent');
+    expect(r.className).not.toContain('bg-(--card-bg)');
     expect(r.className).not.toMatch(/(^|\s)border-b(\s|$)/);
     expect(r.className).toContain('density-compact:py-1.5');
     expect(r.className).toContain('density-comfortable:py-3.5');
@@ -386,37 +403,143 @@ describe('NotificationRow', () => {
     expect(r.className).toContain('hover:bg-(--card-hover)');
   });
 
-  it('unread = bold neutral border, event-colour avatar halo, bold title/time; read is not greyed out', () => {
+  it('Ledger: unread = card surface + stronger ring + bold title; read = transparent + faint ring + regular title, never dimmed', () => {
     const unread = setup({ isUnread: true });
     const u = unread.container.firstElementChild as HTMLElement;
-    expect(u.className).toContain('ring-[1.5px]');
-    expect(u.className).toContain('ring-foreground/20');
-    expect(u.className).not.toMatch(/blue|shadow-/);
+    expect(u.className).toContain('bg-(--card-bg)');
     expect(u.className).toContain('[--card-bg:var(--color-card)]');
+    expect(u.className).toContain('ring-1');
+    expect(u.className).toContain('ring-foreground/25');
+    expect(u.className).not.toMatch(/ring-\[1\.5px\]|blue|shadow-/);
     expect(screen.getByText('Fix login bug').className).toContain('font-semibold');
-    expect(unread.container.querySelector('[data-unread-halo="true"]')?.className).not.toContain(
-      'opacity-0',
-    );
-    // halo takes the event colour (jira-comment = blue), matching the badge/verb
-    expect(unread.container.querySelector('[data-unread-halo="true"]')?.className).toContain(
-      'ring-blue-600',
-    );
-    expect(unread.container.querySelector('time')?.className).toContain('text-foreground');
+    // no halo anywhere: the badge is the only avatar decoration
+    expect(unread.container.querySelector('[data-unread-halo]')).toBeNull();
+    expect(unread.container.querySelector('time')?.className).toContain('text-muted-foreground');
     unread.unmount();
     const read = setup({ isUnread: false });
     const r = read.container.firstElementChild as HTMLElement;
+    expect(r.className).toContain('bg-transparent');
     expect(r.className).toContain('ring-foreground/10');
-    expect(r.className).not.toContain('--color-blue-500');
+    expect(r.className).not.toContain('ring-foreground/25');
     expect(r.className).not.toContain('shadow');
+    expect(r.className).not.toMatch(/(^|\s)(opacity-|dark:opacity-)/);
     expect(screen.getByText('Fix login bug').className).toContain('font-normal');
     expect(screen.getByText('Fix login bug').className).toContain('text-foreground');
     expect(screen.getByText('Fix login bug').className).not.toContain('muted');
-    expect(r.className).toContain('ring-1');
-    expect(read.container.querySelector('[data-unread-halo="false"]')?.className).toContain(
-      'opacity-0',
-    );
     expect(read.container.querySelector('[data-event-kind]')?.className).not.toContain('opacity-');
     expect(read.container.querySelector('time')?.className).toContain('text-muted-foreground');
+    expect(read.container.querySelector('[data-line="detail"]')?.className).not.toContain(
+      'opacity',
+    );
+  });
+
+  it('Ledger colour carrier: only actionable events colour the action phrase; plain updates are neutral', () => {
+    const phrase = (item: NotificationItem, text: string) => {
+      const { unmount } = setup({ item });
+      const cls = screen.getByText(text).className;
+      unmount();
+      return cls;
+    };
+    // comment = plain, neutral
+    expect(phrase(makeItem('jira'), 'commented')).not.toMatch(/text-(blue|violet|teal|red|amber)/);
+    expect(phrase(makeItem('jira'), 'commented')).toContain('text-foreground');
+    // mention / assignment / failure / due keep their colour
+    expect(
+      phrase(makeItem('jira', { notificationType: 'comment-mention' }), 'mentioned you'),
+    ).toContain('text-violet-600');
+    expect(
+      phrase(
+        makeItem('jira', { notificationType: 'issue-assignment', bodyPreview: '' }),
+        'assigned you',
+      ),
+    ).toContain('text-teal-600');
+    // status change = plain update: neutral
+    const status = phrase(
+      makeItem('jira', {
+        notificationType: 'issue-update',
+        bodyPreview: 'Status: To Do \u2192 In Review',
+      }),
+      'changed status',
+    );
+    expect(status).not.toMatch(/text-amber/);
+  });
+
+  it('Ledger avatar: neutral small badge, no event colour fill', () => {
+    const { container } = setup({
+      item: makeItem('jira', { notificationType: 'comment-mention' }),
+    });
+    const badge = container.querySelector('[data-event-badge]') as HTMLElement;
+    expect(badge.className).toContain('bg-muted');
+    expect(badge.className).toContain('text-muted-foreground');
+    expect(badge.className).not.toMatch(/bg-(violet|blue)|text-white/);
+  });
+
+  it('quick action pill: sibling of the overlay, calls only its handler; absent without one', () => {
+    const onClick = vi.fn();
+    const { onOpen, container } = setup({ quick: { label: 'Reply', onClick } });
+    const pill = screen.getByRole('button', { name: 'Reply' });
+    expect(pill.className).toContain('rounded-full');
+    expect(pill.className).toContain('relative');
+    expect(pill.className).toContain('z-10');
+    expect(container.querySelector('[data-entry-primary]')?.contains(pill)).toBe(false);
+    fireEvent.click(pill);
+    expect(onClick).toHaveBeenCalledTimes(1);
+    expect(onOpen).not.toHaveBeenCalled();
+  });
+
+  it('a card without a quick action adds no trailing row (height hugs content)', () => {
+    const { container } = setup();
+    expect(container.querySelector('[data-quick-action]')).toBeNull();
+    const body = container.querySelector('[data-card] > div.flex.min-w-0') as HTMLElement;
+    expect(body.lastElementChild?.getAttribute('data-line')).toBe('detail');
+  });
+
+  it('stack card: "+N", expand semantics on the overlay, two peek edges behind the card', () => {
+    const { container, onOpen } = setup({ stackMore: 2 });
+    expect(container.querySelector('[data-stack-more]')?.textContent).toBe('+2');
+    const overlay = container.querySelector('[data-entry-primary]') as HTMLElement;
+    expect(overlay.getAttribute('aria-expanded')).toBe('false');
+    expect(overlay.getAttribute('aria-label')).toContain('2 more notifications');
+    fireEvent.click(overlay);
+    expect(onOpen).toHaveBeenCalledTimes(1);
+  });
+
+  it('StackCard draws peek edges with ring + surface only (no shadow), no extra height beyond pb-3', () => {
+    const { container } = render(
+      <StackCard>
+        <div data-testid="top">card</div>
+      </StackCard>,
+    );
+    const wrap = container.querySelector('[data-stack]') as HTMLElement;
+    expect(wrap.className).toContain('relative');
+    expect(wrap.className).toContain('pb-3');
+    const edges = container.querySelectorAll('[data-stack-edge]');
+    expect(edges).toHaveLength(2);
+    for (const e of edges) {
+      expect(e.className).toContain('ring-1');
+      expect(e.className).not.toContain('shadow');
+      expect(e.getAttribute('aria-hidden')).toBe('true');
+      expect(e.className).toContain('pointer-events-none');
+    }
+    expect(wrap.querySelector('[data-testid="top"]')).not.toBeNull();
+  });
+
+  it('StackHeader: ref + title, "Show less" and "Clear" call their handlers', () => {
+    const onCollapse = vi.fn();
+    const onClear = vi.fn();
+    render(
+      <StackHeader
+        entityRef="PROJ-11"
+        title="Fix login bug"
+        onCollapse={onCollapse}
+        onClear={onClear}
+      />,
+    );
+    expect(screen.getByText('PROJ-11')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Show less' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Clear' }));
+    expect(onCollapse).toHaveBeenCalledTimes(1);
+    expect(onClear).toHaveBeenCalledTimes(1);
   });
 
   it('pipeline failure shows the pipeline number and branch', () => {
@@ -842,7 +965,7 @@ describe('NotificationRow', () => {
 
     it('badge cut-out ring follows the card surface', () => {
       const { container } = setup();
-      const badge = container.querySelector('[data-card] .rounded-full.text-white') as HTMLElement;
+      const badge = container.querySelector('[data-event-badge]') as HTMLElement;
       expect(badge.className).toContain('ring-(--card-bg)');
       expect(badge.className).toContain('group-hover/row:ring-(--card-hover)');
     });
@@ -853,7 +976,7 @@ describe('NotificationRow', () => {
           .split(/\s+/)
           .filter(
             (c) =>
-              !/^(bg-primary|dark:bg-primary|bg-card|bg-\(--card-bg\)|\[--card-bg:|dark:\[--card-bg:|dark:bg-card|border-border|shadow-|ring-|dark:ring-|font-|text-foreground|text-muted-foreground|opacity-0)/.test(
+              !/^(bg-primary|dark:bg-primary|bg-card|bg-\(--card-bg\)|\[--card-bg:|dark:\[--card-bg:|dark:bg-card|bg-transparent|border-border|shadow-|ring-|dark:ring-|font-|text-foreground|text-muted-foreground|opacity-0)/.test(
                 c,
               ),
           )

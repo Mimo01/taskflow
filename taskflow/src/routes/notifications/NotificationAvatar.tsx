@@ -1,5 +1,5 @@
 /**
- * Actor avatar with a small coloured action badge on its bottom-right corner.
+ * Actor avatar with a small neutral action badge on its bottom-right corner.
  * System events (pipeline failure, due reminder) get a neutral tile instead.
  * Fixed pixel sizing (CachedAvatar / explicit size classes) so WebKit never
  * collapses the slot to 0 width.
@@ -13,15 +13,9 @@ import type { EventStyle } from './notification-colours';
 interface NotificationAvatarProps {
   item: NotificationItem;
   style: EventStyle;
-  /** Unread = halo in the event colour (style.halo) around the lead; read = no halo, never dimmed. Classes only, same tree. */
-  isUnread?: boolean;
 }
 
-export default function NotificationAvatar({
-  item,
-  style,
-  isUnread = false,
-}: NotificationAvatarProps) {
+export default function NotificationAvatar({ item, style }: NotificationAvatarProps) {
   const type = item.notificationType;
   const Icon = style.Icon;
   let lead: React.ReactNode;
@@ -30,7 +24,7 @@ export default function NotificationAvatar({
     lead = (
       <span
         data-avatar-tile="ci"
-        className="flex size-9 flex-none items-center justify-center rounded-lg bg-muted density-compact:size-8 density-comfortable:size-10"
+        className="flex size-8 flex-none items-center justify-center rounded-lg bg-muted density-compact:size-7 density-comfortable:size-9"
       >
         <GitBranch aria-hidden="true" className="size-[18px] text-muted-foreground" />
       </span>
@@ -40,7 +34,7 @@ export default function NotificationAvatar({
     lead = (
       <span
         data-avatar-tile="due"
-        className="flex size-9 flex-none items-center justify-center rounded-lg bg-amber-500/15 density-compact:size-8 density-comfortable:size-10"
+        className="flex size-8 flex-none items-center justify-center rounded-lg bg-amber-500/15 density-compact:size-7 density-comfortable:size-9"
       >
         <CalendarClock aria-hidden="true" className="size-4 text-amber-600 dark:text-amber-400" />
       </span>
@@ -49,7 +43,7 @@ export default function NotificationAvatar({
     lead = (
       <span
         data-avatar-tile="anon"
-        className="flex size-9 flex-none items-center justify-center rounded-full bg-muted ring-1 ring-foreground/15 dark:bg-foreground/20 density-compact:size-8 density-comfortable:size-10"
+        className="flex size-8 flex-none items-center justify-center rounded-full bg-muted ring-1 ring-foreground/15 dark:bg-foreground/20 density-compact:size-7 density-comfortable:size-9"
       >
         <User aria-hidden="true" className="size-4 text-muted-foreground" />
       </span>
@@ -59,8 +53,8 @@ export default function NotificationAvatar({
       <CachedAvatar
         url={item.authorAvatarUrl}
         name={item.author}
-        size={40}
-        className="size-9 rounded-full density-compact:size-8 density-comfortable:size-10 ring-1 ring-foreground/15 [&>*]:size-full! [&_div]:text-[10px] dark:[&>div]:bg-foreground/20!"
+        size={32}
+        className="size-8 rounded-full density-compact:size-7 density-comfortable:size-9 ring-1 ring-foreground/15 [&>*]:size-full! [&_div]:text-[10px] dark:[&>div]:bg-foreground/20!"
       />
     );
   }
@@ -68,28 +62,15 @@ export default function NotificationAvatar({
     <span
       data-event-kind={style.kind}
       className={cn(
-        'pointer-events-none relative mt-px flex size-9 flex-none density-compact:size-8 density-comfortable:size-10',
+        'pointer-events-none relative mt-px flex size-8 flex-none density-compact:size-7 density-comfortable:size-9',
       )}
     >
       {lead}
-      <span
-        aria-hidden="true"
-        data-unread-halo={isUnread ? 'true' : 'false'}
-        className={cn(
-          'absolute -inset-0.5 ring-2',
-          style.halo,
-          type === 'pipeline-failure' || type === 'due-date-reminder'
-            ? 'rounded-[10px]'
-            : 'rounded-full',
-          !isUnread && 'opacity-0',
-        )}
-      />
       {showBadge ? (
         <span
           data-event-badge={style.kind}
           className={cn(
-            'absolute -right-1 -bottom-1 flex size-[18px] items-center justify-center rounded-full text-white density-compact:size-4 ring-2 ring-(--card-bg) group-hover/row:ring-(--card-hover) group-focus-within/row:ring-(--card-hover)',
-            style.badge,
+            'absolute -right-1 -bottom-1 flex size-4 items-center justify-center rounded-full bg-muted text-muted-foreground density-compact:size-[14px] ring-2 ring-(--card-bg) group-hover/row:ring-(--card-hover) group-focus-within/row:ring-(--card-hover)',
           )}
         >
           <Icon aria-hidden="true" className="size-[11px]" />

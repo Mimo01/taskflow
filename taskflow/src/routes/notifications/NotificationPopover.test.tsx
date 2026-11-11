@@ -4,6 +4,7 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { openExternal } from '../../lib/openExternal';
+import { useComposerFocus } from '../../stores/composer-focus.store';
 import { useNotificationsStore } from '../../stores/notifications.store';
 import NotificationPopover from './NotificationPopover';
 
@@ -45,6 +46,11 @@ const glItem = (id: string, extra = {}) => ({
   ...extra,
 });
 const entryCount = () => document.querySelectorAll('[data-entry-primary]').length;
+/** Pick a source in the "All sources" dropdown. */
+async function pickSource(name: RegExp) {
+  fireEvent.click(screen.getByRole('button', { name: 'Filter by source' }));
+  fireEvent.click(await screen.findByRole('menuitemradio', { name }));
+}
 const seed = (items: unknown[], readIds: string[] = []) =>
   act(() => {
     useNotificationsStore.setState({ items: items as never, readIds });
@@ -120,30 +126,177 @@ describe('NotificationPopover', () => {
     expect(onClose).not.toHaveBeenCalled();
   });
 
-  describe('flat list', () => {
+  describe('stacks', () => {
     beforeEach(() => seed([jiraItem('a'), jiraItem('b')]));
 
-    it('renders every notification on the same issue as its own row, with no group chrome', () => {
+    it('collapses 2+ notifications on one issue into one stack with +N and peek edges', () => {
       render(<NotificationPopover />);
-      expect(entryCount()).toBe(2);
-      expect(document.querySelector('[data-group-more]')).toBeNull();
-      expect(document.querySelector('[data-group-toggle]')).toBeNull();
-      expect(screen.queryByRole('button', { name: /earlier event/ })).toBeNull();
-      expect(screen.queryByRole('button', { name: 'Mark group read' })).toBeNull();
+      expect(entryCount()).toBe(1);
+      expect(document.querySelector('[data-stack]')).not.toBeNull();
+      expect(document.querySelectorAll('[data-stack-edge]')).toHaveLength(2);
+      expect(document.querySelector('[data-stack-more]')?.textContent).toBe('+1');
+      expect(document.querySelector('[data-stack-header]')).toBeNull();
     });
 
-    it('opening one row marks only that notification read', () => {
+    it('clicking the stack expands it in place (header + every card); Show less collapses', () => {
       const onIssueClick = vi.fn();
       render(<NotificationPopover onIssueClick={onIssueClick} />);
+      fireEvent.click(screen.getByRole('button', { name: /expand/ }));
+      expect(onIssueClick).not.toHaveBeenCalled();
+      expect(document.querySelector('[data-stack-header]')).not.toBeNull();
+      expect(entryCount()).toBe(2);
+      fireEvent.click(screen.getByRole('button', { name: 'Show less' }));
+      expect(document.querySelector('[data-stack-header]')).toBeNull();
+      expect(entryCount()).toBe(1);
+    });
+
+    it('opening one expanded card marks only that notification read', () => {
+      const onIssueClick = vi.fn();
+      render(<NotificationPopover onIssueClick={onIssueClick} />);
+      fireEvent.click(screen.getByRole('button', { name: /expand/ }));
       fireEvent.click(screen.getAllByRole('button', { name: /^Unread\. .* on PROJ-1/ })[0]);
       expect(useNotificationsStore.getState().readIds).toHaveLength(1);
       expect(onIssueClick).toHaveBeenCalledWith('PROJ-1');
+    });
+
+    it('Clear in the stack header removes and tombstones every card', () => {
+      seed([jiraItem('a'), jiraItem('b'), jiraItem('z', 'PROJ-9')]);
+      render(<NotificationPopover />);
+      fireEvent.click(screen.getByRole('button', { name: /expand/ }));
+      fireEvent.click(screen.getByRole('button', { name: 'Clear' }));
+      const st = useNotificationsStore.getState();
+      expect(st.items.map((i) => i.id)).toEqual(['z']);
+      expect(st.dismissedIds).toEqual(expect.arrayContaining(['a', 'b']));
+      expect(document.querySelector('[data-stack-header]')).toBeNull();
+    });
+
+    it('the corner X on a collapsed stack clears the whole stack, including duplicate comment copies', () => {
+      seed([
+        jiraItem('jira-comment-1', 'PROJ-1', { author: 'Ana Lee' }),
+        jiraItem('jira-allcomment-1', 'PROJ-1', { author: 'Ana Lee' }),
+        jiraItem('jira-comment-2', 'PROJ-1', { author: 'Ben Ito' }),
+      ]);
+      render(<NotificationPopover />);
+      fireEvent.click(screen.getByRole('button', { name: 'Clear notification' }));
+      const st = useNotificationsStore.getState();
+      expect(st.items).toHaveLength(0);
+      expect(st.dismissedIds).toEqual(
+        expect.arrayContaining(['jira-comment-1', 'jira-allcomment-1', 'jira-comment-2']),
+      );
+    });
+
+    it('the read toggle on a collapsed stack acts on every card', () => {
+      render(<NotificationPopover />);
+      fireEvent.click(screen.getByRole('button', { name: 'Mark as read' }));
+      expect(useNotificationsStore.getState().readIds).toEqual(expect.arrayContaining(['a', 'b']));
+    });
+
+    it('expanded state is forgotten when the stack disappears', () => {
+      render(<NotificationPopover />);
+      fireEvent.click(screen.getByRole('button', { name: /expand/ }));
+      fireEvent.click(screen.getByRole('button', { name: 'Clear' }));
+      seed([jiraItem('c'), jiraItem('d')]);
+      expect(document.querySelector('[data-stack-header]')).toBeNull();
+      expect(entryCount()).toBe(1);
     });
 
     it('Mark all read still marks every unread notification', () => {
       render(<NotificationPopover />);
       fireEvent.click(screen.getByRole('button', { name: 'Mark all read' }));
       expect(useNotificationsStore.getState().readIds).toEqual(expect.arrayContaining(['a', 'b']));
+    });
+
+    it('the bell/unread count still counts cards, not stacks', () => {
+      render(<NotificationPopover />);
+      fireEvent.click(screen.getByRole('button', { name: 'Filter by source' }));
+      return screen.findByRole('menuitemradio', { name: /All sources/ }).then((el) => {
+        expect(el.textContent).toContain('2');
+      });
+    });
+  });
+
+  describe('quick actions', () => {
+    it('Jira Reply sets the composer focus flag, marks read, opens the issue and closes', () => {
+      useComposerFocus.setState({ composerFocus: null });
+      seed([jiraItem('a', 'PROJ-7', { notificationType: 'jira-comment' })]);
+      const onIssueClick = vi.fn();
+      const onClose = vi.fn();
+      render(<NotificationPopover onIssueClick={onIssueClick} onClose={onClose} />);
+      fireEvent.click(screen.getByRole('button', { name: 'Reply' }));
+      expect(useComposerFocus.getState().composerFocus).toBe('PROJ-7');
+      expect(onIssueClick).toHaveBeenCalledWith('PROJ-7');
+      expect(onClose).toHaveBeenCalled();
+      expect(useNotificationsStore.getState().readIds).toContain('a');
+    });
+
+    it('GitLab Reply on a note opens the safe URL externally', () => {
+      seed([
+        glItem('g1', {
+          notificationType: 'mr-note',
+          url: 'https://gitlab.example.com/web/-/merge_requests/34#note_9',
+        }),
+      ]);
+      render(<NotificationPopover />);
+      fireEvent.click(screen.getByRole('button', { name: 'Reply' }));
+      expect(openExternal).toHaveBeenCalledWith(
+        'https://gitlab.example.com/web/-/merge_requests/34#note_9',
+      );
+    });
+
+    it('an unsafe URL offers no GitLab Reply and never reaches openExternal', () => {
+      seed([glItem('g1', { notificationType: 'mr-note', url: 'javascript:alert(1)' })]);
+      render(<NotificationPopover />);
+      expect(screen.queryByRole('button', { name: 'Reply' })).toBeNull();
+      expect(openExternal).not.toHaveBeenCalled();
+    });
+
+    it('Review on a review-request system note opens the MR in-app', () => {
+      seed([
+        glItem('gitlab-system-1', {
+          notificationType: 'mr-note',
+          author: 'Ben Ito',
+          bodyPreview: 'Review requested: cara',
+          fullBody: 'Review requested: cara',
+        }),
+      ]);
+      const onMRClick = vi.fn();
+      const onClose = vi.fn();
+      render(<NotificationPopover onMRClick={onMRClick} onClose={onClose} />);
+      fireEvent.click(screen.getByRole('button', { name: 'Review' }));
+      expect(onMRClick).toHaveBeenCalledWith('12/34');
+      expect(onClose).toHaveBeenCalled();
+      expect(useNotificationsStore.getState().readIds).toContain('gitlab-system-1');
+    });
+
+    it('View pipeline opens the safe pipeline URL externally', () => {
+      seed([
+        glItem('p1', {
+          notificationType: 'pipeline-failure',
+          author: '',
+          bodyPreview: 'Pipeline #4821 failed on feature/x',
+          url: 'https://gitlab.example.com/web/-/pipelines/4821',
+        }),
+      ]);
+      render(<NotificationPopover />);
+      fireEvent.click(screen.getByRole('button', { name: 'View pipeline' }));
+      expect(openExternal).toHaveBeenCalledWith('https://gitlab.example.com/web/-/pipelines/4821');
+    });
+  });
+
+  describe('shell', () => {
+    it('is ONE header row: no filter band, no inverted pressed state', () => {
+      seed([jiraItem('a')]);
+      const { container } = render(<NotificationPopover />);
+      expect(container.querySelector('.border-b')).toBeNull();
+      expect(screen.getByRole('button', { name: 'Unread' }).className).not.toContain(
+        'bg-foreground',
+      );
+      expect(screen.getByRole('button', { name: 'All' }).className).toContain('bg-background');
+      const heading = screen.getByRole('heading', { name: 'Notifications' });
+      const row = heading.parentElement as HTMLElement;
+      for (const name of ['Unread', 'All', 'Filter by source', 'Mark all read', 'More actions']) {
+        expect(row.contains(screen.getByRole('button', { name }))).toBe(true);
+      }
     });
   });
 
@@ -166,9 +319,12 @@ describe('NotificationPopover', () => {
       expect(screen.getByText('commented 3 times')).toBeInTheDocument();
     });
 
-    it('does not merge a same-actor pair split by another actor', () => {
+    it('does not merge a same-actor pair split by another actor (3 cards, stacked on one issue)', () => {
       seed([comment('a', 30), comment('x', 20, 'Cara Diaz'), comment('b', 10)]);
       render(<NotificationPopover />);
+      expect(entryCount()).toBe(1);
+      expect(document.querySelector('[data-stack-more]')?.textContent).toBe('+2');
+      fireEvent.click(screen.getByRole('button', { name: /expand/ }));
       expect(entryCount()).toBe(3);
     });
 
@@ -185,7 +341,7 @@ describe('NotificationPopover', () => {
 
     it('Done removes and tombstones every merged id', () => {
       render(<NotificationPopover />);
-      fireEvent.click(screen.getAllByRole('button', { name: 'Done' })[0]);
+      fireEvent.click(screen.getAllByRole('button', { name: 'Clear notification' })[0]);
       const st = useNotificationsStore.getState();
       expect(st.items.map((i) => i.id)).toEqual(['z']);
       expect(st.dismissedIds).toEqual(expect.arrayContaining(['m1', 'm2', 'm3']));
@@ -221,7 +377,7 @@ describe('NotificationPopover', () => {
     expect(useNotificationsStore.getState().readIds).toContain('a');
     fireEvent.click(screen.getByRole('button', { name: 'Mark as unread' }));
     expect(useNotificationsStore.getState().readIds).not.toContain('a');
-    fireEvent.click(screen.getByRole('button', { name: 'Done' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Clear notification' }));
     expect(useNotificationsStore.getState().dismissedIds).toContain('a');
     expect(useNotificationsStore.getState().items).toHaveLength(0);
   });
@@ -261,10 +417,10 @@ describe('NotificationPopover', () => {
       expect(screen.getByRole('button', { name: 'More actions' })).toBeInTheDocument();
     });
 
-    it('Mark all read on Jira tab only touches Jira', () => {
+    it('Mark all read on Jira tab only touches Jira', async () => {
       seed([jiraItem('j1'), glItem('g1')]);
       render(<NotificationPopover />);
-      fireEvent.click(screen.getByRole('button', { name: /^Jira/ }));
+      await pickSource(/^Jira/);
       fireEvent.click(screen.getByRole('button', { name: 'Mark all read' }));
       const { readIds } = useNotificationsStore.getState();
       expect(readIds).toContain('j1');
@@ -274,7 +430,7 @@ describe('NotificationPopover', () => {
     it('Clear read removes only read items of the active tab', async () => {
       seed([jiraItem('j1'), jiraItem('j2', 'PROJ-2'), glItem('g1')], ['j1', 'g1']);
       render(<NotificationPopover />);
-      fireEvent.click(screen.getByRole('button', { name: /^Jira/ }));
+      await pickSource(/^Jira/);
       fireEvent.click(screen.getByRole('button', { name: 'More actions' }));
       fireEvent.click(await screen.findByText('Clear read'));
       const ids = useNotificationsStore
@@ -313,23 +469,30 @@ describe('NotificationPopover', () => {
       expect(entryCount()).toBe(1);
     });
 
-    it('renders source tabs', () => {
+    it('source filter is a dropdown with per-source choices', async () => {
       render(<NotificationPopover />);
-      expect(screen.getByText('All sources')).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /^Jira/ })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /^GitLab/ })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Filter by source' }).textContent).toContain(
+        'All sources',
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'Filter by source' }));
+      expect(await screen.findByRole('menuitemradio', { name: /^Jira/ })).toBeInTheDocument();
+      expect(screen.getByRole('menuitemradio', { name: /^GitLab/ })).toBeInTheDocument();
     });
 
-    it('unread chip is neutral and hidden at 0', () => {
+    it('unread chip (in the source menu) is neutral and hidden at 0', async () => {
       seed([jiraItem('a'), jiraItem('b', 'PROJ-2')]);
       const { unmount } = render(<NotificationPopover />);
-      const chip = screen.getAllByText('2')[0];
-      expect(chip.className).toContain('bg-muted');
+      fireEvent.click(screen.getByRole('button', { name: 'Filter by source' }));
+      const all = await screen.findByRole('menuitemradio', { name: /All sources/ });
+      const chip = all.querySelector('span.bg-muted') as HTMLElement;
+      expect(chip.textContent).toBe('2');
       expect(chip.className).not.toMatch(/orange|purple|red/);
       unmount();
       seed([jiraItem('a')], ['a']);
       render(<NotificationPopover />);
-      expect(screen.queryByText('1')).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Filter by source' }));
+      const all0 = await screen.findByRole('menuitemradio', { name: /All sources/ });
+      expect(all0.querySelector('span.bg-muted')).toBeNull();
     });
   });
 
@@ -355,10 +518,10 @@ describe('NotificationPopover', () => {
       expect(screen.getByText('You have no unread notifications.')).toBeInTheDocument();
     });
 
-    it('Jira tab with only GitLab items shows Nothing from Jira', () => {
+    it('Jira tab with only GitLab items shows Nothing from Jira', async () => {
       seed([glItem('g1')]);
       render(<NotificationPopover />);
-      fireEvent.click(screen.getByRole('button', { name: /^Jira/ }));
+      await pickSource(/^Jira/);
       expect(screen.getByText('Nothing from Jira')).toBeInTheDocument();
       expect(screen.getByText('No notifications from this source.')).toBeInTheDocument();
     });

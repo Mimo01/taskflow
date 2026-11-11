@@ -3,6 +3,7 @@ import {
   ACTION_STYLE,
   EVENT_STYLE,
   type EventStyle,
+  isActionableKind,
   MULTI_UPDATE_STYLE,
   STATUS_STYLE,
   UPDATE_STYLE,
@@ -17,9 +18,18 @@ describe('notification event styles', () => {
     STATUS_STYLE,
   ];
 
-  it('every unread halo is a static ring class in the same colour as its verb (261111-h9a)', () => {
+  it('Ledger: styles carry no halo (unread is a surface, not a coloured ring)', () => {
     for (const s of all) {
-      expect(s.halo, s.kind).toBe(s.text.replace(/text-/g, 'ring-'));
+      expect(s as unknown as Record<string, unknown>, s.kind).not.toHaveProperty('halo');
+      expect(s.text, s.kind).toMatch(/^text-/);
+    }
+  });
+
+  it('Ledger: only mention, review, assignment, failure and due are actionable', () => {
+    const actionable = new Set(all.filter((s) => isActionableKind(s.kind)).map((s) => s.kind));
+    expect([...actionable].sort()).toEqual(['assignment', 'due', 'failure', 'mention', 'review']);
+    for (const k of ['comment', 'update', 'multi', 'status', 'approval', 'milestone'] as const) {
+      expect(isActionableKind(k), k).toBe(false);
     }
   });
 });
