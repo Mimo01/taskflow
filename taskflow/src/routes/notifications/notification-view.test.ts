@@ -33,6 +33,11 @@ import {
   getJiraKey,
   isFocusableEntry,
   isSafeHttpUrl,
+  stackEntries,
+  stackIds,
+  quickActionFor,
+  entityKey,
+  type EventEntry,
   relTime,
 } from './notification-view';
 
@@ -765,7 +770,7 @@ describe('CR-01: one Jira comment returned by two queries', () => {
     notificationType: 'jira-comment' as const,
   };
   const events = (items: NotificationItem[], readSet = new Set<string>()) =>
-    buildEntries({ ...base, items, readSet }).filter(isFocusableEntry);
+    buildEntries({ ...base, items, readSet }).filter((e): e is EventEntry => e.kind === 'event');
 
   it('renders a single mention card, not "mentioned you in 2 comments"', () => {
     const e = events([plain, mention]);
@@ -931,5 +936,145 @@ describe('WR-01: GitLab system notes parse from the untruncated body', () => {
     expect(describeEventParts(item).changes?.[0].text?.split(' ')).toHaveLength(14);
     const merged = describeEntryParts([note('Labels added: extra', 'gitlab-system-78', 5), item]);
     expect(merged.changes?.[0].text?.split(' ')).toHaveLength(15);
+  });
+});
+
+describe('stackEntries', () => {
+  const base = { source: 'all' as const, unreadOnly: false, now: NOW };
+  const build = (items: NotificationItem[], read: string[] = []) =>
+    buildEntries({ ...base, items, readSet: new Set(read) });
+  const three = [
+    jira('a', 'PROJ-1', local(10, 10, 9), { author: 'Ana Lee' }),
+    jira('b', 'PROJ-1', local(10, 10, 11), { author: 'Ben Ito' }),
+    jira('c', 'PROJ-2', local(10, 10, 10), { author: 'Cara Doe' }),
+    jira('d', 'PROJ-1', local(10, 10, 12), { author: 'Cara Doe' }),
+  ];
+
+  it('collapses 2+ cards of one entity into one stack at the newest position, newest first', () => {
+    const out = stackEntries(build(three), new Set());
+    expect(out.map((x) => x.id)).toEqual(['header:today', 'stack:jira:PROJ-1', 'event:c']);
+    const s = out[1];
+    expect(s.kind).toBe('stack');
+    if (s.kind !== 'stack') return;
+    expect(s.cards.map((c) => c.item.id)).toEqual(['d', 'b', 'a']);
+    expect(s.more).toBe(2);
+    expect(s.isUnread).toBe(true);
+  });
+
+  it('isUnread is false when every card is read', () => {
+    const out = stackEntries(build(three, ['a', 'b', 'c', 'd']), new Set());
+    const s = out[1];
+    expect(s.kind === 'stack' && s.isUnread).toBe(false);
+  });
+
+  it('drops bucket headers left empty after stacking', () => {
+    const items = [
+      jira('a', 'PROJ-1', local(10, 10, 9), { author: 'Ana Lee' }),
+      jira('b', 'PROJ-1', local(10, 1, 9), { author: 'Ben Ito' }),
+    ];
+    const entries = build(items);
+    expect(entries.map((x) => x.kind)).toEqual(['header', 'event', 'header', 'event']);
+    const out = stackEntries(entries, new Set());
+    expect(out.map((x) => x.id)).toEqual(['header:today', 'stack:jira:PROJ-1']);
+  });
+
+  it('expanded: stack-header followed by member events with unchanged ids', () => {
+    const out = stackEntries(build(three), new Set(['jira:PROJ-1']));
+    expect(out.map((x) => x.id)).toEqual([
+      'header:today',
+      'stack-header:jira:PROJ-1',
+      'event:d',
+      'event:b',
+      'event:a',
+      'event:c',
+    ]);
+  });
+
+  it('never stacks single cards or cards without an entity key', () => {
+    const items = [
+      makeItem({ id: 'x', entityTitle: 'Loose one', createdAt: local(10, 10, 9) }),
+      makeItem({ id: 'y', entityTitle: 'Loose two', createdAt: local(10, 10, 10) }),
+      jira('z', 'PROJ-5', local(10, 10, 11)),
+    ];
+    expect(entityKey(items[0])).toBeNull();
+    const out = stackEntries(build(items), new Set());
+    expect(out.map((x) => x.kind)).toEqual(['header', 'event', 'event', 'event']);
+  });
+
+  it('stackIds include duplicate comment copies', () => {
+    const items = [
+      jira('jira-comment-1', 'PROJ-1', local(10, 10, 9), { author: 'Ana Lee' }),
+      jira('jira-allcomment-1', 'PROJ-1', local(10, 10, 9), { author: 'Ana Lee' }),
+      jira('jira-comment-2', 'PROJ-1', local(10, 10, 11), { author: 'Ben Ito' }),
+    ];
+    const out = stackEntries(build(items), new Set());
+    const s = out[1];
+    expect(s.kind).toBe('stack');
+    if (s.kind !== 'stack') return;
+    expect(stackIds(s).sort()).toEqual(['jira-allcomment-1', 'jira-comment-1', 'jira-comment-2']);
+  });
+
+  it('countUnreadCards still counts cards, not stacks', () => {
+    expect(countUnreadCards(three, new Set(), 'all', NOW)).toBe(4);
+  });
+
+  it('estimate and focusability for stack kinds', () => {
+    const out = stackEntries(build(three), new Set());
+    const s = out[1];
+    if (s.kind !== 'stack') throw new Error('stack expected');
+    expect(estimateEntryHeight(s)).toBe(estimateEntryHeight(s.cards[0]) + 12);
+    expect(isFocusableEntry(s)).toBe(true);
+    const h = stackEntries(build(three), new Set(['jira:PROJ-1']))[1];
+    expect(estimateEntryHeight(h)).toBe(28);
+    expect(isFocusableEntry(h)).toBe(false);
+  });
+});
+
+describe('quickActionFor', () => {
+  const qa = (over: Partial<NotificationItem> & { id: string }) => {
+    const item = makeItem(over);
+    return quickActionFor(item, describeEventParts(item));
+  };
+  const gl = { source: 'gitlab' as const, mrProjectId: 3, mrIid: 9, entityTitle: 'Fix MR' };
+
+  it('Jira comment and mention -> Reply; nothing without an issue key', () => {
+    expect(qa({ id: 'c', entityTitle: 'PROJ-1: T', notificationType: 'jira-comment' })?.kind).toBe(
+      'reply-jira',
+    );
+    expect(
+      qa({ id: 'm', entityTitle: 'PROJ-1: T', notificationType: 'comment-mention' })?.label,
+    ).toBe('Reply');
+    expect(qa({ id: 'x', entityTitle: 'No key', notificationType: 'jira-comment' })).toBeNull();
+  });
+
+  it('GitLab Reply / View pipeline need a safe URL', () => {
+    const url = 'https://gitlab.example.com/x';
+    expect(qa({ id: 'n', ...gl, notificationType: 'mr-note', url })?.kind).toBe('reply-gitlab');
+    expect(qa({ id: 'n', ...gl, notificationType: 'gitlab-mention', url })?.kind).toBe(
+      'reply-gitlab',
+    );
+    expect(
+      qa({ id: 'n', ...gl, notificationType: 'mr-note', url: 'javascript:alert(1)' }),
+    ).toBeNull();
+    expect(qa({ id: 'n', ...gl, notificationType: 'mr-note' })).toBeNull();
+    expect(qa({ id: 'p', ...gl, notificationType: 'pipeline-failure', url })?.label).toBe(
+      'View pipeline',
+    );
+    expect(qa({ id: 'p', ...gl, notificationType: 'pipeline-failure', url: 'ftp://x' })).toBeNull();
+  });
+
+  it('Review only for a review-request system note with MR ids; Open MR for approvals', () => {
+    const sys = { id: 'gitlab-system-1', ...gl, notificationType: 'mr-note' as const };
+    expect(qa({ ...sys, bodyPreview: 'Review requested: cara' })?.kind).toBe('review');
+    expect(qa({ ...sys, bodyPreview: 'Milestone: none → 4.2' })).toBeNull();
+    expect(qa({ ...sys, bodyPreview: 'Review requested: cara', mrIid: undefined })).toBeNull();
+    expect(qa({ id: 'a', ...gl, notificationType: 'mr-approval' })?.label).toBe('Open MR');
+  });
+
+  it('assignments and plain updates offer nothing', () => {
+    expect(
+      qa({ id: 'i', entityTitle: 'PROJ-1: T', notificationType: 'issue-assignment' }),
+    ).toBeNull();
+    expect(qa({ id: 'u', entityTitle: 'PROJ-1: T', notificationType: 'issue-update' })).toBeNull();
   });
 });

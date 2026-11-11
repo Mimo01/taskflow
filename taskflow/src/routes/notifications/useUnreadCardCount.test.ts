@@ -46,4 +46,19 @@ describe('useUnreadCardCount', () => {
     });
     expect(result.current).toBe(1);
   });
+
+  it('counts cards, not stacks: three cards on one issue are 3 unread', () => {
+    const by = (id: string, author: string, min: number): NotificationItem => ({
+      ...comment(id, new Date(2026, 10, 10, 0, min)),
+      author,
+    });
+    act(() => {
+      useNotificationsStore.setState({
+        items: [by('a', 'Ana Lee', 5), by('b', 'Ben Ito', 10), by('c', 'Cara Doe', 15)],
+        readIds: [],
+      });
+    });
+    const { result } = renderHook(() => useUnreadCardCount());
+    expect(result.current).toBe(3);
+  });
 });

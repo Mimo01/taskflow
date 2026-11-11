@@ -49,7 +49,28 @@ export interface EventEntry {
   duplicateIds?: string[];
 }
 
-export type NotificationEntry = HeaderEntry | EventEntry;
+/** 2+ cards on one issue / MR, collapsed: newest card on top, the rest peek out behind it. */
+export interface StackEntry {
+  kind: 'stack';
+  id: `stack:${string}`;
+  entity: string;
+  /** Member cards, newest first. */
+  cards: EventEntry[];
+  /** True when ANY member card is unread. */
+  isUnread: boolean;
+  /** Notifications hidden behind the top card (the "+N" count). */
+  more: number;
+}
+
+/** Header row of an EXPANDED stack ("Show less" / "Clear"); members follow as plain events. */
+export interface StackHeaderEntry {
+  kind: 'stack-header';
+  id: `stack-header:${string}`;
+  entity: string;
+  cards: EventEntry[];
+}
+
+export type NotificationEntry = HeaderEntry | EventEntry | StackEntry | StackHeaderEntry;
 
 const JIRA_PREFIX_RE = /^([A-Z][A-Z0-9]*-\d+):/;
 const JIRA_BROWSE_RE = /\/browse\/([A-Z][A-Z0-9]*-\d+)/;
@@ -603,7 +624,7 @@ export function mergeCategory(item: NotificationItem): MergeCategory | null {
   }
 }
 
-function entityKey(item: NotificationItem): string | null {
+export function entityKey(item: NotificationItem): string | null {
   const jira = getJiraKey(item);
   if (jira) return `jira:${jira}`;
   if (item.source === 'gitlab' && item.mrProjectId != null && item.mrIid != null)
@@ -729,6 +750,73 @@ export function describeEntryParts(items: NotificationItem[]): EventParts {
 /** Every store id a card stands for: merged items plus hidden duplicate copies. */
 export function entryIds(entry: EventEntry): string[] {
   return [...entry.items.map((i) => i.id), ...(entry.duplicateIds ?? [])];
+}
+
+/** Every store id a stack stands for (all cards, merged items and duplicate copies). */
+export function stackIds(stack: StackEntry | StackHeaderEntry): string[] {
+  return stack.cards.flatMap(entryIds);
+}
+
+/**
+ * Pure post-pass over buildEntries(): cards sharing an issue / MR (2+) collapse into one `stack`
+ * at the position of the newest card; an expanded entity becomes a `stack-header` followed by its
+ * cards (ids unchanged). Bucket headers are re-derived so none is left empty.
+ */
+export function stackEntries(
+  entries: NotificationEntry[],
+  expanded: ReadonlySet<string>,
+): NotificationEntry[] {
+  const groups = new Map<string, EventEntry[]>();
+  for (const e of entries) {
+    if (e.kind !== 'event') continue;
+    const key = entityKey(e.item);
+    if (!key) continue;
+    const g = groups.get(key);
+    if (g) g.push(e);
+    else groups.set(key, [e]);
+  }
+  const out: NotificationEntry[] = [];
+  const seen = new Set<string>();
+  let pendingHeader: HeaderEntry | null = null;
+  const push = (...list: NotificationEntry[]) => {
+    if (pendingHeader) {
+      out.push(pendingHeader);
+      pendingHeader = null;
+    }
+    out.push(...list);
+  };
+  for (const e of entries) {
+    if (e.kind === 'header') {
+      pendingHeader = e;
+      continue;
+    }
+    if (e.kind !== 'event') {
+      push(e);
+      continue;
+    }
+    const key = entityKey(e.item);
+    const cards = key ? groups.get(key) : undefined;
+    if (!key || !cards || cards.length < 2) {
+      push(e);
+      continue;
+    }
+    if (seen.has(key)) continue;
+    seen.add(key);
+    if (expanded.has(key)) {
+      push({ kind: 'stack-header', id: `stack-header:${key}`, entity: key, cards }, ...cards);
+    } else {
+      const total = cards.reduce((n, c) => n + c.items.length, 0);
+      push({
+        kind: 'stack',
+        id: `stack:${key}`,
+        entity: key,
+        cards,
+        isUnread: cards.some((c) => c.isUnread),
+        more: total - cards[0].items.length,
+      });
+    }
+  }
+  return out;
 }
 
 const JIRA_COMMENT_ID_RE = /^jira-(?:all)?comment-(.+)$/;
@@ -885,6 +973,9 @@ export function listRowCount(total: number): number {
 /** Pixel height for the virtualizer's first paint (default density); real heights are measured. */
 export function estimateEntryHeight(entry: NotificationEntry): number {
   if (entry.kind === 'header') return 32;
+  if (entry.kind === 'stack-header') return 28;
+  // Top card + peek edges (pb-3 = 12)
+  if (entry.kind === 'stack') return estimateEntryHeight(entry.cards[0]) + 12;
   const parts = describeEntryParts(entry.items);
   // card: py-2.5 (20) + border (2) + line 1 h-5 (20) + line 2 h-5 (20) + wrapper pb-2 (8)
   let h = 70;
@@ -899,6 +990,45 @@ export function estimateEntryHeight(entry: NotificationEntry): number {
   return h;
 }
 
-export function isFocusableEntry(entry: NotificationEntry): entry is EventEntry {
-  return entry.kind === 'event';
+export function isFocusableEntry(entry: NotificationEntry): entry is EventEntry | StackEntry {
+  return entry.kind === 'event' || entry.kind === 'stack';
+}
+
+export type QuickActionKind = 'reply-jira' | 'reply-gitlab' | 'review' | 'open-mr' | 'pipeline';
+
+export interface QuickAction {
+  kind: QuickActionKind;
+  label: string;
+}
+
+/**
+ * The ONE context action a card offers (Ledger pill). Only things the app can already do:
+ * Jira Reply = open the issue with the composer focused, GitLab Reply / View pipeline = open the
+ * (safe) URL externally, Review / Open MR = the in-app MR page. Anything else: none.
+ */
+export function quickActionFor(item: NotificationItem, parts: EventParts): QuickAction | null {
+  const hasMr = item.mrProjectId != null && item.mrIid != null;
+  const safeUrl = Boolean(item.url && isSafeHttpUrl(item.url));
+  switch (item.notificationType) {
+    case 'jira-comment':
+    case 'comment-mention':
+      return item.source === 'jira' && getJiraKey(item)
+        ? { kind: 'reply-jira', label: 'Reply' }
+        : null;
+    case 'gitlab-mention':
+      return safeUrl ? { kind: 'reply-gitlab', label: 'Reply' } : null;
+    case 'mr-note':
+      if (isSystemNote(item)) {
+        return hasMr && parts.changes?.some((c) => c.action === 'review')
+          ? { kind: 'review', label: 'Review' }
+          : null;
+      }
+      return safeUrl ? { kind: 'reply-gitlab', label: 'Reply' } : null;
+    case 'mr-approval':
+      return hasMr ? { kind: 'open-mr', label: 'Open MR' } : null;
+    case 'pipeline-failure':
+      return safeUrl ? { kind: 'pipeline', label: 'View pipeline' } : null;
+    default:
+      return null;
+  }
 }
