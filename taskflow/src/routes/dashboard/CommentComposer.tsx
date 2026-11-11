@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Bold, Code, Italic, List, Paperclip } from 'lucide-react';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
@@ -10,6 +10,7 @@ import { postComment } from '@/services/jira';
 import { uploadAttachment } from '@/services/jira/attachments';
 import type { JiraAssignableUser } from '@/services/jira/types';
 import { readSecret } from '@/services/stronghold';
+import { useComposerFocus } from '@/stores/composer-focus.store';
 import { AttachmentPickerModal } from './issue-detail/AttachmentPickerModal';
 import { MentionPopover, type MentionPopoverHandle } from './MentionPopover';
 import { WikiRenderer } from './WikiRenderer';
@@ -76,6 +77,15 @@ export function CommentComposer({ issueKey, jiraBaseUrl, attachments = [] }: Com
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const mentionPopoverRef = useRef<MentionPopoverHandle>(null);
   const queryClient = useQueryClient();
+
+  // One-shot "Reply" request from a notification: focus once mounted for this issue, then clear.
+  const composerFocus = useComposerFocus((s) => s.composerFocus);
+  const clearComposerFocus = useComposerFocus((s) => s.clearComposerFocus);
+  useEffect(() => {
+    if (composerFocus !== issueKey) return;
+    textareaRef.current?.focus();
+    clearComposerFocus();
+  }, [composerFocus, issueKey, clearComposerFocus]);
 
   // @mention state
   const [mentionActive, setMentionActive] = useState(false);

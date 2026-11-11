@@ -32,6 +32,7 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { postComment } from '@/services/jira';
+import { useComposerFocus } from '@/stores/composer-focus.store';
 
 import { CommentComposer } from './CommentComposer';
 
@@ -150,5 +151,27 @@ describe('CommentComposer — post mutation invalidation (PERF-DETAIL-03)', () =
       });
       expect(matched).toBeTruthy();
     });
+  });
+});
+
+describe('CommentComposer — composer focus request (notification Reply)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    useComposerFocus.setState({ composerFocus: null });
+  });
+
+  it('focuses the textarea when the flag matches the issue key, then clears the flag', async () => {
+    useComposerFocus.setState({ composerFocus: ISSUE_KEY });
+    renderComposer(makeQueryClient());
+    const textarea = screen.getByPlaceholderText('Add a comment…');
+    await waitFor(() => expect(textarea).toHaveFocus());
+    expect(useComposerFocus.getState().composerFocus).toBeNull();
+  });
+
+  it('does nothing for a different issue key and keeps the flag', () => {
+    useComposerFocus.setState({ composerFocus: 'OTHER-1' });
+    renderComposer(makeQueryClient());
+    expect(screen.getByPlaceholderText('Add a comment…')).not.toHaveFocus();
+    expect(useComposerFocus.getState().composerFocus).toBe('OTHER-1');
   });
 });
