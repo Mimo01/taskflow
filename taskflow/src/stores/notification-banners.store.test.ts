@@ -21,7 +21,6 @@ const gate = {
   priorCursors: { jira: '2026-11-11T09:00:00.000Z', gitlab: '2026-11-11T09:00:00.000Z' },
   isFirstPoll: false,
   hydrated: true,
-  sourceEnabled: { jira: true, gitlab: true },
 };
 
 describe('selectBannerItems', () => {
@@ -48,17 +47,6 @@ describe('selectBannerItems', () => {
       item(`i${n}`, { createdAt: `2026-11-11T10:0${n}:00.000Z` }),
     );
     expect(selectBannerItems(items, gate).map((i) => i.id)).toEqual(['i5', 'i4', 'i3']);
-  });
-});
-
-describe('selectBannerItems source switches', () => {
-  it('drops banners for a source whose desktop switch is off', () => {
-    const items = [item('j'), item('g', { source: 'gitlab' })];
-    const ids = (sourceEnabled: { jira: boolean; gitlab: boolean }) =>
-      selectBannerItems(items, { ...gate, sourceEnabled }).map((i) => i.id);
-    expect(ids({ jira: false, gitlab: true })).toEqual(['g']);
-    expect(ids({ jira: true, gitlab: false })).toEqual(['j']);
-    expect(ids({ jira: false, gitlab: false })).toEqual([]);
   });
 });
 
