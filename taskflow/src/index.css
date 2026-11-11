@@ -105,19 +105,27 @@
      * right edge (panel sits 12px in, see TopBar), soft feather on the LEFT only, rounded
      * bottom-left. Never overhang the viewport (document scroll -> WKWebView page flicker).
      */
-    inset: 0 -11px -14px -18px;
+    inset: 0 -11px -24px -18px;
     z-index: -1;
-    border-radius: 0 0 0 28px;
+    border-radius: 0;
     /*
      * Hard stop at the top: backdrop-filter samples ~18px around each point, so the bar's divider
      * above would smear into the first pixels of the frost. Start opaque (page background) and ease
      * into the translucent frost so the edge under the divider is crisp (261111-m0g UAT).
      */
     background: linear-gradient(to bottom, var(--background), var(--glass) 28px);
-    -webkit-backdrop-filter: blur(18px) saturate(1.2);
-    backdrop-filter: blur(18px) saturate(1.2);
-    -webkit-mask-image: linear-gradient(to right, transparent, #000 22px);
-    mask-image: linear-gradient(to right, transparent, #000 22px);
+    -webkit-backdrop-filter: blur(32px) saturate(1.2);
+    backdrop-filter: blur(32px) saturate(1.2);
+    /* Soft fade on the left AND bottom (a hard bottom edge read as chopped off). The height cap
+       leaves 28px below the panel, so this 24px overhang stays inside the window. */
+    -webkit-mask-image:
+      linear-gradient(to right, transparent, #000 22px),
+      linear-gradient(to top, transparent, #000 28px);
+    -webkit-mask-composite: source-in;
+    mask-image:
+      linear-gradient(to right, transparent, #000 22px),
+      linear-gradient(to top, transparent, #000 28px);
+    mask-composite: intersect;
     pointer-events: none;
     transition: opacity 240ms var(--ease-out);
   }
@@ -206,7 +214,7 @@
     --sh-rest: 0 1px 2px oklch(0 0 0 / 6%), 0 3px 10px -3px oklch(0 0 0 / 10%);
     --sh-hover: 0 10px 22px -6px oklch(0 0 0 / 16%), 0 2px 5px oklch(0 0 0 / 8%);
     --sh-pop: 0 24px 48px -12px oklch(0 0 0 / 22%), 0 8px 16px -8px oklch(0 0 0 / 10%);
-    --glass: oklch(0.985 0 0 / 80%);
+    --glass: oklch(0.985 0 0 / 92%);
     --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
     --spring: cubic-bezier(0.34, 1.4, 0.64, 1);
     --notif-hair: 0 0 0 1px var(--hair);
@@ -252,7 +260,7 @@
     --sh-rest: 0 1px 2px oklch(0 0 0 / 45%), 0 4px 12px -4px oklch(0 0 0 / 50%);
     --sh-hover: 0 8px 20px -4px oklch(0 0 0 / 55%), 0 2px 4px oklch(0 0 0 / 30%);
     --sh-pop: 0 24px 60px -12px oklch(0 0 0 / 70%), 0 0 0 1px oklch(1 0 0 / 8%);
-    --glass: oklch(0.2 0 0 / 76%);
+    --glass: oklch(0.2 0 0 / 90%);
   }
   * {
     @apply border-border outline-ring/50;

@@ -13,10 +13,9 @@
  * - Fetch error with cached items shows StaleDataBanner; with no items shows ErrorState
  */
 
-import { Bell, BellOff, CheckCheck, TriangleAlert, X } from 'lucide-react';
+import { BellOff, Check, CheckCheck, TriangleAlert, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '../../components/ui/button';
-import { EmptyState } from '../../components/ui/empty-state';
 import { ErrorState } from '../../components/ui/error-state';
 import { StaleDataBanner } from '../../components/ui/stale-data-banner';
 import { useNow } from '../../hooks/useNow';
@@ -59,13 +58,11 @@ interface NotificationPopoverProps {
 }
 
 /** Empty/error states sit on glass: give them a card surface so they stay readable. */
-const EMPTY_CARD = 'mx-2.5 mb-3 flex-none rounded-[14px] bg-card shadow-(--notif-sh-rest)';
 
 export default function NotificationPopover({
   onIssueClick,
   onMRClick,
   onClose,
-  onOpenSettings,
 }: NotificationPopoverProps) {
   const now = useNow(60_000);
   const [dismissedError, setDismissedError] = useState<unknown>(null);
@@ -362,19 +359,6 @@ export default function NotificationPopover({
     );
   }
 
-  const settingsAction = onOpenSettings ? (
-    <Button
-      variant="outline"
-      size="sm"
-      onClick={() => {
-        onOpenSettings();
-        onClose?.();
-      }}
-    >
-      Notification settings
-    </Button>
-  ) : undefined;
-
   const motion: NotificationListMotion = {
     entering,
     leaving,
@@ -459,14 +443,28 @@ export default function NotificationPopover({
               />
             </div>
           ) : (
-            <EmptyState
-              compact
-              className={EMPTY_CARD}
-              icon={Bell}
-              title="No notifications yet"
-              subtitle="Activity on your Jira issues and GitLab merge requests will show up here."
-              action={settingsAction}
-            />
+            // Empty: a ghost notification card. Same geometry as a real card (padding, gap,
+            // radius, 32px avatar slot, 12px / 11px lines) so it reads as part of the feed;
+            // dashed edge + green check in the avatar slot (261111-m0g UAT, option c2).
+            <div
+              data-notif-empty
+              className="mr-1.5 flex items-center gap-3 rounded-[14px] border-[1.5px] border-dashed border-border px-3.5 py-3 text-xs density-compact:gap-2.5 density-compact:px-3 density-compact:py-2 density-comfortable:gap-3.5 density-comfortable:px-4 density-comfortable:py-3.5"
+            >
+              <span
+                aria-hidden="true"
+                className="flex size-8 flex-none items-center justify-center rounded-full bg-green-600/15 text-green-600 density-compact:size-7 density-comfortable:size-9 dark:text-green-400"
+              >
+                <Check className="size-4" strokeWidth={2.4} />
+              </span>
+              <span className="flex min-w-0 flex-col">
+                <span className="flex h-5 items-center truncate font-semibold text-foreground">
+                  You're all caught up
+                </span>
+                <span className="flex h-5 items-center truncate text-[11px] text-muted-foreground">
+                  New activity will appear here.
+                </span>
+              </span>
+            </div>
           )}
         </div>
       );

@@ -121,15 +121,6 @@ describe('TopBar', () => {
 
     expect(screen.getByLabelText('Recent Items')).toBeInTheDocument();
   });
-
-  it('forwards onOpenSettings to the notification popover (empty state settings button)', () => {
-    const onOpenSettings = vi.fn();
-    renderTopBar({ notifPopoverOpen: true, onOpenSettings } as never);
-
-    fireEvent.click(screen.getByRole('button', { name: 'Notification settings' }));
-
-    expect(onOpenSettings).toHaveBeenCalledOnce();
-  });
 });
 
 describe('TopBar bell pulse (WR-04)', () => {

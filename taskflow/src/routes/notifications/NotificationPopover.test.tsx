@@ -507,20 +507,6 @@ describe('NotificationPopover', () => {
       expect(readIds).toContain('g1');
     });
 
-    it('the empty state settings button calls onOpenSettings and onClose; absent without it', () => {
-      const onOpenSettings = vi.fn();
-      const onClose = vi.fn();
-      const { unmount } = render(
-        <NotificationPopover onOpenSettings={onOpenSettings} onClose={onClose} />,
-      );
-      fireEvent.click(screen.getByRole('button', { name: 'Notification settings' }));
-      expect(onOpenSettings).toHaveBeenCalled();
-      expect(onClose).toHaveBeenCalled();
-      unmount();
-      render(<NotificationPopover />);
-      expect(screen.queryByRole('button', { name: 'Notification settings' })).toBeNull();
-    });
-
     it('Clear all: first click arms an inline confirmation, second click clears everything', () => {
       vi.useFakeTimers();
       seed([jiraItem('j1'), jiraItem('j2', 'PROJ-2'), glItem('g1')], ['j1']);
@@ -539,17 +525,14 @@ describe('NotificationPopover', () => {
   });
 
   describe('states', () => {
-    it('no items: empty state with settings action', () => {
-      const onOpenSettings = vi.fn();
-      render(<NotificationPopover onOpenSettings={onOpenSettings} />);
-      expect(screen.getByText('No notifications yet')).toBeInTheDocument();
-      expect(
-        screen.getByText(
-          'Activity on your Jira issues and GitLab merge requests will show up here.',
-        ),
-      ).toBeInTheDocument();
-      fireEvent.click(screen.getByRole('button', { name: 'Notification settings' }));
-      expect(onOpenSettings).toHaveBeenCalled();
+    it('no items: a ghost notification card (same geometry as a card), no settings button', () => {
+      render(<NotificationPopover onOpenSettings={vi.fn()} />);
+      const empty = document.querySelector('[data-notif-empty]') as HTMLElement;
+      expect(empty).not.toBeNull();
+      expect(empty.textContent).toContain("You're all caught up");
+      expect(empty.className).toContain('border-dashed');
+      expect(empty.className).toContain('rounded-[14px]');
+      expect(screen.queryByRole('button', { name: 'Notification settings' })).toBeNull();
     });
 
     it('fetchError with no items shows ErrorState and Retry', () => {
