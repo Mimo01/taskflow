@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-08-13)
 Phase: 95
 Plan: Not started
 Status: Milestone complete
-Last activity: 2026-11-11 - Completed quick task 261111-h9a: notifications polish (event-colour halo, bold unread border, read not greyed, 8px gap)
+Last activity: 2026-11-11 - Completed quick task 261111-h9a: notifications polish approved (event-colour halo, 1.5px neutral unread border, read not greyed, 8px gap)
 
 ## Performance Metrics
 
@@ -277,7 +277,7 @@ Acknowledged and deferred at v1.14 milestone close (2026-08-13) — 111 open art
 | 261110-ccz | Release detail priority icons: shared PriorityIcon (18px slot after key, like Backlog) in task table + package mismatch rows; priority added to fetchFixVersionIssues/fetchStoriesWithPackage fields; hidden below 860px; key col 5rem so icon has equal 12px either side | 2026-11-10 | 8514a8ec | Approved | [261110-ccz-on-release-detail-add-task-priority-icon](./quick/261110-ccz-on-release-detail-add-task-priority-icon/) |
 | 261111-e1w | Notification polish: status pills share a 5rem min width (centred; label/none chips unchanged); person values (assignee, reporter, reviewers) get a 16px avatar + name via new NotificationItem.personAvatars captured from existing Jira/GitLab payloads (initials fallback, no new requests) | 2026-11-11 | b7198202, 46b98754, 134d5c1e, 946c8016 | Approved | [261111-e1w-notification-polish-consistent-width-sta](./quick/261111-e1w-notification-polish-consistent-width-sta/) |
 | 261111-ezr | Unread notification redesign: dot removed, symmetric padding; unread cards lift (white card, blue ring + 3px halo + soft glow, blue avatar halo, semibold blue time), read cards sink onto the list surface with a 70% avatar. Flat blue tint tried first, user asked for something more interesting and picked avatar halo + lifted glow from rendered variants | 2026-11-11 | 8e745908, 5391d059, 3ba843e4 | Approved | [261111-ezr-better-design-for-unread-notifications](./quick/261111-ezr-better-design-for-unread-notifications/) |
-| 261111-h9a | Notifications polish: blue unread glow removed; unread = neutral border (ring-1.5px foreground/20) + avatar halo in the event's own colour + semibold title/time; read cards no longer greyed (card surface, foreground title, full avatar); card gap 6→8px. Picked from rendered variants in 2 rounds | 2026-11-11 | 1e9aebee, 0e61ce81, 839ef9e0 | Done | [261111-h9a-polish-notifications-more-spacing-betwee](./quick/261111-h9a-polish-notifications-more-spacing-betwee/) |
+| 261111-h9a | Notifications polish: blue unread glow removed; unread = neutral border (ring-1.5px foreground/20) + avatar halo in the event's own colour + semibold title/time; read cards no longer greyed (card surface, foreground title, full avatar); card gap 6→8px. Picked from rendered variants in 2 rounds | 2026-11-11 | 1e9aebee, 0e61ce81, 839ef9e0 | Approved | [261111-h9a-polish-notifications-more-spacing-betwee](./quick/261111-h9a-polish-notifications-more-spacing-betwee/) |
 
 ## Session Continuity
 
