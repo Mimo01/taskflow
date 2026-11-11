@@ -172,7 +172,6 @@ export function useNotificationPolling() {
         gitlab: lastSeenGitlabCursorRef.current,
       };
       const isFirstPoll = isFirstPollRef.current;
-      isFirstPollRef.current = false;
 
       const allItems = await fetchNewNotifications(jiraBaseUrl, gitlabBaseUrl, tokens, {
         activeJiraProject,
@@ -184,6 +183,10 @@ export function useNotificationPolling() {
         lastSeenJiraCursor: lastSeenJiraCursorRef.current,
         lastSeenGitlabCursor: lastSeenGitlabCursorRef.current,
       });
+
+      // Only a poll that actually fetched counts as the initial load: after a failed first
+      // fetch the next one is still the backlog, not a stream of new arrivals.
+      isFirstPollRef.current = false;
 
       // Filter out items whose notification type toggle is disabled
       const newItems = allItems.filter((item) => {
