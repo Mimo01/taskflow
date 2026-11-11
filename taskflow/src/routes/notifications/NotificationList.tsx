@@ -148,7 +148,10 @@ export default function NotificationList({
     // biome-ignore lint/a11y/noStaticElementInteractions: keyboard triage layer scoped to the list
     <div
       ref={parentRef}
-      className={cn('@container relative max-h-[520px] overflow-y-auto px-2 py-1', className)}
+      className={cn(
+        '@container relative max-h-[520px] overflow-y-auto bg-muted/50 px-2 py-1 dark:bg-muted/20',
+        className,
+      )}
       onKeyDown={handleKeyDown}
     >
       <div

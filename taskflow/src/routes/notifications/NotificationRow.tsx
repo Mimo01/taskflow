@@ -18,7 +18,8 @@
  *  F. Chips (status pill, label chip) share CHIP_CLASS: h-4, rounded, px-1.5, 11px medium.
  *  G. Type scale: title 12px; key, time, line 2, lists, chips 11px. Single ellipsis at the end
  *     of whatever overflows; lines are h-5 so nothing clips vertically.
- *  H. Read vs unread changes ONLY: title weight/colour, card tint + border, dot visibility.
+ *  H. Read vs unread changes ONLY: card fill, border, elevation (unread = raised bubble: shadow-sm + ring;
+ *     read = flatter shadow-xs), title weight/colour, dot visibility. Nothing moves. List bg is muted so cards lift.
  *  I. Merged and single cards share the skeleton; merged only adds the list.
  *  J. The hover tray sits in the time slot of line 1 (right-0, centred) in every card.
  *  K. Densities scale padding / gaps / lead size; grammar is identical.
@@ -446,10 +447,10 @@ export default function NotificationRow({
       data-card
       data-unread-card={isUnread ? 'true' : 'false'}
       className={cn(
-        'group/row relative flex cursor-pointer items-start gap-3 rounded-xl border py-2.5 pr-3 pl-4 text-xs transition-colors density-compact:gap-2.5 density-compact:py-1.5 density-compact:pr-2.5 density-compact:pl-3.5 density-comfortable:gap-3.5 density-comfortable:py-3.5 density-comfortable:pr-3.5 density-comfortable:pl-5 hover:bg-accent hover:shadow-sm focus-within:bg-accent',
+        'group/row relative flex cursor-pointer items-start gap-3 rounded-xl border py-2.5 pr-3 pl-4 text-xs transition-colors density-compact:gap-2.5 density-compact:py-1.5 density-compact:pr-2.5 density-compact:pl-3.5 density-comfortable:gap-3.5 density-comfortable:py-3.5 density-comfortable:pr-3.5 density-comfortable:pl-5 hover:bg-accent hover:shadow-md focus-within:bg-accent',
         isUnread
-          ? 'border-border bg-primary/[0.03] dark:bg-primary/[0.07]'
-          : 'border-border/60 bg-card',
+          ? 'border-border bg-card shadow-sm ring-1 ring-foreground/[0.04] dark:bg-card dark:ring-foreground/10'
+          : 'border-border/60 bg-card/80 shadow-xs dark:bg-card/60',
         peeked && PEEKED_ROW_CLASS,
       )}
       data-peeked={peeked ? 'true' : undefined}

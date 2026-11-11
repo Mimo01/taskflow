@@ -360,15 +360,17 @@ describe('NotificationRow', () => {
     expect(r.className).toContain('density-comfortable:py-3.5');
   });
 
-  it('unread cards are tinted with a semibold title; read cards are plain', () => {
+  it('unread cards are raised bubbles with a semibold title; read cards sit flatter', () => {
     const unread = setup({ isUnread: true });
     const u = unread.container.firstElementChild as HTMLElement;
-    expect(u.className).toContain('bg-primary/[0.03]');
+    expect(u.className).toContain('shadow-sm');
+    expect(u.className).toContain('bg-card');
     expect(screen.getByText('Fix login bug').className).toContain('font-semibold');
     unread.unmount();
     const read = setup({ isUnread: false });
     const r = read.container.firstElementChild as HTMLElement;
-    expect(r.className).not.toContain('bg-primary');
+    expect(r.className).toContain('shadow-xs');
+    expect(r.className).not.toMatch(/(^|\s)shadow-sm(\s|$)/);
     expect(screen.getByText('Fix login bug').className).toContain('font-normal');
   });
 
@@ -771,13 +773,13 @@ describe('NotificationRow', () => {
       expect(card.className).toContain('pl-4');
     });
 
-    it('read vs unread only toggles tint, border, title style and dot visibility', () => {
+    it('read vs unread only toggles fill, border, elevation, title style and dot visibility', () => {
       const strip = (el: Element | null) =>
         (el?.className ?? '')
           .split(/\s+/)
           .filter(
             (c) =>
-              !/^(bg-primary|dark:bg-primary|bg-card|border-border|font-|text-foreground|text-muted-foreground|opacity-0)/.test(
+              !/^(bg-primary|dark:bg-primary|bg-card|dark:bg-card|border-border|shadow-|ring-|dark:ring-|font-|text-foreground|text-muted-foreground|opacity-0)/.test(
                 c,
               ),
           )
