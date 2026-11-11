@@ -196,10 +196,11 @@ describe('NotificationRow', () => {
     expect(screen.getByText('!34')).toBeInTheDocument();
   });
 
-  it('marks unread via aria prefix and dot; read has neither', () => {
+  it('marks unread via aria prefix and card flag; no dot element', () => {
     const { container, rerender, ...h } = setup();
     expect(screen.getByRole('button', { name: /^Unread\. .* on PROJ-123/ })).toBeInTheDocument();
-    expect(container.querySelector('[data-unread="true"]')).not.toBeNull();
+    expect(container.querySelector('[data-unread-card="true"]')).not.toBeNull();
+    expect(container.querySelector('[data-unread]')).toBeNull();
     rerender(
       <NotificationRow
         item={makeItem('jira')}
@@ -211,7 +212,8 @@ describe('NotificationRow', () => {
       />,
     );
     expect(screen.queryByRole('button', { name: /^Unread/ })).not.toBeInTheDocument();
-    expect(container.querySelector('[data-unread="false"]')).not.toBeNull();
+    expect(container.querySelector('[data-unread-card="false"]')).not.toBeNull();
+    expect(container.querySelector('[data-unread]')).toBeNull();
   });
 
   it('renders the right badge kind per type; system events use tiles', () => {
@@ -374,18 +376,29 @@ describe('NotificationRow', () => {
     expect(r.className).not.toMatch(/(^|\s)border-b(\s|$)/);
     expect(r.className).toContain('density-compact:py-1.5');
     expect(r.className).toContain('density-comfortable:py-3.5');
+    expect(r.className).toContain('px-3');
+    expect(r.className).toContain('density-compact:px-2.5');
+    expect(r.className).toContain('density-comfortable:px-3.5');
+    expect(r.className).toContain(
+      '--card-hover:color-mix(in_oklab,var(--color-accent)_50%,var(--card-bg))',
+    );
+    expect(r.className).toContain('hover:bg-(--card-hover)');
   });
 
   it('unread cards get a stronger ring and semibold title; read cards the plain Card ring', () => {
     const unread = setup({ isUnread: true });
     const u = unread.container.firstElementChild as HTMLElement;
-    expect(u.className).toContain('ring-foreground/20');
-    expect(u.className).toContain('bg-card');
+    expect(u.className).toContain('ring-blue-500/30');
+    expect(u.className).toContain('bg-(--card-bg)');
+    expect(u.className).toMatch(/var\(--color-blue-500\)_\d+%/);
+    expect(u.className).not.toContain('ring-foreground/20');
     expect(screen.getByText('Fix login bug').className).toContain('font-semibold');
     unread.unmount();
     const read = setup({ isUnread: false });
     const r = read.container.firstElementChild as HTMLElement;
     expect(r.className).toContain('ring-foreground/10');
+    expect(r.className).toContain('bg-card');
+    expect(r.className).not.toContain('--color-blue-500');
     expect(r.className).not.toContain('shadow');
     expect(screen.getByText('Fix login bug').className).toContain('font-normal');
   });
@@ -803,21 +816,28 @@ describe('NotificationRow', () => {
       );
     });
 
-    it('keeps the unread dot inside the card padding', () => {
+    it('has no unread dot and symmetric padding', () => {
       const { container } = setup();
-      const dot = container.querySelector('[data-unread]') as HTMLElement;
-      expect(dot.className).toMatch(/(^|\s)left-1\.5(\s|$)/);
+      expect(container.querySelector('[data-unread]')).toBeNull();
       const card = container.querySelector('[data-card]') as HTMLElement;
-      expect(card.className).toContain('pl-4');
+      expect(card.className).toContain('px-3');
+      expect(card.className).not.toMatch(/(^|\s)(pl-|pr-)/);
     });
 
-    it('read vs unread only toggles fill, border, elevation, title style and dot visibility', () => {
+    it('badge cut-out ring follows the card surface', () => {
+      const { container } = setup();
+      const badge = container.querySelector('[data-card] .rounded-full.text-white') as HTMLElement;
+      expect(badge.className).toContain('ring-(--card-bg)');
+      expect(badge.className).toContain('group-hover/row:ring-(--card-hover)');
+    });
+
+    it('read vs unread only toggles surface tint, ring and title style', () => {
       const strip = (el: Element | null) =>
         (el?.className ?? '')
           .split(/\s+/)
           .filter(
             (c) =>
-              !/^(bg-primary|dark:bg-primary|bg-card|dark:bg-card|border-border|shadow-|ring-|dark:ring-|font-|text-foreground|text-muted-foreground|opacity-0)/.test(
+              !/^(bg-primary|dark:bg-primary|bg-card|bg-\(--card-bg\)|\[--card-bg:|dark:bg-card|border-border|shadow-|ring-|dark:ring-|font-|text-foreground|text-muted-foreground|opacity-0)/.test(
                 c,
               ),
           )
@@ -826,13 +846,11 @@ describe('NotificationRow', () => {
       const u = {
         card: strip(unread.container.querySelector('[data-card]')),
         detail: unread.container.querySelector('[data-line="detail"]')?.outerHTML,
-        dot: strip(unread.container.querySelector('[data-unread]')),
       };
       unread.unmount();
       const read = setup({ isUnread: false });
       expect(strip(read.container.querySelector('[data-card]'))).toBe(u.card);
       expect(read.container.querySelector('[data-line="detail"]')?.outerHTML).toBe(u.detail);
-      expect(strip(read.container.querySelector('[data-unread]'))).toBe(u.dot);
     });
   });
   describe('person avatars (261111-e1w)', () => {

@@ -2,8 +2,8 @@
  * NotificationRow — a rounded notification card (Phase 95).
  *
  * STYLE CONTRACT (one rule per element; every card obeys it):
- *  A. Skeleton: [unread-dot slot, inside the card padding, centred on line 1] [36px lead:
- *     avatar circle or system tile, same box + badge position] [content column]. Content:
+ *  A. Skeleton: [36px lead: avatar circle or system tile, same box + badge position]
+ *     [content column]; no unread-dot slot, padding is symmetric left/right at every density. Content:
  *     line 1 (key, parent > title, time), line 2, optional list. Line 2 and list rows start
  *     at the same x as the key.
  *  B. Line 2 grammar: Actor (foreground, medium) + action phrase (action colour, medium) +
@@ -22,9 +22,11 @@
  *     label chips (and "none") size to content.
  *  G. Type scale: title 12px; key, time, line 2, lists, chips 11px. Single ellipsis at the end
  *     of whatever overflows; lines are h-5 so nothing clips vertically.
- *  H. Card surface = the app's shared Card look (rounded-xl bg-card ring-1, no border/shadow; hover
- *     bg-accent/50 like TaskCard) on a lightly muted list. Read vs unread changes ONLY: ring strength
- *     (unread ring-foreground/20, read /10), title weight/colour, dot visibility. Nothing moves.
+ *  H. Card surface = the app's shared Card look (rounded-xl bg-card ring-1, no border/shadow) on a
+ *     lightly muted list. Read = bg-card ring-foreground/10. Unread = faint blue tint (--card-bg =
+ *     blue-500 6% mixed into card) + ring-blue-500/30. Hover = accent 50% mixed into --card-bg (the
+ *     tray uses the same --card-hover, so no seam). Read vs unread changes ONLY surface tint, ring,
+ *     title weight/colour. Nothing moves.
  *  I. Merged and single cards share the skeleton; merged only adds the list.
  *  J. The hover tray sits in the time slot of line 1 (right-0, centred) in every card.
  *  K. Densities scale padding / gaps / lead size; grammar is identical.
@@ -541,8 +543,10 @@ export default function NotificationRow({
       data-card
       data-unread-card={isUnread ? 'true' : 'false'}
       className={cn(
-        'group/row relative flex cursor-pointer items-start gap-3 rounded-xl py-2.5 [--card-hover:color-mix(in_oklab,var(--color-accent)_50%,var(--color-card))] pr-3 pl-4 text-xs transition-colors density-compact:gap-2.5 density-compact:py-1.5 density-compact:pr-2.5 density-compact:pl-3.5 density-comfortable:gap-3.5 density-comfortable:py-3.5 density-comfortable:pr-3.5 density-comfortable:pl-5 hover:bg-(--card-hover) focus-within:bg-(--card-hover)',
-        isUnread ? 'bg-card ring-1 ring-foreground/20' : 'bg-card ring-1 ring-foreground/10',
+        'group/row relative flex cursor-pointer items-start gap-3 rounded-xl py-2.5 [--card-hover:color-mix(in_oklab,var(--color-accent)_50%,var(--card-bg))] px-3 text-xs transition-colors density-compact:gap-2.5 density-compact:py-1.5 density-compact:px-2.5 density-comfortable:gap-3.5 density-comfortable:py-3.5 density-comfortable:px-3.5 hover:bg-(--card-hover) focus-within:bg-(--card-hover)',
+        isUnread
+          ? '[--card-bg:color-mix(in_oklab,var(--color-blue-500)_6%,var(--color-card))] bg-(--card-bg) ring-1 ring-blue-500/30'
+          : '[--card-bg:var(--color-card)] bg-card ring-1 ring-foreground/10',
         peeked && PEEKED_ROW_CLASS,
       )}
       data-peeked={peeked ? 'true' : undefined}
@@ -553,14 +557,6 @@ export default function NotificationRow({
         aria-label={ariaLabel}
         onClick={onOpen}
         className="absolute inset-0 cursor-pointer rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-      />
-
-      <span
-        data-unread={isUnread ? 'true' : 'false'}
-        className={cn(
-          'pointer-events-none absolute top-[17px] left-1.5 size-1.5 rounded-full bg-primary density-compact:top-[13px] density-compact:left-1 density-comfortable:top-[21px] density-comfortable:left-2',
-          !isUnread && 'opacity-0',
-        )}
       />
 
       <NotificationAvatar item={item} style={style} />
