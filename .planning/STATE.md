@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-08-13)
 Phase: 95
 Plan: Not started
 Status: Milestone complete
-Last activity: 2026-11-11 - Completed quick task 261111-uao: No active sprint vs no tasks states
+Last activity: 2026-11-11 - Completed quick task 261111-un4: Centred, consistent sprint empty states
 
 ## Performance Metrics
 
@@ -281,6 +281,7 @@ Acknowledged and deferred at v1.14 milestone close (2026-08-13) — 111 open art
 | 261111-i2o | Professional notifications redesign inspired by macOS: picked B · Ledger from 3 rendered directions; colour only on actionable action phrases, neutral badge, no halo; unread = card surface + ring + bold title, read never dimmed; per-issue/MR stacks (2+) with peek edges, +N, Show less/Clear; hover/focus corner X + read/open cluster; Reply/Review/View pipeline pills (Jira Reply focuses comment composer); single-row popover header, 30rem | 2026-11-11 | eec5a577, 4c605187, b2529379 | Approved (superseded by 261111-m0g) | [261111-i2o-professional-notifications-redesign-insp](./quick/261111-i2o-professional-notifications-redesign-insp/) |
 | 261111-m0g | Floating notification panel (no box, content-sized feathered blur), depth + hover/slide motion (stagger intro, slide-out collapse, arrival into open list, stack fan), no swipe; bell ring + badge pop; in-app banners (max 3, hover pause, portal) + Banner duration setting Off/3/5/8s (default 5s, settings v35). Designed via 4-round interactive prototype | 2026-11-11 | 0da467d0 … be0778ce (UAT rounds: sheet under bars, scrolling header, group motion/anchors, ghost empty state, ⌘⇧I, swipe close, bell open state) | Approved | [261111-m0g-floating-notification-panel-with-motion-](./quick/261111-m0g-floating-notification-panel-with-motion-/) |
 | 261111-uao | Distinguish "No active sprint" from "no tasks": shared useActiveSprint hook (Sidebar cache key, no extra fetch) + resolveSprintScopeState; Dashboard MY ISSUES, My Tasks Current Sprint (tiles/donut/subline hidden), Standup Today (In Progress/Up Next replaced, MRs kept), Sprint Board (chips/filters/counts hidden, boardId-gated sprint query) | 2026-11-11 | 981572ce, 84323d29, 076966df | Approved | [261111-uao-distinguish-no-active-sprint-from-no-tas](./quick/261111-uao-distinguish-no-active-sprint-from-no-tas/) |
+| 261111-un4 | Centred, consistent sprint empty states: EmptyState opt-in `fill` (centres in page/pane); Sprint Board + My Tasks list-area states centred; canonical NO_ACTIVE_SPRINT_SUBTITLE across Sprint Board, My Tasks, MY ISSUES, Standup Today; "No sprint issues" copy tidied | 2026-11-11 | 32318ef6, ac107d8f | Needs Review | [261111-un4-nicer-centred-no-sprint-no-tasks-empty-s](./quick/261111-un4-nicer-centred-no-sprint-no-tasks-empty-s/) |
 
 ## Session Continuity
 
