@@ -799,3 +799,45 @@ describe('CR-01: one Jira comment returned by two queries', () => {
     expect(entryIds(e[0])).toEqual(['jira-allcomment-501']);
   });
 });
+
+describe('CR-02: multi-word GitLab labels stay one label', () => {
+  const NB = '\u00A0';
+  const sys = (id: string, body: string, min: number): NotificationItem => ({
+    id,
+    source: 'gitlab',
+    entityTitle: 'Add export',
+    author: 'Ana Lee',
+    bodyPreview: body,
+    fullBody: body,
+    createdAt: local(10, 10, 12, min),
+    notificationType: 'mr-note',
+    mrProjectId: 5,
+    mrIid: 9,
+  });
+
+  it('single card: "added labels" with the spaced label as one token', () => {
+    const parts = describeEventParts(sys('gitlab-system-1', 'Labels added: needs review, bug', 0));
+    expect(parts.verb).toBe('added labels');
+    expect(parts.singleMode).toBe('added');
+    expect(parts.changes?.[0].text).toBe(`needs${NB}review bug`);
+  });
+
+  it('merged card: three labels, not four', () => {
+    const items = [
+      sys('gitlab-system-2', 'Labels added: ux', 5),
+      sys('gitlab-system-1', 'Labels added: needs review, bug', 0),
+    ];
+    const parts = describeEntryParts(items);
+    expect(parts.verb).toBe('added labels');
+    expect(parts.changes?.[0].text).toBe(`needs${NB}review bug ux`);
+    expect(parts.changes?.[0].text?.split(' ')).toHaveLength(3);
+  });
+
+  it('merged add + remove of a spaced label nets out', () => {
+    const items = [
+      sys('gitlab-system-2', 'Labels removed: needs review', 5),
+      sys('gitlab-system-1', 'Labels added: needs review, bug', 0),
+    ];
+    expect(describeEntryParts(items).changes?.[0].text).toBe('bug');
+  });
+});

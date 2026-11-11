@@ -442,6 +442,22 @@ describe('NotificationRow', () => {
     }
   });
 
+  it('CR-02: a multi-word GitLab label renders as one chip', () => {
+    const { container } = setup({
+      item: makeItem('gitlab', {
+        id: 'gitlab-system-1',
+        notificationType: 'mr-note',
+        bodyPreview: 'Labels added: needs review, bug',
+        entityTitle: 'Add export',
+      }),
+    });
+    const chips = [...container.querySelectorAll('[data-chip="label"]')].map((c) =>
+      c.textContent?.replace(/\u00A0/g, ' '),
+    );
+    expect(chips).toEqual(['needs review', 'bug']);
+    expect(container.querySelector('[data-line="detail"]')?.textContent).toContain('added labels');
+  });
+
   it('issue updates get a per-field badge (priority, sprint, labels)', () => {
     for (const [field, kind] of [
       ['Priority', 'priority'],

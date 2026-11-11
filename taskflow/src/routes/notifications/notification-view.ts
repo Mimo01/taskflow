@@ -426,10 +426,16 @@ function changesParts(actor: string | undefined, changes: ChangeLine[]): EventPa
 
 const SIGNED_TOKEN = /^[+\u2212-]/;
 
+/**
+ * Splits signed label / name tokens. ASCII space, tab, newline and comma only — NOT `\s`, which
+ * also matches the U+00A0 that prefixList puts inside a multi-word label ("+needs\u00A0review").
+ */
+const TOKEN_SPLIT = /[ \t\n,]+/;
+
 /** Text change made only of "+x" tokens (added) or only "−x" tokens (removed); mixed -> undefined. */
 function signedTextMode(c: ChangeLine): 'added' | 'removed' | undefined {
   if (!c.text) return undefined;
-  const toks = c.text.split(/[\s,]+/).filter(Boolean);
+  const toks = c.text.split(TOKEN_SPLIT).filter(Boolean);
   if (toks.length === 0 || !toks.every((t) => SIGNED_TOKEN.test(t))) return undefined;
   if (toks.every((t) => t.startsWith('+'))) return 'added';
   if (toks.every((t) => !t.startsWith('+'))) return 'removed';
@@ -438,7 +444,8 @@ function signedTextMode(c: ChangeLine): 'added' | 'removed' | undefined {
 
 function stripSigns(text: string): string {
   return text
-    .split(/\s+/)
+    .split(/ +/)
+    .filter(Boolean)
     .map((t) => t.replace(SIGNED_TOKEN, ''))
     .join(' ');
 }
@@ -605,7 +612,7 @@ const actorKey = (item: NotificationItem) => item.author.trim().toLowerCase();
 function labelTokens(text: string): [string, 1 | -1][] {
   const out: [string, 1 | -1][] = [];
   let sign: 1 | -1 = 1;
-  for (const raw of text.split(/[\s,]+/).filter(Boolean)) {
+  for (const raw of text.split(TOKEN_SPLIT).filter(Boolean)) {
     let tok = raw;
     if (tok.startsWith('+')) {
       sign = 1;
