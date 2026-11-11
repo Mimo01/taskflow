@@ -89,20 +89,20 @@
   .notif-glass::before {
     content: '';
     position: absolute;
-    inset: -14px;
+    /*
+     * "Drops from the top bar" (261111-m0g UAT): the popup's top sits exactly on the top bar's
+     * bottom line, so the frost starts there with a square edge (no top feather crossing the line
+     * or half-frosting the bell). Soft feather on the sides only; rounded bottom. The 14px side and
+     * bottom overhang stays inside the viewport (see TopBar edge insets).
+     */
+    inset: 0 -14px -14px -14px;
     z-index: -1;
-    border-radius: 30px;
+    border-radius: 0 0 30px 30px;
     background: var(--glass);
     -webkit-backdrop-filter: blur(18px) saturate(1.2);
     backdrop-filter: blur(18px) saturate(1.2);
-    -webkit-mask-image:
-      linear-gradient(to right, transparent, #000 22px, #000 calc(100% - 22px), transparent),
-      linear-gradient(to bottom, transparent, #000 22px, #000 calc(100% - 22px), transparent);
-    -webkit-mask-composite: source-in;
-    mask-image:
-      linear-gradient(to right, transparent, #000 22px, #000 calc(100% - 22px), transparent),
-      linear-gradient(to bottom, transparent, #000 22px, #000 calc(100% - 22px), transparent);
-    mask-composite: intersect;
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 22px, #000 calc(100% - 22px), transparent);
+    mask-image: linear-gradient(to right, transparent, #000 22px, #000 calc(100% - 22px), transparent);
     pointer-events: none;
     transition: opacity 240ms var(--ease-out);
   }

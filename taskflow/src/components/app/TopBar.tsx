@@ -19,6 +19,16 @@ import { useNotificationsStore, useUnreadCount } from '../../stores/notification
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import RecentItemsPopover from './RecentItemsPopover';
 
+/**
+ * Gap between the bell's bottom and the top bar's bottom line, so the panel's top lands exactly on
+ * that line ("drops from the top bar"). The bar is h-12 (3rem) and the bell h-8 (2rem), centred,
+ * so the gap is 0.5rem — computed from the root font size so it holds at every font scale.
+ */
+function topBarGap(): number {
+  const rem = Number.parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+  return rem * 0.5;
+}
+
 interface TopBarProps {
   /**
    * Called with the Jira issue key when a Jira result in search or
@@ -144,7 +154,7 @@ export default function TopBar({
         <PopoverContent
           side="bottom"
           align="end"
-          sideOffset={12}
+          sideOffset={topBarGap}
           // The .notif-glass blur layer overhangs the panel by 14px on every side. Keep the panel
           // >= 16px from each viewport edge (end-aligned to the bell = 16px from the right; height and
           // width capped) or the overhang makes the document scrollable and WKWebView flickers the whole
