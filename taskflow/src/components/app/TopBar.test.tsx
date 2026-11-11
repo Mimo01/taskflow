@@ -270,3 +270,20 @@ describe('TopBar bell shows the open state (261111-m0g UAT)', () => {
     expect(closed.querySelector('svg')?.getAttribute('fill')).toBe('none');
   });
 });
+
+describe('TopBar search shows the open state', () => {
+  it('search is pressed while the command palette is open', () => {
+    renderTopBar({ paletteOpen: true });
+    const search = screen.getByRole('button', { name: 'Search' });
+    expect(search.getAttribute('data-active')).toBe('true');
+    expect(search.className).toContain('bg-muted');
+  });
+
+  it('recent items is pressed while its popover is open', () => {
+    renderTopBar();
+    const recent = screen.getByRole('button', { name: 'Recent Items' });
+    expect(recent.hasAttribute('data-active')).toBe(false);
+    fireEvent.click(recent);
+    expect(recent.getAttribute('data-active')).toBe('true');
+  });
+});

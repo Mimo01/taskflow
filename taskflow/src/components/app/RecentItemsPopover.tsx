@@ -113,10 +113,16 @@ export default function RecentItemsPopover({ onIssueClick, onMRClick }: RecentIt
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
-        className="relative flex items-center justify-center w-8 h-8 rounded hover:bg-muted transition-colors"
+        // Pressed while open (same open indicator as the bell and search).
+        className={`relative flex items-center justify-center w-8 h-8 rounded hover:bg-muted transition-colors ${open ? 'bg-muted text-foreground' : ''}`}
+        data-active={open ? 'true' : undefined}
         aria-label="Recent Items"
       >
-        <Clock className="w-5 h-5" />
+        {/* Filled face while open; hands drawn in the pressed background colour so it stays a clock. */}
+        <Clock
+          fill={open ? 'currentColor' : 'none'}
+          className={`w-5 h-5 ${open ? '[&>:not(circle)]:fill-none [&>:not(circle)]:stroke-muted' : ''}`}
+        />
       </PopoverTrigger>
       <PopoverContent className="p-0 w-[40rem] max-w-[calc(100vw-2rem)]">
         <div>

@@ -48,6 +48,7 @@ export default function TopBar({
   onIssueClick,
   onMRClick,
   onPaletteOpen,
+  paletteOpen,
   notifPopoverOpen,
   onNotifPopoverChange,
   onOpenSettings,
@@ -162,7 +163,9 @@ export default function TopBar({
         type="button"
         onClick={onPaletteOpen}
         aria-label="Search"
-        className="relative flex items-center justify-center w-8 h-8 rounded hover:bg-muted transition-colors"
+        data-active={paletteOpen ? 'true' : undefined}
+        // Pressed while the command palette is open (same open indicator as the bell).
+        className={`relative flex items-center justify-center w-8 h-8 rounded hover:bg-muted transition-colors ${paletteOpen ? 'bg-muted text-foreground' : ''}`}
       >
         <Search className="w-5 h-5" />
       </button>
