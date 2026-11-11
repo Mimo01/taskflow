@@ -841,3 +841,58 @@ describe('CR-02: multi-word GitLab labels stay one label', () => {
     expect(describeEntryParts(items).changes?.[0].text).toBe('bug');
   });
 });
+
+describe('CR-03: merging multi-value field changes keeps every value', () => {
+  const fv = (from?: string, to?: string) => ({
+    field: 'fix version',
+    ...(from ? { from } : {}),
+    ...(to ? { to } : {}),
+    action: 'version' as const,
+  });
+
+  it('two additions to Fix Version both survive', () => {
+    const out = mergeChanges([[fv(undefined, '1.0')], [fv(undefined, '1.1')]]);
+    expect(out.map((c) => c.to)).toEqual(['1.0', '1.1']);
+  });
+
+  it('two removals from Fix Version both survive', () => {
+    const out = mergeChanges([[fv('1.0')], [fv('1.1')]]);
+    expect(out.map((c) => c.from)).toEqual(['1.0', '1.1']);
+  });
+
+  it('a real chain still collapses to first-from -> last-to', () => {
+    expect(
+      mergeChanges([
+        [{ field: 'priority', from: 'Low', to: 'High' }],
+        [{ field: 'priority', from: 'High', to: 'Blocker' }],
+      ]),
+    ).toEqual([{ field: 'priority', from: 'Low', to: 'Blocker' }]);
+  });
+
+  it('add then remove of the same version nets out', () => {
+    expect(mergeChanges([[fv(undefined, '1.0')], [fv('1.0')]])).toEqual([]);
+  });
+
+  it('merged Jira updates on one card list both versions', () => {
+    const at = (min: number) => local(10, 10, 12, min);
+    const upd = (id: string, min: number, body: string) =>
+      jira(id, 'PROJ-3', at(min), {
+        author: 'Cara',
+        notificationType: 'issue-update',
+        bodyPreview: body,
+      });
+    const parts = describeEntryParts([
+      upd('u2', 10, 'Fix Version: (none) → 1.1'),
+      upd('u1', 0, 'Fix Version: (none) → 1.0'),
+    ]);
+    expect(parts.changes?.map((c) => c.to)).toEqual(['1.0', '1.1']);
+  });
+
+  it('GitLab: two "Assigned" notes keep both assignees', () => {
+    const out = mergeChanges([
+      [{ field: 'assignee', to: 'ana', action: 'assignee' }],
+      [{ field: 'assignee', to: 'ben', action: 'assignee' }],
+    ]);
+    expect(out.map((c) => c.to)).toEqual(['ana', 'ben']);
+  });
+});

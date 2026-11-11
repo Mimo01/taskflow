@@ -627,11 +627,15 @@ function labelTokens(text: string): [string, 1 | -1][] {
 }
 
 /**
- * Union of chronological change lists: the same field changed repeatedly collapses to
- * first-from -> last-to, no-ops (from === to) drop, label diffs net out.
+ * Union of chronological change lists: a chain of changes to one field (each `from` equal to the
+ * previous `to`) collapses to first-from -> last-to, no-ops (from === to) drop, label diffs net out.
+ * Changes that do not chain — e.g. two separate values added to a multi-value field (Fix Version,
+ * Component, GitLab assignees) — stay separate lines so no value is lost.
  */
 export function mergeChanges(chronological: ChangeLine[][]): ChangeLine[] {
   const diffs = new Map<string, ChangeLine>();
+  /** Open diff keys per field, oldest first. */
+  const fieldDiffs = new Map<string, string[]>();
   const labels = new Map<string, number>();
   const labelOrder: string[] = [];
   const other = new Map<string, ChangeLine>();
@@ -649,9 +653,16 @@ export function mergeChanges(chronological: ChangeLine[][]): ChangeLine[] {
       const isDiff = !c.text && (c.from !== undefined || c.to !== undefined);
       const reviewish = c.action === 'review' || c.action === 'unreview';
       if (isDiff && !reviewish) {
-        const key = c.field;
+        const keys = fieldDiffs.get(c.field) ?? [];
+        // Extend the most recent line of this field whose new value is this change's old value.
+        let key = [...keys].reverse().find((k) => diffs.get(k)?.to === c.from);
+        if (!key) {
+          key = `${c.field}#${keys.length}`;
+          keys.push(key);
+          fieldDiffs.set(c.field, keys);
+          order.push(`d:${key}`);
+        }
         const prev = diffs.get(key);
-        if (!prev) order.push(`d:${key}`);
         const merged: ChangeLine = { ...c, from: prev ? prev.from : c.from };
         if (c.field === 'assignee') merged.action = merged.to ? 'assignee' : 'unassigned';
         diffs.set(key, merged);
