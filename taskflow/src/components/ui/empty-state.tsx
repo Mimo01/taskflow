@@ -8,6 +8,8 @@ interface EmptyStateProps {
   subtitle?: string;
   action?: ReactNode;
   compact?: boolean;
+  /** Fill and centre within a page/pane-sized parent; leave off for in-flow card/section states. */
+  fill?: boolean;
   className?: string;
 }
 
@@ -17,6 +19,7 @@ export function EmptyState({
   subtitle,
   action,
   compact = false,
+  fill = false,
   className,
 }: EmptyStateProps) {
   return (
@@ -24,6 +27,7 @@ export function EmptyState({
       className={cn(
         'flex flex-col items-center justify-center text-center',
         compact ? 'py-6' : 'py-8',
+        fill && 'h-full min-h-fit flex-1',
         className,
       )}
     >

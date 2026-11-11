@@ -35,4 +35,20 @@ describe('EmptyState', () => {
     const wrappers = container.querySelectorAll('.mt-4');
     expect(wrappers.length).toBe(0);
   });
+
+  it('fill adds h-full, flex-1 and min-h-fit while keeping centring and py-8', () => {
+    const { container } = render(<EmptyState icon={Inbox} title="T" fill />);
+    const cls = (container.firstElementChild as HTMLElement).className.split(' ');
+    for (const c of ['h-full', 'flex-1', 'min-h-fit', 'justify-center', 'items-center', 'py-8']) {
+      expect(cls).toContain(c);
+    }
+  });
+
+  it('default root has no fill classes', () => {
+    const { container } = render(<EmptyState icon={Inbox} title="T" />);
+    const cls = (container.firstElementChild as HTMLElement).className.split(' ');
+    expect(cls).not.toContain('h-full');
+    expect(cls).not.toContain('flex-1');
+    expect(cls).not.toContain('min-h-fit');
+  });
 });

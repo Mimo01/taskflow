@@ -7,6 +7,9 @@
  */
 export const NO_ACTIVE_SPRINT_TITLE = 'No active sprint';
 
+/** Canonical no-sprint subtitle. Sites may append one extra sentence but must not reword it. */
+export const NO_ACTIVE_SPRINT_SUBTITLE = 'Start a sprint in Jira and its issues will appear here.';
+
 export type SprintScopeState = 'loading' | 'items' | 'no-sprint' | 'empty';
 
 export function resolveSprintScopeState(args: {
