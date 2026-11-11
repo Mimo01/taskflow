@@ -36,3 +36,6 @@ User: ink halo "quite plain, add a little colour but match the app"; then mid-tu
 - Read cards: card surface (no longer the muted list colour), foreground title, full-opacity avatar. Time stays muted.
 - Final screenshots of the shipped classes: `*-final-light.png`, `*-final-dark.png`.
 - Commit 0e61ce81. Notifications tests 187/187, full suite 4719 passed.
+
+## Round 3
+User: card outline "a bit much". Rendered 2px/25, 1.5px/20, 1px/30, 1px/22 (`*-outline-weights-*.png`); shipped **ring-[1.5px] ring-foreground/20** (1px too close to read cards in dark). Commit 839ef9e0.
