@@ -1,8 +1,9 @@
 /**
  * NotificationPopover — Ledger notification feed rendered inside TopBar's Popover (Phase 95, 261111-i2o).
  *
- * - ONE header row: "Notifications", light segmented Unread | All, "All sources" dropdown (with
- *   per-source unread counts), Mark all read icon button, overflow (Clear read, Notification settings)
+ * - ONE header row: "Notifications", Mark all read, and a macOS-style Clear all (✕ that expands into
+ *   an inline "Clear all" confirmation). No read/source filters: the list always shows everything
+ *   (261111-m0g UAT).
  * - Entries built by notification-view (time-bucket headers + cards), then stackEntries(): an issue /
  *   MR with 2+ cards is one stack (expand in place, "Show less" / "Clear"); rendered by
  *   NotificationList (virtualized, keyboard triage)
@@ -12,34 +13,20 @@
  * - Fetch error with cached items shows StaleDataBanner; with no items shows ErrorState
  */
 
-import {
-  Bell,
-  BellOff,
-  CheckCheck,
-  ChevronDown,
-  MoreHorizontal,
-  TriangleAlert,
-  X,
-} from 'lucide-react';
+import { Bell, BellOff, CheckCheck, TriangleAlert, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '../../components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuTrigger,
-} from '../../components/ui/dropdown-menu';
 import { EmptyState } from '../../components/ui/empty-state';
 import { ErrorState } from '../../components/ui/error-state';
 import { StaleDataBanner } from '../../components/ui/stale-data-banner';
 import { useNow } from '../../hooks/useNow';
-import { cn } from '../../lib/utils';
 import { useNotificationsStore } from '../../stores/notifications.store';
+import ClearAllButton from './ClearAllButton';
 import NotificationList, { type NotificationListMotion } from './NotificationList';
 import NotificationRow, { StackCard, StackHeader } from './NotificationRow';
 import {
+  NOTIF_CLEAR_ALL_MAX_DELAY_MS,
+  NOTIF_CLEAR_ALL_STAGGER_MS,
   NOTIF_ENTER_MS,
   NOTIF_EXIT_MS,
   NOTIF_FAN_MS,
@@ -49,15 +36,12 @@ import {
 } from './notification-motion';
 import {
   buildEntries,
-  countUnreadCards,
   type EventEntry,
   entityKey,
   entryIds,
-  filterItems,
   getEntityRef,
   getEntityTitle,
   type NotificationEntry,
-  type SourceFilter,
   type StackEntry,
   type StackHeaderEntry,
   stackEntries,
@@ -75,12 +59,6 @@ interface NotificationPopoverProps {
 /** Empty/error states sit on glass: give them a card surface so they stay readable. */
 const EMPTY_CARD = 'mx-2.5 mb-3 flex-none rounded-[14px] bg-card shadow-(--notif-sh-rest)';
 
-const SOURCE_TABS: { key: SourceFilter; label: string }[] = [
-  { key: 'all', label: 'All sources' },
-  { key: 'jira', label: 'Jira' },
-  { key: 'gitlab', label: 'GitLab' },
-];
-
 export default function NotificationPopover({
   onIssueClick,
   onMRClick,
@@ -88,8 +66,6 @@ export default function NotificationPopover({
   onOpenSettings,
 }: NotificationPopoverProps) {
   const now = useNow(60_000);
-  const [activeTab, setActiveTab] = useState<SourceFilter>('all');
-  const [unreadOnly, setUnreadOnly] = useState(false);
   const [dismissedError, setDismissedError] = useState<unknown>(null);
   /** Entity keys of expanded stacks (ephemeral UI state, never persisted). */
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set());
@@ -103,7 +79,6 @@ export default function NotificationPopover({
   const markItemsUnread = useNotificationsStore((s) => s.markItemsUnread);
   const markItemsRead = useNotificationsStore((s) => s.markItemsRead);
   const removeItems = useNotificationsStore((s) => s.removeItems);
-  const clearRead = useNotificationsStore((s) => s.clearRead);
   const setPermissionDenied = useNotificationsStore((s) => s.setPermissionDenied);
   const setNotificationSendError = useNotificationsStore((s) => s.setNotificationSendError);
 
@@ -112,8 +87,8 @@ export default function NotificationPopover({
     buildEntries({
       items,
       readSet,
-      source: activeTab,
-      unreadOnly,
+      source: 'all',
+      unreadOnly: false,
       now,
     }),
     expanded,
@@ -227,14 +202,7 @@ export default function NotificationPopover({
     }
   }
 
-  const scopedItems = filterItems(items, readSet, activeTab, false);
-  const scopedUnreadIds = scopedItems.filter((i) => !readSet.has(i.id)).map((i) => i.id);
-  const hasScopedRead = scopedItems.some((i) => readSet.has(i.id));
-
-  /** Unread CARDS per tab (merged runs count once) so chips match the list and the bell. */
-  function unreadCount(source: SourceFilter): number {
-    return countUnreadCards(items, readSet, source, now);
-  }
+  const unreadIds = items.filter((i) => !readSet.has(i.id)).map((i) => i.id);
 
   const idsOf = (entry: EventEntry | StackEntry) =>
     entry.kind === 'stack' ? stackIds(entry) : entryIds(entry);
@@ -270,6 +238,20 @@ export default function NotificationPopover({
         ...entry.cards.map((c, i) => ({ id: c.id, delay: i * NOTIF_STACK_STAGGER_MS })),
       ],
       stackIds(entry),
+    );
+  }
+
+  /** Clear all: every visible card / stack slides out (short stagger, capped), then everything goes. */
+  function clearAll() {
+    const targets = entries
+      .filter((e) => e.kind !== 'header')
+      .map((e, i) => ({
+        id: e.id,
+        delay: Math.min(i * NOTIF_CLEAR_ALL_STAGGER_MS, NOTIF_CLEAR_ALL_MAX_DELAY_MS),
+      }));
+    leave(
+      targets,
+      items.map((i) => i.id),
     );
   }
 
@@ -366,28 +348,6 @@ export default function NotificationPopover({
         />
       );
     }
-    if (entries.length === 0 && unreadOnly) {
-      return (
-        <EmptyState
-          compact
-          className={EMPTY_CARD}
-          icon={BellOff}
-          title="All caught up"
-          subtitle="You have no unread notifications."
-        />
-      );
-    }
-    if (entries.length === 0) {
-      return (
-        <EmptyState
-          compact
-          className={EMPTY_CARD}
-          icon={BellOff}
-          title={`Nothing from ${activeTab === 'jira' ? 'Jira' : 'GitLab'}`}
-          subtitle="No notifications from this source."
-        />
-      );
-    }
     return (
       <NotificationList
         entries={entries}
@@ -402,114 +362,23 @@ export default function NotificationPopover({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      {/* One header row: title, Unread | All, source filter, Mark all read, overflow */}
+      {/* One header row: title, Mark all read, Clear all (inline macOS-style confirmation) */}
       <div className="flex flex-none items-center gap-2 px-4 pt-3.5 pb-2.5">
         <h2 className="min-w-0 flex-1 truncate text-base font-semibold tracking-[-0.01em]">
           Notifications
         </h2>
-        <fieldset className="m-0 inline-flex flex-none rounded-lg border-0 bg-muted p-0.5">
-          <legend className="sr-only">Show</legend>
-          {(
-            [
-              { value: true, label: 'Unread' },
-              { value: false, label: 'All' },
-            ] as const
-          ).map(({ value, label }) => (
-            <button
-              key={label}
-              type="button"
-              aria-pressed={unreadOnly === value}
-              onClick={() => setUnreadOnly(value)}
-              className={cn(
-                'rounded-md px-2 py-0.5 text-xs font-medium transition-colors',
-                unreadOnly === value
-                  ? 'bg-background text-foreground ring-1 ring-foreground/10'
-                  : 'text-muted-foreground hover:text-foreground',
-              )}
-            >
-              {label}
-            </button>
-          ))}
-        </fieldset>
-        <DropdownMenu>
-          <DropdownMenuTrigger
-            render={
-              <Button
-                variant="ghost"
-                size="xs"
-                className="flex-none"
-                aria-label="Filter by source"
-              />
-            }
-          >
-            {SOURCE_TABS.find((tab) => tab.key === activeTab)?.label}
-            <ChevronDown aria-hidden="true" />
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuRadioGroup
-              value={activeTab}
-              onValueChange={(v) => setActiveTab(v as SourceFilter)}
-            >
-              {SOURCE_TABS.map((tab) => {
-                const count = unreadCount(tab.key);
-                return (
-                  <DropdownMenuRadioItem key={tab.key} value={tab.key}>
-                    {tab.label}
-                    {count > 0 && (
-                      <span className="ml-1 rounded bg-muted px-1 text-[11px] text-muted-foreground tabular-nums">
-                        {count > 99 ? '99+' : count}
-                      </span>
-                    )}
-                  </DropdownMenuRadioItem>
-                );
-              })}
-            </DropdownMenuRadioGroup>
-          </DropdownMenuContent>
-        </DropdownMenu>
         <Button
           variant="ghost"
           size="icon-xs"
           className="flex-none"
           aria-label="Mark all read"
           title="Mark all read"
-          disabled={scopedUnreadIds.length === 0}
-          onClick={() => markItemsRead(scopedUnreadIds)}
+          disabled={unreadIds.length === 0}
+          onClick={() => markItemsRead(unreadIds)}
         >
           <CheckCheck />
         </Button>
-        <DropdownMenu>
-          <DropdownMenuTrigger
-            render={
-              <Button
-                variant="ghost"
-                size="icon-xs"
-                className="flex-none"
-                aria-label="More actions"
-              />
-            }
-          >
-            <MoreHorizontal />
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem
-              title="Remove all read notifications"
-              disabled={!hasScopedRead}
-              onClick={() => clearRead(activeTab === 'all' ? undefined : activeTab)}
-            >
-              Clear read
-            </DropdownMenuItem>
-            {onOpenSettings && (
-              <DropdownMenuItem
-                onClick={() => {
-                  onOpenSettings();
-                  onClose?.();
-                }}
-              >
-                Notification settings
-              </DropdownMenuItem>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <ClearAllButton onConfirm={clearAll} disabled={items.length === 0} />
       </div>
 
       {/* Permission-denied banner — same pattern as StaleDataBanner (icon, muted text, ghost X) */}

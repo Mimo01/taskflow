@@ -8,6 +8,9 @@ export const NOTIF_SLIDE_MS = 200;
 export const NOTIF_EXIT_MS = 500;
 /** Stack Clear: delay between consecutive cards sliding out. */
 export const NOTIF_STACK_STAGGER_MS = 50;
+/** Clear all: delay between consecutive cards sliding out, and the cap on the last one. */
+export const NOTIF_CLEAR_ALL_STAGGER_MS = 30;
+export const NOTIF_CLEAR_ALL_MAX_DELAY_MS = 240;
 export const NOTIF_FLASH_MS = 500;
 export const NOTIF_FAN_MS = 450;
 

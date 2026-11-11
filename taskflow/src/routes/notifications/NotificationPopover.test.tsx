@@ -55,10 +55,6 @@ const glItem = (id: string, extra = {}) => ({
 });
 const entryCount = () => document.querySelectorAll('[data-entry-primary]').length;
 /** Pick a source in the "All sources" dropdown. */
-async function pickSource(name: RegExp) {
-  fireEvent.click(screen.getByRole('button', { name: 'Filter by source' }));
-  fireEvent.click(await screen.findByRole('menuitemradio', { name }));
-}
 const seed = (items: unknown[], readIds: string[] = []) =>
   act(() => {
     useNotificationsStore.setState({ items: items as never, readIds });
@@ -247,14 +243,6 @@ describe('NotificationPopover', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Mark all read' }));
       expect(useNotificationsStore.getState().readIds).toEqual(expect.arrayContaining(['a', 'b']));
     });
-
-    it('the bell/unread count still counts cards, not stacks', () => {
-      render(<NotificationPopover />);
-      fireEvent.click(screen.getByRole('button', { name: 'Filter by source' }));
-      return screen.findByRole('menuitemradio', { name: /All sources/ }).then((el) => {
-        expect(el.textContent).toContain('2');
-      });
-    });
   });
 
   describe('quick actions', () => {
@@ -326,18 +314,17 @@ describe('NotificationPopover', () => {
   });
 
   describe('shell', () => {
-    it('is ONE header row: no filter band, no inverted pressed state', () => {
+    it('is ONE header row: title, Mark all read, Clear all; no read/source filters or overflow', () => {
       seed([jiraItem('a')]);
       const { container } = render(<NotificationPopover />);
       expect(container.querySelector('.border-b')).toBeNull();
-      expect(screen.getByRole('button', { name: 'Unread' }).className).not.toContain(
-        'bg-foreground',
-      );
-      expect(screen.getByRole('button', { name: 'All' }).className).toContain('bg-background');
       const heading = screen.getByRole('heading', { name: 'Notifications' });
       const row = heading.parentElement as HTMLElement;
-      for (const name of ['Unread', 'All', 'Filter by source', 'Mark all read', 'More actions']) {
+      for (const name of ['Mark all read', 'Clear all notifications']) {
         expect(row.contains(screen.getByRole('button', { name }))).toBe(true);
+      }
+      for (const name of ['Unread', 'All', 'Filter by source', 'More actions']) {
+        expect(screen.queryByRole('button', { name })).toBeNull();
       }
     });
   });
@@ -457,90 +444,51 @@ describe('NotificationPopover', () => {
   });
 
   describe('header and filters', () => {
-    it('shows heading, Mark all read disabled at 0 unread, More actions', () => {
+    it('shows heading, Mark all read disabled at 0 unread, Clear all', () => {
       seed([jiraItem('a')], ['a']);
       render(<NotificationPopover />);
       expect(screen.getByRole('heading', { name: 'Notifications' })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: 'Mark all read' })).toBeDisabled();
-      expect(screen.getByRole('button', { name: 'More actions' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Clear all notifications' })).toBeEnabled();
     });
 
-    it('Mark all read on Jira tab only touches Jira', async () => {
+    it('Mark all read marks every source', () => {
       seed([jiraItem('j1'), glItem('g1')]);
       render(<NotificationPopover />);
-      await pickSource(/^Jira/);
       fireEvent.click(screen.getByRole('button', { name: 'Mark all read' }));
       const { readIds } = useNotificationsStore.getState();
       expect(readIds).toContain('j1');
-      expect(readIds).not.toContain('g1');
+      expect(readIds).toContain('g1');
     });
 
-    it('Clear read removes only read items of the active tab', async () => {
-      seed([jiraItem('j1'), jiraItem('j2', 'PROJ-2'), glItem('g1')], ['j1', 'g1']);
-      render(<NotificationPopover />);
-      await pickSource(/^Jira/);
-      fireEvent.click(screen.getByRole('button', { name: 'More actions' }));
-      fireEvent.click(await screen.findByText('Clear read'));
-      const ids = useNotificationsStore
-        .getState()
-        .items.map((i) => i.id)
-        .sort();
-      expect(ids).toEqual(['g1', 'j2']);
-    });
-
-    it('settings menu item calls onOpenSettings and onClose; absent without it', async () => {
+    it('the empty state settings button calls onOpenSettings and onClose; absent without it', () => {
       const onOpenSettings = vi.fn();
       const onClose = vi.fn();
       const { unmount } = render(
         <NotificationPopover onOpenSettings={onOpenSettings} onClose={onClose} />,
       );
-      fireEvent.click(screen.getByRole('button', { name: 'More actions' }));
-      fireEvent.click(await screen.findByRole('menuitem', { name: 'Notification settings' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Notification settings' }));
       expect(onOpenSettings).toHaveBeenCalled();
       expect(onClose).toHaveBeenCalled();
       unmount();
       render(<NotificationPopover />);
-      fireEvent.click(screen.getByRole('button', { name: 'More actions' }));
-      await screen.findByText('Clear read');
-      expect(screen.queryByRole('menuitem', { name: 'Notification settings' })).toBeNull();
+      expect(screen.queryByRole('button', { name: 'Notification settings' })).toBeNull();
     });
 
-    it('Unread/All segmented buttons use aria-pressed; unread hides read items', () => {
-      seed([jiraItem('a'), jiraItem('b', 'PROJ-2')], ['a']);
+    it('Clear all: first click arms an inline confirmation, second click clears everything', () => {
+      vi.useFakeTimers();
+      seed([jiraItem('j1'), jiraItem('j2', 'PROJ-2'), glItem('g1')], ['j1']);
       render(<NotificationPopover />);
-      expect(screen.getByRole('button', { name: 'All' })).toHaveAttribute('aria-pressed', 'true');
-      fireEvent.click(screen.getByRole('button', { name: 'Unread' }));
-      expect(screen.getByRole('button', { name: 'Unread' })).toHaveAttribute(
-        'aria-pressed',
-        'true',
-      );
-      expect(entryCount()).toBe(1);
-    });
-
-    it('source filter is a dropdown with per-source choices', async () => {
-      render(<NotificationPopover />);
-      expect(screen.getByRole('button', { name: 'Filter by source' }).textContent).toContain(
-        'All sources',
-      );
-      fireEvent.click(screen.getByRole('button', { name: 'Filter by source' }));
-      expect(await screen.findByRole('menuitemradio', { name: /^Jira/ })).toBeInTheDocument();
-      expect(screen.getByRole('menuitemradio', { name: /^GitLab/ })).toBeInTheDocument();
-    });
-
-    it('unread chip (in the source menu) is neutral and hidden at 0', async () => {
-      seed([jiraItem('a'), jiraItem('b', 'PROJ-2')]);
-      const { unmount } = render(<NotificationPopover />);
-      fireEvent.click(screen.getByRole('button', { name: 'Filter by source' }));
-      const all = await screen.findByRole('menuitemradio', { name: /All sources/ });
-      const chip = all.querySelector('span.bg-muted') as HTMLElement;
-      expect(chip.textContent).toBe('2');
-      expect(chip.className).not.toMatch(/orange|purple|red/);
-      unmount();
-      seed([jiraItem('a')], ['a']);
-      render(<NotificationPopover />);
-      fireEvent.click(screen.getByRole('button', { name: 'Filter by source' }));
-      const all0 = await screen.findByRole('menuitemradio', { name: /All sources/ });
-      expect(all0.querySelector('span.bg-muted')).toBeNull();
+      fireEvent.click(screen.getByRole('button', { name: 'Clear all notifications' }));
+      // armed, nothing removed yet
+      expect(useNotificationsStore.getState().items).toHaveLength(3);
+      const confirm = screen.getByRole('button', { name: 'Confirm: clear all notifications' });
+      expect(confirm).toHaveTextContent('Clear all');
+      fireEvent.click(confirm);
+      // every card slides out first, then the store empties
+      expect(document.querySelectorAll('[data-leaving]').length).toBeGreaterThan(0);
+      finishExit(300);
+      expect(useNotificationsStore.getState().items).toHaveLength(0);
     });
   });
 
@@ -556,22 +504,6 @@ describe('NotificationPopover', () => {
       ).toBeInTheDocument();
       fireEvent.click(screen.getByRole('button', { name: 'Notification settings' }));
       expect(onOpenSettings).toHaveBeenCalled();
-    });
-
-    it('all read + Unread filter shows All caught up', () => {
-      seed([jiraItem('a')], ['a']);
-      render(<NotificationPopover />);
-      fireEvent.click(screen.getByRole('button', { name: 'Unread' }));
-      expect(screen.getByText('All caught up')).toBeInTheDocument();
-      expect(screen.getByText('You have no unread notifications.')).toBeInTheDocument();
-    });
-
-    it('Jira tab with only GitLab items shows Nothing from Jira', async () => {
-      seed([glItem('g1')]);
-      render(<NotificationPopover />);
-      await pickSource(/^Jira/);
-      expect(screen.getByText('Nothing from Jira')).toBeInTheDocument();
-      expect(screen.getByText('No notifications from this source.')).toBeInTheDocument();
     });
 
     it('fetchError with no items shows ErrorState and Retry', () => {
@@ -726,20 +658,17 @@ describe('NotificationPopover motion (261111-m0g)', () => {
     expect(stack.querySelector('[data-stack-more]')?.textContent).toBe('+2');
   });
 
-  it('rows have no entrance animation on open (StrictMode) or on a filter switch', () => {
+  it('rows have no entrance animation on open (StrictMode)', () => {
     seed([jiraItem('a', 'PROJ-1'), jiraItem('b', 'PROJ-2'), jiraItem('c', 'PROJ-3')]);
     render(
       <StrictMode>
         <NotificationPopover />
       </StrictMode>,
     );
-    const animated = () =>
-      [...document.querySelectorAll<HTMLElement>('[data-notif-entry]')].filter((r) =>
-        /notif-(stagger|enter)/.test(r.className),
-      );
-    expect(animated()).toEqual([]);
-    fireEvent.click(screen.getByRole('button', { name: 'Unread' }));
-    expect(animated()).toEqual([]);
+    const animated = [...document.querySelectorAll<HTMLElement>('[data-notif-entry]')].filter((r) =>
+      /notif-(stagger|enter)/.test(r.className),
+    );
+    expect(animated).toEqual([]);
   });
 
   it('toggling read flashes the card in place and clears the flag', () => {
@@ -765,16 +694,6 @@ describe('NotificationPopover motion (261111-m0g)', () => {
     expect(members.map((m) => m.style.getPropertyValue('--i'))).toEqual(['0', '1']);
     advance(NOTIF_FAN_MS + 50);
     expect(members.some((m) => m.className.includes('notif-fan'))).toBe(false);
-  });
-
-  it('keeps a stack expanded when the Unread filter hides some of its cards (WR-04)', () => {
-    seed([jiraItem('a'), jiraItem('b'), jiraItem('c')], ['a']);
-    render(<NotificationPopover />);
-    fireEvent.click(screen.getByRole('button', { name: /expand/ }));
-    expect(document.querySelector('[data-stack-header]')).not.toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Unread' }));
-    fireEvent.click(screen.getByRole('button', { name: 'All' }));
-    expect(document.querySelector('[data-stack-header]')).not.toBeNull();
   });
 
   it('under prefers-reduced-motion Done removes immediately with no leaving state', () => {
