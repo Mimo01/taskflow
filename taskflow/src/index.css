@@ -298,6 +298,20 @@
     transform 0.28s cubic-bezier(0.4, 0, 1, 1) var(--leave-delay, 0ms),
     opacity 0.28s var(--leave-delay, 0ms);
 }
+/* A cleared collapsed stack: the peek edges under the top card slide out with it, each a beat later. */
+[data-notif-entry][data-leaving] [data-stack-edge] {
+  transform: translateX(115%);
+  opacity: 0;
+  transition:
+    transform 0.28s cubic-bezier(0.4, 0, 1, 1) calc(var(--leave-delay, 0ms) + var(--edge-delay)),
+    opacity 0.28s calc(var(--leave-delay, 0ms) + var(--edge-delay));
+}
+[data-notif-entry][data-leaving] [data-stack-edge='1'] {
+  --edge-delay: 30ms;
+}
+[data-notif-entry][data-leaving] [data-stack-edge='2'] {
+  --edge-delay: 60ms;
+}
 [data-notif-entry][data-leaving] [data-corner-x],
 [data-notif-entry][data-leaving] [data-tray] {
   opacity: 0 !important;
