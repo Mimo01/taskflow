@@ -382,7 +382,8 @@ export default function NotificationPopover({
         <Button
           variant="ghost"
           size="icon-xs"
-          className="flex-none"
+          // Same muted icon + disabled fade as the Clear all X, so both read the same when disabled.
+          className="flex-none text-muted-foreground hover:text-foreground disabled:opacity-40"
           aria-label="Mark all read"
           title="Mark all read"
           disabled={unreadIds.length === 0}
