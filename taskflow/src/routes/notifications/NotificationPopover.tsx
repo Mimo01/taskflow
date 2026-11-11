@@ -201,7 +201,6 @@ export default function NotificationPopover({
 
   /** Open groups currently folding closed (their rows fold up before the stack collapses). */
   const [folding, setFolding] = useState<ReadonlySet<string>>(new Set());
-  const [justCollapsed, setJustCollapsed] = useState<string | null>(null);
 
   function expandStack(entity: string) {
     // Remember the neighbours of the collapsed stack so the open group stays in this slot.
@@ -232,8 +231,6 @@ export default function NotificationPopover({
       m.delete(entity);
       return m;
     });
-    setJustCollapsed(entity);
-    setTimeout(() => setJustCollapsed((cur) => (cur === entity ? null : cur)), NOTIF_FOLD_MS + 60);
   }
 
   function toggleStack(entity: string) {
@@ -384,7 +381,6 @@ export default function NotificationPopover({
     flashing,
     justExpanded,
     folding,
-    justCollapsed,
   };
 
   const scrollHeader = (

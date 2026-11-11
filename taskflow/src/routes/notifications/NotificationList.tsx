@@ -13,9 +13,10 @@ import { cn } from '../../lib/utils';
 import {
   NOTIF_EXIT_MS,
   NOTIF_FOLD_MS,
+  NOTIF_GROUP_EASE,
   NOTIF_SLIDE_MS,
+  NOTIF_STACK_EXTRA_PX,
   NOTIF_UNFOLD_MS,
-  prefersReducedMotion,
 } from './notification-motion';
 import {
   type EventEntry,
@@ -38,8 +39,6 @@ export interface NotificationListMotion {
   justExpanded: string | null;
   /** Entity keys of open stacks that are folding closed (header + members fold up, then collapse). */
   folding?: ReadonlySet<string>;
-  /** Entity key of the stack that just collapsed (its stack card fades in). */
-  justCollapsed?: string | null;
 }
 
 const NO_MOTION: NotificationListMotion = {
@@ -48,7 +47,6 @@ const NO_MOTION: NotificationListMotion = {
   flashing: new Set(),
   justExpanded: null,
   folding: new Set(),
-  justCollapsed: null,
 };
 
 interface NotificationListProps {
@@ -141,6 +139,20 @@ export default function NotificationList({
   });
 
   const virtualItems = rowVirtualizer.getVirtualItems();
+  // Glide only while a group OPENS (transform-only open). Closing shrinks row heights, which the
+  // rows below already follow; adding a glide on top made them lag (261111-m0g UAT).
+  const groupMoving = motion.justExpanded != null;
+  /** Rows of the group that is opening/closing keep still (they have their own motion). */
+  const inMovingGroup = (entry: NotificationEntry | undefined): boolean => {
+    if (!entry) return false;
+    const k =
+      entry.kind === 'stack' || entry.kind === 'stack-header'
+        ? entry.entity
+        : entry.kind === 'event'
+          ? entityKey(entry.item)
+          : null;
+    return k != null && k === motion.justExpanded;
+  };
   const useVirtual = virtualItems.length > 0;
 
   const focusEntry = useCallback(
@@ -199,6 +211,16 @@ export default function NotificationList({
     if (!entry || entry.kind !== 'event' || !motion.justExpanded) return -1;
     const entity = entityKey(entry.item);
     if (entity !== motion.justExpanded) return -1;
+    const header = entries.findIndex((x) => x.kind === 'stack-header' && x.entity === entity);
+    return header >= 0 ? index - header - 1 : -1;
+  };
+
+  /** Position of a card inside its open group (0 = top card), else -1. */
+  const groupIndexOf = (index: number): number => {
+    const entry = entries[index];
+    if (!entry || entry.kind !== 'event') return -1;
+    const entity = entityKey(entry.item);
+    if (!entity || !expandedEntities.has(entity)) return -1;
     const header = entries.findIndex((x) => x.kind === 'stack-header' && x.entity === entity);
     return header >= 0 ? index - header - 1 : -1;
   };
@@ -327,6 +349,12 @@ export default function NotificationList({
                     left: 0,
                     width: '100%',
                     transform: `translateY(${virtualRow.start - headerHeight}px)`,
+                    // While a group opens/closes, rows glide to their new positions instead of
+                    // jumping (positions update a frame late as rows are re-measured).
+                    transition:
+                      groupMoving && !inMovingGroup(entry)
+                        ? `transform ${NOTIF_UNFOLD_MS}ms ${NOTIF_GROUP_EASE}`
+                        : undefined,
                   }}
                 >
                   <EntryWrapper
@@ -337,6 +365,7 @@ export default function NotificationList({
                     motion={motion}
                     memberIndex={memberIndexOf(virtualRow.index)}
                     groupEnd={isGroupEnd(virtualRow.index)}
+                    groupIndex={groupIndexOf(virtualRow.index)}
                   />
                 </div>
               );
@@ -351,6 +380,7 @@ export default function NotificationList({
                 motion={motion}
                 memberIndex={memberIndexOf(i)}
                 groupEnd={isGroupEnd(i)}
+                groupIndex={groupIndexOf(i)}
               />
             ))}
       </div>
@@ -366,6 +396,7 @@ function EntryWrapper({
   motion,
   memberIndex,
   groupEnd,
+  groupIndex,
 }: {
   entry: NotificationEntry;
   index: number;
@@ -375,6 +406,8 @@ function EntryWrapper({
   memberIndex: number;
   /** Last card of an open group: extra space below it marks where the group ends. */
   groupEnd: boolean;
+  /** Position inside its open group (0 = top card), -1 when not in an open group. */
+  groupIndex: number;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const leaveDelay = motion.leaving.get(entry.id);
@@ -408,29 +441,26 @@ function EntryWrapper({
   const fanning = memberIndex >= 0 && isMember;
   const groupKey =
     entry.kind === 'stack-header' || entry.kind === 'stack' ? entry.entity : isMember ? key : null;
-  /** Open group folding closed: header + members fold up while their rows shrink to 0. */
+  /** The open group's top card: it moves (pushed by the title row), never fades or shrinks. */
+  const isTopCard = groupIndex === 0;
+  /**
+   * Close (reverse of open): the title row shrinks so the top card slides back up over it, and
+   * the other cards sink and fade while their rows shrink. Ends exactly where the stack card sits.
+   */
   const folding =
-    groupKey != null && entry.kind !== 'stack' && (motion.folding?.has(groupKey) ?? false);
-  /** Open group just opened: header + members grow from 0 so the rows below glide down. */
-  const unfolding =
-    fanning || (entry.kind === 'stack-header' && motion.justExpanded === entry.entity);
-  const justCollapsed = entry.kind === 'stack' && motion.justCollapsed === entry.entity;
-
-  // Unfold: measure the natural height, start at 0, grow to it, then release the height.
-  const [grow, setGrow] = useState<{ phase: 0 | 1 | 2; height: number }>({ phase: 0, height: 0 });
-  useLayoutEffect(() => {
-    if (!unfolding || prefersReducedMotion()) return;
-    const height = ref.current?.offsetHeight ?? 0;
-    setGrow({ phase: 1, height });
-    let raf = requestAnimationFrame(() => {
-      raf = requestAnimationFrame(() => setGrow({ phase: 2, height }));
-    });
-    const done = setTimeout(() => setGrow({ phase: 0, height: 0 }), NOTIF_UNFOLD_MS + 60);
-    return () => {
-      cancelAnimationFrame(raf);
-      clearTimeout(done);
-    };
-  }, [unfolding]);
+    groupKey != null &&
+    entry.kind !== 'stack' &&
+    !isTopCard &&
+    (motion.folding?.has(groupKey) ?? false);
+  /**
+   * Open: no layout animation (the virtualizer measures rows a frame late, so animating heights
+   * stuttered). The top card drops from where the stack card was and reveals the title row
+   * behind it; the other cards rise from below; rows below glide via the virtual-row transform
+   * transition (see the list). All transform-only.
+   */
+  const topCardOpening = isTopCard && groupKey != null && motion.justExpanded === groupKey;
+  const topCardClosing = isTopCard && groupKey != null && (motion.folding?.has(groupKey) ?? false);
+  const titleRow = entry.kind === 'stack-header';
 
   // Fold: pin the measured height, then shrink to 0 (the popover collapses the stack after).
   useEffect(() => {
@@ -443,9 +473,15 @@ function EntryWrapper({
   }, [folding]);
 
   const style: CSSProperties = {};
-  if (fanning) {
-    (style as Record<string, string | number>)['--i'] = memberIndex;
-    style.animationDelay = `${Math.min(memberIndex, 6) * 30}ms`;
+  if (fanning && memberIndex >= 1) {
+    style.animationDelay = `${Math.min(memberIndex - 1, 6) * 30}ms`;
+  }
+  // Title row growing/shrinking: keep its content pinned to the bottom edge, so it is revealed
+  // from behind the top card (and hidden behind it on close) instead of sliding from the top.
+  if (titleRow && collapse.phase > 0) {
+    style.display = 'flex';
+    style.flexDirection = 'column';
+    style.justifyContent = 'flex-end';
   }
   if (leaving) (style as Record<string, string | number>)['--leave-delay'] = `${leaveDelay}ms`;
   if (collapse.phase > 0) {
@@ -456,11 +492,13 @@ function EntryWrapper({
       style.paddingTop = 0;
     }
     const d = folding ? `${NOTIF_FOLD_MS}ms` : '.28s';
-    style.transition = `height ${d} var(--ease-out), padding-bottom ${d} var(--ease-out), padding-top ${d} var(--ease-out)`;
-  } else if (grow.phase > 0) {
-    style.overflow = 'hidden';
-    style.height = grow.phase === 1 ? 0 : grow.height;
-    if (grow.phase === 2) style.transition = `height ${NOTIF_UNFOLD_MS}ms var(--ease-out)`;
+    const ease = folding ? NOTIF_GROUP_EASE : 'var(--ease-out)';
+    style.transition = `height ${d} ${ease}, padding-bottom ${d} ${ease}, padding-top ${d} ${ease}`;
+  }
+  if (topCardClosing) {
+    // Grow back to the stack row's height while the group folds, so the swap is seamless.
+    style.paddingBottom = `calc(0.5rem + ${NOTIF_STACK_EXTRA_PX}px)`;
+    style.transition = `padding-bottom ${NOTIF_FOLD_MS}ms ${NOTIF_GROUP_EASE}`;
   }
 
   return (
@@ -484,13 +522,12 @@ function EntryWrapper({
         // An open group also gets space above its header, so it reads as one block.
         entry.kind === 'stack-header' && 'pt-3 density-compact:pt-2.5 density-comfortable:pt-3.5',
         entering && 'animate-[notif-enter_.45s_var(--ease-out)_both]',
-        // Expanded members unfold once per expand (not on every virtual remount).
-        fanning && 'animate-[notif-fan_.26s_var(--ease-out)_both]',
-        entry.kind === 'stack-header' &&
-          motion.justExpanded === entry.entity &&
-          'animate-[notif-fade_.2s_var(--ease-out)_both]',
-        folding && 'animate-[notif-fold_.2s_ease-in_both]',
-        justCollapsed && 'animate-[notif-fade_.2s_var(--ease-out)_both]',
+        // Open: the top card drops from the stack card's spot, revealing the title behind it.
+        topCardOpening && 'animate-[notif-drop_.3s_cubic-bezier(0.45,0,0.2,1)_both]',
+        // Open: grouped cards rise from below (once per expand, not on virtual remounts).
+        fanning && memberIndex >= 1 && 'animate-[notif-rise_.3s_cubic-bezier(0.45,0,0.2,1)_both]',
+        // Close: grouped cards sink back down and fade while their rows shrink.
+        folding && !titleRow && 'animate-[notif-sink_.26s_cubic-bezier(0.45,0,0.2,1)_both]',
       )}
     >
       {renderEntry(entry)}

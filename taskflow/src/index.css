@@ -71,16 +71,18 @@
 @keyframes notif-enter {
   from { opacity: 0; transform: translateY(-4px); }
 }
-/* Group open: each card unfolds down from under the header (subtle, staggered via --i). */
-@keyframes notif-fan {
-  from { opacity: 0; transform: translateY(calc(-6px - var(--i, 0) * 4px)); }
+/* Group open: the top card drops from where the stack card was (above it sits the new title row,
+   revealed as the card moves down). Transform-only, so the virtualizer never re-measures. */
+@keyframes notif-drop {
+  from { transform: translateY(-2.5rem); }
 }
-/* Group close: header + cards fold up into the stack while their rows shrink. */
-@keyframes notif-fold {
-  to { opacity: 0; transform: translateY(-8px); }
+/* Group open: the grouped cards (below the top card) rise from below into place. */
+@keyframes notif-rise {
+  from { opacity: 0; transform: translateY(16px); }
 }
-@keyframes notif-fade {
-  from { opacity: 0; }
+/* Group close (reverse): they sink back down and fade while their rows shrink. */
+@keyframes notif-sink {
+  to { opacity: 0; transform: translateY(16px); }
 }
 @keyframes notif-banner-in {
   from { opacity: 0; transform: translateX(calc(100% + 24px)); }

@@ -811,18 +811,37 @@ describe('NotificationPopover motion (261111-m0g)', () => {
     expect(entry('event:a').hasAttribute('data-flash')).toBe(false);
   });
 
-  it('fans the members out once when a stack expands, and not again afterwards', () => {
-    seed([jiraItem('a'), jiraItem('b'), jiraItem('z', 'PROJ-9')]);
+  it('open: the top card is just pushed down; the other cards rise from below, once', () => {
+    seed([jiraItem('a'), jiraItem('b'), jiraItem('c'), jiraItem('z', 'PROJ-9')]);
     render(<NotificationPopover />);
     fireEvent.click(screen.getByRole('button', { name: /expand/ }));
     const members = [...document.querySelectorAll<HTMLElement>('[data-entry-id^="event:"]')].filter(
       (el) => el.getAttribute('data-entry-id') !== 'event:z',
     );
-    expect(members.length).toBe(2);
-    expect(members.every((m) => m.className.includes('notif-fan'))).toBe(true);
-    expect(members.map((m) => m.style.getPropertyValue('--i'))).toEqual(['0', '1']);
+    expect(members.length).toBe(3);
+    // top card: no entrance of its own (it is revealed-from / pushed down by the title row)
+    expect(members[0].className).not.toMatch(/notif-(rise|fan)/);
+    // the rest rise from below, staggered
+    expect(members.slice(1).every((m) => m.className.includes('notif-rise'))).toBe(true);
+    expect(members.slice(1).map((m) => m.style.animationDelay)).toEqual(['0ms', '30ms']);
     advance(NOTIF_FAN_MS + 50);
-    expect(members.some((m) => m.className.includes('notif-fan'))).toBe(false);
+    expect(members.some((m) => m.className.includes('notif-rise'))).toBe(false);
+  });
+
+  it('close is the reverse: grouped cards sink while the title row shrinks; the top card stays', () => {
+    seed([jiraItem('a'), jiraItem('b'), jiraItem('c'), jiraItem('z', 'PROJ-9')]);
+    render(<NotificationPopover />);
+    fireEvent.click(screen.getByRole('button', { name: /expand/ }));
+    advance(NOTIF_FAN_MS + 50);
+    fireEvent.click(screen.getByRole('button', { name: 'Show less' }));
+    const members = [...document.querySelectorAll<HTMLElement>('[data-entry-id^="event:"]')].filter(
+      (el) => el.getAttribute('data-entry-id') !== 'event:z',
+    );
+    expect(members[0].hasAttribute('data-folding')).toBe(false);
+    expect(members.slice(1).every((m) => m.className.includes('notif-sink'))).toBe(true);
+    const title = document.querySelector('[data-stack-header-entry]') as HTMLElement;
+    expect(title.getAttribute('data-folding')).toBe('true');
+    expect(title.className).not.toContain('notif-sink');
   });
 
   it('under prefers-reduced-motion Done removes immediately with no leaving state', () => {

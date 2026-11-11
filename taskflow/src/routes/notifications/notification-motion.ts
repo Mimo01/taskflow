@@ -14,8 +14,12 @@ export const NOTIF_CLEAR_ALL_MAX_DELAY_MS = 240;
 export const NOTIF_FLASH_MS = 500;
 export const NOTIF_FAN_MS = 450;
 /** Group open: rows grow from 0 (cards unfold down, staggered). Group close: rows fold up. */
-export const NOTIF_UNFOLD_MS = 260;
-export const NOTIF_FOLD_MS = 220;
+export const NOTIF_UNFOLD_MS = 300;
+export const NOTIF_FOLD_MS = 260;
+/** Symmetric ease-in-out so group open/close starts and lands softly (no abrupt start/stop). */
+export const NOTIF_GROUP_EASE = 'cubic-bezier(0.45, 0, 0.2, 1)';
+/** A collapsed stack row is this much taller than the open group's top card (StackCard pb-3). */
+export const NOTIF_STACK_EXTRA_PX = 12;
 
 /** A missing matchMedia (jsdom) means motion is allowed. */
 export function prefersReducedMotion(): boolean {
