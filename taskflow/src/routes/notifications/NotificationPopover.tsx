@@ -145,10 +145,19 @@ export default function NotificationPopover({
   }, [items, readIds, now]);
 
   // ── Motion lifecycle: ephemeral state only, never rebuilds the list ──
-  /** Rows stagger in on open and whenever the visible set is switched. */
-  const [intro, setIntro] = useState(true);
+  /**
+   * Rows fade in (staggered) when the visible set is switched by a filter. Not on open: the panel
+   * itself fades + slides in as one piece (TopBar / .notif-glass), and a second per-row entrance
+   * on top read as "appears, then slides" (261111-m0g UAT).
+   */
+  const [intro, setIntro] = useState(false);
+  const filterMounted = useRef(false);
   // biome-ignore lint/correctness/useExhaustiveDependencies: re-run the intro on filter change
   useEffect(() => {
+    if (!filterMounted.current) {
+      filterMounted.current = true;
+      return;
+    }
     setIntro(true);
     const t = setTimeout(() => setIntro(false), NOTIF_INTRO_WINDOW_MS);
     return () => clearTimeout(t);
@@ -410,7 +419,7 @@ export default function NotificationPopover({
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       {/* One header row: title, Unread | All, source filter, Mark all read, overflow */}
-      <div className="flex flex-none animate-[notif-hd-in_.3s_var(--ease-out)_both] items-center gap-2 px-4 pt-3.5 pb-2.5">
+      <div className="flex flex-none items-center gap-2 px-4 pt-3.5 pb-2.5">
         <h2 className="min-w-0 flex-1 truncate text-base font-semibold tracking-[-0.01em]">
           Notifications
         </h2>

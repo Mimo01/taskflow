@@ -104,7 +104,8 @@ describe('NotificationPopover', () => {
     }
     const header = root.firstElementChild as HTMLElement;
     expect(header.className).toContain('flex-none');
-    expect(header.className).toContain('notif-hd-in');
+    // no separate header entrance: the whole panel fades + slides in as one piece
+    expect(header.className).not.toContain('notif-hd-in');
     expect(header.className).not.toMatch(/(^|\s)bg-/);
   });
 
@@ -726,17 +727,17 @@ describe('NotificationPopover motion (261111-m0g)', () => {
     expect(stack.querySelector('[data-stack-more]')?.textContent).toBe('+2');
   });
 
-  it('staggers the opening rows, clears the intro, and replays it when the filter changes', () => {
+  it('rows do not run their own entrance on open; a filter change staggers them in, then clears', () => {
     seed([jiraItem('a', 'PROJ-1'), jiraItem('b', 'PROJ-2'), jiraItem('c', 'PROJ-3')]);
     render(<NotificationPopover />);
+    expect(document.querySelector('[data-intro]')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Unread' }));
     const rows = [...document.querySelectorAll<HTMLElement>('[data-entry-id^="event:"]')];
     expect(rows.every((r) => r.getAttribute('data-intro') === 'true')).toBe(true);
     const delays = rows.map((r) => Number.parseInt(r.style.animationDelay, 10));
     expect(delays[1] - delays[0]).toBe(NOTIF_STAGGER_MS);
     advance(NOTIF_INTRO_WINDOW_MS + 50);
     expect(document.querySelector('[data-intro]')).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Unread' }));
-    expect(document.querySelector('[data-intro="true"]')).not.toBeNull();
   });
 
   it('toggling read flashes the card in place and clears the flag', () => {
