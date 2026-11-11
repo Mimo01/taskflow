@@ -28,3 +28,11 @@ Executed inline (5-file class change), no planner/executor agents.
 
 ## Verification
 Notification tests 186/186; biome clean; tsc clean; full suite 4718 passed (pre-commit).
+
+## Round 2 (same day) — FINAL
+User: ink halo "quite plain, add a little colour but match the app"; then mid-turn: "bold border on the card is enough, no colour there" and "read notifications are greyed out, I don't like that".
+- Unread avatar halo = the notification's own event colour (`EventStyle.halo`, static `ring-*` classes mirroring the verb colour; invariant test in notification-colours.test.ts). Chosen "1 · Event-colour halo" from 4 rendered variants (`*-colour-variants-*.png`; others: + card tint, + coloured time, single soft blue).
+- Unread card border = `ring-2 ring-foreground/25` (bold, neutral). No shadow.
+- Read cards: card surface (no longer the muted list colour), foreground title, full-opacity avatar. Time stays muted.
+- Final screenshots of the shipped classes: `*-final-light.png`, `*-final-dark.png`.
+- Commit 0e61ce81. Notifications tests 187/187, full suite 4719 passed.
