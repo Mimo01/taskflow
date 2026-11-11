@@ -7,6 +7,12 @@ import NotificationRow from './NotificationRow';
 
 vi.mock('@tauri-apps/plugin-opener', () => ({ openUrl: vi.fn() }));
 
+// Render-time person-avatar lookup needs a QueryClient + PAT; return the captured URL only.
+vi.mock('./usePersonAvatar', () => ({
+  usePersonAvatar: (_n: string, _s: string, _k: string | null, captured?: string) =>
+    captured ?? null,
+}));
+
 // LinkContextMenu (wrapping the open-in-browser button) calls useDetectedBrowsers,
 // which needs a QueryClient; stub it rather than wrapping every render().
 vi.mock('@/lib/useDetectedBrowsers', () => ({

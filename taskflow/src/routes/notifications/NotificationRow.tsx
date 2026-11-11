@@ -70,6 +70,7 @@ import {
   statusCategoryGuess,
   visibleCount,
 } from './notification-view';
+import { usePersonAvatar } from './usePersonAvatar';
 
 interface NotificationRowProps {
   /** Latest notification of the card. */
@@ -182,10 +183,28 @@ const PERSON_FIELDS = new Set(['assignee', 'reporter', 'review', 'reviewer', 're
  * values are comma-joined names (GitLab usernames); Jira values are ONE display name that may
  * itself contain a comma ("Smith, John"), so they are never split.
  */
-const PersonAvatarsContext = createContext<{ avatars: Record<string, string>; lists: boolean }>({
+const PersonAvatarsContext = createContext<{
+  avatars: Record<string, string>;
+  lists: boolean;
+  source: 'jira' | 'gitlab';
+  issueKey: string | null;
+}>({
   avatars: {},
   lists: false,
+  source: 'jira',
+  issueKey: null,
 });
+
+/** One person's 16px avatar: captured URL first, else a cached render-time lookup (initials on miss). */
+function PersonAvatar({ name }: { name: string }) {
+  const { avatars, source, issueKey } = useContext(PersonAvatarsContext);
+  const url = usePersonAvatar(name, source, issueKey, avatars[name]);
+  return (
+    <span aria-hidden="true" className="mr-1 inline-block align-middle">
+      <CachedAvatar url={url} name={name} size={16} />
+    </span>
+  );
+}
 
 /**
  * Person value: 16px avatar (real image when captured, else initials) + name, per name.
@@ -193,7 +212,7 @@ const PersonAvatarsContext = createContext<{ avatars: Record<string, string>; li
  * the 16px avatar fits the h-5 row.
  */
 function PersonValue({ value, className }: { value: string; className?: string }) {
-  const { avatars, lists } = useContext(PersonAvatarsContext);
+  const { lists } = useContext(PersonAvatarsContext);
   const names = lists
     ? value
         .split(/,\s*/)
@@ -206,9 +225,7 @@ function PersonValue({ value, className }: { value: string; className?: string }
         <span key={name}>
           {i > 0 ? ', ' : null}
           <span data-person className={className}>
-            <span aria-hidden="true" className="mr-1 inline-block align-middle">
-              <CachedAvatar url={avatars[name] ?? null} name={name} size={16} />
-            </span>
+            <PersonAvatar name={name} />
             {name}
           </span>
         </span>
@@ -515,6 +532,8 @@ export default function NotificationRow({
   const personAvatars = {
     avatars: Object.assign({}, ...all.map((i) => i.personAvatars ?? {})) as Record<string, string>,
     lists: item.source === 'gitlab',
+    source: item.source,
+    issueKey: getJiraKey(item),
   };
 
   return (

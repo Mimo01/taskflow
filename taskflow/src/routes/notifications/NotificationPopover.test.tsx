@@ -8,6 +8,12 @@ import { useNotificationsStore } from '../../stores/notifications.store';
 import NotificationPopover from './NotificationPopover';
 
 vi.mock('@tauri-apps/plugin-opener', () => ({ openUrl: vi.fn() }));
+
+// Render-time person-avatar lookup needs a QueryClient + PAT; return the captured URL only.
+vi.mock('./usePersonAvatar', () => ({
+  usePersonAvatar: (_n: string, _s: string, _k: string | null, captured?: string) =>
+    captured ?? null,
+}));
 vi.mock('../../lib/openExternal', () => ({ openExternal: vi.fn() }));
 
 // LinkContextMenu (wrapping NotificationRow's open-in-browser icon) calls

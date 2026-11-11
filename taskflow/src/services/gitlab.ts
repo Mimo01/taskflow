@@ -138,6 +138,31 @@ export async function fetchGitLabUsers(
 }
 
 /**
+ * Avatar URL for an exact GitLab username (GET /api/v4/users?username=), or null when the user
+ * isn't found / has no avatar / the request fails. Used for notification person values.
+ */
+export async function fetchGitLabUserAvatar(
+  baseUrl: string,
+  token: string,
+  username: string,
+): Promise<string | null> {
+  const url = `${baseUrl.replace(/\/$/, '')}/api/v4/users?username=${encodeURIComponent(username)}`;
+  try {
+    const response = await apiFetch(
+      'gitlab',
+      url,
+      { headers: { 'PRIVATE-TOKEN': token, 'Content-Type': 'application/json' } },
+      'Load User Avatar',
+    );
+    if (!response.ok) return null;
+    const data = (await response.json()) as Array<{ username: string; avatar_url?: string | null }>;
+    return data.find((u) => u.username === username)?.avatar_url || null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * List all GitLab groups visible to the authenticated user.
  *
  * @param baseUrl - GitLab base URL
