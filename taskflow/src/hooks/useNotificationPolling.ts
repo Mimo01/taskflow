@@ -16,6 +16,7 @@ import { validateJira } from '../services/jira';
 import { fetchNewNotifications, tryDispatchOsNotification } from '../services/notifications';
 import { readSecret } from '../services/stronghold';
 import { useAuthStore } from '../stores/auth.store';
+import { selectBannerItems, useNotificationBanners } from '../stores/notification-banners.store';
 import type { NotificationType } from '../stores/notifications.store';
 import { getKnownNotificationIds, useNotificationsStore } from '../stores/notifications.store';
 import { useSettingsStore } from '../stores/settings.store';
@@ -47,6 +48,8 @@ export function useNotificationPolling() {
   lastSeenJiraCursorRef.current = lastSeenJiraCursor;
   const lastSeenGitlabCursorRef = useRef(lastSeenGitlabCursor);
   lastSeenGitlabCursorRef.current = lastSeenGitlabCursor;
+  // True until the first poll starts: its items are the initial load, not new arrivals (banners).
+  const isFirstPollRef = useRef(true);
 
   const {
     notificationPollIntervalSecs,
@@ -162,6 +165,15 @@ export function useNotificationPolling() {
         }
       }
 
+      // Cursors the poll starts from (null = the 24h backfill) and whether this is the first poll:
+      // both decide whether new items deserve an in-app banner.
+      const priorCursors = {
+        jira: lastSeenJiraCursorRef.current,
+        gitlab: lastSeenGitlabCursorRef.current,
+      };
+      const isFirstPoll = isFirstPollRef.current;
+      isFirstPollRef.current = false;
+
       const allItems = await fetchNewNotifications(jiraBaseUrl, gitlabBaseUrl, tokens, {
         activeJiraProject,
         jiraUserDisplayName,
@@ -206,6 +218,15 @@ export function useNotificationPolling() {
           dismissedIds: useNotificationsStore.getState().dismissedIds,
         });
         prependItems(newItems);
+        // In-app banners: only genuinely new items (not the first poll / a backfill).
+        useNotificationBanners.getState().push(
+          selectBannerItems(newItems, {
+            existingIds,
+            priorCursors,
+            isFirstPoll,
+            hydrated: useNotificationsStore.persist.hasHydrated(),
+          }).map((i) => i.id),
+        );
         // Use allItems to advance cursors (avoid cursor drift from filtered items)
         advanceCursors(allItems);
         // Dispatch OS notifications only for items not already known to the store

@@ -11,6 +11,7 @@
 
 import { Bell, Search } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import NotificationBanners from '../../routes/notifications/NotificationBanners';
 import NotificationPopover from '../../routes/notifications/NotificationPopover';
 import { useUnreadCardCount } from '../../routes/notifications/useUnreadCardCount';
 import { useNotificationsStore, useUnreadCount } from '../../stores/notifications.store';
@@ -140,6 +141,13 @@ export default function TopBar({
           />
         </PopoverContent>
       </Popover>
+
+      {/* In-app banners for new notifications (portaled; suppressed while the panel is open) */}
+      <NotificationBanners
+        open={notifPopoverOpen}
+        onIssueClick={onIssueClick}
+        onMRClick={onMRClick}
+      />
     </header>
   );
 }

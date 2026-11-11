@@ -504,10 +504,24 @@ describe('settings.store — rankFieldKey (Phase 76)', () => {
     const src = fs.readFileSync(path.resolve(__dirname, 'settings.store.ts'), 'utf8');
     expect(src).toMatch(/if\s*\(version\s*<\s*31\)/);
     expect(src).toMatch(/releaseDetailPanelWidth === 288\) s\.releaseDetailPanelWidth = 256/);
-    expect(src).toMatch(/version: 34,/);
+    expect(src).toMatch(/version: 35,/);
     expect(src).toMatch(/if\s*\(version\s*<\s*32\)/);
     expect(src).toMatch(/if\s*\(version\s*<\s*33\)/);
     expect(src).toMatch(/if\s*\(version\s*<\s*34\)/);
+    expect(src).toMatch(/if\s*\(version\s*<\s*35\)/);
+  });
+
+  it('banner duration defaults to 5s, the setter stores it, and v34 -> v35 fills the default', async () => {
+    expect(useSettingsStore.getState().notifBannerDurationSecs).toBe(5);
+    useSettingsStore.getState().setNotifBannerDurationSecs(8);
+    expect(useSettingsStore.getState().notifBannerDurationSecs).toBe(8);
+    useSettingsStore.getState().setNotifBannerDurationSecs(5);
+    const migrate = useSettingsStore.persist.getOptions().migrate as (
+      persisted: unknown,
+      version: number,
+    ) => Record<string, unknown>;
+    expect((await migrate({}, 34)).notifBannerDurationSecs).toBe(5);
+    expect((await migrate({ notifBannerDurationSecs: 0 }, 34)).notifBannerDurationSecs).toBe(0);
   });
 
   it('v33 -> v34 migration drops the px standup width and resets the ratio', async () => {

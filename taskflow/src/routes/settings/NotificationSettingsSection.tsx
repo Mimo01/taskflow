@@ -4,14 +4,23 @@
  * Controls:
  * - Poll interval (seconds) — clamped [30, 300] by setter in settings store
  * - Per-type notification toggles grouped by source (Jira / GitLab)
+ * - In-app banner duration (Off / 3s / 5s / 8s)
  * - OS desktop notification toggles (Jira / GitLab)
  *
  * Follows the same layout pattern as StaleMrThresholdSection.
  */
 
 import { Alert, AlertDescription } from '../../components/ui/alert';
+import { cn } from '../../lib/utils';
 import { useNotificationsStore } from '../../stores/notifications.store';
 import { useSettingsStore } from '../../stores/settings.store';
+
+const BANNER_DURATIONS = [
+  { value: 0, label: 'Off' },
+  { value: 3, label: '3s' },
+  { value: 5, label: '5s' },
+  { value: 8, label: '8s' },
+] as const;
 
 interface ToggleRowProps {
   id: string;
@@ -57,6 +66,8 @@ export default function NotificationSettingsSection() {
     notifPipelineFailureEnabled,
     notifIssueAssignmentEnabled,
     notifDueDateReminderEnabled,
+    notifBannerDurationSecs,
+    setNotifBannerDurationSecs,
     setNotificationPollIntervalSecs,
     setOsNotifJiraEnabled,
     setOsNotifGitlabEnabled,
@@ -173,6 +184,42 @@ export default function NotificationSettingsSection() {
           checked={notifPipelineFailureEnabled}
           onChange={setNotifPipelineFailureEnabled}
         />
+      </div>
+
+      {/* In-app banners */}
+      <div className="flex flex-col gap-2">
+        <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+          In-app banners
+        </h4>
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex flex-col gap-0.5">
+            <span id="banner-duration-label" className="text-sm font-medium">
+              Banner duration
+            </span>
+            <p className="text-xs text-muted-foreground">How long in-app banners stay on screen</p>
+          </div>
+          <fieldset
+            aria-labelledby="banner-duration-label"
+            className="m-0 inline-flex flex-none rounded-lg border-0 bg-muted p-0.5"
+          >
+            {BANNER_DURATIONS.map(({ value, label }) => (
+              <button
+                key={value}
+                type="button"
+                aria-pressed={notifBannerDurationSecs === value}
+                onClick={() => setNotifBannerDurationSecs(value)}
+                className={cn(
+                  'rounded-md px-2.5 py-1 text-xs font-medium transition-colors',
+                  notifBannerDurationSecs === value
+                    ? 'bg-background text-foreground ring-1 ring-foreground/10'
+                    : 'text-muted-foreground hover:text-foreground',
+                )}
+              >
+                {label}
+              </button>
+            ))}
+          </fieldset>
+        </div>
       </div>
 
       {/* Desktop Notifications */}

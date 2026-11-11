@@ -25,6 +25,7 @@ const initialSettings = {
   notificationPollIntervalSecs: 60,
   osNotifJiraEnabled: true,
   osNotifGitlabEnabled: true,
+  notifBannerDurationSecs: 5 as 0 | 3 | 5 | 8,
   storyPointsFieldKey: 'customfield_10016',
   epicLinkFieldKey: 'customfield_10014',
   epicNameFieldKey: 'customfield_10015',
@@ -84,6 +85,8 @@ interface SettingsState {
   osNotifJiraEnabled: boolean;
   /** Enable OS desktop notifications for GitLab MR notes. Default: true. */
   osNotifGitlabEnabled: boolean;
+  /** How long in-app notification banners stay on screen; 0 = banners off. Default: 5. */
+  notifBannerDurationSecs: 0 | 3 | 5 | 8;
   /** Discovered story points custom field key. Defaults to customfield_10016. */
   storyPointsFieldKey: string;
   /** Discovered epic link custom field key. Defaults to customfield_10014. */
@@ -215,6 +218,7 @@ interface SettingsState {
   setNotificationPollIntervalSecs: (secs: number) => void;
   setOsNotifJiraEnabled: (v: boolean) => void;
   setOsNotifGitlabEnabled: (v: boolean) => void;
+  setNotifBannerDurationSecs: (secs: 0 | 3 | 5 | 8) => void;
   setStoryPointsFieldKey: (key: string) => void;
   setEpicLinkFieldKey: (key: string) => void;
   setEpicNameFieldKey: (key: string) => void;
@@ -335,6 +339,7 @@ export const useSettingsStore = create<SettingsState>()(
         set({ notificationPollIntervalSecs: Math.max(30, Math.min(300, secs)) }),
       setOsNotifJiraEnabled: (v) => set({ osNotifJiraEnabled: v }),
       setOsNotifGitlabEnabled: (v) => set({ osNotifGitlabEnabled: v }),
+      setNotifBannerDurationSecs: (secs) => set({ notifBannerDurationSecs: secs }),
       setStoryPointsFieldKey: (key) => set({ storyPointsFieldKey: key }),
       setEpicLinkFieldKey: (key) => set({ epicLinkFieldKey: key }),
       setEpicNameFieldKey: (key) => set({ epicNameFieldKey: key }),
@@ -373,7 +378,7 @@ export const useSettingsStore = create<SettingsState>()(
     {
       name: 'settings-store',
       storage: createTauriStorage('settings.json'),
-      version: 34,
+      version: 35,
       migrate: (persisted, version) => {
         const s = persisted as Record<string, unknown>;
         if (version < 1) {
@@ -511,6 +516,10 @@ export const useSettingsStore = create<SettingsState>()(
           // converted without the container width at migration time, so reset to 50/50.
           delete s.standupYesterdayWidth;
           if (s.standupYesterdayRatio === undefined) s.standupYesterdayRatio = null;
+        }
+        if (version < 35) {
+          // In-app notification banners (261111-m0g): default 5s.
+          if (s.notifBannerDurationSecs === undefined) s.notifBannerDurationSecs = 5;
         }
         return persisted as SettingsState;
       },

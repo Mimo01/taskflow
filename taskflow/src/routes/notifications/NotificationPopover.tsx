@@ -35,10 +35,7 @@ import { EmptyState } from '../../components/ui/empty-state';
 import { ErrorState } from '../../components/ui/error-state';
 import { StaleDataBanner } from '../../components/ui/stale-data-banner';
 import { useNow } from '../../hooks/useNow';
-import { openExternal } from '../../lib/openExternal';
 import { cn } from '../../lib/utils';
-import { useComposerFocus } from '../../stores/composer-focus.store';
-import type { NotificationItem } from '../../stores/notifications.store';
 import { useNotificationsStore } from '../../stores/notifications.store';
 import NotificationList, { type NotificationListMotion } from './NotificationList';
 import NotificationRow, { StackCard, StackHeader } from './NotificationRow';
@@ -54,24 +51,20 @@ import {
 import {
   buildEntries,
   countUnreadCards,
-  describeEntryParts,
   type EventEntry,
   entityKey,
   entryIds,
   filterItems,
   getEntityRef,
   getEntityTitle,
-  getJiraKey,
-  isSafeHttpUrl,
   type NotificationEntry,
-  type QuickAction,
-  quickActionFor,
   type SourceFilter,
   type StackEntry,
   type StackHeaderEntry,
   stackEntries,
   stackIds,
 } from './notification-view';
+import { useNotificationActions } from './useNotificationActions';
 
 interface NotificationPopoverProps {
   onIssueClick?: (issueKey: string) => void;
@@ -101,7 +94,6 @@ export default function NotificationPopover({
   const [dismissedError, setDismissedError] = useState<unknown>(null);
   /** Entity keys of expanded stacks (ephemeral UI state, never persisted). */
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set());
-  const requestComposerFocus = useComposerFocus((s) => s.requestComposerFocus);
 
   const items = useNotificationsStore((s) => s.items);
   const readIds = useNotificationsStore((s) => s.readIds);
@@ -251,27 +243,14 @@ export default function NotificationPopover({
     return countUnreadCards(items, readSet, source, now);
   }
 
-  function navigateTo(item: NotificationItem) {
-    const key = getJiraKey(item);
-    if (key && onIssueClick) {
-      onIssueClick(key);
-      onClose?.();
-      return;
-    }
-    if (item.source === 'gitlab' && item.mrProjectId && item.mrIid && onMRClick) {
-      onMRClick(`${item.mrProjectId}/${item.mrIid}`);
-      onClose?.();
-    }
-    // No navigable target: stays open, already marked read.
-  }
-
   const idsOf = (entry: EventEntry | StackEntry) =>
     entry.kind === 'stack' ? stackIds(entry) : entryIds(entry);
 
-  function openEvent(entry: EventEntry) {
-    markItemsRead(idsOf(entry));
-    navigateTo(entry.item);
-  }
+  const { openEvent, getOpenInBrowser, getQuick } = useNotificationActions({
+    onIssueClick,
+    onMRClick,
+    onClose,
+  });
 
   function toggleRead(entry: EventEntry | StackEntry) {
     setFlashing((prev) => new Set(prev).add(entry.id));
@@ -299,47 +278,6 @@ export default function NotificationPopover({
       ],
       stackIds(entry),
     );
-  }
-
-  function getOpenInBrowser(entry: EventEntry): (() => void) | undefined {
-    const url = entry.item.url;
-    if (!url || !isSafeHttpUrl(url)) return undefined;
-    return () => {
-      openExternal(url);
-      markItemsRead(entryIds(entry));
-    };
-  }
-
-  /** The card's single quick action, wired to what the app can already do. */
-  function getQuick(entry: EventEntry): { label: string; onClick: () => void } | undefined {
-    const item = entry.item;
-    const action: QuickAction | null = quickActionFor(item, describeEntryParts(entry.items));
-    if (!action) return undefined;
-    const run = () => {
-      markItemsRead(entryIds(entry));
-      switch (action.kind) {
-        case 'reply-jira': {
-          const key = getJiraKey(item);
-          if (!key) return;
-          requestComposerFocus(key);
-          onIssueClick?.(key);
-          onClose?.();
-          return;
-        }
-        case 'reply-gitlab':
-        case 'pipeline':
-          if (item.url && isSafeHttpUrl(item.url)) openExternal(item.url);
-          return;
-        case 'review':
-        case 'open-mr':
-          if (item.mrProjectId != null && item.mrIid != null) {
-            onMRClick?.(`${item.mrProjectId}/${item.mrIid}`);
-            onClose?.();
-          }
-          return;
-      }
-    };
-    return { label: action.label, onClick: run };
   }
 
   function renderEntry(entry: NotificationEntry) {

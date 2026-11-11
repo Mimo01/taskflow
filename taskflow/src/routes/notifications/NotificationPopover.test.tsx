@@ -686,7 +686,9 @@ describe('NotificationPopover motion (261111-m0g)', () => {
       (el) => el.getAttribute('data-entry-id')?.startsWith('event:'),
     );
     expect(members.length).toBeGreaterThanOrEqual(2);
-    const delays = members.map((m) => Number.parseInt(m.style.getPropertyValue('--leave-delay')));
+    const delays = members.map((m) =>
+      Number.parseInt(m.style.getPropertyValue('--leave-delay'), 10),
+    );
     expect(delays).toEqual([...delays].sort((x, y) => x - y));
     expect(new Set(delays).size).toBe(delays.length);
     expect(delays[0]).toBe(0);
@@ -729,7 +731,7 @@ describe('NotificationPopover motion (261111-m0g)', () => {
     render(<NotificationPopover />);
     const rows = [...document.querySelectorAll<HTMLElement>('[data-entry-id^="event:"]')];
     expect(rows.every((r) => r.getAttribute('data-intro') === 'true')).toBe(true);
-    const delays = rows.map((r) => Number.parseInt(r.style.animationDelay));
+    const delays = rows.map((r) => Number.parseInt(r.style.animationDelay, 10));
     expect(delays[1] - delays[0]).toBe(NOTIF_STAGGER_MS);
     advance(NOTIF_INTRO_WINDOW_MS + 50);
     expect(document.querySelector('[data-intro]')).toBeNull();
