@@ -192,6 +192,16 @@ export default function NotificationList({
     return header >= 0 ? index - header - 1 : -1;
   };
 
+  /** Last card of an open group: gets extra space below so the group's end is clear. */
+  const isGroupEnd = (index: number): boolean => {
+    const entry = entries[index];
+    if (!entry || entry.kind !== 'event') return false;
+    const entity = entityKey(entry.item);
+    if (!entity || !expandedEntities.has(entity)) return false;
+    const next = entries[index + 1];
+    return !(next && next.kind === 'event' && entityKey(next.item) === entity);
+  };
+
   const nextFocusable = (from: number, dir: 1 | -1): number => {
     for (let i = from + dir; i >= 0 && i < entries.length; i += dir) {
       if (isFocusableEntry(entries[i])) return i;
@@ -315,6 +325,7 @@ export default function NotificationList({
                     expandedEntities={expandedEntities}
                     motion={motion}
                     memberIndex={memberIndexOf(virtualRow.index)}
+                    groupEnd={isGroupEnd(virtualRow.index)}
                   />
                 </div>
               );
@@ -328,6 +339,7 @@ export default function NotificationList({
                 expandedEntities={expandedEntities}
                 motion={motion}
                 memberIndex={memberIndexOf(i)}
+                groupEnd={isGroupEnd(i)}
               />
             ))}
       </div>
@@ -342,6 +354,7 @@ function EntryWrapper({
   expandedEntities,
   motion,
   memberIndex,
+  groupEnd,
 }: {
   entry: NotificationEntry;
   index: number;
@@ -349,6 +362,8 @@ function EntryWrapper({
   expandedEntities: ReadonlySet<string>;
   motion: NotificationListMotion;
   memberIndex: number;
+  /** Last card of an open group: extra space below it marks where the group ends. */
+  groupEnd: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const leaveDelay = motion.leaving.get(entry.id);
@@ -401,10 +416,15 @@ function EntryWrapper({
       data-entering={entering ? 'true' : undefined}
       data-leaving={leaving ? 'true' : undefined}
       data-flash={motion.flashing.has(entry.id) ? 'true' : undefined}
+      data-group-end={groupEnd ? 'true' : undefined}
       style={Object.keys(style).length ? style : undefined}
       className={cn(
         (entry.kind === 'event' || entry.kind === 'stack') &&
-          'pb-2 density-compact:pb-1.5 density-comfortable:pb-2.5',
+          (groupEnd
+            ? 'pb-7 density-compact:pb-6 density-comfortable:pb-8'
+            : 'pb-2 density-compact:pb-1.5 density-comfortable:pb-2.5'),
+        // An open group also gets space above its header, so it reads as one block.
+        entry.kind === 'stack-header' && 'pt-3 density-compact:pt-2.5 density-comfortable:pt-3.5',
         entering && 'animate-[notif-enter_.45s_var(--ease-out)_both]',
         // Expanded members fan out once per expand (not on every virtual remount).
         fanning && 'animate-[notif-fan_.2s_var(--ease-out)_both]',

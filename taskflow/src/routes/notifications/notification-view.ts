@@ -1052,7 +1052,7 @@ export function listRowCount(total: number): number {
 
 /** Geometry (px, default density) behind estimateEntryHeight; mirror NotificationRow / NotificationList. */
 export const EST_HEADER_HEIGHT = 28;
-export const EST_STACK_HEADER_HEIGHT = 28;
+export const EST_STACK_HEADER_HEIGHT = 40;
 /** Collapsed-stack peek edges (StackCard pb-3). */
 export const EST_STACK_PEEK = 12;
 /** Card padding py-3 (24) + line 1 h-5 (20) + line 2 h-5 (20). */

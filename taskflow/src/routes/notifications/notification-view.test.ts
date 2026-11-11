@@ -1089,7 +1089,7 @@ describe('stackEntries', () => {
     expect(estimateEntryHeight(s)).toBe(estimateEntryHeight(s.cards[0]) + EST_STACK_PEEK);
     expect(isFocusableEntry(s)).toBe(true);
     const h = stackEntries(build(three), new Set(['jira:PROJ-1']))[1];
-    expect(estimateEntryHeight(h)).toBe(28);
+    expect(estimateEntryHeight(h)).toBe(40);
     expect(isFocusableEntry(h)).toBe(false);
   });
 });

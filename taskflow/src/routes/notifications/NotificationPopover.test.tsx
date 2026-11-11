@@ -689,6 +689,23 @@ describe('NotificationPopover motion (261111-m0g)', () => {
     expect(order).toEqual(['event:g2', 'event:a', 'event:b']);
   });
 
+  it('an open group gets extra space before its header and after its last card only', () => {
+    seed([jiraItem('a'), jiraItem('b'), jiraItem('c'), jiraItem('z', 'PROJ-9')]);
+    render(<NotificationPopover />);
+    expect(document.querySelector('[data-group-end]')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: /expand/ }));
+    const ends = [...document.querySelectorAll<HTMLElement>('[data-group-end="true"]')];
+    expect(ends).toHaveLength(1);
+    expect(ends[0].className).toContain('pb-7');
+    const members = [...document.querySelectorAll<HTMLElement>('[data-notif-entry]')].filter((r) =>
+      /^event:[abc]$/.test(r.getAttribute('data-entry-id') ?? ''),
+    );
+    expect(members[members.length - 1]).toBe(ends[0]);
+    expect(members[0].className).toContain('pb-2');
+    const header = document.querySelector('[data-stack-header-entry]') as HTMLElement;
+    expect(header.className).toContain('pt-3');
+  });
+
   it('a notification arriving while open slides in without rebuilding the other rows', () => {
     seed([jiraItem('a', 'PROJ-1'), jiraItem('b', 'PROJ-2')]);
     render(<NotificationPopover />);
