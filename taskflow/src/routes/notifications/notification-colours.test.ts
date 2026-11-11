@@ -3,7 +3,6 @@ import {
   ACTION_STYLE,
   EVENT_STYLE,
   type EventStyle,
-  isActionableKind,
   MULTI_UPDATE_STYLE,
   STATUS_STYLE,
   UPDATE_STYLE,
@@ -25,11 +24,9 @@ describe('notification event styles', () => {
     }
   });
 
-  it('Ledger: only mention, review, assignment, failure and due are actionable', () => {
-    const actionable = new Set(all.filter((s) => isActionableKind(s.kind)).map((s) => s.kind));
-    expect([...actionable].sort()).toEqual(['assignment', 'due', 'failure', 'mention', 'review']);
-    for (const k of ['comment', 'update', 'multi', 'status', 'approval', 'milestone'] as const) {
-      expect(isActionableKind(k), k).toBe(false);
+  it('every event style carries a real colour for its action phrase (no neutral carriers)', () => {
+    for (const s of all) {
+      expect(s.text, s.kind).not.toMatch(/text-(foreground|muted)/);
     }
   });
 });

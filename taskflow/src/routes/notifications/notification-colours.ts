@@ -305,19 +305,3 @@ export function actionKeyForField(field: string): ActionKey | undefined {
       return undefined;
   }
 }
-
-/**
- * Ledger (261111-i2o): colour is reserved for events that ask something of you. Only these kinds
- * paint their action phrase in the event colour; plain updates stay neutral.
- */
-const ACTIONABLE_KINDS: ReadonlySet<EventKind> = new Set<EventKind>([
-  'mention',
-  'review',
-  'assignment',
-  'failure',
-  'due',
-]);
-
-export function isActionableKind(kind: EventKind): boolean {
-  return ACTIONABLE_KINDS.has(kind);
-}

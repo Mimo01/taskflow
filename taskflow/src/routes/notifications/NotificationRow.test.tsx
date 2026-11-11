@@ -441,17 +441,17 @@ describe('NotificationRow', () => {
     );
   });
 
-  it('Ledger colour carrier: only actionable events colour the action phrase; plain updates are neutral', () => {
+  it('colour carrier: EVERY event colours its action phrase, including comments and single-field updates', () => {
     const phrase = (item: NotificationItem, text: string) => {
       const { unmount } = setup({ item });
       const cls = screen.getByText(text).className;
       unmount();
       return cls;
     };
-    // comment = plain, neutral
-    expect(phrase(makeItem('jira'), 'commented')).not.toMatch(/text-(blue|violet|teal|red|amber)/);
-    expect(phrase(makeItem('jira'), 'commented')).toContain('text-foreground');
-    // mention / assignment / failure / due keep their colour
+    // comment = blue
+    expect(phrase(makeItem('jira'), 'commented')).toContain('text-blue-600');
+    expect(phrase(makeItem('jira'), 'commented')).not.toContain('text-foreground');
+    // mention / assignment keep their colour
     expect(
       phrase(makeItem('jira', { notificationType: 'comment-mention' }), 'mentioned you'),
     ).toContain('text-violet-600');
@@ -461,7 +461,7 @@ describe('NotificationRow', () => {
         'assigned you',
       ),
     ).toContain('text-teal-600');
-    // status change = plain update: neutral
+    // single status change (the compact one-line row) = amber
     const status = phrase(
       makeItem('jira', {
         notificationType: 'issue-update',
@@ -469,7 +469,7 @@ describe('NotificationRow', () => {
       }),
       'changed status',
     );
-    expect(status).not.toMatch(/text-amber/);
+    expect(status).toContain('text-amber-600');
   });
 
   it('Ledger avatar: neutral small badge, no event colour fill', () => {

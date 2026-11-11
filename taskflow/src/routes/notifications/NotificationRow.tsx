@@ -23,8 +23,8 @@
  *  G. Type scale: title 12px; key, time, line 2, lists, chips 11px. Single ellipsis at the end
  *     of whatever overflows; lines are h-5 so nothing clips vertically.
  *  H. Ledger unread vs read (261111-i2o, restyled 261111-m0g): ONE colour carrier = the action phrase,
- *     and only for events that ask something of you (mention, review request, assignment, pipeline
- *     failed, due; see isActionableKind). Plain updates are neutral. The avatar badge is a small neutral
+ *     painted in its event colour for EVERY event (comments, updates, status, fields too — 261111-m0g
+ *     UAT reversed the "actionable only" rule: single-change rows read as uncoloured). The avatar badge is a small neutral
  *     glyph, no halo. ONE unread signal = surface: unread = solid bg-card + semibold title; read = 82%
  *     translucent card (solid on hover) + normal-weight title. Text colours are identical: read cards
  *     are never dimmed. Cards float: --sh-rest + --hair ring; hover lifts 1px (--sh-hover) and springs
@@ -61,7 +61,6 @@ import {
   ACTION_STYLE,
   EVENT_STYLE,
   type EventStyle,
-  isActionableKind,
   MENTION_STYLE,
   UPDATE_STYLE,
 } from './notification-colours';
@@ -557,7 +556,6 @@ export default function NotificationRow({
   const ariaLabel = `${isUnread ? 'Unread. ' : ''}${describeEventAria(parts)} on ${ref ? `${ref} ` : ''}${title}${parentLabel ? ` (in ${parentLabel})` : ''}${ariaText ? `: ${ariaText}` : ''}${stackAria}`;
   const listChanges = parts.changes && parts.changes.length >= 2 ? parts.changes : null;
   // Merged cards mix changes from several items: look avatars up across all of them.
-  const actionable = isActionableKind(style.kind);
   const personAvatars = {
     avatars: Object.assign({}, ...all.map((i) => i.personAvatars ?? {})) as Record<string, string>,
     lists: item.source === 'gitlab',
@@ -682,7 +680,7 @@ export default function NotificationRow({
         <PersonAvatarsContext.Provider value={personAvatars}>
           <NotificationDetailLine
             parts={parts}
-            colour={actionable ? style.text : 'text-foreground'}
+            colour={style.text}
             actor={
               item.notificationType === 'pipeline-failure' ||
               item.notificationType === 'due-date-reminder'
