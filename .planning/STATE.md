@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-08-13)
 Phase: 95
 Plan: Not started
 Status: Milestone complete
-Last activity: 2026-11-11 - Completed quick task 261111-e1w: notification status pill width + person avatars
+Last activity: 2026-11-11 - Completed quick task 261111-ezr: unread notification redesign (lifted glow + avatar halo)
 
 ## Performance Metrics
 
@@ -276,6 +276,7 @@ Acknowledged and deferred at v1.14 milestone close (2026-08-13) — 111 open art
 | 261109-mmg | Issue detail Refresh button (left of Pin, full page + peek): outline "Refresh" button matching Pin/Edit/Clone, spins while refreshing; refreshIssueDetail invalidates issue first, then comments/changelog/worklogs/subtasks/parent/epic/transitions/AIO/linked MRs | 2026-11-09 | 617772fd | Approved | [261109-mmg-issue-detail-refresh-button](./quick/261109-mmg-issue-detail-refresh-button/) |
 | 261110-ccz | Release detail priority icons: shared PriorityIcon (18px slot after key, like Backlog) in task table + package mismatch rows; priority added to fetchFixVersionIssues/fetchStoriesWithPackage fields; hidden below 860px; key col 5rem so icon has equal 12px either side | 2026-11-10 | 8514a8ec | Approved | [261110-ccz-on-release-detail-add-task-priority-icon](./quick/261110-ccz-on-release-detail-add-task-priority-icon/) |
 | 261111-e1w | Notification polish: status pills share a 5rem min width (centred; label/none chips unchanged); person values (assignee, reporter, reviewers) get a 16px avatar + name via new NotificationItem.personAvatars captured from existing Jira/GitLab payloads (initials fallback, no new requests) | 2026-11-11 | b7198202, 46b98754, 134d5c1e, 946c8016 | Approved | [261111-e1w-notification-polish-consistent-width-sta](./quick/261111-e1w-notification-polish-consistent-width-sta/) |
+| 261111-ezr | Unread notification redesign: dot removed, symmetric padding; unread cards lift (white card, blue ring + 3px halo + soft glow, blue avatar halo, semibold blue time), read cards sink onto the list surface with a 70% avatar. Flat blue tint tried first, user asked for something more interesting and picked avatar halo + lifted glow from rendered variants | 2026-11-11 | 8e745908, 5391d059, 3ba843e4 | Approved | [261111-ezr-better-design-for-unread-notifications](./quick/261111-ezr-better-design-for-unread-notifications/) |
 
 ## Session Continuity
 

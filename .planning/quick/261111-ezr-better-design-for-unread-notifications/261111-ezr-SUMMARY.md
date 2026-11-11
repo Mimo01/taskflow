@@ -32,3 +32,10 @@ Screenshots: `261111-ezr-light.png`, `261111-ezr-dark.png` (rows: unread, read, 
 None to plan scope. Tint changed 6% -> 8% per Task 2 tuning instructions.
 
 ## Self-Check: PASSED
+
+## Redesign after review (3ba843e4) — FINAL
+User found the flat 8% tint "ok but do something more interesting". Four variants were rendered (gradient wash, edge stripe, avatar halo, lifted glow); user picked **avatar halo + lifted glow**:
+- Unread: --card-bg = card (white/dark card), ring-blue-500/45, shadow 0 0 0 3px blue/10 + 0 6px 18px -8px blue/55; avatar halo span (ring-2 blue-500 / dark blue-400, rounded-full or rounded-[10px] for CI/due tiles); time semibold text-blue-600 / dark:text-blue-400.
+- Read: --card-bg = muted 40% (dark 20%) over popover = the list surface, ring-foreground/10, avatar wrapper opacity-70.
+- Halo rendered in both states (opacity toggle) so read/unread is still classes-only.
+- Screenshots replaced with the final design (rows 2 and 5 forced hover). Full suite 4718 passed. Approved by user 2026-11-11.
