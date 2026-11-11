@@ -81,6 +81,8 @@ export interface EventStyle {
   badge: string;
   /** Verb text colour, light + dark. */
   text: string;
+  /** Unread avatar halo ring, same colour as the verb (261111-h9a), light + dark. */
+  halo: string;
 }
 
 const MENTION: EventStyle = {
@@ -88,12 +90,14 @@ const MENTION: EventStyle = {
   Icon: AtSign,
   badge: 'bg-violet-600',
   text: 'text-violet-600 dark:text-violet-400',
+  halo: 'ring-violet-600 dark:ring-violet-400',
 };
 const COMMENT: EventStyle = {
   kind: 'comment',
   Icon: MessageSquare,
   badge: 'bg-blue-600',
   text: 'text-blue-600 dark:text-blue-400',
+  halo: 'ring-blue-600 dark:ring-blue-400',
 };
 
 export const UPDATE_STYLE: EventStyle = {
@@ -101,6 +105,7 @@ export const UPDATE_STYLE: EventStyle = {
   Icon: Bell,
   badge: 'bg-slate-500',
   text: 'text-slate-600 dark:text-slate-400',
+  halo: 'ring-slate-600 dark:ring-slate-400',
 };
 
 /** Generic "updated N fields" style for issue updates / system notes with several changes. */
@@ -109,6 +114,7 @@ export const MULTI_UPDATE_STYLE: EventStyle = {
   Icon: SquarePen,
   badge: 'bg-indigo-600',
   text: 'text-indigo-600 dark:text-indigo-400',
+  halo: 'ring-indigo-600 dark:ring-indigo-400',
 };
 
 export const MENTION_STYLE = MENTION;
@@ -123,24 +129,28 @@ export const EVENT_STYLE: Record<NotificationType, EventStyle> = {
     Icon: UserPlus,
     badge: 'bg-teal-600',
     text: 'text-teal-600 dark:text-teal-400',
+    halo: 'ring-teal-600 dark:ring-teal-400',
   },
   'mr-approval': {
     kind: 'approval',
     Icon: Check,
     badge: 'bg-emerald-600',
     text: 'text-emerald-600 dark:text-emerald-400',
+    halo: 'ring-emerald-600 dark:ring-emerald-400',
   },
   'pipeline-failure': {
     kind: 'failure',
     Icon: X,
     badge: 'bg-red-600',
     text: 'text-red-600 dark:text-red-400',
+    halo: 'ring-red-600 dark:ring-red-400',
   },
   'due-date-reminder': {
     kind: 'due',
     Icon: CalendarClock,
     badge: 'bg-amber-600',
     text: 'text-amber-600 dark:text-amber-400',
+    halo: 'ring-amber-600 dark:ring-amber-400',
   },
   // Plain issue updates are generic; a status change upgrades to STATUS_STYLE.
   'issue-update': UPDATE_STYLE,
@@ -151,6 +161,7 @@ export const STATUS_STYLE: EventStyle = {
   Icon: CircleDot,
   badge: 'bg-amber-600',
   text: 'text-amber-600 dark:text-amber-400',
+  halo: 'ring-amber-600 dark:ring-amber-400',
 };
 
 type Family =
@@ -168,19 +179,67 @@ type Family =
   | 'emerald';
 
 // Static class strings (Tailwind cannot see interpolated names).
-const FAMILY: Record<Family, { badge: string; text: string }> = {
-  amber: { badge: 'bg-amber-600', text: 'text-amber-600 dark:text-amber-400' },
-  orange: { badge: 'bg-orange-600', text: 'text-orange-600 dark:text-orange-400' },
-  indigo: { badge: 'bg-indigo-600', text: 'text-indigo-600 dark:text-indigo-400' },
-  teal: { badge: 'bg-teal-600', text: 'text-teal-600 dark:text-teal-400' },
-  slate: { badge: 'bg-slate-500', text: 'text-slate-600 dark:text-slate-400' },
-  pink: { badge: 'bg-pink-600', text: 'text-pink-600 dark:text-pink-400' },
-  cyan: { badge: 'bg-cyan-600', text: 'text-cyan-700 dark:text-cyan-400' },
-  green: { badge: 'bg-green-600', text: 'text-green-600 dark:text-green-400' },
-  violet: { badge: 'bg-violet-600', text: 'text-violet-600 dark:text-violet-400' },
-  purple: { badge: 'bg-purple-600', text: 'text-purple-600 dark:text-purple-400' },
-  red: { badge: 'bg-red-600', text: 'text-red-600 dark:text-red-400' },
-  emerald: { badge: 'bg-emerald-600', text: 'text-emerald-600 dark:text-emerald-400' },
+const FAMILY: Record<Family, { badge: string; text: string; halo: string }> = {
+  amber: {
+    badge: 'bg-amber-600',
+    text: 'text-amber-600 dark:text-amber-400',
+    halo: 'ring-amber-600 dark:ring-amber-400',
+  },
+  orange: {
+    badge: 'bg-orange-600',
+    text: 'text-orange-600 dark:text-orange-400',
+    halo: 'ring-orange-600 dark:ring-orange-400',
+  },
+  indigo: {
+    badge: 'bg-indigo-600',
+    text: 'text-indigo-600 dark:text-indigo-400',
+    halo: 'ring-indigo-600 dark:ring-indigo-400',
+  },
+  teal: {
+    badge: 'bg-teal-600',
+    text: 'text-teal-600 dark:text-teal-400',
+    halo: 'ring-teal-600 dark:ring-teal-400',
+  },
+  slate: {
+    badge: 'bg-slate-500',
+    text: 'text-slate-600 dark:text-slate-400',
+    halo: 'ring-slate-600 dark:ring-slate-400',
+  },
+  pink: {
+    badge: 'bg-pink-600',
+    text: 'text-pink-600 dark:text-pink-400',
+    halo: 'ring-pink-600 dark:ring-pink-400',
+  },
+  cyan: {
+    badge: 'bg-cyan-600',
+    text: 'text-cyan-700 dark:text-cyan-400',
+    halo: 'ring-cyan-700 dark:ring-cyan-400',
+  },
+  green: {
+    badge: 'bg-green-600',
+    text: 'text-green-600 dark:text-green-400',
+    halo: 'ring-green-600 dark:ring-green-400',
+  },
+  violet: {
+    badge: 'bg-violet-600',
+    text: 'text-violet-600 dark:text-violet-400',
+    halo: 'ring-violet-600 dark:ring-violet-400',
+  },
+  purple: {
+    badge: 'bg-purple-600',
+    text: 'text-purple-600 dark:text-purple-400',
+    halo: 'ring-purple-600 dark:ring-purple-400',
+  },
+  red: {
+    badge: 'bg-red-600',
+    text: 'text-red-600 dark:text-red-400',
+    halo: 'ring-red-600 dark:ring-red-400',
+  },
+  emerald: {
+    badge: 'bg-emerald-600',
+    text: 'text-emerald-600 dark:text-emerald-400',
+    halo: 'ring-emerald-600 dark:ring-emerald-400',
+  },
 };
 
 function action(kind: ActionKey, Icon: EventStyle['Icon'], family: Family): EventStyle {

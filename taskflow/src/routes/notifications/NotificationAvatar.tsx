@@ -13,7 +13,7 @@ import type { EventStyle } from './notification-colours';
 interface NotificationAvatarProps {
   item: NotificationItem;
   style: EventStyle;
-  /** Unread = ink (foreground) halo around the lead; read = dimmed lead. Classes only, same tree. */
+  /** Unread = halo in the event colour (style.halo) around the lead; read = no halo, never dimmed. Classes only, same tree. */
   isUnread?: boolean;
 }
 
@@ -69,7 +69,6 @@ export default function NotificationAvatar({
       data-event-kind={style.kind}
       className={cn(
         'pointer-events-none relative mt-px flex size-9 flex-none density-compact:size-8 density-comfortable:size-10',
-        !isUnread && 'opacity-70',
       )}
     >
       {lead}
@@ -77,7 +76,8 @@ export default function NotificationAvatar({
         aria-hidden="true"
         data-unread-halo={isUnread ? 'true' : 'false'}
         className={cn(
-          'absolute -inset-0.5 ring-2 ring-foreground',
+          'absolute -inset-0.5 ring-2',
+          style.halo,
           type === 'pipeline-failure' || type === 'due-date-reminder'
             ? 'rounded-[10px]'
             : 'rounded-full',

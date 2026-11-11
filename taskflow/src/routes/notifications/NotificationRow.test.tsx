@@ -365,7 +365,7 @@ describe('NotificationRow', () => {
     expect(badge.className).not.toContain('-bottom-1.5');
   });
 
-  it('read cards sit flat on the list surface (rounded-xl, ring-1, no border/shadow), density-aware padding', () => {
+  it('read cards are plain cards (rounded-xl, card surface, ring-1, no border/shadow), density-aware padding', () => {
     const { container } = setup({ isUnread: false });
     const r = container.firstElementChild as HTMLElement;
     expect(r.className).toContain('rounded-xl');
@@ -373,9 +373,7 @@ describe('NotificationRow', () => {
     expect(r.className).toContain('ring-foreground/10');
     expect(r.className).not.toMatch(/(^|\s)(border|shadow-\w+)(\s|$)/);
     expect(r.className).toContain('bg-(--card-bg)');
-    expect(r.className).toContain(
-      '[--card-bg:color-mix(in_oklab,var(--color-muted)_40%,var(--color-popover))]',
-    );
+    expect(r.className).toContain('[--card-bg:var(--color-card)]');
     expect(r.className).not.toMatch(/(^|\s)border-b(\s|$)/);
     expect(r.className).toContain('density-compact:py-1.5');
     expect(r.className).toContain('density-comfortable:py-3.5');
@@ -388,16 +386,20 @@ describe('NotificationRow', () => {
     expect(r.className).toContain('hover:bg-(--card-hover)');
   });
 
-  it('unread cards lift with an ink ring, avatar halo and ink time (no blue, no glow); read cards sit flat', () => {
+  it('unread = bold neutral border, event-colour avatar halo, bold title/time; read is not greyed out', () => {
     const unread = setup({ isUnread: true });
     const u = unread.container.firstElementChild as HTMLElement;
-    expect(u.className).toContain('ring-foreground/15');
+    expect(u.className).toContain('ring-2');
+    expect(u.className).toContain('ring-foreground/25');
     expect(u.className).not.toMatch(/blue|shadow-/);
     expect(u.className).toContain('[--card-bg:var(--color-card)]');
-    expect(u.className).not.toContain('ring-foreground/20');
     expect(screen.getByText('Fix login bug').className).toContain('font-semibold');
     expect(unread.container.querySelector('[data-unread-halo="true"]')?.className).not.toContain(
       'opacity-0',
+    );
+    // halo takes the event colour (jira-comment = blue), matching the badge/verb
+    expect(unread.container.querySelector('[data-unread-halo="true"]')?.className).toContain(
+      'ring-blue-600',
     );
     expect(unread.container.querySelector('time')?.className).toContain('text-foreground');
     unread.unmount();
@@ -407,10 +409,13 @@ describe('NotificationRow', () => {
     expect(r.className).not.toContain('--color-blue-500');
     expect(r.className).not.toContain('shadow');
     expect(screen.getByText('Fix login bug').className).toContain('font-normal');
+    expect(screen.getByText('Fix login bug').className).toContain('text-foreground');
+    expect(screen.getByText('Fix login bug').className).not.toContain('muted');
+    expect(r.className).toContain('ring-1');
     expect(read.container.querySelector('[data-unread-halo="false"]')?.className).toContain(
       'opacity-0',
     );
-    expect(read.container.querySelector('[data-event-kind]')?.className).toContain('opacity-70');
+    expect(read.container.querySelector('[data-event-kind]')?.className).not.toContain('opacity-');
     expect(read.container.querySelector('time')?.className).toContain('text-muted-foreground');
   });
 
