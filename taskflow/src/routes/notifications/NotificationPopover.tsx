@@ -14,7 +14,7 @@
  */
 
 import { BellOff, Check, CheckCheck, TriangleAlert, X } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '../../components/ui/button';
 import { ErrorState } from '../../components/ui/error-state';
 import { StaleDataBanner } from '../../components/ui/stale-data-banner';
@@ -130,6 +130,23 @@ export default function NotificationPopover({
   // No row entrance on open or on filter switches: the panel slides + fades in as one piece
   // (TopBar / .notif-glass), and per-row entrances read as a top-to-bottom build (261111-m0g UAT).
 
+  /** Fire-and-forget UI timers (entering / justExpanded / folding / flashing), cleared on unmount. */
+  const uiTimers = useRef(new Set<ReturnType<typeof setTimeout>>());
+  const later = useCallback((fn: () => void, ms: number) => {
+    const t = setTimeout(() => {
+      uiTimers.current.delete(t);
+      fn();
+    }, ms);
+    uiTimers.current.add(t);
+  }, []);
+  useEffect(() => {
+    const timers = uiTimers.current;
+    return () => {
+      for (const t of timers) clearTimeout(t);
+      timers.clear();
+    };
+  }, []);
+
   /** Item ids that arrived while open. Seeded on mount so initial items never count as arrivals. */
   const [entering, setEntering] = useState<ReadonlySet<string>>(new Set());
   const knownIds = useRef<Set<string> | null>(null);
@@ -143,14 +160,14 @@ export default function NotificationPopover({
     if (fresh.length === 0) return;
     for (const id of fresh) known.add(id);
     setEntering((prev) => new Set([...prev, ...fresh]));
-    setTimeout(() => {
+    later(() => {
       setEntering((prev) => {
         const next = new Set(prev);
         for (const id of fresh) next.delete(id);
         return next;
       });
     }, NOTIF_ENTER_MS);
-  }, [items]);
+  }, [items, later]);
 
   /** Entry id -> exit delay. Items are removed from the store only after the exit animation. */
   const [leaving, setLeaving] = useState<ReadonlyMap<string, number>>(new Map());
@@ -214,7 +231,7 @@ export default function NotificationPopover({
     setAnchors((cur) => new Map(cur).set(entity, anchor));
     setExpanded((cur) => new Set(cur).add(entity));
     setJustExpanded(entity);
-    setTimeout(() => setJustExpanded((cur) => (cur === entity ? null : cur)), NOTIF_FAN_MS);
+    later(() => setJustExpanded((cur) => (cur === entity ? null : cur)), NOTIF_FAN_MS);
   }
 
   function collapseStack(entity: string) {
@@ -242,7 +259,7 @@ export default function NotificationPopover({
     }
     // Fold the open group up first (rows shrink, the list below glides up), then collapse.
     setFolding((cur) => new Set(cur).add(entity));
-    setTimeout(() => {
+    later(() => {
       collapseStack(entity);
       setFolding((cur) => {
         const next = new Set(cur);
@@ -265,7 +282,7 @@ export default function NotificationPopover({
 
   function toggleRead(entry: EventEntry | StackEntry) {
     setFlashing((prev) => new Set(prev).add(entry.id));
-    setTimeout(() => {
+    later(() => {
       setFlashing((prev) => {
         const next = new Set(prev);
         next.delete(entry.id);

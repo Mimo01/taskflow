@@ -622,6 +622,16 @@ describe('NotificationPopover motion (261111-m0g)', () => {
     expect(other.hasAttribute('data-leaving')).toBe(false);
   });
 
+  it('WR-06: unmounting mid-animation leaves no fire-and-forget timers behind', () => {
+    seed([jiraItem('a', 'PROJ-1')]);
+    const { unmount } = render(<NotificationPopover />);
+    advance(NOTIF_ENTER_MS + 500); // settle the intro timers
+    // Mark read starts the flash timer.
+    fireEvent.click(screen.getByRole('button', { name: 'Mark as read' }));
+    unmount();
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
   it('a double Done does not schedule a second removal', () => {
     seed([jiraItem('a', 'PROJ-1')]);
     const spy = vi.fn(useNotificationsStore.getState().removeItems);
