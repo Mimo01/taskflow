@@ -319,8 +319,8 @@ describe('NotificationPopover', () => {
       const { container } = render(<NotificationPopover />);
       expect(container.querySelector('.border-b')).toBeNull();
       const heading = screen.getByRole('heading', { name: 'Notifications' });
-      // heading sits in a title/subtitle stack inside the header row
-      const row = heading.parentElement?.parentElement as HTMLElement;
+      const row = heading.parentElement as HTMLElement;
+      expect(document.querySelector('[data-header-subtitle]')).toBeNull();
       for (const name of ['Mark all read', 'Clear all notifications']) {
         expect(row.contains(screen.getByRole('button', { name }))).toBe(true);
       }
@@ -445,24 +445,6 @@ describe('NotificationPopover', () => {
   });
 
   describe('header and filters', () => {
-    it('subtitle counts unread and total cards; "All caught up" at 0 unread; hidden when empty', () => {
-      seed([jiraItem('a'), jiraItem('b', 'PROJ-2'), glItem('g1')], ['a']);
-      const { unmount } = render(<NotificationPopover />);
-      expect(document.querySelector('[data-header-subtitle]')?.textContent).toBe(
-        '2 unread · 3 total',
-      );
-      unmount();
-      seed([jiraItem('a')], ['a']);
-      const r2 = render(<NotificationPopover />);
-      expect(document.querySelector('[data-header-subtitle]')?.textContent).toBe(
-        'All caught up · 1 total',
-      );
-      r2.unmount();
-      seed([]);
-      render(<NotificationPopover />);
-      expect(document.querySelector('[data-header-subtitle]')).toBeNull();
-    });
-
     it('shows heading, Mark all read disabled at 0 unread, Clear all', () => {
       seed([jiraItem('a')], ['a']);
       render(<NotificationPopover />);

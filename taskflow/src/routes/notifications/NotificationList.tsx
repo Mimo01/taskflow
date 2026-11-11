@@ -256,7 +256,7 @@ export default function NotificationList({
     <div
       ref={parentRef}
       className={cn(
-        '@container relative min-h-0 flex-1 select-none overflow-y-auto overscroll-contain pt-2 pr-1 pb-3.5 pl-2.5 [scrollbar-width:thin]',
+        '@container relative min-h-0 flex-1 select-none overflow-y-auto overscroll-contain pt-0 pr-1 pb-3.5 pl-2.5 [scrollbar-width:thin]',
         className,
       )}
       onKeyDown={handleKeyDown}

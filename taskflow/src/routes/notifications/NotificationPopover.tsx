@@ -91,9 +91,6 @@ export default function NotificationPopover({
     now,
   });
   const entries = stackEntries(flatEntries, expanded);
-  /** Header subtitle counts CARDS (merged runs count once), the same unit as the bell badge. */
-  const cardTotal = flatEntries.filter((e) => e.kind === 'event').length;
-  const cardUnread = flatEntries.filter((e) => e.kind === 'event' && e.isUnread).length;
 
   // Forget expanded keys whose stack is gone (cleared / dropped below 2 cards), so a later
   // notification on the same issue does not reappear already expanded. Checked against the
@@ -259,7 +256,7 @@ export default function NotificationPopover({
   function renderEntry(entry: NotificationEntry) {
     if (entry.kind === 'header') {
       return (
-        <div className="flex h-7 items-end px-1 pb-1 text-xs font-semibold text-foreground/70 density-compact:h-6">
+        <div className="flex h-6 items-end px-1 pb-1 text-xs font-semibold text-foreground/70 density-compact:h-5">
           {entry.label}
         </div>
       );
@@ -363,21 +360,14 @@ export default function NotificationPopover({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      {/* Header: title + count subtitle, Mark all read, Clear all (inline macOS-style confirmation) */}
-      <div className="flex flex-none items-center gap-2 px-4 pt-3.5 pb-1">
-        <div className="min-w-0 flex-1">
-          <h2 className="truncate text-xl leading-tight font-semibold tracking-[-0.015em]">
-            Notifications
-          </h2>
-          {cardTotal > 0 ? (
-            <p
-              data-header-subtitle
-              className="truncate text-[11px] text-muted-foreground tabular-nums"
-            >
-              {cardUnread > 0 ? `${cardUnread} unread` : 'All caught up'} · {cardTotal} total
-            </p>
-          ) : null}
-        </div>
+      {/*
+        Header: title, Mark all read, Clear all (inline macOS-style confirmation). Compact so the
+        cards start high; title left edge aligns with the "Today" bucket label (14px).
+      */}
+      <div className="flex h-11 flex-none items-center gap-1.5 pt-1 pr-3 pl-3.5">
+        <h2 className="min-w-0 flex-1 truncate text-xl leading-none font-semibold tracking-[-0.015em]">
+          Notifications
+        </h2>
         <Button
           variant="ghost"
           size="icon-xs"

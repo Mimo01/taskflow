@@ -701,7 +701,7 @@ describe('merging', () => {
     ]);
     expect(estimateEntryHeight(multi)).toBeGreaterThan(estimateEntryHeight(single));
     expect(estimateEntryHeight({ kind: 'header', id: 'h', bucket: 'today', label: 'Today' })).toBe(
-      32,
+      28,
     );
   });
 
