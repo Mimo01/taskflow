@@ -1,14 +1,11 @@
 import type { JiraAttachment } from '@/services/jira';
 import { AuthImage } from '../AuthImage';
+import { getAttachmentImageSrc } from './attachment-format';
 
 interface AttachmentThumbnailProps {
   attachment: JiraAttachment;
   onClick: () => void;
 }
-
-// Jira thumbnails are often missing or a generic placeholder for some PNGs; small
-// images load fine as full content (same path the description uses), so prefer that.
-const MAX_FULL_THUMB_BYTES = 2 * 1024 * 1024;
 
 export function AttachmentThumbnail({ attachment, onClick }: AttachmentThumbnailProps) {
   return (
@@ -25,12 +22,7 @@ export function AttachmentThumbnail({ attachment, onClick }: AttachmentThumbnail
       }}
     >
       <AuthImage
-        src={
-          attachment.size !== undefined && attachment.size <= MAX_FULL_THUMB_BYTES
-            ? attachment.content
-            : (attachment.thumbnail ?? attachment.content)
-        }
-        fallbackSrc={attachment.thumbnail ?? attachment.content}
+        {...getAttachmentImageSrc(attachment)}
         alt={attachment.filename}
         className="w-full h-full object-cover"
       />

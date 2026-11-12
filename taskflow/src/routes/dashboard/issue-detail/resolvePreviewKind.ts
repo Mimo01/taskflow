@@ -35,7 +35,7 @@ const IMAGE_EXTENSIONS = new Set(['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 's
 const VIDEO_EXTENSIONS = new Set(['mp4', 'webm', 'mov']);
 const AUDIO_EXTENSIONS = new Set(['mp3', 'wav']);
 
-function getExtension(filename: string): string {
+export function getExtension(filename: string): string {
   const idx = filename.lastIndexOf('.');
   if (idx === -1 || idx === filename.length - 1) return '';
   return filename.slice(idx + 1).toLowerCase();

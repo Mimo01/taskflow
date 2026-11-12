@@ -1,27 +1,13 @@
-import { Download, File, FileText, Trash2 } from 'lucide-react';
+import { Download, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { JiraAttachment } from '@/services/jira';
+import { formatFileSize, getFileIcon } from './attachment-format';
 
 interface AttachmentFileRowProps {
   attachment: JiraAttachment;
   onDownload: (attachment: JiraAttachment) => void;
   onDelete?: (attachment: JiraAttachment) => void;
   onPreview?: (attachment: JiraAttachment) => void;
-}
-
-function formatFileSize(bytes?: number): string {
-  if (bytes == null) return '';
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-function getFileIcon(mimeType: string) {
-  const mime = mimeType ?? '';
-  if (mime.startsWith('text/') || mime === 'application/pdf') {
-    return FileText;
-  }
-  return File;
 }
 
 const ACTION_VISIBILITY =
