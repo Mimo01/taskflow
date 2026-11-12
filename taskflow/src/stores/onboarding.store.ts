@@ -25,6 +25,8 @@ interface OnboardingState {
   jiraValidated: boolean;
   gitlabValidated: boolean;
   integrationsVisited: boolean;
+  /** In-memory: a wizard re-run is in progress (onboardingComplete stays true). */
+  rerunActive: boolean;
   set: (partial: Partial<Omit<OnboardingState, 'set' | 'goNext' | 'goBack'>>) => void;
   goNext: () => void;
   goBack: () => void;
@@ -45,6 +47,7 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
   jiraValidated: false,
   gitlabValidated: false,
   integrationsVisited: false,
+  rerunActive: false,
   set: (partial) => set(partial),
   goNext: () => set({ step: Math.min(4, get().step + 1) }),
   goBack: () => set({ step: Math.max(0, get().step - 1) }),

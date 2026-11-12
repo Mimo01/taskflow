@@ -498,13 +498,13 @@ describe('settings.store — rankFieldKey (Phase 76)', () => {
     expect(src).toMatch(/if\s*\(version\s*<\s*30\)/);
   });
 
-  it('persist version is 36 (v31 moved the 288 default; v32 drops the field; v34 replaces the px standup width with a ratio)', () => {
+  it('persist version is 37 (v31 moved the 288 default; v32 drops the field; v34 replaces the px standup width with a ratio)', () => {
     const fs = require('node:fs') as typeof import('node:fs');
     const path = require('node:path') as typeof import('node:path');
     const src = fs.readFileSync(path.resolve(__dirname, 'settings.store.ts'), 'utf8');
     expect(src).toMatch(/if\s*\(version\s*<\s*31\)/);
     expect(src).toMatch(/releaseDetailPanelWidth === 288\) s\.releaseDetailPanelWidth = 256/);
-    expect(src).toMatch(/version: 36,/);
+    expect(src).toMatch(/version: 37,/);
     expect(src).toMatch(/if\s*\(version\s*<\s*32\)/);
     expect(src).toMatch(/if\s*\(version\s*<\s*33\)/);
     expect(src).toMatch(/if\s*\(version\s*<\s*34\)/);
@@ -634,5 +634,36 @@ describe('settings.store — v36 desktop notifications switch', () => {
 
   it('keeps an already-set value', () => {
     expect(migrate({ desktopNotificationsEnabled: false }).desktopNotificationsEnabled).toBe(false);
+  });
+});
+
+describe('settings.store — v37 onboarding wizard version', () => {
+  const migrate = (persisted: Record<string, unknown>, version = 36) =>
+    (
+      useSettingsStore.persist.getOptions().migrate as (
+        p: unknown,
+        v: number,
+      ) => Record<string, unknown>
+    )(persisted, version);
+
+  it('treats existing completers as wizard v1', () => {
+    expect(migrate({ onboardingComplete: true }).onboardingVersion).toBe(1);
+  });
+
+  it('gives fresh/missing users version 0', () => {
+    expect(migrate({ onboardingComplete: false }).onboardingVersion).toBe(0);
+    expect(migrate({}).onboardingVersion).toBe(0);
+  });
+
+  it('keeps an existing onboardingVersion', () => {
+    expect(migrate({ onboardingComplete: true, onboardingVersion: 2 }).onboardingVersion).toBe(2);
+  });
+
+  it('resetSettings keeps the version for preferences and zeroes it for all', () => {
+    useSettingsStore.setState({ onboardingVersion: 2 });
+    useSettingsStore.getState().resetSettings('preferences');
+    expect(useSettingsStore.getState().onboardingVersion).toBe(2);
+    useSettingsStore.getState().resetSettings('all');
+    expect(useSettingsStore.getState().onboardingVersion).toBe(0);
   });
 });

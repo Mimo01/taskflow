@@ -21,6 +21,7 @@ export type CommentSortOrder = 'newest' | 'oldest';
 const initialSettings = {
   theme: 'system' as Theme,
   onboardingComplete: false,
+  onboardingVersion: 0,
   staleMrThresholdDays: 3,
   notificationPollIntervalSecs: 60,
   desktopNotificationsEnabled: true,
@@ -76,6 +77,8 @@ const initialSettings = {
 interface SettingsState {
   theme: Theme;
   onboardingComplete: boolean;
+  /** Wizard version the user last completed (see lib/onboarding-rerun.ts). */
+  onboardingVersion: number;
   /** Number of days without update before an MR is considered stale. Default: 3. */
   staleMrThresholdDays: number;
   /** Notification polling interval in seconds. Default: 60. Clamped to [30, 300]. */
@@ -210,6 +213,7 @@ interface SettingsState {
   setSprintCollapseByDefault: (v: boolean) => void;
   setTheme: (theme: Theme) => void;
   setOnboardingComplete: (complete: boolean) => void;
+  setOnboardingVersion: (v: number) => void;
   setStaleMrThresholdDays: (days: number) => void;
   /** Clamps input to [30, 300] before storing. */
   setNotificationPollIntervalSecs: (secs: number) => void;
@@ -330,6 +334,7 @@ export const useSettingsStore = create<SettingsState>()(
       setSprintCollapseByDefault: (v) => set({ sprintCollapseByDefault: v }),
       setTheme: (theme) => set({ theme }),
       setOnboardingComplete: (complete) => set({ onboardingComplete: complete }),
+      setOnboardingVersion: (v) => set({ onboardingVersion: v }),
       setStaleMrThresholdDays: (days) => set({ staleMrThresholdDays: days }),
       setNotificationPollIntervalSecs: (secs) =>
         set({ notificationPollIntervalSecs: Math.max(30, Math.min(300, secs)) }),
@@ -359,6 +364,7 @@ export const useSettingsStore = create<SettingsState>()(
           return {
             ...base,
             onboardingComplete: s.onboardingComplete,
+            onboardingVersion: s.onboardingVersion,
             storyPointsFieldKey: s.storyPointsFieldKey,
             epicLinkFieldKey: s.epicLinkFieldKey,
             epicNameFieldKey: s.epicNameFieldKey,
@@ -373,7 +379,7 @@ export const useSettingsStore = create<SettingsState>()(
     {
       name: 'settings-store',
       storage: createTauriStorage('settings.json'),
-      version: 36,
+      version: 37,
       migrate: (persisted, version) => {
         const s = persisted as Record<string, unknown>;
         if (version < 1) {
@@ -526,6 +532,13 @@ export const useSettingsStore = create<SettingsState>()(
           }
           delete s.osNotifJiraEnabled;
           delete s.osNotifGitlabEnabled;
+        }
+        if (version < 37) {
+          // Pre-feature completers are treated as wizard v1 so they see the steps added since
+          // (Release Management in Integrations). Never exceeds the current wizard version.
+          if (s.onboardingVersion === undefined) {
+            s.onboardingVersion = s.onboardingComplete === true ? 1 : 0;
+          }
         }
         return persisted as SettingsState;
       },
