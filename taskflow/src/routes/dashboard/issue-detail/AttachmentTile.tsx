@@ -49,16 +49,14 @@ export function AttachmentTile({
               className="w-full h-full object-cover"
             />
           ) : (
-            <>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <Icon className="size-[26px] text-muted-foreground" />
-              </div>
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5">
+              <Icon className="size-[26px] text-muted-foreground" />
               {ext && (
-                <span className="absolute bottom-1.5 inset-x-0 text-center font-mono text-[10px] text-muted-foreground">
+                <span className="font-mono text-[10px] leading-none text-muted-foreground">
                   {ext}
                 </span>
               )}
-            </>
+            </div>
           )}
         </div>
         {/* Reserve 2 name lines + the size line on the block, not the name, so the
