@@ -4,7 +4,7 @@
  * Shared by Settings → Updates and the skipped-release lists in the update dialogs.
  */
 
-import { CircleCheck } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import type { ReleaseEntry } from '@/services/releases';
 import { ReleaseNotesBody } from './ReleaseNotesBody';
@@ -51,28 +51,24 @@ export function ReleaseRow({
         onClick={onToggle}
         className={cn(
           RELEASE_ROW_GRID,
-          'h-9 w-full rounded-lg px-2 text-left text-sm',
+          'min-h-9 w-full rounded-lg px-2 text-left text-sm',
           !open && 'hover:bg-muted/50',
         )}
       >
-        <span className="flex items-center gap-1 font-medium tabular-nums">
-          {release.version}
-          {installed && (
-            <CircleCheck
-              aria-label="Installed"
-              className="size-3.5 shrink-0 text-green-600 dark:text-green-400"
-            >
-              <title>Installed</title>
-            </CircleCheck>
-          )}
-        </span>
+        <span className="font-medium tabular-nums">{release.version}</span>
         <span
-          className={cn('truncate', open ? 'text-foreground' : 'text-muted-foreground')}
+          className={cn(
+            // The installed row gives up width to its badge, so its summary may wrap
+            // to a second line rather than truncate; every other row stays one line.
+            installed ? 'line-clamp-2 py-1.5' : 'truncate',
+            open ? 'text-foreground' : 'text-muted-foreground',
+          )}
           title={plainSummary}
         >
           {plainSummary}
         </span>
         <span className="flex items-center gap-2 whitespace-nowrap text-xs text-muted-foreground tabular-nums">
+          {installed && <Badge tone="green">Installed</Badge>}
           {release.publishedAt ? shortReleaseDate(release.publishedAt) : ''}
         </span>
       </button>
