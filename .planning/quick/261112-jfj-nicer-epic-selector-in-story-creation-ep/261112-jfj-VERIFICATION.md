@@ -1,7 +1,7 @@
 ---
 phase: quick-261112-jfj
 verified: 2026-11-12T14:35:00Z
-status: human_needed
+status: passed
 score: 6/6 must-haves verified (code level); 2 live-Jira items pending
 human_verification:
   - test: "On a story detail sidebar, open the Epic picker, choose a different epic, then choose 'No epic'."
@@ -51,3 +51,19 @@ None blocking. The `epicIssue` prop is still passed to FieldsSection but its epi
 ---
 _Verified: 2026-11-12_
 _Verifier: Claude (gsd-verifier)_
+
+## UAT (2026-11-12)
+
+The user approved the result after testing it against live Jira, which settles the human_needed items. Changing and clearing the epic from the sidebar works through the Epic Link field PUT, so no Agile API fallback is needed. Search works.
+
+Changes made during UAT:
+- **77089ed9:** rows aligned on a shared column grid, "No epic" shown as a dashed pill, a borderless search header, and the list pills lined up with the trigger pill. Keyboard handling was also polished.
+- **c5956f2e:** the check mark moved to the front of the row, as in the Fix Versions picker.
+- **eeb17e65:** a flaky Enter-picks-top-hit test was fixed.
+
+Open, non-blocking warnings from REVIEW.md (none fixed here):
+- WR-01: search errors are shown as an empty result.
+- WR-02: the selected pill can briefly show the raw key in the create modal.
+- WR-04: the optimistic name seed is not rolled back on a failed save.
+- WR-05: `fetchEpicSummary` interpolates URL values unencoded.
+- WR-06: the epic search cache is not invalidated after a link change.

@@ -71,3 +71,8 @@ Confirm in a live Jira that setting/clearing the Epic Link via field PUT works o
 ## Self-Check: PASSED
 
 Files exist and commits dd9b92d5, b3354fee, 1f6fc321 are on branch worktree-agent-af3c684b279936d88.
+
+## UAT follow-ups (approved 2026-11-12)
+- **77089ed9:** column-grid alignment, a dashed "No epic" pill, a borderless search header, list pills lined up with the trigger, keyboard handling (the highlight resets and scrolls into view, `aria-activedescendant` is set, and Enter picks the top hit).
+- **c5956f2e:** the check mark leads the row (check, pill, key), matching the Fix Versions picker.
+- **eeb17e65:** the Enter-picks-top-hit test was deflaked.
