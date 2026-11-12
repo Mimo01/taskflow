@@ -53,6 +53,11 @@ vi.mock('./WikiRenderer', () => ({
   WikiRenderer: ({ wikiText }: { wikiText: string }) => <div>{wikiText}</div>,
 }));
 
+vi.mock('./BulkCreateSubtasksModal', () => ({
+  BulkCreateSubtasksModal: ({ open }: { open: boolean }) =>
+    open ? <div data-testid="bulk-modal" /> : null,
+}));
+
 vi.mock('@tauri-apps/plugin-opener', () => ({
   openUrl: vi.fn(),
 }));
@@ -484,5 +489,69 @@ describe('IssueDetailContent', () => {
       await waitFor(() => expect(rowTexts().length).toBeGreaterThan(0));
       expect(rowTexts()).toContain('Remaining0m');
     });
+  });
+});
+
+describe('Subtasks section header (261112-eep)', () => {
+  const sub = {
+    id: 'sub-1',
+    key: 'PROJ-21',
+    fields: { summary: 'First subtask', status: { name: 'To Do', statusCategory: { key: 'new' } } },
+  };
+  const base = {
+    issueKey: 'PROJ-20',
+    jiraBaseUrl: 'https://jira.example.com',
+    storyPointsFieldKey: 'story_points',
+    sprintFieldKey: 'sprint',
+    epicLinkFieldKey: 'epic_link',
+  };
+
+  it('empty story shows heading, "No subtasks" and the Add button', () => {
+    render(<IssueDetailContent {...base} issue={makeStoryIssue([])} />, { wrapper });
+    expect(screen.getByText('Subtasks', { exact: true })).toBeTruthy();
+    expect(screen.getByText('No subtasks')).toBeTruthy();
+    expect(screen.queryByText(/Subtasks \(/)).toBeNull();
+    expect(screen.getByRole('button', { name: 'Add subtask' })).toBeTruthy();
+  });
+
+  it('story with subtasks shows count and no empty line', () => {
+    render(
+      <IssueDetailContent
+        {...base}
+        issue={makeStoryIssue([sub])}
+        enrichedSubtasks={[sub] as never}
+      />,
+      { wrapper },
+    );
+    expect(screen.getByText('Subtasks (1)')).toBeTruthy();
+    expect(screen.queryByText('No subtasks')).toBeNull();
+  });
+
+  it('skeleton state keeps heading and never shows "No subtasks"', () => {
+    render(<IssueDetailContent {...base} issue={makeStoryIssue([sub])} showSubtasksSkeleton />, {
+      wrapper,
+    });
+    expect(screen.getByTestId('subtasks-skeleton')).toBeTruthy();
+    expect(screen.getByText('Subtasks (1)')).toBeTruthy();
+    expect(screen.queryByText('No subtasks')).toBeNull();
+  });
+
+  it('Add subtask calls onAddSubtask with the issue key', () => {
+    const onAddSubtask = vi.fn();
+    render(
+      <IssueDetailContent {...base} issue={makeStoryIssue([])} onAddSubtask={onAddSubtask} />,
+      { wrapper },
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Add subtask' }));
+    expect(onAddSubtask).toHaveBeenCalledWith('PROJ-20');
+  });
+
+  it('menu item opens the bulk create modal', async () => {
+    render(<IssueDetailContent {...base} issue={makeStoryIssue([])} />, { wrapper });
+    expect(screen.queryByTestId('bulk-modal')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'More subtask actions' }));
+    const items = await screen.findAllByRole('menuitem');
+    fireEvent.click(items[0]);
+    expect(await screen.findByTestId('bulk-modal')).toBeTruthy();
   });
 });

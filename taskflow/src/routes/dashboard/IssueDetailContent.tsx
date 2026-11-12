@@ -1,15 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query';
-import {
-  Check,
-  ClipboardCopy,
-  Copy,
-  ExternalLink,
-  LayoutList,
-  Pencil,
-  Pin,
-  Plus,
-  RefreshCw,
-} from 'lucide-react';
+import { Check, ClipboardCopy, Copy, ExternalLink, Pencil, Pin, RefreshCw } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ErrorState } from '@/components/ui/error-state';
@@ -35,6 +25,7 @@ import { AttachmentsSection } from './issue-detail/AttachmentsSection';
 import { EpicProgressSection } from './issue-detail/EpicProgressSection';
 import { LogWorkPopover } from './issue-detail/LogWorkPopover';
 import { RelatedIssueRow } from './issue-detail/RelatedIssueRow';
+import { SubtaskCreateControl } from './issue-detail/SubtaskCreateControl';
 import { SubtasksSkeleton } from './issue-detail/SubtasksSkeleton';
 import type { AttachmentMap } from './WikiRenderer';
 import { WikiRenderer } from './WikiRenderer';
@@ -116,17 +107,9 @@ function subtaskListContent({
 }) {
   const displaySubtasks: SubtaskDisplayItem[] =
     enrichedSubtasks ?? (subtasks as SubtaskDisplayItem[] | undefined) ?? [];
-  if (displaySubtasks.length === 0) {
-    if (enrichedSubtasks !== undefined) {
-      return <p className="text-sm text-muted-foreground italic">No subtasks.</p>;
-    }
-    return null;
-  }
+  if (displaySubtasks.length === 0) return null;
   return (
     <>
-      <h3 className="text-sm font-medium text-muted-foreground mb-2">
-        Subtasks ({displaySubtasks.length})
-      </h3>
       <ul className="space-y-1 density-compact:space-y-0.5 density-comfortable:space-y-2">
         {displaySubtasks.map((sub) => {
           const statusCat = sub.fields.status.statusCategory as { key?: string } | undefined;
@@ -332,6 +315,20 @@ export function IssueDetailContent({
       {/* Story/task → Subtasks list */}
       {!isEpic && !isSubtask && (
         <section>
+          {/* Header row: fixed height so it is identical with or without subtasks. N comes from
+              the base `subtasks` field so the label does not shift when enrichment lands. */}
+          <div className="flex h-7 items-center justify-between mb-1">
+            <h3 className="text-sm font-medium text-muted-foreground">
+              Subtasks{subtasks.length > 0 ? ` (${subtasks.length})` : ''}
+            </h3>
+            <SubtaskCreateControl
+              onAdd={() => onAddSubtask?.(issueKey)}
+              onBulk={() => setBulkCreateOpen(true)}
+            />
+          </div>
+          {subtasks.length === 0 && (
+            <p className="text-sm text-muted-foreground italic">No subtasks</p>
+          )}
           {/* Subtask skeleton — shown while enrichment query is pending (200ms-gated).
               Guard on subtasks.length: the enrichment query is `enabled: false` for issues
               with no subtasks, so it reports `isPending` forever — without this guard the
@@ -347,28 +344,6 @@ export function IssueDetailContent({
           )}
           {/* Subtask list — use enriched data when available, fall back to base subtasks */}
           {subtaskListContent({ enrichedSubtasks, subtasks, onOpenIssue })}
-          <div className="mt-1 flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              type="button"
-              className="gap-1.5"
-              onClick={() => onAddSubtask?.(issueKey)}
-            >
-              <Plus className="size-3.5" />
-              Add subtask
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              type="button"
-              className="gap-1.5"
-              onClick={() => setBulkCreateOpen(true)}
-            >
-              <LayoutList className="size-3.5" />
-              Bulk Create Subtasks
-            </Button>
-          </div>
           <BulkCreateSubtasksModal
             open={bulkCreateOpen}
             onClose={() => setBulkCreateOpen(false)}
