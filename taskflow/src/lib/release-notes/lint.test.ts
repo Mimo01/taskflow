@@ -47,8 +47,8 @@ describe('lintReleaseNotes', () => {
       lintReleaseNotes('### Fixed\n- **A**').errors.some((e) => /Missing headline/.test(e)),
     ).toBe(true);
     expect(
-      lintReleaseNotes(`${'h'.repeat(121)}\n\n### Fixed\n- **A**`).errors.some((e) =>
-        /Headline is over/.test(e),
+      lintReleaseNotes(`${'h'.repeat(LIMITS.headline + 1)}\n\n### Fixed\n- **A**`).errors.some(
+        (e) => /Headline is over/.test(e),
       ),
     ).toBe(true);
     expect(

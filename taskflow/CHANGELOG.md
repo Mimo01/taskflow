@@ -4,7 +4,7 @@ All notable changes to Taskflow are documented here.
 
 ## [1.14.20] — 2026-11-12
 
-Notifications are rebuilt from the ground up, so you can catch up and act in seconds.
+Notifications rebuilt so you can catch up in seconds.
 
 ### New
 - Notifications for the same issue or MR stack together
@@ -26,7 +26,7 @@ Notifications are rebuilt from the ground up, so you can catch up and act in sec
 
 ## [1.14.19] — 2026-11-09
 
-Issues you can't open now explain why and offer a way forward.
+Issues you can't open now explain why and what to do.
 
 ### New
 - See why an issue can't be opened, with quick next steps
@@ -43,7 +43,7 @@ Issues you can't open now explain why and offer a way forward.
 
 ## [1.14.18] — 2026-11-05
 
-Zoom into any preview and find people faster wherever you pick them.
+Zoomable previews and one person picker everywhere.
 
 ### New
 - Zoom, fit and resize text in file previews
@@ -62,7 +62,7 @@ Zoom into any preview and find people faster wherever you pick them.
 
 ## [1.14.17] — 2026-11-03
 
-Spot release gaps and fix them without leaving the release page.
+Spot release gaps and fix them on the release page.
 
 ### New
 - Add missing tasks to a release in one click
@@ -81,7 +81,7 @@ Spot release gaps and fix them without leaving the release page.
 
 ## [1.14.16] — 2026-11-02
 
-Find exactly the release issues you need with filters and sorting.
+Filter and sort release issues to find what you need.
 
 ### New
 - Filter and sort the issues of a release
@@ -99,7 +99,7 @@ Find exactly the release issues you need with filters and sorting.
 
 ## [1.14.15] — 2026-10-30
 
-A fresh look for releases, with everything that matters in one place.
+A fresh look for releases, with what matters up front.
 
 ### New
 - A redesigned Releases page with upcoming and shipped versions
@@ -127,7 +127,7 @@ Bulk subtask creation is easier to get right.
 
 ## [1.14.13] — 2026-10-28
 
-Filter by story points and always see which row you're peeking at.
+Story points filter and a highlight for the peeked row.
 
 ### New
 - Filter the Backlog and Sprint Board by story points
@@ -142,7 +142,7 @@ Filter by story points and always see which row you're peeking at.
 
 ## [1.14.12] — 2026-10-27
 
-Test cycles separate what's left to do from what's done.
+Test cycles split what's left from what's done.
 
 ### Improved
 - AIO executions and defects split into Open and Done
@@ -167,7 +167,7 @@ Find anything on the current page with Cmd+F.
 
 ## [1.14.10] — 2026-10-16
 
-Search puts your current work first and finds things faster.
+Search shows your current work first, and faster.
 
 ### New
 - Search shows your sprint first, then backlog and closed
@@ -184,7 +184,7 @@ Search puts your current work first and finds things faster.
 
 ## [1.14.9] — 2026-10-14
 
-Keep deployment packages in sync and follow test cycles on a new dashboard.
+Deployment packages in sync and a new AIO dashboard.
 
 ### New
 - See a story's deployment week and fix it in one click
@@ -201,7 +201,7 @@ Keep deployment packages in sync and follow test cycles on a new dashboard.
 
 ## [1.14.8] — 2026-10-08
 
-Connecting with a token just works, even when you paste a stray space.
+Token sign-in just works, even with stray spaces.
 
 ### Fixed
 - Pasted tokens with extra spaces now sign in
@@ -210,7 +210,7 @@ Connecting with a token just works, even when you paste a stray space.
 
 ## [1.14.7] — 2026-10-07
 
-Reuse subtask templates and drop files straight onto issues.
+Reuse subtask templates and drop files onto issues.
 
 ### New
 - Copy a subtask template to make a variation
@@ -226,7 +226,7 @@ Reuse subtask templates and drop files straight onto issues.
 
 ## [1.14.6] — 2026-10-05
 
-Jira descriptions and comments look the way they do in Jira.
+Jira descriptions and comments look just like in Jira.
 
 ### Fixed
 - Names with underscores no longer turn into italics
@@ -234,7 +234,7 @@ Jira descriptions and comments look the way they do in Jira.
 
 ## [1.14.5] — 2026-10-02
 
-See where an epic is heading and what changed on any issue.
+See where epics are heading and what changed.
 
 ### New
 - Epic forecast, progress charts and risks on every epic
@@ -247,7 +247,7 @@ See where an epic is heading and what changed on any issue.
 
 ## [1.14.4] — 2026-09-29
 
-My Tasks shows reviews waiting on you and work in testing.
+New My Tasks bands for reviews and testing.
 
 ### New
 - See stories in review that still have your subtasks
@@ -262,7 +262,7 @@ My Tasks shows reviews waiting on you and work in testing.
 
 ## [1.14.3] — 2026-09-22
 
-Pick dates the same way everywhere and keep the sprint header in view.
+One date picker everywhere and a sticky sprint header.
 
 ### New
 - One friendly calendar for every date field
@@ -300,7 +300,7 @@ Open links in the browser you actually want.
 
 ## [1.14.0] — 2026-08-13
 
-Ship releases with confidence: branches, milestones and stray MRs, all handled.
+Ship releases with branches and MRs in check.
 
 ### New
 - Create the release branch and milestone in one step
@@ -360,7 +360,7 @@ My Tasks stays focused on work that's still open.
 
 ## [1.13.1] — 2026-06-17
 
-Search as you type and jump to any page with a shortcut.
+Search as you type and jump to pages with shortcuts.
 
 ### New
 - Issue search updates as you type
@@ -484,7 +484,7 @@ Editing worklogs is clearer and tidier.
 
 ## [1.10.3] — 2026-05-26
 
-Jira text renders more faithfully and worklog keys open issues.
+Truer Jira text and clickable worklog keys.
 
 ### Improved
 - Click an issue key in Worklogs to open it
@@ -519,7 +519,7 @@ Standup's Yesterday is quicker to scan.
 
 ## [1.10.0] — 2026-05-25
 
-Meet Standup Notes: your daily update, ready before the meeting.
+Meet Standup Notes: your daily update, ready to go.
 
 ### New
 - Standup Notes gathers yesterday's work and today's plan
@@ -534,7 +534,7 @@ Meet Standup Notes: your daily update, ready before the meeting.
 
 ## [1.9.0] — 2026-05-23
 
-Track team time with Tempo and start the day on a fresh dashboard.
+Tempo worklogs and a fresh dashboard to start the day.
 
 ### New
 - See team worklogs by epic, story and subtask
@@ -557,7 +557,7 @@ Flag issues that need attention, wherever you are.
 
 ## [1.8.0] — 2026-05-18
 
-Your AIO test cycles now live right next to your Jira work.
+Your AIO test cycles, right next to your Jira work.
 
 ### New
 - Browse AIO test projects, cycles and runs
@@ -662,7 +662,7 @@ A test build for the new update pipeline.
 
 ## [1.5] — 2026-03-24
 
-Do almost everything you'd do in Jira, in a layout you control.
+Most of Jira, in a layout you control.
 
 ### New
 - One activity feed for changes, comments and worklogs
