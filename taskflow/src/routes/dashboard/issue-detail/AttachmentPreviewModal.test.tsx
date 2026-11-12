@@ -254,3 +254,26 @@ describe('AttachmentPreviewModal backdrop', () => {
     expect(props.onClose).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('AttachmentPreviewModal textual application MIME previews', () => {
+  it.each([
+    ['9', 'config.xml', 'application/xml'],
+    ['10', 'data.json', 'application/json; charset=utf-8'],
+  ])('renders %s as highlighted code', async (id, name, mime) => {
+    renderModal([att(id, name, mime)], 0);
+    const dialog = screen.getByRole('dialog');
+    await waitFor(() =>
+      expect(dialog.querySelector('code.hljs')?.textContent).toContain('sample text'),
+    );
+    expect(screen.queryByText('Download')).toBeNull();
+    expect(screen.getByRole('toolbar', { name: 'Text controls' })).toBeTruthy();
+  });
+
+  it('keeps the 2 MB pre-fetch cap for application/xml', async () => {
+    const big = { ...att('11', 'big.xml', 'application/xml'), size: 3 * 1024 * 1024 };
+    renderModal([big], 0);
+    // The visible text button is the DownloadFallback (the toolbar one is icon-only).
+    expect(await screen.findByText('Download')).toBeTruthy();
+    expect(document.querySelector('code.hljs')).toBeNull();
+  });
+});

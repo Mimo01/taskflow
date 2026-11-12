@@ -1,5 +1,6 @@
 import { File, FileText } from 'lucide-react';
 import type { JiraAttachment } from '@/services/jira';
+import { isTextualMime } from './resolvePreviewKind';
 
 export function formatFileSize(bytes?: number): string {
   if (bytes == null) return '';
@@ -10,7 +11,7 @@ export function formatFileSize(bytes?: number): string {
 
 export function getFileIcon(mimeType: string) {
   const mime = mimeType ?? '';
-  if (mime.startsWith('text/') || mime === 'application/pdf') {
+  if (mime.startsWith('text/') || mime === 'application/pdf' || isTextualMime(mime)) {
     return FileText;
   }
   return File;
