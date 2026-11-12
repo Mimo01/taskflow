@@ -11,7 +11,7 @@ interface AttachmentTileProps {
   onDownload: (attachment: JiraAttachment) => void;
   onDelete?: (attachment: JiraAttachment) => void;
   onPreview?: (attachment: JiraAttachment) => void;
-  /** Non-clickable tile: dashed, faded thumbnail with the reason inside it (261112-fy2). */
+  /** Non-clickable tile: softer, faded thumbnail with a faint reason inside it (261112-fy2). */
   previewUnavailable?: PreviewUnavailable;
 }
 
@@ -51,7 +51,7 @@ export function AttachmentTile({
       )}
       <div className="pointer-events-none">
         <div
-          className={`relative aspect-[4/3] w-full rounded-md border border-border overflow-hidden ${unavailable ? 'border-dashed bg-transparent' : 'bg-muted'}`}
+          className={`relative aspect-[4/3] w-full rounded-md border overflow-hidden ${unavailable ? 'border-border/70 bg-muted/40' : 'border-border bg-muted'}`}
         >
           {isImage ? (
             <AuthImage
@@ -62,7 +62,7 @@ export function AttachmentTile({
           ) : (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 px-2">
               <div
-                className={`flex flex-col items-center gap-1.5 ${unavailable ? 'opacity-60' : ''}`}
+                className={`flex flex-col items-center gap-1.5 ${unavailable ? 'opacity-50' : ''}`}
               >
                 <Icon className="size-[26px] text-muted-foreground" />
                 {ext && (
@@ -72,7 +72,7 @@ export function AttachmentTile({
                 )}
               </div>
               {unavailable && (
-                <span className="text-center text-[11px] leading-tight text-muted-foreground">
+                <span className="text-center text-[10px] leading-tight text-muted-foreground/70">
                   {unavailable}
                 </span>
               )}
@@ -84,7 +84,7 @@ export function AttachmentTile({
         <div className="mt-1.5 text-xs leading-snug min-h-[calc(2.75em+1rem)]">
           <span
             title={attachment.filename}
-            className={`line-clamp-2 [overflow-wrap:anywhere] ${onPreview ? 'group-hover:underline' : ''} ${unavailable ? 'text-muted-foreground' : ''}`}
+            className={`line-clamp-2 [overflow-wrap:anywhere] ${onPreview ? 'group-hover:underline' : ''}`}
           >
             {attachment.filename}
           </span>

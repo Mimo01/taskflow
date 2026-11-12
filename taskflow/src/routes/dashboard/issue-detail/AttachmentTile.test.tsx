@@ -113,7 +113,7 @@ describe('AttachmentTile', () => {
       />,
     );
     const status = screen.getByText('No preview');
-    const thumb = status.closest('.border-dashed');
+    const thumb = status.closest('.bg-muted\\/40');
     expect(thumb).toBeTruthy();
     expect(screen.getByText('2.0 KB').textContent).toBe('2.0 KB');
   });
