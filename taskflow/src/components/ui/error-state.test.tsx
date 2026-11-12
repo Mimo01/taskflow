@@ -7,7 +7,7 @@ vi.mock('react-router-dom', () => ({
   useNavigate: () => mockNavigate,
 }));
 
-import { ErrorState } from './error-state';
+import { CardErrorState, ErrorState } from './error-state';
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -87,5 +87,79 @@ describe('ErrorState — logging', () => {
     const err = new Error('something bad');
     render(<ErrorState error={err} onRetry={vi.fn()} viewName="Sprint" />);
     expect(console.error).toHaveBeenCalledWith('[ErrorState] Sprint:', err);
+  });
+});
+
+describe('CardErrorState', () => {
+  it('generic error: title, subtitle, Retry calls onRetry, no raw message', () => {
+    const onRetry = vi.fn();
+    render(
+      <CardErrorState
+        error={new Error('network down')}
+        onRetry={onRetry}
+        viewName="Upcoming Releases"
+      />,
+    );
+    expect(screen.getByText("Couldn't load Upcoming Releases")).toBeTruthy();
+    expect(screen.getByText('Check your connection and try again.')).toBeTruthy();
+    expect(screen.queryByText(/network down/)).toBeNull();
+    fireEvent.click(screen.getByText('Retry'));
+    expect(onRetry).toHaveBeenCalledOnce();
+  });
+
+  it('generic error without onRetry renders no button', () => {
+    render(<CardErrorState error={new Error('x')} viewName="X" />);
+    expect(screen.queryByRole('button')).toBeNull();
+  });
+
+  it('401 jira: token rejected + Open Settings navigates, no Retry', () => {
+    render(
+      <CardErrorState error={new ApiError('x', 401, 'jira')} onRetry={vi.fn()} viewName="X" />,
+    );
+    expect(screen.getByText('Jira token rejected')).toBeTruthy();
+    expect(screen.getByText('Update your Jira token in Settings.')).toBeTruthy();
+    expect(screen.queryByText('Retry')).toBeNull();
+    fireEvent.click(screen.getByText('Open Settings'));
+    expect(mockNavigate).toHaveBeenCalledWith('/settings');
+  });
+
+  it('403 gitlab names GitLab', () => {
+    render(<CardErrorState error={new ApiError('x', 403, 'gitlab')} viewName="X" />);
+    expect(screen.getByText('GitLab token rejected')).toBeTruthy();
+    expect(screen.getByText('Update your GitLab token in Settings.')).toBeTruthy();
+  });
+
+  it('plain Error containing 401 is auth, falls back to Jira', () => {
+    render(<CardErrorState error={new Error('HTTP 401')} viewName="X" />);
+    expect(screen.getByText('Jira token rejected')).toBeTruthy();
+  });
+
+  it('root has role=alert', () => {
+    render(<CardErrorState error={new Error('x')} viewName="X" />);
+    expect(screen.getByRole('alert')).toBeTruthy();
+  });
+
+  it('button click and keydown do not reach a clickable parent', () => {
+    const onClick = vi.fn();
+    const onKeyDown = vi.fn();
+    const onRetry = vi.fn();
+    render(
+      // biome-ignore lint/a11y/noStaticElementInteractions: test parent
+      <div onClick={onClick} onKeyDown={onKeyDown}>
+        <CardErrorState error={new Error('x')} onRetry={onRetry} viewName="X" />
+      </div>,
+    );
+    fireEvent.click(screen.getByText('Retry'));
+    expect(onRetry).toHaveBeenCalledOnce();
+    expect(onClick).not.toHaveBeenCalled();
+    fireEvent.keyDown(screen.getByText('Retry'), { key: 'Enter' });
+    expect(onKeyDown).not.toHaveBeenCalled();
+  });
+
+  it('logs console.error once with the tag', () => {
+    const err = new Error('x');
+    render(<CardErrorState error={err} viewName="V" />);
+    expect(console.error).toHaveBeenCalledTimes(1);
+    expect(console.error).toHaveBeenCalledWith('[CardErrorState] V:', err);
   });
 });
