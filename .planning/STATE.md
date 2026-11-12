@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-08-13)
 Phase: 95
 Plan: Not started
 Status: Milestone complete
-Last activity: 2026-11-12 - Completed quick task 261112-eep: Subtask create control in Subtasks section header
+Last activity: 2026-11-12 - Completed quick task 261112-ey2: Issue-detail attachment file rows fully clickable
 
 ## Performance Metrics
 
@@ -285,6 +285,7 @@ Acknowledged and deferred at v1.14 milestone close (2026-08-13) — 111 open art
 | 261112-cmy | Desktop notification attempts in Developer Tools → Notifications tab: each OS notification the poller sent/denied/errored or skipped as already known, with a macOS-style banner preview and the raw item; recorded when Developer Tools is on and Desktop notifications is enabled; shared `formatOsNotification` in lib/notification-dispatch-log.ts | 2026-11-12 | 86c11a8a, 37de5963, 1254b818, 748e9de3 | Approved | [261112-cmy-dev-mode-devtools-log-of-desktop-notific](./quick/261112-cmy-dev-mode-devtools-log-of-desktop-notific/) |
 | 261112-dai | Condensed desktop (OS) notifications: item-led title (`PROJ-123 · summary` / `!iid · title`), one-line `Actor: what` body with headline change + `(+N more)`, OS-only plain-text comment cleanup (own [~user] → display name, 140 cap); >3 fresh items in one poll → single summary banner; Dev Tools logs summary + Grouped rows; in-app unchanged | 2026-11-12 | fc3e2505, a1d56862, b1689129, f414a14e | Approved | [261112-dai-condense-desktop-notification-content-so](./quick/261112-dai-condense-desktop-notification-content-so/) |
 | 261112-eep | Issue-detail section headers unified via shared issue-detail/SectionHeader.tsx (quiet muted label, muted count w/o parens, chevron after label, h-7 mb-2, right-aligned actions gap-2) across Description/Attachments/Stories/Subtasks/Parent/Progress/Activity; Subtasks always rendered with `Bulk create` + `Add subtask` outline buttons on the header line, muted italic `No subtasks`/`No attachments` (empty state keyed on base subtasks) | 2026-11-12 | f40739ae, a4499b60, 5a4719db, c31efdd2 | Approved | [261112-eep-subtask-create-buttons-in-story-detail-s](./quick/261112-eep-subtask-create-buttons-in-story-detail-s/) |
+| 261112-ey2 | Issue-detail attachment file rows fully clickable: absolute inset-0 `Preview <filename>` overlay button over previewable rows (padding included), name content pointer-events-none, hover Download/Delete z-10 + pointer-events gated while hidden; image grid / file rows split kept; non-previewable rows unchanged | 2026-11-12 | c98b4acd | Pending UAT | [261112-ey2-redesign-issue-detail-attachments-sectio](./quick/261112-ey2-redesign-issue-detail-attachments-sectio/) |
 
 ## Session Continuity
 
