@@ -2,8 +2,8 @@
  * UpdateDialog — Update lifecycle dialog component.
  *
  * Driven by useUpdateStore status:
- *   available   → AvailableView: show version info + changelog, "Later" / "Update Now"
- *   downloading → DownloadingView: progress bar, non-dismissable
+ *   available   → notes body (shared ReleaseNotesBody) + skipped-releases roll-up, "Later" / "Update now"
+ *   downloading → same body, progress bar replaces the footer, non-dismissable
  *   error       → ErrorView: error message, "Dismiss" / "Retry"
  *
  * After download completes, the app restarts immediately via plugin:process|restart.
@@ -11,8 +11,7 @@
  */
 
 import { invoke } from '@tauri-apps/api/core';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import { validate } from 'compare-versions';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -22,10 +21,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { useReleaseHistory } from '@/hooks/useReleaseHistory';
 import { buildInfo } from '@/lib/build-info';
 import { persistChangelogBeforeRestart } from '@/lib/tauri-storage';
+import { selectRollup } from '@/services/releases';
 import { updaterService } from '@/services/updater';
 import { useUpdateStore } from '@/stores/update.store';
+import { ReleaseNotesBody } from './ReleaseNotesBody';
+import { ReleaseRollup } from './ReleaseRollup';
 
 // ─── Main UpdateDialog ──────────────────────────────────────────────────────
 
@@ -47,6 +50,20 @@ export function UpdateDialog() {
 
   // Non-dismissable state: downloading
   const isDismissable = status === 'available' || status === 'error';
+
+  // Skipped-releases roll-up: only while the notice is showing, never in dev
+  // builds, and never blocking — loading/error just means local notes only.
+  const rollupEnabled =
+    status === 'available' &&
+    !buildInfo.version.includes('-dev') &&
+    validate(buildInfo.version) &&
+    !!availableVersion &&
+    validate(availableVersion);
+  const { data: history } = useReleaseHistory({ enabled: rollupEnabled });
+  const skipped =
+    rollupEnabled && history && availableVersion
+      ? selectRollup(history, buildInfo.version, availableVersion)
+      : [];
 
   async function handleUpdateNow() {
     setDownloading();
@@ -84,64 +101,54 @@ export function UpdateDialog() {
   return (
     <Dialog open={open} onOpenChange={isDismissable ? () => resetToIdle() : undefined}>
       <DialogContent showCloseButton={false} className="sm:max-w-lg">
-        {status === 'available' && (
+        {(status === 'available' || status === 'downloading') && (
           <>
             <DialogHeader>
-              <DialogTitle>Update Available</DialogTitle>
+              <DialogTitle>Update available</DialogTitle>
               <DialogDescription>
-                v{buildInfo.version} &rarr; v{availableVersion}
+                {buildInfo.version} &rarr; {availableVersion}
+                {releaseDate &&
+                  ` · ${new Date(releaseDate).toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric',
+                  })}`}
+                {skipped.length > 0 && ` (${skipped.length + 1} releases)`}
               </DialogDescription>
             </DialogHeader>
-            {releaseDate && (
-              <p className="text-xs text-muted-foreground -mt-2">
-                Released{' '}
-                {new Date(releaseDate).toLocaleDateString('en-US', {
-                  month: 'short',
-                  day: 'numeric',
-                  year: 'numeric',
-                })}
-              </p>
+            <div className="flex max-h-[60vh] flex-col gap-4 overflow-y-auto">
+              <ReleaseNotesBody notes={changelog} />
+              <ReleaseRollup releases={skipped} />
+            </div>
+            {status === 'available' ? (
+              <DialogFooter>
+                <Button variant="outline" onClick={resetToIdle}>
+                  Later
+                </Button>
+                <Button variant="default" onClick={handleUpdateNow}>
+                  Update now
+                </Button>
+              </DialogFooter>
+            ) : (
+              <div className="flex flex-col gap-1">
+                <div
+                  className="w-full bg-muted rounded-full h-2"
+                  role="progressbar"
+                  aria-label="Downloading update"
+                  aria-valuenow={downloadProgress ?? 0}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                >
+                  <div
+                    className="bg-primary h-2 rounded-full transition-all duration-200"
+                    style={{ width: `${downloadProgress ?? 0}%` }}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground text-right">
+                  Downloading update… {downloadProgress ?? 0}%
+                </p>
+              </div>
             )}
-            <div className="max-h-72 overflow-y-auto prose prose-sm dark:prose-invert max-w-none [&>h2]:text-sm [&>h2]:font-semibold [&>h2]:mt-3 [&>h2]:mb-1 [&>ul]:my-1 [&>ul]:pl-4 [&_li]:my-0 [&_p]:my-1">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{changelog ?? ''}</ReactMarkdown>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={resetToIdle}>
-                Later
-              </Button>
-              <Button variant="default" onClick={handleUpdateNow}>
-                Update Now
-              </Button>
-            </DialogFooter>
-          </>
-        )}
-
-        {status === 'downloading' && (
-          <>
-            <DialogHeader>
-              <DialogTitle>Downloading Update</DialogTitle>
-              <DialogDescription>v{availableVersion}</DialogDescription>
-            </DialogHeader>
-            <div
-              className="w-full bg-muted rounded-full h-2"
-              role="progressbar"
-              aria-valuenow={downloadProgress ?? 0}
-              aria-valuemin={0}
-              aria-valuemax={100}
-            >
-              <div
-                className="bg-primary h-2 rounded-full transition-all duration-200"
-                style={{ width: `${downloadProgress ?? 0}%` }}
-              />
-            </div>
-            <p className="text-xs text-muted-foreground text-right mt-1">
-              {downloadProgress ?? 0}%
-            </p>
-            <DialogFooter>
-              <Button variant="outline" onClick={resetToIdle}>
-                Stop Download
-              </Button>
-            </DialogFooter>
           </>
         )}
 

@@ -5,11 +5,14 @@
  *   buildInfo.version !== settings.lastSeenVersion && settings.lastSeenChangelog !== null
  *
  * "Got it" sets lastSeenVersion to current version — dialog won't reappear.
- * lastSeenChangelog is NOT cleared on dismiss (kept for future reference per UI-SPEC).
+ * "See all updates" does the same, then opens Settings → Updates.
+ * lastSeenChangelog is NOT cleared on dismiss (kept for future reference per UI-SPEC)
+ * and stays a raw markdown string (written by older clients too).
  */
 
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import { validate } from 'compare-versions';
+import { CircleCheck } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -19,29 +22,55 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { useReleaseHistory } from '@/hooks/useReleaseHistory';
 import { buildInfo } from '@/lib/build-info';
+import { selectRollup } from '@/services/releases';
 import { useSettingsStore } from '@/stores/settings.store';
+import { ReleaseNotesBody } from './ReleaseNotesBody';
+import { ReleaseRollup } from './ReleaseRollup';
 
 export function WhatsNewDialog() {
-  const { lastSeenVersion, lastSeenChangelog, setLastSeenVersion } = useSettingsStore();
+  const lastSeenVersion = useSettingsStore((s) => s.lastSeenVersion);
+  const lastSeenChangelog = useSettingsStore((s) => s.lastSeenChangelog);
+  const setLastSeenVersion = useSettingsStore((s) => s.setLastSeenVersion);
+  const navigate = useNavigate();
 
   const open = lastSeenVersion !== buildInfo.version && lastSeenChangelog !== null;
 
+  const fromVersion = lastSeenVersion && validate(lastSeenVersion) ? lastSeenVersion : null;
+  const rollupEnabled =
+    open && !buildInfo.version.includes('-dev') && validate(buildInfo.version) && !!fromVersion;
+  const { data: history } = useReleaseHistory({ enabled: rollupEnabled });
+  const skipped =
+    rollupEnabled && history ? selectRollup(history, fromVersion, buildInfo.version) : [];
+
   function handleDismiss() {
     setLastSeenVersion(buildInfo.version);
+  }
+
+  function handleSeeAll() {
+    setLastSeenVersion(buildInfo.version);
+    navigate('/settings?section=updates');
   }
 
   return (
     <Dialog open={open} onOpenChange={handleDismiss}>
       <DialogContent showCloseButton={false} className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>What&apos;s New in v{buildInfo.version}</DialogTitle>
-          <DialogDescription>Here&apos;s what changed in this update</DialogDescription>
+          <DialogTitle className="flex items-center gap-2">
+            <CircleCheck aria-hidden="true" className="size-5 text-green-500" />
+            Updated to {buildInfo.version}
+          </DialogTitle>
+          {fromVersion && <DialogDescription>from {fromVersion}</DialogDescription>}
         </DialogHeader>
-        <div className="max-h-80 overflow-y-auto prose prose-sm dark:prose-invert max-w-none [&>h2]:text-sm [&>h2]:font-semibold [&>h2]:mt-3 [&>h2]:mb-1 [&>ul]:my-1 [&>ul]:pl-4 [&_li]:my-0 [&_p]:my-1">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>{lastSeenChangelog ?? ''}</ReactMarkdown>
+        <div className="flex max-h-[60vh] flex-col gap-4 overflow-y-auto">
+          <ReleaseNotesBody notes={lastSeenChangelog} />
+          <ReleaseRollup releases={skipped} />
         </div>
         <DialogFooter>
+          <Button variant="link" onClick={handleSeeAll}>
+            See all updates
+          </Button>
           <Button variant="default" onClick={handleDismiss}>
             Got it
           </Button>
