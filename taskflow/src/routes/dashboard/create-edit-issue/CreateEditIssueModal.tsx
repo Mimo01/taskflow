@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Loader2, Paperclip, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { EpicPicker } from '@/components/ui/epic-picker';
 import { Input } from '@/components/ui/input';
 import { PersonPicker, toPersonValue } from '@/components/ui/person-picker';
 import {
@@ -148,7 +149,6 @@ export function CreateEditIssueModal({
     customRequiredFields,
     selectedIssueTypeId,
     parentFields,
-    epics,
     linkTypes,
     linkTypesLoading,
   } = useCreateEditQueries({
@@ -397,94 +397,16 @@ export function CreateEditIssueModal({
                 <label htmlFor="modal-epic-link" className="text-sm font-medium">
                   Epic Link
                 </label>
-                {state.epicOpen ? (
-                  <div className="rounded-md border shadow-sm">
-                    <input
-                      id="modal-epic-link"
-                      role="combobox"
-                      aria-expanded={state.epicOpen}
-                      aria-controls="epic-listbox"
-                      aria-label="Filter epics"
-                      value={state.epicFilter}
-                      onChange={(e) =>
-                        dispatch({ type: 'SET_FIELD', field: 'epicFilter', value: e.target.value })
-                      }
-                      placeholder="Filter epics..."
-                      className="w-full rounded-t-md px-3 py-2 text-sm outline-none border-b bg-background"
-                      onBlur={() =>
-                        setTimeout(
-                          () => dispatch({ type: 'SET_FIELD', field: 'epicOpen', value: false }),
-                          150,
-                        )
-                      }
-                    />
-                    <div id="epic-listbox" role="listbox" className="max-h-48 overflow-y-auto">
-                      <button
-                        type="button"
-                        role="option"
-                        aria-selected={state.epicLinkKey === null}
-                        className="w-full px-3 py-1.5 text-left text-sm hover:bg-accent text-muted-foreground"
-                        onMouseDown={() => {
-                          dispatch({ type: 'SET_FIELD', field: 'epicLinkKey', value: null });
-                          dispatch({ type: 'SET_FIELD', field: 'epicFilter', value: '' });
-                          dispatch({ type: 'SET_FIELD', field: 'epicOpen', value: false });
-                        }}
-                      >
-                        None
-                      </button>
-                      {(epics ?? [])
-                        .filter(
-                          (e) =>
-                            state.epicFilter === '' ||
-                            e.key.toLowerCase().includes(state.epicFilter.toLowerCase()) ||
-                            e.fields.summary.toLowerCase().includes(state.epicFilter.toLowerCase()),
-                        )
-                        .map((epic) => (
-                          <button
-                            key={epic.key}
-                            type="button"
-                            role="option"
-                            aria-selected={state.epicLinkKey === epic.key}
-                            className="w-full px-3 py-1.5 text-left text-sm hover:bg-accent"
-                            onMouseDown={() => {
-                              dispatch({
-                                type: 'SET_FIELD',
-                                field: 'epicLinkKey',
-                                value: epic.key,
-                              });
-                              dispatch({ type: 'SET_FIELD', field: 'epicFilter', value: '' });
-                              dispatch({ type: 'SET_FIELD', field: 'epicOpen', value: false });
-                            }}
-                          >
-                            <span className="font-mono text-xs text-muted-foreground">
-                              {epic.key}
-                            </span>{' '}
-                            {epic.fields.summary}
-                          </button>
-                        ))}
-                    </div>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      dispatch({ type: 'SET_FIELD', field: 'epicOpen', value: true });
-                      dispatch({ type: 'SET_FIELD', field: 'epicFilter', value: '' });
-                    }}
-                    disabled={isPending}
-                    className="flex h-9 w-full items-center rounded-md border bg-background px-3 py-2 text-sm text-left shadow-xs hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {state.epicLinkKey ? (
-                      epics?.find((e) => e.key === state.epicLinkKey) ? (
-                        `${state.epicLinkKey}: ${epics?.find((e) => e.key === state.epicLinkKey)?.fields.summary}`
-                      ) : (
-                        state.epicLinkKey
-                      )
-                    ) : (
-                      <span className="text-muted-foreground">Select epic (optional)</span>
-                    )}
-                  </button>
-                )}
+                <EpicPicker
+                  variant="field"
+                  id="modal-epic-link"
+                  value={state.epicLinkKey}
+                  projectKey={projectKey}
+                  disabled={isPending}
+                  onChange={(epic) =>
+                    dispatch({ type: 'SET_FIELD', field: 'epicLinkKey', value: epic?.key ?? null })
+                  }
+                />
               </div>
             )}
 

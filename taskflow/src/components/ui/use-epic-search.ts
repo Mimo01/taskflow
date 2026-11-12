@@ -44,5 +44,8 @@ export function useEpicSearch({ projectKey, query, open }: Args): {
     staleTime: 60_000,
   });
 
-  return { epics: result.data ?? [], isLoading: result.isLoading };
+  return { epics: result.data ?? EMPTY, isLoading: result.isLoading };
 }
+
+// Stable reference so consumers can safely use `epics` in effect deps.
+const EMPTY: EpicOption[] = [];

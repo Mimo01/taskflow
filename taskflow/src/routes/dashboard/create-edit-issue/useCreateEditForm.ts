@@ -48,8 +48,6 @@ export interface FormState {
   priority: string | null;
   storyPoints: string;
   epicLinkKey: string | null;
-  epicOpen: boolean;
-  epicFilter: string;
   parentKey: string | null;
   customFieldValues: Record<string, string>;
   customFieldInputValues: Record<string, string>;
@@ -141,8 +139,6 @@ function buildInitialState(
     priority: initialValues?.priority ?? null,
     storyPoints: initialValues?.storyPoints != null ? String(initialValues.storyPoints) : '',
     epicLinkKey: initialValues?.epicLinkKey ?? null,
-    epicOpen: false,
-    epicFilter: '',
     parentKey: defaultParentKey ?? null,
     customFieldValues,
     customFieldInputValues,

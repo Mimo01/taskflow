@@ -5,7 +5,6 @@ import {
   fetchCreatemeta,
   fetchIssueLinkTypes,
   type IssueLinkType,
-  type JiraIssue,
 } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
 import type { IssueType } from './useCreateEditForm';
@@ -104,27 +103,6 @@ export function useCreateEditQueries({
     return true;
   });
 
-  const { data: epics } = useQuery<JiraIssue[]>({
-    queryKey: ['epics', projectKey],
-    queryFn: async () => {
-      const token = await readSecret('jira-pat').catch(() => null);
-      if (!token || !jiraBaseUrl || !projectKey) return [];
-      const base = jiraBaseUrl.replace(/\/$/, '');
-      const jql = `project = ${projectKey} AND issuetype = Epic AND statusCategory != Done ORDER BY updated DESC`;
-      const resp = await apiFetch(
-        'jira',
-        `${base}/rest/api/2/search?jql=${encodeURIComponent(jql)}&fields=summary,status&maxResults=50`,
-        { headers: { Authorization: `Bearer ${token}` } },
-        'Create/Edit Issue',
-      );
-      if (!resp.ok) return [];
-      const data = await resp.json();
-      return (data.issues ?? []) as JiraIssue[];
-    },
-    enabled: open && !!projectKey && !!jiraBaseUrl && selectedIssueType !== 'Subtask',
-    staleTime,
-  });
-
   const { data: linkTypes = [], isLoading: linkTypesLoading } = useQuery<IssueLinkType[]>({
     queryKey: ['jira-link-types', jiraBaseUrl],
     queryFn: async () => {
@@ -162,7 +140,6 @@ export function useCreateEditQueries({
     customRequiredFields,
     selectedIssueTypeId,
     parentFields,
-    epics,
     linkTypes,
     linkTypesLoading,
   };

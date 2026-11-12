@@ -151,6 +151,7 @@ export function useIssueMutations({
           queryKey: ['jira-issue-detail', state.parentKey, jiraBaseUrl],
         });
       }
+      queryClient.invalidateQueries({ queryKey: ['jira-epic-stories'] });
       onSuccess();
     },
     onError: (err: Error) => {
@@ -236,6 +237,7 @@ export function useIssueMutations({
       queryClient.invalidateQueries({ queryKey: ['jira-parent-detail'] });
       // Phase 74 GH-CUT-01: backlog data lives under ['gh-backlog'].
       invalidateGhBacklogData(queryClient);
+      queryClient.invalidateQueries({ queryKey: ['jira-epic-stories'] });
       onSuccess();
     },
     onError: (err: Error) => {
