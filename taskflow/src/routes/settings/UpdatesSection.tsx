@@ -103,15 +103,15 @@ function ReleaseRow({
   const { release, summary } = item;
   const plainSummary = summary?.replace(/\*\*|`/g, '') ?? '';
   return (
-    <li className="list-none">
+    <li className={cn('list-none rounded-lg', open && 'bg-muted/50')}>
       <button
         type="button"
         aria-expanded={open}
         onClick={onToggle}
         className={cn(
           ROW_GRID,
-          'h-8 w-full rounded-md px-2 text-left text-sm hover:bg-muted/60',
-          open && 'bg-muted/60',
+          'h-8 w-full rounded-lg px-2 text-left text-sm',
+          !open && 'hover:bg-muted/50',
         )}
       >
         <span className="flex items-center gap-1.5 font-medium tabular-nums">
@@ -133,7 +133,7 @@ function ReleaseRow({
         </span>
       </button>
       {open && (
-        <div className="pb-3 pl-[calc(4.5rem+1.25rem)] pr-2 pt-1">
+        <div className="px-2 pb-3 pt-1">
           <ReleaseNotesBody notes={release.body} details hideHeadline compact />
         </div>
       )}
@@ -205,7 +205,7 @@ function VersionHistory() {
   }
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-4">
       {groups.map(([key, items]) => (
         <section key={key} aria-label={`Version ${key}`}>
           <h4 className="mb-1 flex items-center gap-2 px-2 text-xs font-medium text-muted-foreground">

@@ -173,7 +173,7 @@ function DetailItemRow({ item, nested = false }: { item: NoteItem; nested?: bool
   return (
     <>
       <li
-        className={cn('list-none truncate py-0.5 text-sm', nested && 'pl-3')}
+        className={cn('list-none truncate py-0.5 text-sm leading-5', nested && 'pl-3')}
         title={detail ? `${title} · ${detail}` : title}
       >
         {title}
@@ -234,24 +234,31 @@ function Section({
   const label = section.label ?? KIND_LABEL[section.kind];
   const collapse =
     !details && section.kind === 'fixed' && section.items.length > FIXED_COLLAPSE_OVER;
+  if (details) {
+    // Two columns that line up with the Settings history row grid:
+    // section label under the version column, items under the summary column.
+    return (
+      <section className="grid grid-cols-[4.5rem_minmax(0,1fr)] gap-x-3">
+        <h4 className="m-0 py-0.5 text-xs leading-5 text-muted-foreground">{label}</h4>
+        <ul className="m-0 flex min-w-0 flex-col p-0">
+          {section.items.map((it, i) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: static parsed list, never reordered
+            <DetailItemRow key={`${it.raw}-${i}`} item={it} />
+          ))}
+        </ul>
+      </section>
+    );
+  }
   return (
     <section className={cn('flex flex-col', compact ? 'gap-0.5' : 'gap-1')}>
-      {label &&
-        (details ? (
-          <h4 className="text-xs font-medium text-muted-foreground">{label}</h4>
-        ) : (
-          <h4 className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-            {label}
-          </h4>
-        ))}
+      {label && (
+        <h4 className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+          {label}
+        </h4>
+      )}
       <ul className="m-0 flex flex-col p-0">
         {collapse ? (
           <CollapsedFixes items={section.items} highlight={highlight} />
-        ) : details ? (
-          section.items.map((it, i) => (
-            // biome-ignore lint/suspicious/noArrayIndexKey: static parsed list, never reordered
-            <DetailItemRow key={`${it.raw}-${i}`} item={it} />
-          ))
         ) : (
           section.items.map((it, i) => (
             // biome-ignore lint/suspicious/noArrayIndexKey: static parsed list, never reordered
