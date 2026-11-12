@@ -266,10 +266,69 @@ describe('gitlab service', () => {
       vi.mocked(mockFetch).mockResolvedValue({
         ok: true,
         status: 200,
+        headers: new Headers(),
         json: async () => mockProjects,
       } as Response);
       const result = await listGitLabProjects('https://gitlab.example.com', 'my-token');
       expect(result).toEqual(mockProjects);
+    });
+
+    const projects = (from: number, n: number) =>
+      Array.from({ length: n }, (_, i) => ({ id: from + i, name: `P${from + i}` }));
+
+    it('follows X-Next-Page across pages', async () => {
+      vi.mocked(mockFetch)
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          headers: new Headers({ 'X-Next-Page': '2' }),
+          json: async () => projects(0, 100),
+        } as Response)
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          headers: new Headers({ 'X-Next-Page': '' }),
+          json: async () => projects(100, 30),
+        } as Response);
+      const result = await listGitLabProjects('https://gitlab.example.com', 'my-token');
+      expect(result).toHaveLength(130);
+      expect(result[129].id).toBe(129);
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+      expect(vi.mocked(mockFetch).mock.calls[0][0]).toContain('&page=1');
+      expect(vi.mocked(mockFetch).mock.calls[1][0]).toContain('&page=2');
+    });
+
+    it('without X-Next-Page, stops when a page has fewer than 100 items', async () => {
+      vi.mocked(mockFetch)
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          headers: new Headers(),
+          json: async () => projects(0, 100),
+        } as Response)
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          headers: new Headers(),
+          json: async () => projects(100, 7),
+        } as Response);
+      const result = await listGitLabProjects('https://gitlab.example.com', 'my-token');
+      expect(result).toHaveLength(107);
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+    });
+
+    it('throws on a failing later page instead of returning a partial list', async () => {
+      vi.mocked(mockFetch)
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          headers: new Headers({ 'X-Next-Page': '2' }),
+          json: async () => projects(0, 100),
+        } as Response)
+        .mockResolvedValueOnce({ ok: false, status: 403, headers: new Headers() } as Response);
+      await expect(listGitLabProjects('https://gitlab.example.com', 'my-token')).rejects.toThrow(
+        'lacks required permissions',
+      );
     });
   });
 

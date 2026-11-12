@@ -213,39 +213,52 @@ export async function listGitLabGroups(baseUrl: string, token: string): Promise<
  * @returns Array of projects sorted by last activity (most recent first)
  */
 export async function listGitLabProjects(baseUrl: string, token: string): Promise<GitLabProject[]> {
-  const url = `${baseUrl.replace(/\/$/, '')}/api/v4/projects?membership=true&per_page=100&order_by=last_activity_at&sort=desc`;
+  const PER_PAGE = 100;
+  const MAX_PAGES = 50;
+  const all: GitLabProject[] = [];
+  let page = 1;
 
-  let response: Response;
-  try {
-    response = await apiFetch(
-      'gitlab',
-      url,
-      {
-        headers: {
-          'PRIVATE-TOKEN': token,
-          'Content-Type': 'application/json',
+  for (let n = 0; n < MAX_PAGES; n++) {
+    const url = `${baseUrl.replace(/\/$/, '')}/api/v4/projects?membership=true&per_page=${PER_PAGE}&order_by=last_activity_at&sort=desc&page=${page}`;
+
+    let response: Response;
+    try {
+      response = await apiFetch(
+        'gitlab',
+        url,
+        {
+          headers: {
+            'PRIVATE-TOKEN': token,
+            'Content-Type': 'application/json',
+          },
         },
-      },
-      'Load Projects',
-    );
-  } catch {
+        'Load Projects',
+      );
+    } catch {
+      throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
+    }
+
+    if (response.ok) {
+      const data = (await response.json()) as GitLabProject[];
+      all.push(...data);
+      const header = response.headers.get('X-Next-Page');
+      const nextPage = header === null ? (data.length === PER_PAGE ? page + 1 : 0) : Number(header);
+      if (!nextPage || data.length === 0) return all;
+      page = nextPage;
+      continue;
+    }
+
+    if (response.status === 401) {
+      throw new ApiError('Invalid token or token has expired', 401, 'gitlab');
+    }
+
+    if (response.status === 403) {
+      throw new ApiError('Token valid but lacks required permissions', 403, 'gitlab');
+    }
+
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
   }
-
-  if (response.ok) {
-    const data = await response.json();
-    return data as GitLabProject[];
-  }
-
-  if (response.status === 401) {
-    throw new ApiError('Invalid token or token has expired', 401, 'gitlab');
-  }
-
-  if (response.status === 403) {
-    throw new ApiError('Token valid but lacks required permissions', 403, 'gitlab');
-  }
-
-  throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
+  return all;
 }
 
 /**

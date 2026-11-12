@@ -1,5 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { addIssuesToSprint, fetchActiveSprint, fetchSprintsForBoard } from './sprints';
+import {
+  addIssuesToSprint,
+  fetchActiveSprint,
+  fetchSprintsForBoard,
+  listProjectBoards,
+} from './sprints';
 
 vi.mock('../../lib/apiFetch', () => ({
   apiFetch: vi.fn(),
@@ -106,6 +111,72 @@ describe('sprints service', () => {
 
       const result = await fetchSprintsForBoard(BASE, TOKEN, 42);
       expect(result).toEqual([]);
+    });
+  });
+
+  // --- listProjectBoards ---
+  describe('listProjectBoards', () => {
+    const boards = (from: number, n: number) =>
+      Array.from({ length: n }, (_, i) => ({
+        id: from + i,
+        name: `Board ${from + i}`,
+        type: 'scrum',
+      }));
+
+    it('follows startAt across pages until isLast', async () => {
+      vi.mocked(apiFetch)
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => ({ values: boards(0, 100), isLast: false }),
+        } as Response)
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => ({ values: boards(100, 5), isLast: true }),
+        } as Response);
+
+      const result = await listProjectBoards(BASE, TOKEN, 'PROJ');
+      expect(result).toHaveLength(105);
+      expect(apiFetch).toHaveBeenCalledTimes(2);
+      expect(vi.mocked(apiFetch).mock.calls[0][1]).toContain('startAt=0');
+      expect(vi.mocked(apiFetch).mock.calls[1][1]).toContain('startAt=100');
+    });
+
+    it('stops on an empty page', async () => {
+      vi.mocked(apiFetch)
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => ({ values: boards(0, 2), isLast: false }),
+        } as Response)
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => ({ values: [], isLast: false }),
+        } as Response);
+
+      const result = await listProjectBoards(BASE, TOKEN, 'PROJ');
+      expect(result).toHaveLength(2);
+      expect(apiFetch).toHaveBeenCalledTimes(2);
+    });
+
+    it('caps at 20 pages', async () => {
+      vi.mocked(apiFetch).mockImplementation(
+        async () =>
+          ({
+            ok: true,
+            status: 200,
+            json: async () => ({ values: boards(0, 1), isLast: false }),
+          }) as Response,
+      );
+      await listProjectBoards(BASE, TOKEN, 'PROJ');
+      expect(apiFetch).toHaveBeenCalledTimes(20);
+    });
+
+    it('returns [] on failure', async () => {
+      vi.mocked(apiFetch).mockResolvedValueOnce({ ok: false, status: 500 } as Response);
+      expect(await listProjectBoards(BASE, TOKEN, 'PROJ')).toEqual([]);
     });
   });
 

@@ -70,17 +70,24 @@ export async function listProjectBoards(
 ): Promise<JiraBoard[]> {
   const base = baseUrl.replace(/\/$/, '');
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+  const boards: JiraBoard[] = [];
   try {
-    const res = await apiFetch(
-      'jira',
-      `${base}/rest/agile/1.0/board?projectKeyOrId=${encodeURIComponent(projectKey)}&type=scrum&maxResults=100`,
-      { headers },
-      'List Boards',
-    );
-    if (!res.ok) return [];
-    const data = await res.json();
-    const values: Array<{ id: number; name: string; type: string }> = data?.values ?? [];
-    return values.map((b) => ({ id: b.id, name: b.name, type: b.type }));
+    let startAt = 0;
+    for (let page = 0; page < 20; page++) {
+      const res = await apiFetch(
+        'jira',
+        `${base}/rest/agile/1.0/board?projectKeyOrId=${encodeURIComponent(projectKey)}&type=scrum&maxResults=100&startAt=${startAt}`,
+        { headers },
+        'List Boards',
+      );
+      if (!res.ok) return [];
+      const data = await res.json();
+      const values: Array<{ id: number; name: string; type: string }> = data?.values ?? [];
+      boards.push(...values.map((b) => ({ id: b.id, name: b.name, type: b.type })));
+      if (data?.isLast === true || values.length === 0) break;
+      startAt += values.length;
+    }
+    return boards;
   } catch {
     return [];
   }
