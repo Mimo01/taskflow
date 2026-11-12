@@ -7,11 +7,19 @@
  * does not parse into bullets falls back to plain markdown.
  */
 
-import { ChevronRight } from 'lucide-react';
+import {
+  ArrowUpCircle,
+  ChevronRight,
+  type LucideIcon,
+  Minus,
+  ShieldCheck,
+  Sparkles,
+  Trash2,
+  Wrench,
+} from 'lucide-react';
 import { type ComponentPropsWithoutRef, useMemo, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Badge } from '@/components/ui/badge';
 import { openExternal } from '@/lib/openExternal';
 import {
   type NoteItem,
@@ -19,7 +27,6 @@ import {
   type NoteSection,
   parseReleaseNotes,
 } from '@/lib/release-notes/parse';
-import type { ChipTone } from '@/lib/statusStyles';
 import { cn } from '@/lib/utils';
 
 const KIND_LABEL: Record<NoteKind, string | null> = {
@@ -222,21 +229,27 @@ function CollapsedFixes({ items, highlight }: { items: NoteItem[]; highlight?: s
   );
 }
 
-/** Tinted badge tone per section kind (the app's chip/status-pill family). */
-const KIND_TONE: Record<NoteKind, ChipTone> = {
-  new: 'blue',
-  improved: 'purple',
-  fixed: 'green',
-  removed: 'orange',
-  security: 'amber',
-  other: 'muted',
+/**
+ * Section icon per kind, tinted with the text colour of the app's chip tones
+ * (lib/statusStyles CHIP_TONE_CLASS) so it stays in the app palette.
+ */
+const KIND_ICON: Record<NoteKind, { icon: LucideIcon; className: string }> = {
+  new: { icon: Sparkles, className: 'text-blue-600 dark:text-blue-400' },
+  improved: { icon: ArrowUpCircle, className: 'text-purple-600 dark:text-purple-400' },
+  fixed: { icon: Wrench, className: 'text-green-600 dark:text-green-400' },
+  removed: { icon: Trash2, className: 'text-orange-600 dark:text-orange-400' },
+  security: { icon: ShieldCheck, className: 'text-amber-600 dark:text-amber-400' },
+  other: { icon: Minus, className: 'text-muted-foreground' },
 };
 
+/** Muted section label with its kind icon (fits the history grid version column). */
 function SectionLabel({ kind, label }: { kind: NoteKind; label: string | null }) {
   if (!label) return <span />;
+  const { icon: Icon, className } = KIND_ICON[kind];
   return (
-    <h4 className="m-0 self-start pt-0.5">
-      <Badge tone={KIND_TONE[kind]}>{label}</Badge>
+    <h4 className="m-0 flex items-center gap-1.5 self-start py-0.5 text-xs font-medium leading-5 text-muted-foreground">
+      <Icon aria-hidden="true" className={cn('size-3.5 shrink-0', className)} />
+      {label}
     </h4>
   );
 }
