@@ -1,7 +1,7 @@
 ---
 phase: quick-261112-eep
 verified: 2026-11-12T10:35:00Z
-status: human_needed
+status: passed
 score: 6/6 must-haves verified
 human_verification:
   - test: "Open a story with 0 subtasks and one with N subtasks in the app"

@@ -42,3 +42,5 @@ Rendered Now / A (quiet labels) / B (strong titles + icons) preview; user chose 
 - `SubtaskCreateControl`: split button → two outline sm buttons "Bulk create" + "Add subtask" (review WR-01 seam issue moot).
 - Attachments: bold icon+chevron header → SectionHeader; empty state → muted italic "No attachments" (drag-drop hint line dropped).
 - Out of scope: sidebar field-group labels (uppercase "Linked Issues") and Activity's centred empty state left as is.
+
+**UAT:** Approved by user 2026-11-12 after round 1 (unified SectionHeader, c31efdd2).
