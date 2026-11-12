@@ -19,7 +19,7 @@ for (const w of warnings) console.error(`warning: ${w}`);
 if (errors.length > 0) {
   for (const e of errors) console.error(`${downgrade ? 'warning' : 'error'}: ${e}`);
   if (!downgrade) {
-    console.error('Release notes are too wordy. See taskflow/docs/RELEASE-NOTES.md (override: --allow-wordy-notes).');
+    console.error('Release notes do not follow the format. See taskflow/docs/RELEASE-NOTES.md (override: --allow-wordy-notes).');
     process.exit(1);
   }
 }

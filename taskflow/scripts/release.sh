@@ -2,7 +2,9 @@
 set -euo pipefail
 
 # Usage: echo "<release notes>" | ./scripts/release.sh <version> [--skip-bump] [--allow-wordy-notes]
-# Example: printf 'One-line summary.\n\n### Fixed\n- **Bug title**' | ./scripts/release.sh 1.7.1
+# Example: printf 'One-line summary of the release.\n\n### Fixed\n- Something that works again' | ./scripts/release.sh 1.7.1
+# Format (enforced by the lint): docs/RELEASE-NOTES.md — headline + plain short sentences
+# under ### New / ### Improved / ### Fixed.
 # Example: ./scripts/release.sh 1.7.1 --skip-bump  (version already bumped)
 #
 # Release notes use the short "headline + titles" format and are linted before
@@ -51,7 +53,7 @@ if [[ "$SKIP_BUMP" == "false" ]] || [[ ! -t 0 ]]; then
 fi
 if [[ -z "$RELEASE_NOTES" ]] && [[ "$SKIP_BUMP" == "false" ]]; then
   echo "Error: No release notes provided on stdin." >&2
-  echo "Usage: printf 'One-line summary.\n\n### Fixed\n- **Bug title**' | ./scripts/release.sh 1.7.1" >&2
+  echo "Usage: printf 'One-line summary of the release.\n\n### Fixed\n- Something that works again' | ./scripts/release.sh 1.7.1" >&2
   exit 1
 fi
 
@@ -82,9 +84,15 @@ if [[ "$SKIP_BUMP" == "false" ]]; then
     exit 1
   fi
 else
-  # Already-committed entry may be historical: warn only, never block.
-  printf '%s' "$(awk "/^## \\[$VERSION\\]/{found=1; next} /^## \\[/{if(found) exit} found" "$TASKFLOW_DIR/CHANGELOG.md")" \
-    | node "$SCRIPT_DIR/lint-release-notes.mjs" --warn-only || true
+  # The committed CHANGELOG section becomes the tag / GitHub release body: hold it
+  # to the same format (every section already passes).
+  LINT_ARGS=()
+  [[ "$ALLOW_WORDY" == "true" ]] && LINT_ARGS+=(--allow-wordy-notes)
+  if ! printf '%s' "$(awk "/^## \\[$VERSION\\]/{found=1; next} /^## \\[/{if(found) exit} found" "$TASKFLOW_DIR/CHANGELOG.md")" \
+    | node "$SCRIPT_DIR/lint-release-notes.mjs" ${LINT_ARGS[@]+"${LINT_ARGS[@]}"}; then
+    echo "Error: CHANGELOG section for $VERSION failed the lint. See taskflow/docs/RELEASE-NOTES.md" >&2
+    exit 1
+  fi
 fi
 
 echo "    Version: $VERSION"
@@ -99,7 +107,7 @@ if [[ "$SKIP_BUMP" == "true" ]]; then
   cd "$TASKFLOW_DIR"
   if ! git -C "$REPO_ROOT" rev-parse "v$VERSION" &>/dev/null; then
     echo "    Creating tag v$VERSION on HEAD..."
-    # Keep blank lines so the Markdown sections (### Added / ### Fixed) stay
+    # Keep blank lines so the Markdown sections (### New / ### Fixed) stay
     # readable; --cleanup=verbatim below preserves the message (and '#' headers) as-is.
     NOTES="$(awk "/^## \\[$VERSION\\]/{found=1; next} /^## \\[/{if(found) exit} found" "$TASKFLOW_DIR/CHANGELOG.md")"
     TAG_MSG="$(printf 'v%s\n\n%s\n' "$VERSION" "$NOTES")"
@@ -125,7 +133,7 @@ if [[ -z "$TAG_BODY" ]]; then
   echo "" >&2
   echo "To fix, delete the tag and re-run with notes on stdin:" >&2
   echo "  git tag -d v$VERSION" >&2
-  echo "  printf 'One-line summary.\n\n### Fixed\n- **Your notes**' | ./scripts/release.sh $VERSION --skip-bump" >&2
+  echo "  printf 'One-line summary of the release.\n\n### Fixed\n- Something that works again' | ./scripts/release.sh $VERSION --skip-bump" >&2
   exit 1
 fi
 

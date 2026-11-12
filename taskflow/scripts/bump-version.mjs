@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // bump-version.mjs — Update version files, prepend changelog entry, commit, tag, push
 // Usage: echo "<release notes>" | node scripts/bump-version.mjs <new-version> [--allow-wordy-notes]
-// Example: printf 'One-line summary.\n\n### Fixed\n- **Bug title**' | node scripts/bump-version.mjs 1.8.0
+// Example: printf 'One-line summary of the release.\n\n### New\n- Something users can now do' | node scripts/bump-version.mjs 1.8.0
+// Format (enforced by the lint): docs/RELEASE-NOTES.md
 //
 // Notes must follow the short "headline + titles" format in docs/RELEASE-NOTES.md.
 // They are linted before any file is written; wordy notes abort with the tree
@@ -27,7 +28,7 @@ const newVersion = args.find((a) => !a.startsWith('--'));
 
 if (!newVersion) {
   console.error('Usage: echo "<release notes>" | node scripts/bump-version.mjs <new-version> [--allow-wordy-notes]');
-  console.error("Example: printf 'One-line summary.\\n\\n### Fixed\\n- **Bug title**' | node scripts/bump-version.mjs 1.8.0");
+  console.error("Example: printf 'One-line summary of the release.\\n\\n### New\\n- Something users can now do' | node scripts/bump-version.mjs 1.8.0");
   process.exit(1);
 }
 
@@ -43,7 +44,7 @@ const releaseNotes = readFileSync(0, 'utf8').trim();
 if (!releaseNotes) {
   console.error('Error: No release notes provided on stdin.');
   console.error('Pipe release notes into the script, e.g.:');
-  console.error("  printf 'One-line summary.\\n\\n### New\\n- **Feature**' | node scripts/bump-version.mjs 1.8.0");
+  console.error("  printf 'One-line summary of the release.\\n\\n### New\\n- Something users can now do' | node scripts/bump-version.mjs 1.8.0");
   process.exit(1);
 }
 

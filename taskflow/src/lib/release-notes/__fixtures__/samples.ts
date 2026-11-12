@@ -117,3 +117,20 @@ export const WORDY_ENTRY = [
   '- **Fix three** — a long explanation of the third fix that is quite detailed.',
   '- **Fix four** — a long explanation of the fourth fix that is quite detailed.',
 ].join('\n');
+
+/** Current authoring format (docs/RELEASE-NOTES.md): headline + plain short sentences. */
+export const CURRENT_FORMAT_EXAMPLE = [
+  'Rebuilt notifications let you catch up and act in seconds.',
+  '',
+  '### New',
+  '- Notifications for the same issue or MR stack together',
+  "- Change a story's epic right from its sidebar",
+  '',
+  '### Improved',
+  '- Attachments show as neat tiles with type and size',
+  '',
+  '### Fixed',
+  '- Notifications no longer show up twice',
+  '- The peek panel no longer scrolls into empty space',
+  '',
+].join('\n');
