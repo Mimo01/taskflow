@@ -166,8 +166,8 @@ export default function GitLabStep() {
               id="gitlab-project"
               value={selectedProjectId ? String(selectedProjectId) : null}
               onValueChange={setSelectedProject}
-              placeholder={selectedProjectId ? String(selectedProjectId) : 'Choose a project...'}
-              searchPlaceholder="Search projects..."
+              placeholder={selectedProjectId ? String(selectedProjectId) : 'Choose a project…'}
+              searchPlaceholder="Search projects…"
               options={projects.map((p) => ({
                 value: String(p.id),
                 label: p.name_with_namespace,

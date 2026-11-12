@@ -265,7 +265,7 @@ describe('ConnectionsSection', () => {
     await user.type(screen.getByPlaceholderText('Search projects…'), 'be');
     const opts = screen.getAllByRole('option');
     expect(opts).toHaveLength(1);
-    expect(opts[0]).toHaveTextContent('BE — Backend');
+    expect(opts[0]).toHaveTextContent('BackendBE');
   });
 
   // Replacing an expired token must not leave the app on data/errors fetched with

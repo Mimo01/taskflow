@@ -151,9 +151,9 @@ describe('IntegrationsSection — AIO project picker', () => {
     await user.click(trigger);
     // Alphabetical by name: Project One, Project Three, Project Two
     expect((await screen.findAllByRole('option')).map((el) => el.textContent)).toEqual([
-      'Project One',
-      'Project Three',
-      'Project Two',
+      'Project OnePROJ1',
+      'Project ThreePROJ3',
+      'Project TwoPROJ2',
     ]);
     // Helper text under picker is present
     expect(
@@ -174,9 +174,9 @@ describe('IntegrationsSection — AIO project picker', () => {
     await userEvent.setup().click(await openablePicker());
     // Case-insensitive alphabetical: Alpha → bravo → charlie
     expect((await screen.findAllByRole('option')).map((el) => el.textContent)).toEqual([
-      'Alpha',
-      'bravo',
-      'charlie',
+      'AlphaA',
+      'bravoB',
+      'charlieC',
     ]);
   });
 
@@ -191,7 +191,7 @@ describe('IntegrationsSection — AIO project picker', () => {
     renderWithClient(<IntegrationsSection />);
     const user = userEvent.setup();
     await user.click(await openablePicker());
-    await user.click(await screen.findByRole('option', { name: 'Project Two' }));
+    await user.click(await screen.findByRole('option', { name: /^Project Two/ }));
     expect(mockStore.setSelectedAioProjectKey).toHaveBeenCalledWith('PROJ2');
   });
 

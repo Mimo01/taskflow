@@ -97,7 +97,8 @@ export default function BoardPicker({
         searchPlaceholder="Search boards…"
         options={boards.map((board) => ({
           value: String(board.id),
-          label: `${board.name} (${board.id})`,
+          label: board.name,
+          detail: String(board.id),
           keywords: [board.name, String(board.id)],
         }))}
       />

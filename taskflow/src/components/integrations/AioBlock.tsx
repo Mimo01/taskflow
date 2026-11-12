@@ -123,11 +123,12 @@ export default function AioBlock() {
               id="aio-project"
               value={selectedAioProjectKey}
               onValueChange={(v) => setSelectedAioProjectKey(v || null)}
-              placeholder="Choose a project..."
-              searchPlaceholder="Search projects..."
+              placeholder="Choose a project…"
+              searchPlaceholder="Search projects…"
               options={sortedProjects.map((p) => ({
                 value: p.projectKey,
                 label: p.name,
+                detail: p.projectKey,
                 keywords: [p.projectKey, p.name],
               }))}
             />

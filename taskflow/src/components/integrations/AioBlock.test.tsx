@@ -162,9 +162,9 @@ describe('AioBlock — AIO project picker', () => {
     const first = renderWithClient(<AioBlock />);
     await user.click(await openablePicker());
     expect((await screen.findAllByRole('option')).map((el) => el.textContent)).toEqual([
-      'Project One',
-      'Project Three',
-      'Project Two',
+      'Project OnePROJ1',
+      'Project ThreePROJ3',
+      'Project TwoPROJ2',
     ]);
     first.unmount();
 
@@ -177,9 +177,9 @@ describe('AioBlock — AIO project picker', () => {
     renderWithClient(<AioBlock />);
     await user.click(await openablePicker());
     expect((await screen.findAllByRole('option')).map((el) => el.textContent)).toEqual([
-      'Alpha',
-      'bravo',
-      'charlie',
+      'AlphaA',
+      'bravoB',
+      'charlieC',
     ]);
   });
 
@@ -194,7 +194,7 @@ describe('AioBlock — AIO project picker', () => {
     ]);
     renderWithClient(<AioBlock />);
     await user.click(await openablePicker());
-    await user.click(await screen.findByRole('option', { name: 'Project Two' }));
+    await user.click(await screen.findByRole('option', { name: /^Project Two/ }));
     expect(mockStore.setSelectedAioProjectKey).toHaveBeenCalledWith('PROJ2');
   });
 
@@ -207,9 +207,9 @@ describe('AioBlock — AIO project picker', () => {
     ]);
     renderWithClient(<AioBlock />);
     await user.click(await openablePicker());
-    await user.type(screen.getByPlaceholderText('Search projects...'), 'zzkey');
+    await user.type(screen.getByPlaceholderText('Search projects…'), 'zzkey');
     const opts = await screen.findAllByRole('option');
-    expect(opts.map((el) => el.textContent)).toEqual(['Project One']);
+    expect(opts.map((el) => el.textContent)).toEqual(['Project OneZZKEY']);
   });
 
   it('WR-01: shows stale-key warning when selectedAioProjectKey not in fetched projects', async () => {

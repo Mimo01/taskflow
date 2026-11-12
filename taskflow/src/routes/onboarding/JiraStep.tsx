@@ -194,11 +194,12 @@ export default function JiraStep() {
               id="jira-project"
               value={selectedProject || null}
               onValueChange={setSelectedProject}
-              placeholder={selectedProject || 'Choose a project...'}
-              searchPlaceholder="Search projects..."
+              placeholder={selectedProject || 'Choose a project…'}
+              searchPlaceholder="Search projects…"
               options={projects.map((project) => ({
                 value: project.key,
-                label: `${project.key} — ${project.name}`,
+                label: project.name,
+                detail: project.key,
                 keywords: [project.key, project.name],
               }))}
             />

@@ -87,11 +87,14 @@ export default function ReleaseManagementBlock() {
             value={rmProjectKey ?? NONE}
             onValueChange={(v) => setRmProjectKey(!v || v === NONE ? null : v)}
             placeholder={rmProjectKey ?? 'None'}
-            searchPlaceholder="Search projects..."
-            options={[
-              { value: NONE, label: 'None', keywords: ['None'] },
-              ...sorted.map((p) => ({ value: p.key, label: p.name, keywords: [p.key, p.name] })),
-            ]}
+            searchPlaceholder="Search projects…"
+            pinnedOption={{ value: NONE, label: 'None', keywords: [] }}
+            options={sorted.map((p) => ({
+              value: p.key,
+              label: p.name,
+              detail: p.key,
+              keywords: [p.key, p.name],
+            }))}
           />
         )}
         {keyIsStale && (

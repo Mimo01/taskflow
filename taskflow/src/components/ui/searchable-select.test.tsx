@@ -100,4 +100,73 @@ describe('SearchableSelect', () => {
     await user.click(screen.getByRole('button'));
     expect(screen.queryByPlaceholderText('Search…')).not.toBeInTheDocument();
   });
+
+  describe('pinned option', () => {
+    const NONE = { value: '__none__', label: 'None', keywords: [] };
+    function setupPinned(value: string | null = null) {
+      const onValueChange = vi.fn();
+      render(
+        <SearchableSelect
+          value={value}
+          onValueChange={onValueChange}
+          options={OPTIONS}
+          pinnedOption={NONE}
+          placeholder="Pick one"
+        />,
+      );
+      return { onValueChange, user: userEvent.setup() };
+    }
+
+    it('renders first and stays on top while searching', async () => {
+      const { user } = setupPinned();
+      await user.click(screen.getByRole('button', { name: /pick one/i }));
+      expect(screen.getAllByRole('option')[0]).toHaveTextContent('None');
+      await user.type(screen.getByPlaceholderText('Search…'), 'beta');
+      const opts = screen.getAllByRole('option');
+      expect(opts.map((o) => o.textContent)).toEqual(['None', 'BETA — Beta Team']);
+    });
+
+    it('stays visible above "No matches"', async () => {
+      const { user } = setupPinned();
+      await user.click(screen.getByRole('button', { name: /pick one/i }));
+      await user.type(screen.getByPlaceholderText('Search…'), 'zzz');
+      expect(screen.getByTestId('searchable-select-pinned')).toHaveTextContent('None');
+      expect(screen.getByText('No matches')).toBeInTheDocument();
+    });
+
+    it('Enter while searching picks the first match, not the pinned option', async () => {
+      const { user, onValueChange } = setupPinned();
+      await user.click(screen.getByRole('button', { name: /pick one/i }));
+      await user.type(screen.getByPlaceholderText('Search…'), 'alpha');
+      await user.keyboard('{Enter}');
+      expect(onValueChange).toHaveBeenCalledWith('ALPHA');
+    });
+
+    it('can be picked by click while searching', async () => {
+      const { user, onValueChange } = setupPinned('BETA');
+      await user.click(screen.getByRole('button'));
+      await user.type(screen.getByPlaceholderText('Search…'), 'alpha');
+      await user.click(screen.getByTestId('searchable-select-pinned'));
+      expect(onValueChange).toHaveBeenCalledWith('__none__');
+    });
+
+    it('shows the pinned label in the trigger when it is the value', () => {
+      setupPinned('__none__');
+      expect(screen.getByRole('button')).toHaveTextContent('None');
+    });
+  });
+
+  it('shows option detail muted next to the label', async () => {
+    const user = userEvent.setup();
+    render(
+      <SearchableSelect
+        value="K1"
+        onValueChange={() => {}}
+        options={[{ value: 'K1', label: 'Kappa', detail: 'K1', keywords: ['K1', 'Kappa'] }]}
+      />,
+    );
+    expect(screen.getByRole('button')).toHaveTextContent('KappaK1');
+    await user.click(screen.getByRole('button'));
+    expect(screen.getByRole('option')).toHaveTextContent('KappaK1');
+  });
 });

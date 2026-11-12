@@ -226,7 +226,8 @@ function JiraConnectionCard({
             searchPlaceholder="Search projects…"
             options={projects.map((project) => ({
               value: project.key,
-              label: `${project.key} — ${project.name}`,
+              label: project.name,
+              detail: project.key,
               keywords: [project.key, project.name],
             }))}
           />
