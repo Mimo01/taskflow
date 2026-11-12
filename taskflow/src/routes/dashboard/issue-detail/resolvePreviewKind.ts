@@ -25,15 +25,81 @@ export const CODE_EXTENSION_LANGUAGE_MAP: Record<string, string> = {
   xml: 'xml',
   html: 'xml',
   css: 'css',
+  xsd: 'xml',
+  xsl: 'xml',
+  xslt: 'xml',
+  wsdl: 'xml',
+  xhtml: 'xml',
+  htm: 'xml',
+  plist: 'xml',
+  pom: 'xml',
+  har: 'json',
+  webmanifest: 'json',
+  geojson: 'json',
+  mjs: 'javascript',
+  cjs: 'javascript',
+  mts: 'typescript',
+  cts: 'typescript',
+  sql: 'sql',
+  properties: 'properties',
+  ini: 'ini',
+  toml: 'ini',
+  cfg: 'ini',
+  conf: 'ini',
+  env: 'ini',
+  diff: 'diff',
+  patch: 'diff',
+  kt: 'kotlin',
+  kts: 'kotlin',
+  swift: 'swift',
+  php: 'php',
+  cs: 'csharp',
+  scss: 'scss',
+  less: 'less',
+  gradle: 'gradle',
+  groovy: 'groovy',
+  ps1: 'powershell',
+  bash: 'bash',
+  zsh: 'bash',
+  hpp: 'cpp',
+  cc: 'cpp',
 };
 
-const CODE_EXTENSIONS = new Set(Object.keys(CODE_EXTENSION_LANGUAGE_MAP));
+// Extension-less well-known filenames (lowercase).
+const CODE_FILENAME_LANGUAGE_MAP: Record<string, string> = {
+  dockerfile: 'dockerfile',
+};
 
-const TEXT_EXTENSIONS = new Set(['md', 'log', 'csv', 'txt']);
+const TEXT_EXTENSIONS = new Set([
+  'md',
+  'log',
+  'csv',
+  'txt',
+  'tsv',
+  'out',
+  'err',
+  'text',
+  'markdown',
+  'rst',
+  'jsonl',
+  'ndjson',
+  'srt',
+  'vtt',
+]);
 
-const IMAGE_EXTENSIONS = new Set(['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg']);
-const VIDEO_EXTENSIONS = new Set(['mp4', 'webm', 'mov']);
-const AUDIO_EXTENSIONS = new Set(['mp3', 'wav']);
+const IMAGE_EXTENSIONS = new Set([
+  'png',
+  'jpg',
+  'jpeg',
+  'gif',
+  'webp',
+  'bmp',
+  'svg',
+  'avif',
+  'ico',
+]);
+const VIDEO_EXTENSIONS = new Set(['mp4', 'webm', 'mov', 'm4v']);
+const AUDIO_EXTENSIONS = new Set(['mp3', 'wav', 'm4a', 'aac']);
 
 export function getExtension(filename: string): string {
   const idx = filename.lastIndexOf('.');
@@ -41,14 +107,53 @@ export function getExtension(filename: string): string {
   return filename.slice(idx + 1).toLowerCase();
 }
 
+const TEXTUAL_APPLICATION_MIMES = new Set([
+  'application/xml',
+  'application/json',
+  'application/x-yaml',
+  'application/yaml',
+  'application/sql',
+  'application/x-sql',
+  'application/javascript',
+  'application/x-javascript',
+  'application/ecmascript',
+  'application/x-sh',
+  'application/x-shellscript',
+  'application/toml',
+  'application/x-httpd-php',
+  'application/graphql',
+]);
+
+function normalizeMime(mimeType: string | undefined): string {
+  return (mimeType ?? '').split(';')[0].trim().toLowerCase();
+}
+
+/** True for structured application/* MIME types whose body is plain text. */
+export function isTextualMime(mimeType: string): boolean {
+  const mime = normalizeMime(mimeType);
+  if (!mime.startsWith('application/')) return false;
+  return TEXTUAL_APPLICATION_MIMES.has(mime) || mime.endsWith('+xml') || mime.endsWith('+json');
+}
+
+/** hljs language for a filename: by extension, else well-known extension-less names. */
+export function codeLanguageFor(filename: string): string | undefined {
+  const ext = getExtension(filename);
+  const byExt = ext ? CODE_EXTENSION_LANGUAGE_MAP[ext] : undefined;
+  return byExt ?? CODE_FILENAME_LANGUAGE_MAP[filename.toLowerCase()];
+}
+
 /**
  * Classifies a Jira attachment into a preview kind by checking unambiguous
  * mimeType prefixes first, then falling back to filename extension for
- * generic mimeTypes (octet-stream / empty / text/plain-masquerading-as-code).
+ * generic mimeTypes (octet-stream / empty / text/* / textual application/*).
+ * Jira reports XML/JSON/YAML etc. with structured application/* types, so
+ * those are treated like text/* for extension lookup, with a MIME-family
+ * fallback when the extension is unknown.
  */
 export function resolvePreviewKind(attachment: JiraAttachment): PreviewKind {
-  const mimeType = attachment.mimeType ?? '';
-  const ext = getExtension(attachment.filename ?? '');
+  const mimeType = normalizeMime(attachment.mimeType);
+  const filename = attachment.filename ?? '';
+  const ext = getExtension(filename);
 
   if (mimeType.startsWith('image/')) return 'image';
   if (mimeType.startsWith('video/')) return 'video';
@@ -57,14 +162,24 @@ export function resolvePreviewKind(attachment: JiraAttachment): PreviewKind {
 
   const isGenericMime = mimeType === '' || mimeType === 'application/octet-stream';
   const isTextMime = mimeType.startsWith('text/');
+  const isTextualApp = isTextualMime(mimeType);
 
-  if (isGenericMime || isTextMime) {
+  if (isGenericMime || isTextMime || isTextualApp) {
     if (IMAGE_EXTENSIONS.has(ext)) return 'image';
-    if (CODE_EXTENSIONS.has(ext)) return 'code';
+    if (codeLanguageFor(filename)) return 'code';
     if (TEXT_EXTENSIONS.has(ext)) return 'text';
     if (VIDEO_EXTENSIONS.has(ext)) return 'video';
     if (AUDIO_EXTENSIONS.has(ext)) return 'audio';
-    if (isTextMime) return 'text';
+    if (
+      mimeType === 'application/xml' ||
+      mimeType === 'text/xml' ||
+      mimeType.endsWith('+xml') ||
+      mimeType === 'application/json' ||
+      mimeType.endsWith('+json')
+    ) {
+      return 'code';
+    }
+    if (isTextMime || isTextualApp) return 'text';
   }
 
   return 'other';
