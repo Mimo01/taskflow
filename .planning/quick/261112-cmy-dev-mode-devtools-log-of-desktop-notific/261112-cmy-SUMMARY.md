@@ -35,3 +35,10 @@ None. (Worktree base was reset to dd9eb57c as instructed; node_modules symlinked
 
 ## Self-Check: PASSED
 Full vitest suite, biome and the pre-commit hook passed; 4 files in the commit.
+
+## Follow-up (2026-11-12): moved into in-app Developer Tools
+User wanted the log in the app's own Developer Tools page, not the browser console.
+- New **Notifications** tab (`routes/dev-tools/NotificationsTab.tsx`), backed by transient `stores/notification-dispatch-log.store.ts` (newest first, retention limit, cleared by Clear Logs).
+- Rows: outcome (Sent/Denied/Error/Skipped), source badge, exact title + body, time; expand for the full item JSON.
+- Gating changed from `import.meta.env.DEV` to the Developer Tools master switch (same as Logs/Operations/Waterfall); still only recorded while Desktop notifications is on. Console group removed.
+- Commits: 37de5963 (sent/failed/skipped title, review WR-02 — superseded), 1254b818 (Developer Tools tab).
