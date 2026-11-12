@@ -183,13 +183,16 @@ function DetailItemRow({ item, nested = false }: { item: NoteItem; nested?: bool
     <>
       <li
         className={cn(
-          'list-none truncate py-0.5 text-sm leading-5 text-muted-foreground',
+          'flex list-none items-center gap-2.5 py-1 text-sm leading-5 text-muted-foreground',
           nested && 'pl-3',
         )}
         title={detail ? `${title} · ${detail}` : title}
       >
-        {title}
-        {detail && <span className="text-muted-foreground/70"> · {detail}</span>}
+        <span aria-hidden="true" className="size-1 shrink-0 rounded-full bg-muted-foreground/50" />
+        <span className="min-w-0 truncate">
+          {title}
+          {detail && <span className="text-muted-foreground/70"> · {detail}</span>}
+        </span>
       </li>
       {item.children.map((c, i) => (
         // biome-ignore lint/suspicious/noArrayIndexKey: static parsed list, never reordered
@@ -250,7 +253,7 @@ function SectionLabel({ kind, label }: { kind: NoteKind; label: string | null })
   if (!label) return <span />;
   const { icon: Icon, className } = KIND_ICON[kind];
   return (
-    <h4 className="m-0 flex items-center gap-1.5 self-start py-0.5 text-xs font-medium leading-5 text-muted-foreground">
+    <h4 className="m-0 flex items-center gap-1.5 self-start py-1 text-xs font-medium leading-5 text-muted-foreground">
       <Icon aria-hidden="true" className={cn('size-3.5 shrink-0', className)} />
       {label}
     </h4>
@@ -345,7 +348,7 @@ export function ReleaseNotesBody({
     : parsed.sections;
 
   return (
-    <div className={cn('flex flex-col', compact ? 'gap-2' : 'gap-3')}>
+    <div className={cn('flex flex-col', details ? 'gap-4' : compact ? 'gap-2' : 'gap-3')}>
       {parsed.headline && !hideHeadline && (
         <p className="m-0 text-sm font-medium">
           <InlineMarkdown text={parsed.headline} />
