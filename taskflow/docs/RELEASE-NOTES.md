@@ -33,7 +33,7 @@ One headline sentence.
 
 | Rule | Limit |
 |---|---|
-| Headline | present, one sentence, at most 55 chars (shown untruncated as the release summary) |
+| Headline | present, one sentence, at most 62 chars (measured: fits the narrowest one-line summary column, 449px) |
 | Bold-titled bullet (legacy): title | at most 50 chars |
 | Bold-titled bullet (legacy): detail | at most 70 chars, no `. ` or `;` |
 | Plain bullet (preferred) | whole bullet at most 70 chars |

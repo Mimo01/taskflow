@@ -100,7 +100,7 @@ export function UpdateDialog() {
 
   return (
     <Dialog open={open} onOpenChange={isDismissable ? () => resetToIdle() : undefined}>
-      <DialogContent showCloseButton={false} className="sm:max-w-xl">
+      <DialogContent showCloseButton={false} className="sm:max-w-[40rem]">
         {(status === 'available' || status === 'downloading') && (
           <>
             <DialogHeader>

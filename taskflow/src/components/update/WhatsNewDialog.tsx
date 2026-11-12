@@ -57,7 +57,7 @@ export function WhatsNewDialog() {
 
   return (
     <Dialog open={open} onOpenChange={handleDismiss}>
-      <DialogContent showCloseButton={false} className="sm:max-w-xl">
+      <DialogContent showCloseButton={false} className="sm:max-w-[40rem]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <CircleCheck aria-hidden="true" className="size-5 text-green-600 dark:text-green-400" />

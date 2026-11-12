@@ -63,8 +63,19 @@ export function ReleaseRow({
           {plainSummary}
         </span>
         <span className="flex items-center gap-2 whitespace-nowrap text-xs text-muted-foreground tabular-nums">
-          {installed && <Badge tone="green">Installed</Badge>}
-          {release.publishedAt ? shortReleaseDate(release.publishedAt) : ''}
+          {/* The badge takes the date's slot so the summary keeps its full width. */}
+          {installed ? (
+            <Badge
+              tone="green"
+              title={release.publishedAt ? shortReleaseDate(release.publishedAt) : undefined}
+            >
+              Installed
+            </Badge>
+          ) : release.publishedAt ? (
+            shortReleaseDate(release.publishedAt)
+          ) : (
+            ''
+          )}
         </span>
       </button>
       {open && (
