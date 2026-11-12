@@ -21,3 +21,11 @@ Jira and GitLab "Create a token" quick links now appear under the token field in
 Confirm the GitLab prefill (name and `api`, and whether the legacy form auto-opens) on the real instance, and that the Jira link opens the PAT tab.
 
 ## Self-Check: PASSED
+
+## Follow-up (UAT): GitLab fine-grained token
+
+User asked for the GitLab link to open a fine-grained token, not legacy. Commit 84f84140.
+
+- Link now opens `{base}/-/user_settings/personal_access_tokens/granular/new` (route from GitLab `config/routes/user_settings.rb`; GitLab ≥ 18.10, GA 19.2).
+- That form reads no prefill params. `granular_new` takes none, and the Vue form reads only `source_token_id` for duplicating a token. So there's no prefill: the hint names the token, says to allow all groups/projects, and lists the permissions as a checklist (`TokenLinkHint` gained an optional `details` prop).
+- Permissions were derived by mapping every GitLab endpoint in services/gitlab.ts + notifications.ts against docs `fine_grained_access_tokens_rest.md`. All are covered. Read: Project, Group, Merge Request, Branch, Commit, Repository, Repository Tag, Label, Work Item, Event, User (instance-level User Read needed for GET /users search). Update: Merge Request, Work Item (milestones are Work Item). Create: Branch, Work Item. Use: Global Search.
