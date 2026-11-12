@@ -61,6 +61,7 @@ export default function DebugModeSection() {
   const jiraBaseUrl = useAuthStore((s) => s.jiraBaseUrl);
   const gitlabBaseUrl = useAuthStore((s) => s.gitlabBaseUrl);
   const activeJiraProject = useAuthStore((s) => s.activeJiraProject);
+  const jiraBoardIds = useAuthStore((s) => s.jiraBoardIds);
   const activeGitlabProject = useAuthStore((s) => s.activeGitlabProject);
   const setWizardState = useOnboardingStore((s) => s.set);
   const [cleared, setCleared] = useState(false);
@@ -91,6 +92,10 @@ export default function DebugModeSection() {
       jiraToken,
       jiraProject: activeJiraProject,
       jiraProjects: [],
+      // Seed the saved board so BoardPicker shows it pre-selected and a
+      // multi-board project doesn't gate Continue (261112-lyx).
+      jiraBoards: [],
+      jiraBoardId: activeJiraProject ? (jiraBoardIds[activeJiraProject] ?? null) : null,
       jiraValidated: false,
       gitlabUrl: gitlabBaseUrl ?? '',
       gitlabToken,
