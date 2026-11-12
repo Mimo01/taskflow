@@ -11,13 +11,13 @@ interface AttachmentTileProps {
   onDownload: (attachment: JiraAttachment) => void;
   onDelete?: (attachment: JiraAttachment) => void;
   onPreview?: (attachment: JiraAttachment) => void;
-  /** Non-clickable tile: dashed, faded thumbnail + reason on the meta line (261112-fy2). */
+  /** Non-clickable tile: dashed, faded thumbnail with the reason inside it (261112-fy2). */
   previewUnavailable?: PreviewUnavailable;
 }
 
-const UNAVAILABLE_LABEL: Record<PreviewUnavailable, { short: string; title: string }> = {
-  unsupported: { short: 'No preview', title: 'No preview for this file type — download to open' },
-  'too-large': { short: 'Too large', title: 'Too large to preview — download to open' },
+const UNAVAILABLE_LABEL: Record<PreviewUnavailable, string> = {
+  unsupported: 'No preview',
+  'too-large': 'Too large to preview',
 };
 
 const ACTION_VISIBILITY =
@@ -60,13 +60,20 @@ export function AttachmentTile({
               className="w-full h-full object-cover"
             />
           ) : (
-            <div
-              className={`absolute inset-0 flex flex-col items-center justify-center gap-1.5 ${unavailable ? 'opacity-60' : ''}`}
-            >
-              <Icon className="size-[26px] text-muted-foreground" />
-              {ext && (
-                <span className="font-mono text-[10px] leading-none text-muted-foreground">
-                  {ext}
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 px-2">
+              <div
+                className={`flex flex-col items-center gap-1.5 ${unavailable ? 'opacity-60' : ''}`}
+              >
+                <Icon className="size-[26px] text-muted-foreground" />
+                {ext && (
+                  <span className="font-mono text-[10px] leading-none text-muted-foreground">
+                    {ext}
+                  </span>
+                )}
+              </div>
+              {unavailable && (
+                <span className="text-center text-[11px] leading-tight text-muted-foreground">
+                  {unavailable}
                 </span>
               )}
             </div>
@@ -81,12 +88,8 @@ export function AttachmentTile({
           >
             {attachment.filename}
           </span>
-          <span
-            title={unavailable?.title}
-            className="block truncate text-[11px] leading-4 text-muted-foreground tabular-nums"
-          >
+          <span className="block truncate text-[11px] leading-4 text-muted-foreground tabular-nums">
             {sizeText || attachment.mimeType}
-            {unavailable && ` · ${unavailable.short}`}
           </span>
         </div>
       </div>

@@ -74,8 +74,8 @@ describe('AttachmentsSection', () => {
     );
     const [ok, large, zip] = screen.getAllByTestId('attachment-tile').map((t) => t.textContent);
     expect(ok).not.toMatch(/No preview|Too large/);
-    expect(large).toContain('3.0 MB · Too large');
-    expect(zip).toContain('100 B · No preview');
+    expect(large).toContain('Too large to preview');
+    expect(zip).toContain('No preview');
     expect(screen.getByRole('button', { name: 'Preview a.xml' })).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Preview big.xml' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Preview c.zip' })).toBeNull();

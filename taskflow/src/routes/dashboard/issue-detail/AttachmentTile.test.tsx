@@ -112,11 +112,10 @@ describe('AttachmentTile', () => {
         previewUnavailable="unsupported"
       />,
     );
-    const meta = screen.getByText(/No preview/);
-    expect(meta.textContent).toBe('2.0 KB · No preview');
-    expect(meta.getAttribute('title')).toMatch(/download to open/);
-    const thumb = screen.getByText('ZIP').parentElement?.parentElement;
-    expect(thumb?.className).toContain('border-dashed');
+    const status = screen.getByText('No preview');
+    const thumb = status.closest('.border-dashed');
+    expect(thumb).toBeTruthy();
+    expect(screen.getByText('2.0 KB').textContent).toBe('2.0 KB');
   });
 
   it('has no unavailable label on previewable tiles', () => {
