@@ -385,11 +385,15 @@ function pipelineDetail(snippet: string): string | undefined {
   return snippet || undefined;
 }
 
+/** A whole-word uppercase surname ("SIMKOVA"), as in "SURNAME Given ..." directory names. */
+const isUpperWord = (w: string) => /\p{Lu}{2,}/u.test(w) && w === w.toUpperCase();
+
 export function actorName(author: string): string | undefined {
-  const a = author.trim();
-  if (!a) return undefined;
-  const first = a.split(/\s+/)[0];
-  return first || undefined;
+  const words = author.trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return undefined;
+  // "SIMKOVA Veronika OSK (ext.)" -> "Veronika": surname-first names lead with the caps surname.
+  if (words.length > 1 && isUpperWord(words[0]) && !isUpperWord(words[1])) return words[1];
+  return words[0];
 }
 
 const CHANGE_RANK: Partial<Record<ActionKey, number>> = {

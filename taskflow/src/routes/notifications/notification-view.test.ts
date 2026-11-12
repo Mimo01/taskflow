@@ -204,6 +204,13 @@ describe('describeEventParts', () => {
     expect(d('jira-comment', 'x', 'J.Smith').actor).toBe('J.Smith');
     expect(d('jira-comment', 'x', '').actor).toBeUndefined();
   });
+  it('uses the given name for surname-first directory names', () => {
+    expect(d('jira-comment', 'x', 'SIMKOVA Veronika OSK (ext.)').actor).toBe('Veronika');
+    expect(d('jira-comment', 'x', 'ŠIMKOVÁ Žofia').actor).toBe('Žofia');
+    expect(d('jira-comment', 'x', 'Ann Lee').actor).toBe('Ann');
+    expect(d('jira-comment', 'x', 'JADVIS').actor).toBe('JADVIS');
+    expect(d('jira-comment', 'x', 'QA TEAM').actor).toBe('QA');
+  });
   it('keeps snippets only for comment-like events, on one line', () => {
     expect(d('jira-comment', 'a\nb\n\n c').snippet).toBe('a b c');
     expect(d('issue-assignment').snippet).toBe('');

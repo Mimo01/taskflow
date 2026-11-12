@@ -43,12 +43,26 @@ const BODY_CAP = 140;
 
 const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
+/** Supplementary private-use plane A: parking spot for backslash-escaped characters. */
+const ESCAPE_BASE = 0xf0000;
+const ESCAPED_RE = /[\u{F0000}-\u{FFFFD}]/gu;
+
+/** Jira embedded image `!file.png!` / `!https://…/x.png|thumbnail!`, not text like "Fixed!Done!". */
+const JIRA_IMAGE_RE =
+  /(?<=^|[\s(])![^\s!|]+\.(?:png|jpe?g|gif|svg|webp|bmp|tiff?)(?:\|[^!\n]*)?!(?=$|[\s.,;:)])/gim;
+
 /**
  * OS-only plain-text cleaner: strips Jira wiki / Markdown to one short line.
  * Anchored, non-nested regexes only (no catastrophic backtracking).
  */
 export function toPlainNotificationText(text: string, ctx?: OsFormatContext): string {
-  let t = text;
+  // Jira `\\` is a forced line break; `\[` etc. are literal characters. Park escaped
+  // characters in the private-use plane so no markup pass below can consume them.
+  let t = text
+    .replace(/\\\\/g, ' ')
+    .replace(/\\([^\sA-Za-z0-9])/g, (_, ch: string) =>
+      String.fromCodePoint(ESCAPE_BASE + (ch.codePointAt(0) ?? 0)),
+    );
   if (ctx?.jiraUsername && ctx.jiraDisplayName) {
     t = t.replace(
       new RegExp(`\\[~${escapeRe(ctx.jiraUsername)}\\]`, 'g'),
@@ -57,7 +71,7 @@ export function toPlainNotificationText(text: string, ctx?: OsFormatContext): st
   }
   t = t
     .replace(/!\[[^\]\n]*\]\([^)\n]*\)/g, '')
-    .replace(/![^\s!|]+(?:\|[^!\n]*)?!/g, '')
+    .replace(JIRA_IMAGE_RE, '')
     .replace(/\[([^\]\n]+)\]\([^)\n]*\)/g, '$1')
     .replace(/\{\{\{\}?([^\n]*?)\{?\}\}\}/g, '$1')
     .replace(/\{\{([^\n]*?)\}\}/g, '$1')
@@ -73,6 +87,7 @@ export function toPlainNotificationText(text: string, ctx?: OsFormatContext): st
     .replace(new RegExp(`${L}\\?\\?([^\\s?][^?]*?)\\?\\?${R}`, 'g'), '$1')
     .replace(new RegExp(`${L}([*_+^-])([^\\s*_+^-](?:[^*_+^-]*[^\\s*_+^-])?)\\1${R}`, 'g'), '$2')
     .replace(/\s+/g, ' ')
+    .replace(ESCAPED_RE, (ch) => String.fromCodePoint((ch.codePointAt(0) ?? 0) - ESCAPE_BASE))
     .trim();
   if (t.length > BODY_CAP) t = `${t.slice(0, BODY_CAP).replace(/[\s.,;:!?-]+$/, '')}\u2026`;
   return t;
@@ -80,8 +95,23 @@ export function toPlainNotificationText(text: string, ctx?: OsFormatContext): st
 
 const cap1 = (s: string) => (s ? s[0].toUpperCase() + s.slice(1) : s);
 
+const sprintList = (v?: string) =>
+  (v ?? '')
+    .split(/,\s+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+
 function headline(c: ChangeLine): string {
   const field = cap1(c.field);
+  // Jira's Sprint value is the issue's whole sprint history; name only what this change did.
+  if (c.field === 'sprint' && (c.from || c.to)) {
+    const from = sprintList(c.from);
+    const to = sprintList(c.to);
+    const added = to.filter((s) => !from.includes(s));
+    const removed = from.filter((s) => !to.includes(s));
+    if (added.length > 0) return `${field} → ${added.join(', ')}`;
+    if (removed.length > 0) return `${field} removed: ${removed.join(', ')}`;
+  }
   if (c.to) return `${field} \u2192 ${c.to}`;
   if (c.text) return `${field} ${c.text}`;
   if (c.from) return `${field} removed`;

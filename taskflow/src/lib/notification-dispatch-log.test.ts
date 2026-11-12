@@ -158,6 +158,40 @@ describe('formatOsNotification', () => {
     }
   });
 
+  it('sprint change names only the sprints this change added or removed', () => {
+    const upd = (b: string) =>
+      formatOsNotification(
+        mk({ notificationType: 'issue-update', author: 'Alex Doe', fullBody: b, bodyPreview: b }),
+      ).body;
+    expect(upd('Sprint: S 192 1.10.-14.10.26, S 194 → S 192 1.10.-14.10.26, S 194, S 195')).toBe(
+      'Alex: Sprint → S 195',
+    );
+    expect(upd('Sprint: (none) → S 195')).toBe('Alex: Sprint → S 195');
+    expect(upd('Sprint: S 194, S 195 → S 194')).toBe('Alex: Sprint removed: S 195');
+    expect(upd('Sprint: S 195 → (none)')).toBe('Alex: Sprint removed: S 195');
+  });
+
+  it('uses the given name for surname-first directory names', () => {
+    expect(formatOsNotification(mk({ author: 'SIMKOVA Veronika OSK (ext.)' })).body).toBe(
+      'Veronika: body',
+    );
+  });
+
+  it('unescapes Jira backslash escapes instead of treating them as markup', () => {
+    expect(toPlainNotificationText('\\[euro\\] price \\*not bold\\* a\\\\b \\{x\\}')).toBe(
+      '[euro] price *not bold* a b {x}',
+    );
+  });
+
+  it('strips Jira images but keeps exclamation-delimited text', () => {
+    expect(toPlainNotificationText('Fixed!Done! Great work!Thanks!')).toBe(
+      'Fixed!Done! Great work!Thanks!',
+    );
+    expect(toPlainNotificationText('See !shot.PNG! and !https://x/y/img.jpg|thumbnail! ok')).toBe(
+      'See and ok',
+    );
+  });
+
   it('survives pathological markup quickly', () => {
     const t0 = Date.now();
     toPlainNotificationText(`${'*a '.repeat(5000)}${'{{{'.repeat(2000)}${'[x'.repeat(3000)}`);
