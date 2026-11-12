@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-08-13)
 Phase: 95
 Plan: Not started
 Status: Milestone complete
-Last activity: 2026-11-12 - Completed quick task 261112-msr: Searchable selectors for active Jira project, board, GitLab project, AIO project and release management in settings and wizard
+Last activity: 2026-11-12 - Completed quick task 261112-nb6: Token-generation quick links in wizard and settings for Jira/GitLab
 
 ## Performance Metrics
 
@@ -296,6 +296,7 @@ Acknowledged and deferred at v1.14 milestone close (2026-08-13) — 111 open art
 | 261112-lyx | Re-running the onboarding wizard pre-selects the saved Jira sprint board: handleResetWizard seeds jiraBoardId from authStore.jiraBoardIds[activeJiraProject] (+ clears jiraBoards); DebugModeSection regression tests | 2026-11-12 | 39ca82f6 | | [261112-lyx-onboarding-wizard-pre-fill-jira-sprint-b](./quick/261112-lyx-onboarding-wizard-pre-fill-jira-sprint-b/) |
 | 261112-m5v | Versioned onboarding wizard (WIZARD_VERSION + per-step `since`, lib/onboarding-rerun.ts): on launch, users who completed an older version get the wizard re-opened pre-filled at the first changed step (in-memory rerunActive); DoneStep stores onboardingVersion (settings v37 migration, pre-feature completers = v1 → land on Integrations); manual reset shares the seed helper | 2026-11-12 | 572a2d33 | Approved | [261112-m5v-re-run-onboarding-wizard-on-app-update-w](./quick/261112-m5v-re-run-onboarding-wizard-on-app-update-w/) |
 | 261112-msr | Shared SearchableSelect (Popover + cmdk, search by name + key/id, leading check, "No matches") replaces the Jira project, board, GitLab project, AIO project and RM project pickers in Settings and the wizard; listGitLabProjects/listProjectBoards now paginate past 100; follow-up: "None" pinned on top (never filtered), search in a separated header, name + muted key detail, selected row highlighted on open | 2026-11-12 | a63c597e | Approved | [261112-msr-searchable-selectors-for-active-jira-pro](./quick/261112-msr-searchable-selectors-for-active-jira-pro/) |
+| 261112-nb6 | "Create a token" quick link + hint under the token field in the Jira/GitLab wizard steps and Settings Connections cards, built from the live URL: GitLab user_settings/personal_access_tokens prefilled with name Taskflow, description and api scope; Jira DC deep-links to the PAT tab (no prefill possible) with name/expiry hint; hidden for invalid URLs and *.atlassian.net | 2026-11-12 | 1699bbc6 | Needs UAT | [261112-nb6-token-generation-quick-links-in-wizard-a](./quick/261112-nb6-token-generation-quick-links-in-wizard-a/) |
 
 ## Session Continuity
 
