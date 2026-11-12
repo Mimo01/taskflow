@@ -3,6 +3,7 @@ import { resolve } from 'node:path';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { NotificationItem } from '../../stores/notifications.store';
+import { usePeekStore } from '../../stores/peek.store';
 import NotificationRow, { StackCard, StackHeader } from './NotificationRow';
 
 vi.mock('@tauri-apps/plugin-opener', () => ({ openUrl: vi.fn() }));
@@ -62,6 +63,20 @@ function setup(props?: Partial<React.ComponentProps<typeof NotificationRow>>) {
 }
 
 describe('NotificationRow', () => {
+  // 261112-lpa: no peek tint / leading bar on notifications, even when the issue is in the peek sidebar.
+  it('list row for the peeked issue gets no peek tint or leading-edge bar', () => {
+    usePeekStore.setState({ peekIssueKey: 'PROJ-123' });
+    try {
+      const { container } = setup();
+      const card = container.querySelector('[data-card]') as HTMLElement;
+      expect(card.className).not.toContain('bg-primary');
+      expect(card.className).not.toContain('inset_3px');
+      expect(card).not.toHaveAttribute('data-peeked');
+    } finally {
+      usePeekStore.setState({ peekIssueKey: null });
+    }
+  });
+
   it('renders ref, entity title, verb + comment text on line 2 and injected-now relative time', () => {
     const { container } = setup();
     expect(screen.getByText('PROJ-123')).toBeInTheDocument();
