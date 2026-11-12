@@ -1,7 +1,11 @@
 #!/usr/bin/env node
 // bump-version.mjs — Update version files, prepend changelog entry, commit, tag, push
-// Usage: echo "<release notes>" | node scripts/bump-version.mjs <new-version>
-// Example: echo "### Added\n- New feature" | node scripts/bump-version.mjs 1.8.0
+// Usage: echo "<release notes>" | node scripts/bump-version.mjs <new-version> [--allow-wordy-notes]
+// Example: printf 'One-line summary.\n\n### Fixed\n- **Bug title**' | node scripts/bump-version.mjs 1.8.0
+//
+// Notes must follow the short "headline + titles" format in docs/RELEASE-NOTES.md.
+// They are linted before any file is written; wordy notes abort with the tree
+// untouched unless --allow-wordy-notes is passed.
 //
 // The script reads curated release notes from stdin and prepends them as a new
 // section in CHANGELOG.md. This is designed to be driven by Claude, who analyzes
@@ -11,16 +15,19 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { execSync } from 'node:child_process';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { lintReleaseNotes } from '../src/lib/release-notes/lint.ts';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const TASKFLOW_ROOT = resolve(__dirname, '..');
 const REPO_ROOT = resolve(TASKFLOW_ROOT, '..');
 
-const newVersion = process.argv[2];
+const args = process.argv.slice(2);
+const allowWordy = args.includes('--allow-wordy-notes');
+const newVersion = args.find((a) => !a.startsWith('--'));
 
 if (!newVersion) {
-  console.error('Usage: echo "<release notes>" | node scripts/bump-version.mjs <new-version>');
-  console.error('Example: echo "### Added\\n- New feature" | node scripts/bump-version.mjs 1.8.0');
+  console.error('Usage: echo "<release notes>" | node scripts/bump-version.mjs <new-version> [--allow-wordy-notes]');
+  console.error("Example: printf 'One-line summary.\\n\\n### Fixed\\n- **Bug title**' | node scripts/bump-version.mjs 1.8.0");
   process.exit(1);
 }
 
@@ -36,8 +43,22 @@ const releaseNotes = readFileSync(0, 'utf8').trim();
 if (!releaseNotes) {
   console.error('Error: No release notes provided on stdin.');
   console.error('Pipe release notes into the script, e.g.:');
-  console.error('  echo "### Added\\n- Feature" | node scripts/bump-version.mjs 1.8.0');
+  console.error("  printf 'One-line summary.\\n\\n### New\\n- **Feature**' | node scripts/bump-version.mjs 1.8.0");
   process.exit(1);
+}
+
+// --- Lint notes BEFORE any file is written (a failure leaves the tree untouched) ---
+{
+  const { errors, warnings } = lintReleaseNotes(releaseNotes);
+  for (const w of warnings) console.warn(`  warning: ${w}`);
+  if (errors.length > 0) {
+    for (const e of errors) console.error(`  ${allowWordy ? 'warning' : 'error'}: ${e}`);
+    if (!allowWordy) {
+      console.error('\nRelease notes are too wordy. See taskflow/docs/RELEASE-NOTES.md');
+      console.error('(override with --allow-wordy-notes). No files were changed.');
+      process.exit(1);
+    }
+  }
 }
 
 console.log(`Bumping version to ${newVersion}`);

@@ -1,9 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Usage: echo "<release notes>" | ./scripts/release.sh <version> [--skip-bump]
-# Example: printf '### Fixed\n- Bug fix' | ./scripts/release.sh 1.7.1
+# Usage: echo "<release notes>" | ./scripts/release.sh <version> [--skip-bump] [--allow-wordy-notes]
+# Example: printf 'One-line summary.\n\n### Fixed\n- **Bug title**' | ./scripts/release.sh 1.7.1
 # Example: ./scripts/release.sh 1.7.1 --skip-bump  (version already bumped)
+#
+# Release notes use the short "headline + titles" format and are linted before
+# anything is changed (see docs/RELEASE-NOTES.md). --allow-wordy-notes overrides
+# the lint; with --skip-bump the committed CHANGELOG section is only warned about.
 #
 # Simplified release trigger:
 #   A. Pre-flight checks (version format, clean working tree, git remote)
@@ -23,17 +27,19 @@ TASKFLOW_DIR="$(dirname "$SCRIPT_DIR")"
 REPO_ROOT="$(dirname "$TASKFLOW_DIR")"
 
 SKIP_BUMP=false
+ALLOW_WORDY=false
 VERSION=""
 for arg in "$@"; do
   case "$arg" in
     --skip-bump) SKIP_BUMP=true ;;
+    --allow-wordy-notes) ALLOW_WORDY=true ;;
     --*) ;;
     *) VERSION="$arg" ;;
   esac
 done
 
 if [[ -z "$VERSION" ]]; then
-  echo "Usage: echo '<release notes>' | release.sh <version> [--skip-bump]" >&2
+  echo "Usage: echo '<release notes>' | release.sh <version> [--skip-bump] [--allow-wordy-notes]" >&2
   exit 1
 fi
 
@@ -41,7 +47,7 @@ fi
 RELEASE_NOTES="$(cat)"
 if [[ -z "$RELEASE_NOTES" ]] && [[ "$SKIP_BUMP" == "false" ]]; then
   echo "Error: No release notes provided on stdin." >&2
-  echo "Usage: printf '### Fixed\n- Bug fix' | ./scripts/release.sh 1.7.1" >&2
+  echo "Usage: printf 'One-line summary.\n\n### Fixed\n- **Bug title**' | ./scripts/release.sh 1.7.1" >&2
   exit 1
 fi
 
@@ -61,6 +67,20 @@ fi
 if ! git -C "$REPO_ROOT" remote get-url origin &>/dev/null; then
   echo "Error: git remote 'origin' not found." >&2
   exit 1
+fi
+
+# Lint the notes before any mutation (docs/RELEASE-NOTES.md).
+if [[ "$SKIP_BUMP" == "false" ]]; then
+  LINT_ARGS=()
+  [[ "$ALLOW_WORDY" == "true" ]] && LINT_ARGS+=(--allow-wordy-notes)
+  if ! printf '%s' "$RELEASE_NOTES" | node "$SCRIPT_DIR/lint-release-notes.mjs" ${LINT_ARGS[@]+"${LINT_ARGS[@]}"}; then
+    echo "Error: release notes failed the lint. See taskflow/docs/RELEASE-NOTES.md" >&2
+    exit 1
+  fi
+else
+  # Already-committed entry may be historical: warn only, never block.
+  printf '%s' "$(awk "/^## \\[$VERSION\\]/{found=1; next} /^## \\[/{if(found) exit} found" "$TASKFLOW_DIR/CHANGELOG.md")" \
+    | node "$SCRIPT_DIR/lint-release-notes.mjs" --warn-only || true
 fi
 
 echo "    Version: $VERSION"
@@ -85,7 +105,9 @@ if [[ "$SKIP_BUMP" == "true" ]]; then
 else
   echo "==> Phase B: Version bump..."
   cd "$TASKFLOW_DIR"
-  printf '%s' "$RELEASE_NOTES" | node scripts/bump-version.mjs "$VERSION"
+  BUMP_ARGS=("$VERSION")
+  [[ "$ALLOW_WORDY" == "true" ]] && BUMP_ARGS+=(--allow-wordy-notes)
+  printf '%s' "$RELEASE_NOTES" | node scripts/bump-version.mjs "${BUMP_ARGS[@]}"
 fi
 
 # --- Phase C: Push tag to origin (triggers CI) ---
@@ -99,7 +121,7 @@ if [[ -z "$TAG_BODY" ]]; then
   echo "" >&2
   echo "To fix, delete the tag and re-run with notes on stdin:" >&2
   echo "  git tag -d v$VERSION" >&2
-  echo "  printf '### Fixed\n- Your notes' | ./scripts/release.sh $VERSION --skip-bump" >&2
+  echo "  printf 'One-line summary.\n\n### Fixed\n- **Your notes**' | ./scripts/release.sh $VERSION --skip-bump" >&2
   exit 1
 fi
 
