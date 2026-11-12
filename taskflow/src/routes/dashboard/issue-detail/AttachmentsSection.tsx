@@ -5,9 +5,8 @@ import { assertOk, openSavedFile, saveBytes } from '@/lib/save-attachment';
 import type { JiraAttachment } from '@/services/jira';
 import { uploadAttachment } from '@/services/jira/attachments';
 import { readSecret } from '@/services/stronghold';
-import { AttachmentFileRow } from './AttachmentFileRow';
 import { AttachmentPreviewModal } from './AttachmentPreviewModal';
-import { AttachmentThumbnail } from './AttachmentThumbnail';
+import { AttachmentTile } from './AttachmentTile';
 import { AttachmentUpload } from './AttachmentUpload';
 import { resolvePreviewKind } from './resolvePreviewKind';
 import { SectionHeader } from './SectionHeader';
@@ -39,8 +38,6 @@ export function AttachmentsSection({
   const queryClient = useQueryClient();
 
   const previewKinds = new Map(attachments.map((a) => [a.id, resolvePreviewKind(a)]));
-  const images = attachments.filter((a) => previewKinds.get(a.id) === 'image');
-  const nonImages = attachments.filter((a) => previewKinds.get(a.id) !== 'image');
   const previewable = attachments.filter((a) => previewKinds.get(a.id) !== 'other');
 
   // Mutation for drag-drop uploads
@@ -118,15 +115,8 @@ export function AttachmentsSection({
     }
   }
 
-  function handleThumbnailClick(img: JiraAttachment) {
-    const index = previewable.indexOf(img);
-    if (index === -1) return;
-    setPreviewIndex(index);
-    setPreviewOpen(true);
-  }
-
-  function handlePreviewClick(file: JiraAttachment) {
-    const index = previewable.indexOf(file);
+  function openPreview(att: JiraAttachment) {
+    const index = previewable.indexOf(att);
     if (index === -1) return;
     setPreviewIndex(index);
     setPreviewOpen(true);
@@ -202,43 +192,24 @@ export function AttachmentsSection({
             <p className="text-sm text-muted-foreground italic">No attachments</p>
           ) : (
             <>
-              {/* Image thumbnails grid */}
-              {images.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {images.map((img) => (
-                    <AttachmentThumbnail
-                      key={img.id}
-                      attachment={img}
-                      onClick={() => handleThumbnailClick(img)}
-                    />
-                  ))}
-                </div>
-              )}
-
-              {/* Non-image file list */}
-              {nonImages.length > 0 && (
-                <div>
-                  {nonImages.map((file) => (
-                    <AttachmentFileRow
-                      key={file.id}
-                      attachment={file}
-                      onDownload={handleDownload}
-                      onDelete={onDelete}
-                      onPreview={
-                        previewKinds.get(file.id) !== 'other'
-                          ? () => handlePreviewClick(file)
-                          : undefined
-                      }
-                    />
-                  ))}
-                  {downloadFeedback && (
-                    <p
-                      className={`text-xs mt-1 ${downloadFeedback.isError ? 'text-destructive' : 'text-muted-foreground'}`}
-                    >
-                      {downloadFeedback.message}
-                    </p>
-                  )}
-                </div>
+              <div className="grid grid-cols-[repeat(auto-fill,minmax(112px,1fr))] gap-x-2.5 gap-y-3 density-compact:gap-y-2 density-comfortable:gap-y-4">
+                {attachments.map((att) => (
+                  <AttachmentTile
+                    key={att.id}
+                    attachment={att}
+                    isImage={previewKinds.get(att.id) === 'image'}
+                    onDownload={handleDownload}
+                    onDelete={onDelete}
+                    onPreview={previewKinds.get(att.id) !== 'other' ? openPreview : undefined}
+                  />
+                ))}
+              </div>
+              {downloadFeedback && (
+                <p
+                  className={`text-xs ${downloadFeedback.isError ? 'text-destructive' : 'text-muted-foreground'}`}
+                >
+                  {downloadFeedback.message}
+                </p>
               )}
             </>
           )}

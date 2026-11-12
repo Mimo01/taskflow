@@ -4,8 +4,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { attachmentRef } from '@/lib/attachment-markup';
 import type { JiraAttachment } from '@/services/jira';
-import { formatFileSize } from './issue-detail/AttachmentFileRow';
 import { AttachmentPickerModal } from './issue-detail/AttachmentPickerModal';
+import { formatFileSize } from './issue-detail/attachment-format';
 import { WikiRenderer } from './WikiRenderer';
 
 interface DescriptionEditorProps {

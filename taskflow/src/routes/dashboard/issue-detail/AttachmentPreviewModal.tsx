@@ -10,7 +10,7 @@ import { ImageViewer } from '../ImageViewer';
 import { BACKDROP_ATTR, isBackdropTarget } from '../preview-backdrop';
 import { usePreviewEscape } from '../usePreviewEscape';
 import { ViewerToolbar } from '../ViewerToolbar';
-import { formatFileSize } from './AttachmentFileRow';
+import { formatFileSize } from './attachment-format';
 import { highlightCode } from './highlightCode';
 import { resolvePreviewKind } from './resolvePreviewKind';
 import { useAuthBlob } from './useAuthBlob';

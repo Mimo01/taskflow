@@ -1483,7 +1483,7 @@ const calloutStyles: Record<string, string> = {
 
 /**
  * File-type icon for a resolved `[^filename]` attachment chip. Mirrors
- * AttachmentFileRow.tsx's getFileIcon rule, but keyed off the filename
+ * attachment-format.ts's getFileIcon rule, but keyed off the filename
  * extension since the renderer only has a filename here, not a mimeType.
  */
 function getChipFileIcon(filename: string) {

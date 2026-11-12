@@ -9,8 +9,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { isImageAttachment } from '@/lib/attachment-markup';
 import type { JiraAttachment } from '@/services/jira';
-import { formatFileSize } from './AttachmentFileRow';
 import { AttachmentThumbnail } from './AttachmentThumbnail';
+import { formatFileSize } from './attachment-format';
 
 interface AttachmentPickerModalProps {
   open: boolean;
