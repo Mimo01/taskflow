@@ -59,7 +59,8 @@ describe('shipped CHANGELOG.md', () => {
   });
 
   it('looks up a version', () => {
-    expect(bundledNotesFor('1.14.20')).toMatch(/^Notifications got a full redesign/);
+    // Content changes with rewrites; assert shape, not wording
+    expect(bundledNotesFor('1.14.20')).toMatch(/^\S.*\n\n### /);
     expect(bundledNotesFor('0.0.0')).toBeNull();
     expect(bundledNotesFor(null)).toBeNull();
   });

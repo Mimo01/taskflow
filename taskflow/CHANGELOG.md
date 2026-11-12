@@ -4,652 +4,596 @@ All notable changes to Taskflow are documented here.
 
 ## [1.14.20] — 2026-11-12
 
-Notifications got a full redesign, plus easier setup and story editing.
+Notifications are rebuilt from the ground up, so you can catch up and act in seconds.
 
 ### New
-- Notification panel with stacks and quick actions
-- In-app banners for new notifications
-- Shorter desktop notifications
-- Change a story's epic from its sidebar
-- Add stories straight from an epic
-- Search in project and board pickers
+- Notifications for the same issue or MR stack together
+- Reply, review or open a pipeline right from a notification
+- New activity pops up as a short banner you can act on
+- Desktop alerts say what happened in one line
+- Change a story's epic right from its sidebar
+- Add a story to an epic without leaving the epic
 
 ### Improved
-- Attachments show as a tile grid
-- One header style for issue sections
-- Clear message when there's no active sprint
+- Project and board pickers let you search long lists
+- Attachments show as neat tiles with type and size
+- Sprint pages tell you when there's no active sprint
 
 ### Fixed
-- Duplicate notifications
-- Missing package mismatches
-- Peek panel scrolling into blank space
-- Data not reloading after saving a token
+- Notifications no longer show up twice
+- Saving a new token reloads your data straight away
+- The peek panel no longer scrolls into empty space
 
 ## [1.14.19] — 2026-11-09
 
-Clearer handling of issues you can't open.
+Issues you can't open now explain why and offer a way forward.
 
 ### New
-- Clear panel for issues you can't open
-- Recent items you can no longer open are marked
-- Refresh button on issue detail
+- See why an issue can't be opened, with quick next steps
+- Recent items you've lost access to are clearly marked
+- Refresh an issue without leaving the page
 
 ### Improved
-- Issue actions shrink to icons in narrow windows
-- Square row selection on My Tasks and Standup
+- Issue actions fold into icons when space is tight
+- Row selection looks cleaner on My Tasks and Standup
 
 ### Fixed
-- Story time missing subtasks in All assigned
-- Standup rows not highlighting the peeked issue
-- Broken Linux download links
+- Story time in All assigned now includes subtasks
+- Linux download links work again
 
 ## [1.14.18] — 2026-11-05
 
-Zoomable previews and one person picker everywhere.
+Zoom into any preview and find people faster wherever you pick them.
 
 ### New
-- Zoom and fit controls in file previews
-- One person picker that searches everyone
-- All your subtasks listed on Standup Today
+- Zoom, fit and resize text in file previews
+- Find anyone in any person picker, not just a short list
+- Standup Today lists every subtask that's yours
 
 ### Improved
-- One time bar design across the app
-- Issue relationship rows adapt to narrow panels
-- Same graph layout for every release
-- Standup works in narrow windows
+- Time bars look and read the same everywhere
+- Issue details stay readable in narrow panels
+- Every release page shares the same tidy graphs
+- Standup adapts when the window gets small
 
 ### Fixed
-- Package warnings now cover Bugs
-- Wrong subtask estimates on time bars
-- Escape leaving fullscreen when closing a preview
+- Package warnings now cover Bugs too
+- Escape closes a preview without leaving fullscreen
 
 ## [1.14.17] — 2026-11-03
 
-Fix release coverage straight from the release page.
+Spot release gaps and fix them without leaving the release page.
 
 ### New
-- Fix tasks not covered by a release in one click
-- One MR status per release task, with fixes
-- Assign the release milestone to merged MRs
-- Click a graph row to filter release issues
-- Epic time by status and person
+- Add missing tasks to a release in one click
+- See every MR's status for a task at a glance
+- Put merged MRs on the release milestone
+- Click any graph row to filter the release issues
+- See where epic time went, by status and person
 
 ### Improved
-- Time bars turn red only past 125% of the estimate
-- Larger, cleaner release progress graph
-- Tidier release detail header
+- Time bars only turn red when well over estimate
+- The release progress graph is larger and easier to read
 
 ### Fixed
-- Linked MRs missing on issues
-- MR donut counting MRs twice
-- Release page scrolling into blank space
+- Issues now list every linked MR
+- The MR donut counts each MR only once
 
 ## [1.14.16] — 2026-11-02
 
-Filter and sort release issues.
+Find exactly the release issues you need with filters and sorting.
 
 ### New
-- Filter and sort release issues
-- Filter release tasks by MR label
+- Filter and sort the issues of a release
+- Narrow release tasks down by MR label
 - See why an MR isn't covered by the release
-- Resize the Standup Notes columns
+- Drag to resize the Standup Notes columns
 
 ### Improved
-- Every MR label is shown on the release page
-- Standup follows the density setting
+- Every MR label is visible on the release page
+- Standup spacing follows your density setting
 
 ### Fixed
-- Wrong MR label counts
-- Release table header hidden while scrolling
-- Hard-to-read dark mode app icon
+- MR label counts match what the filter shows
+- The app icon is easier to see in dark mode
 
 ## [1.14.15] — 2026-10-30
 
-Releases list and release detail are redesigned.
+A fresh look for releases, with everything that matters in one place.
 
 ### New
-- Redesigned Releases page
-- Redesigned release detail page
-- Deployment package mismatches as an action list
-- Refresh on AIO pages
+- A redesigned Releases page with upcoming and shipped versions
+- A release page with progress, MRs and the team at a glance
+- Package mismatches you can fix straight from the list
+- Refresh AIO test cycles whenever you need
 
 ### Improved
-- Release task table keeps its header while scrolling
-- Sync packages button removed
+- The release task table keeps its header in view
 
 ### Fixed
-- Release detail showing empty or stale data
-- Milestone links opening inside the app
+- Release pages no longer show stale or empty data
+- Milestone links open in your browser
 
 ## [1.14.14] — 2026-10-29
 
-Bulk subtask creation is easier to correct.
+Bulk subtask creation is easier to get right.
 
 ### New
-- Remove rows before creating subtasks in bulk
+- Drop rows you don't need before creating subtasks
 
 ### Fixed
-- Bulk subtask dialog not closing after creating
-- AIO defect keys painting over the table header
+- The bulk subtask dialog closes once it's done
+- AIO defect keys stay under the table header
 
 ## [1.14.13] — 2026-10-28
 
-Story Points filter and a highlight for the peeked row.
+Filter by story points and always see which row you're peeking at.
 
 ### New
-- Story Points filter on the Backlog and Sprint Board
-- The row open in the peek panel is highlighted
+- Filter the Backlog and Sprint Board by story points
+- The row you're peeking at stays highlighted
 
 ### Improved
-- Tighter columns in the AIO defects list
+- The AIO defects list fits more on screen
 - My Tasks rows stay on one line in narrow windows
 
 ### Fixed
-- Peek panel shadow cut off by sticky headers
+- The peek panel's shadow is no longer cut off
 
 ## [1.14.12] — 2026-10-27
 
-AIO cycle tabs split open and done work.
+Test cycles separate what's left to do from what's done.
 
 ### Improved
-- AIO Executions and Defects split into Open and Done
+- AIO executions and defects split into Open and Done
 
 ### Fixed
-- AIO defect rows not updating after edits
+- Defect changes show up on AIO pages straight away
 
 ## [1.14.11] — 2026-10-22
 
-Find in page arrives.
+Find anything on the current page with Cmd+F.
 
 ### New
-- Find in page with Cmd+F
-- Step-level stats on AIO cycles
+- Search the page you're on with Cmd+F
+- See step-level pass rates on AIO cycles
 
 ### Improved
 - Global search moves to Cmd+Shift+F
-- Friendlier AIO empty states
+- AIO charts explain themselves when there's no data yet
 
 ### Fixed
-- Descriptions cut off before a code block
-- Raw key syntax in command palette shortcuts
+- Descriptions with code blocks show in full again
 
 ## [1.14.10] — 2026-10-16
 
-Global search is ranked and much faster.
+Search puts your current work first and finds things faster.
 
 ### New
-- Search results ranked with your sprint first
-- Jump straight to an issue by its key
-- Include closed issues in search
-- Epics get their own search section
+- Search shows your sprint first, then backlog and closed
+- Type an issue key to jump straight to it
+- Include closed issues when you need them
+- Epics get their own section in search
 
 ### Improved
-- Compact one-line search and recent rows
+- Search and recent items fit on tidy one-line rows
 
 ### Fixed
-- "No results" flashing while typing
-- Hyphenated words not matching in search
-- Tokens sent to the wrong Jira instance
-- Recent MRs from different projects mixed up
+- "No results" no longer flashes while you type
+- Hyphenated words now match in search
 
 ## [1.14.9] — 2026-10-14
 
-Deployment package sync and a new AIO cycle dashboard.
+Keep deployment packages in sync and follow test cycles on a new dashboard.
 
 ### New
-- See and fix a story's deployment package
+- See a story's deployment week and fix it in one click
 - Unassign an issue without picking someone else
-- Offer to close a story after its last subtask
-- AIO cycle dashboard with burndown and stats
+- Close a story right after its last subtask
+- Follow AIO cycles with a dashboard, burndown and stats
 
 ### Improved
-- Redesigned AIO cycle and run pages
-- AIO stats fit smaller screens
+- AIO cycle and run pages match the rest of the app
 
 ### Fixed
-- Sidebar labels hidden in narrow windows
-- Underscores in monospace text
-- Slow issue opening due to package lookups
+- Issues open faster
+- Sidebar labels stay visible in narrow windows
 
 ## [1.14.8] — 2026-10-08
 
-Token handling is more forgiving.
+Connecting with a token just works, even when you paste a stray space.
 
 ### Fixed
-- Pasted tokens with stray spaces failing to sign in
-- Test connection ignoring the token you typed
-- Save keeping the old token without telling you
+- Pasted tokens with extra spaces now sign in
+- Test connection checks the token you just typed
+- Saving a token tells you if it couldn't be stored
 
 ## [1.14.7] — 2026-10-07
 
-Duplicate subtask templates and drag-and-drop attachments.
+Reuse subtask templates and drop files straight onto issues.
 
 ### New
-- Duplicate a subtask template
-- Drag and drop attachments in the desktop app
+- Copy a subtask template to make a variation
+- Drag and drop files onto an issue in the desktop app
 
 ### Improved
-- Epic forecast leans on logged time
-- Link search understands issue keys
+- Epic forecasts follow the time you actually log
+- Find issues to link by typing their key
 
 ### Fixed
-- Link dialog running off screen
-- Flag toggle in the sidebar not working
-- Backlog titles squeezed by badges
+- Flagging from the issue sidebar works again
+- Backlog titles get the room they need
 
 ## [1.14.6] — 2026-10-05
 
-Jira text renders more faithfully.
+Jira descriptions and comments look the way they do in Jira.
 
 ### Fixed
-- Underscores inside words turning into italics
-- Stray backticks around monospace text
+- Names with underscores no longer turn into italics
+- Monospace text no longer shows stray backticks
 
 ## [1.14.5] — 2026-10-02
 
-Epic progress on epic detail and a redesigned Changes tab.
+See where an epic is heading and what changed on any issue.
 
 ### New
-- Epic progress with forecast, charts and risks
+- Epic forecast, progress charts and risks on every epic
 
 ### Improved
-- Clearer Changes tab with grouped edits and diffs
+- The Changes tab groups edits and shows clear before and after
 
 ### Fixed
-- Jira results skipped on servers with smaller pages
-- Epic progress jumping while it loads
+- No more missing results on smaller Jira servers
 
 ## [1.14.4] — 2026-09-29
 
-New My Tasks bands and Worklogs presets.
+My Tasks shows reviews waiting on you and work in testing.
 
 ### New
-- My Tasks band for reviews waiting on your subtasks
-- My Tasks band for issues in testing
-- Last 7 Days and Last Month presets in Worklogs
+- See stories in review that still have your subtasks
+- See your issues that are in testing
+- Pick Last 7 Days or Last Month in Worklogs
 
 ### Improved
-- Subtasks follow Jira's order everywhere
+- Subtasks appear in the same order as in Jira
 
 ### Fixed
-- Calendar weeks starting on Sunday
+- Calendars start the week on Monday
 
 ## [1.14.3] — 2026-09-22
 
-One date picker everywhere and a tidier Sprint Board header.
+Pick dates the same way everywhere and keep the sprint header in view.
 
 ### New
-- One calendar date picker across the app
-- Sprint Board header stays visible while scrolling
+- One friendly calendar for every date field
+- The Sprint Board header stays put while you scroll
 
 ### Fixed
-- Jira formatting bleeding into nearby text
-- Strikethrough and bold rendering in links
-- Date picker clearing when it shouldn't
+- Jira formatting no longer spills into nearby text
+- Clearing a date only happens when you mean it
 
 ## [1.14.2] — 2026-09-17
 
-Attachments in comments and descriptions.
+Put attachments right inside comments and descriptions.
 
 ### New
-- Insert attachments in comments and descriptions
-- Issue type icons on release task rows
+- Insert attachments into comments and descriptions
+- Release tasks show their issue type icon
 
 ### Improved
-- Clearer saving feedback in Create and Edit issue
+- Creating and editing issues shows clear saving progress
 
 ### Fixed
-- Releases missing subtasks with the fix version
-- Backlog jumping while dragging near the edge
-- Only the first pasted file being uploaded
+- Releases include subtasks that carry the fix version
+- Dragging on the Backlog no longer jumps around
 
 ## [1.14.1] — 2026-08-27
 
-Open links in the browser you choose.
+Open links in the browser you actually want.
 
 ### New
-- Open links in a browser of your choice
-- Real review status for your MRs on My Tasks
+- Right-click any link to open it in a chosen browser
+- My Tasks shows the real review status of your MRs
 
 ### Fixed
-- Lists not updating after sidebar edits
-- Comment menu cut off near the composer
+- Lists update right after you edit an issue
 
 ## [1.14.0] — 2026-08-13
 
-Releases gain branch, milestone and drift tools.
+Ship releases with confidence: branches, milestones and stray MRs, all handled.
 
 ### New
-- Create a release branch and milestone
-- Spot MRs that drifted from the release
-- Fix an MR's branch or milestone in one click
-- Check that a release was merged back
-- Redesigned Epics page
-- Density and text size settings
+- Create the release branch and milestone in one step
+- Catch MRs that slipped out of a release
+- Fix an MR's target branch or milestone in one click
+- Check that a release made it back to main
+- A redesigned Epics page with progress at a glance
+- Choose your density and text size
 
 ### Improved
-- One row per task on the release page
-- Faster release drift checks
+- Each release task fits on one clear row
 
 ### Fixed
-- Unreadable Jira and GitLab error messages
-- Release tickets in random order
-- HTML in descriptions being interpreted
+- Jira and GitLab errors are readable again
 
 ## [1.13.5] — 2026-08-04
 
-Handy additions on issue detail.
+A few handy extras on every issue.
 
 ### New
-- Deployment package shown in the sidebar
-- Worklog progress bar
-- Copy the Jira link from the header
+- See the deployment package in the issue sidebar
+- Track logged time against the estimate
+- Copy an issue's Jira link in one click
 
 ### Fixed
-- Time tracking always showing no time logged
-- Release rows opening the full page instead of the peek
+- Time tracking shows your logged time again
 
 ## [1.13.4] — 2026-07-09
 
-Preview more attachment types.
+Preview almost any attachment without downloading it.
 
 ### New
-- Preview text, code, PDF, video and audio files
-
-### Fixed
-- Some files opening as the wrong preview type
+- Preview text, code, PDFs, video and audio in the app
 
 ## [1.13.3] — 2026-07-02
 
-Fix versions on the Backlog.
+See each story's release right on the Backlog.
 
 ### New
-- Fix version badge on Backlog rows
+- Backlog rows show the story's fix version
 
 ### Fixed
-- Backlog titles truncating too early
-- Sprint field not saving
-- Tempo Account field not saving
+- Backlog titles use all the space they have
+- Sprint and Account fields save correctly
 
 ## [1.13.2] — 2026-06-18
 
-Less noise on My Tasks.
+My Tasks stays focused on work that's still open.
 
 ### Improved
-- Subtasks of done stories are hidden in Current Sprint
-- Empty worklog comments get a sensible default
+- Finished stories hide their subtasks in Current Sprint
+- Worklogs without a comment get a sensible description
 
 ### Fixed
-- Flagging failing on Jira Data Center
-- Stale direct match in search
-- Space closing the command palette
+- Flagging works on Jira Data Center
+- Space no longer closes the command palette
 
 ## [1.13.1] — 2026-06-17
 
-Search as you type and new page shortcuts.
+Search as you type and jump to any page with a shortcut.
 
 ### New
-- Issues search as you type
-- Keyboard shortcuts for 7 pages
+- Issue search updates as you type
+- Jump to 7 main pages with keyboard shortcuts
 
 ### Improved
-- Command palette opens with Cmd+F
-- Status on My Tasks rows is display-only
+- Open the command palette with Cmd+F
 
 ### Fixed
-- Errors when saving untouched custom fields
-- Attachments missing on Jira Data Center
-- AIO back button leaving the section
+- Editing an issue no longer fails on untouched fields
+- Attachments show up on Jira Data Center
 
 ## [1.13.0] — 2026-06-16
 
-My Tasks and a redesigned dashboard.
+Meet My Tasks, your personal home for the day's work.
 
 ### New
-- My Tasks page with your work in a smart order
+- My Tasks puts flagged, overdue and in-review work first
 
 ### Improved
-- Redesigned dashboard
-- Standup recap can show today
+- A redesigned dashboard with sprint, releases and your week
+- Standup can recap today, not just yesterday
 
 ### Fixed
-- AIO tests showing Not Run on deep links
+- Test results show correctly when opened from a link
 
 ## [1.12.4] — 2026-06-12
 
-Release milestone warnings and priority icons.
+Catch MRs on the wrong milestone before release day.
 
 ### New
-- Warning for MRs on the wrong milestone
-- Priority icons in the priority picker
+- Release tasks warn when an MR is on the wrong milestone
+- Priorities show their icons when you pick one
 
 ### Fixed
-- Bulk subtasks failing on required fields
-- Priority pickers listing priorities you can't use
-- Peek panel actions not working
+- Bulk subtasks fill in required fields from the parent
+- Edit, clone and add subtask work from the peek panel
 
 ## [1.12.3] — 2026-06-10
 
-Clickable issue keys in text.
+Issue keys in text become links you can click.
 
 ### New
-- Issue keys in text open the issue
-- Send a story to the top or bottom of the backlog
-
-### Improved
-- Tidier story context menu
+- Click issue keys in descriptions and comments
+- Send a story to the top or bottom of its section
 
 ### Fixed
-- Resolution dialog shown off-centre
-- Unclear GitLab certificate errors
+- Clearer messages for GitLab certificate problems
 
 ## [1.12.2] — 2026-06-09
 
-Setup wizard and keyboard polish.
+A smoother setup and handy keyboard touches.
 
 ### New
-- Setup wizard shows its error log
-- Setup wizard remembers your progress
-- Escape cancels a drag on the board and backlog
-- Peek AIO defects with a click
+- The setup wizard shows what went wrong and remembers progress
+- Escape cancels a drag and keeps you in fullscreen
+- Peek at AIO defects with a single click
 
 ### Improved
-- Old dates read as years and days
+- Older dates read naturally, like "1 year 3 days ago"
 
 ### Fixed
-- Setup wizard stalling on the Jira step
-- AIO defects table overflowing
+- The setup wizard no longer stalls on Jira
 
 ## [1.12.1] — 2026-06-08
 
-Standup Notes show more of your day.
+Standup Notes capture more of what you did.
 
 ### New
-- Issues you created appear in Yesterday
-- Worklog descriptions on Standup
+- Yesterday includes the issues you created
+- Worklogs on Standup show their descriptions
 
 ### Fixed
-- Teammates' commits missing on Standup
-- Project keys breaking Standup queries
+- A teammate's Standup shows their commits
 
 ## [1.12.0] — 2026-06-07
 
-Peek any issue and drag to rank or transition.
+Peek at any issue, and drag to rank or change status.
 
 ### New
-- Peek any issue without leaving the page
-- Drag to rank stories on the Backlog
-- Drag cards to change status on the Sprint Board
-- Subtask templates and bulk creation
-- Choose a resolution when closing an issue
-- Choose which Jira board the app uses
+- Peek at any issue without leaving where you are
+- Drag stories to reorder the Backlog
+- Drag cards between columns to change status
+- Create many subtasks at once from templates
+- Pick a resolution when you close an issue
+- Choose which Jira board the app follows
 
 ### Improved
-- Issue type colours and icons on cards
-- Unassigned option in assignee filters
-- Watch a teammate's Standup
+- Cards show their issue type and priority at a glance
+- Filter by unassigned and watch a teammate's Standup
 
 ### Fixed
-- Backlog drag drifting by a row
-- Board not updating after edits
-- Unassigned issues looking assigned
+- Dragging on the Backlog stays where you drop it
 
 ## [1.11.0] — 2026-06-01
 
-Faster boards and richer releases.
+Boards load in a blink and releases tell you more.
 
 ### New
-- Time in column on sprint cards
-- Issue detail loads section by section
-- Pin releases to the tab strip
+- See how long a card has been in its column
+- Issue details appear section by section, no waiting
+- Pin releases as tabs
 - Edit a release in Jira and GitLab at once
 
 ### Improved
-- Sprint Board and Backlog load much faster
+- The Sprint Board and Backlog load much faster
 
 ### Removed
 - Jira quick filters and Save Filter
 
 ### Fixed
-- Board not updating after a status change
-- Missing epic chips and flags on the Backlog
-- Board columns overflowing narrow windows
+- The board updates right after a status change
 
 ## [1.10.4] — 2026-05-28
 
-Cleaner worklog editing.
+Editing worklogs is clearer and tidier.
 
 ### Fixed
-- Worklog actions now appear on hover
-- Delete button discarding edits instead of deleting
-- Worklog edit form getting cut off
+- Edit and delete appear when you hover a worklog
+- Delete really deletes the worklog
 
 ## [1.10.3] — 2026-05-26
 
-Better Jira text rendering and clickable worklog keys.
+Jira text renders more faithfully and worklog keys open issues.
 
 ### Improved
-- Issue keys in Worklogs open the issue
+- Click an issue key in Worklogs to open it
 
 ### Fixed
-- Monospace links not clickable
-- Lists after quotes shown inside the quote
+- Links in monospace text are clickable
+- Lists after a quote no longer end up inside it
 
 ## [1.10.2] — 2026-05-26
 
-Subtasks inherit parent fields.
+New subtasks fill in the fields you'd otherwise retype.
 
 ### New
-- New subtasks inherit required fields from the parent
+- Subtasks copy required fields from their parent
 
 ### Removed
-- Sprint Progress page
+- The Sprint Progress page
 
 ### Fixed
-- Subtask creation failing on some Jira setups
-- Standup Today using the wrong issue status
+- Creating subtasks works on more Jira setups
 
 ## [1.10.1] — 2026-05-25
 
-Standup Yesterday is easier to read.
+Standup's Yesterday is quicker to scan.
 
 ### Improved
 - Commits for the same task share one line
 
 ### Fixed
-- Missing commits in Yesterday
-- Yesterday using the UTC date
-- Project pickers missing from Settings
+- Yesterday lists every commit you made
+- Project pickers are back in Settings
 
 ## [1.10.0] — 2026-05-25
 
-Standup Notes arrive.
+Meet Standup Notes: your daily update, ready before the meeting.
 
 ### New
-- Standup Notes page
-- Set up AIO and Tempo in the setup wizard
+- Standup Notes gathers yesterday's work and today's plan
+- Set up AIO and Tempo during first-time setup
 
 ### Improved
-- Everyone sees every page, no roles needed
-- Simpler sidebar settings
+- Everyone sees every page, no roles to pick
 
 ### Fixed
-- AIO runs in progress shown as not executed
-- Worklogs not refreshing after logging time
-- MR discussions capped at 20
+- Worklogs refresh as soon as you log time
+- MR discussions load in full
 
 ## [1.9.0] — 2026-05-23
 
-Tempo worklogs and a new dashboard.
+Track team time with Tempo and start the day on a fresh dashboard.
 
 ### New
-- Worklogs page powered by Tempo
-- Date presets and saved filters for worklogs
-- Edit worklogs from any cell
-- New dashboard with sprint and release cards
+- See team worklogs by epic, story and subtask
+- Save your favourite worklog filters
+- Add, edit or delete worklogs from any cell
+- A welcome dashboard with your sprint and next release
 
 ### Removed
-- Customizable widget dashboard and Workload page
-
-### Fixed
-- Greeting showing your surname
+- The widget dashboard and Workload page
 
 ## [1.8.1] — 2026-05-19
 
-Flag issues from anywhere.
+Flag issues that need attention, wherever you are.
 
 ### New
-- Flag issues from the board, backlog and detail
+- Flag issues from the board, backlog or issue page
 
 ### Fixed
-- Nested lists in descriptions
-- Mentions showing usernames instead of names
+- Mentions show people's names
 
 ## [1.8.0] — 2026-05-18
 
-AIO Test Management integration.
+Your AIO test cycles now live right next to your Jira work.
 
 ### New
-- AIO Test Management projects, cycles and runs
-- Pin test cycles to the tab strip
-- Resize sidebars by dragging
-- Search closed issues
+- Browse AIO test projects, cycles and runs
+- Pin test cycles as tabs
+- Drag sidebars to the width you like
+- Find closed issues in search
 - Assign an issue to yourself in one click
 - Jira links open inside the app
 
-### Improved
-- One status pill style everywhere
-
 ### Fixed
-- Jira formatting in tables and panels
-- Errors flashing on first AIO load
+- AIO pages load without error flashes
 
 ## [1.7.3] — 2026-05-10
 
 Updates restart the app properly.
 
 ### Fixed
-- App not reopening after an update
+- The app reopens on its own after updating
 
 ## [1.7.2] — 2026-05-10
 
-Resizable sidebars and debugging tools.
+Resize panels to fit the way you work.
 
 ### New
-- Resize detail sidebars by dragging
+- Drag detail sidebars to any width
 - Clear an issue's story points
-- Request bodies in Developer Tools
 
 ### Fixed
-- Loading hanging on some Jira responses
-- Milestone column stuck on Loading
+- Loading no longer hangs on some Jira responses
 
 ## [1.7.1] — 2026-04-06
 
 Updates install and relaunch reliably.
 
 ### Fixed
-- App not relaunching after installing an update
+- The app relaunches after installing an update
 
 ## [1.7.0] — 2026-04-06
 
@@ -663,32 +607,31 @@ Maintenance release with no visible changes.
 Every view feels instant.
 
 ### Improved
-- Pages load faster with smarter caching
-- Loading skeletons on every data view
-- Avatars load once and stay cached
-- Backlog loads section by section
+- Pages open instantly and stay loaded
+- Placeholders show the layout while data loads
+- Avatars load once and stay put
+- The Backlog fills in section by section
 
 ### Fixed
-- Sprint board flashing and jumping
-- Backlog rows loading in the wrong sprint
+- The sprint board no longer flashes or jumps
 
 ## [1.6.3] — 2026-03-29
 
-Roomier update dialogs and a fixed restart.
+Roomier update dialogs and a reliable restart.
 
 ### Improved
-- Wider update dialogs
+- Update dialogs give release notes more room
 
 ### Fixed
-- Restart countdown not finishing after an update
+- The app restarts right after an update
 
 ## [1.6.2] — 2026-03-29
 
 Copy and paste work everywhere on macOS.
 
 ### Fixed
-- Copy and paste shortcuts not working on macOS
-- Duplicate desktop notifications
+- Cmd+C and Cmd+V work in every field on macOS
+- Desktop notifications no longer arrive twice
 
 ## [1.6.1] — 2026-03-26
 
@@ -698,18 +641,17 @@ Smoother board scrolling and a sound for notifications.
 - Desktop notifications play a sound
 
 ### Fixed
-- Swimlane headers not sticking while scrolling
+- Swimlane headers stick while you scroll
 
 ## [1.6.0] — 2026-03-26
 
-Taskflow can now update itself.
+Taskflow now keeps itself up to date.
 
 ### New
-- Automatic updates on a schedule you choose
-- Update dialog with release notes and progress
-- What's new after each update
-- Release history in Settings
-- About dialog in the app menu
+- Updates arrive automatically on a schedule you choose
+- See what's in an update before installing it
+- Find out what's new after each update
+- Browse past releases in Settings
 
 ## [0.1.0] — 2026-03-25
 
@@ -720,68 +662,59 @@ A test build for the new update pipeline.
 
 ## [1.5] — 2026-03-24
 
-Deep Jira features and a customizable layout.
+Do almost everything you'd do in Jira, in a layout you control.
 
 ### New
-- Activity timeline with changes, comments and worklogs
-- Log and edit time on issues
-- Attachments with previews and drag and drop
-- Mention people in comments
-- Customizable sidebar and dashboard
-- Clone issues and watch them
+- One activity feed for changes, comments and worklogs
+- Log and edit time right on the issue
+- Add attachments with previews and drag and drop
+- Mention teammates in comments
+- Arrange the sidebar and dashboard your way
+- Clone issues and watch the ones you care about
 
 ### Improved
-- Status changes work the same everywhere
-- Rebuilt saved filters
+- Changing status works the same everywhere
 
 ## [1.4] — 2026-03-20
 
 Faster lists and a sturdier app under the hood.
 
 ### New
-- Developer Tools with a request log
+- Developer Tools show every request the app makes
 
 ### Improved
 - Long lists scroll smoothly
-- Better screen reader labels
+- Screen readers can read more of the app
 
 ## [1.3] — 2026-03-19
 
-Visual identity and keyboard-driven workflows.
+A new look and a keyboard for everything.
 
 ### New
-- New app icon
-- Settings split into pages
+- A brand new app icon
+- Settings organised into pages
 - Keyboard shortcuts and a command palette
-- Pin issues as tabs and reopen recent items
-- Merge request detail page
-- Rich Jira text with mentions and panels
+- Pin issues as tabs and jump back to recent ones
+- A full page for every merge request
+- Jira text with mentions, panels and images
 
 ### Improved
-- Density settings for lists and cards
-- Redesigned notifications
-
-### Fixed
-- Board columns misaligned with headers
-- Breadcrumbs piling up
+- Choose how compact lists and cards are
+- Notifications are easier to scan
 
 ## [1.2] — 2026-03-15
 
-Work entirely within Taskflow.
+Do your Jira work without ever opening Jira.
 
 ### New
-- Issue detail with inline editing
-- Sprint board with drag and drop
-- Create and edit issues
-- Backlog with sprint sections
-- Epics page and epic detail
+- Edit issues in place
+- Move cards across the sprint board
+- Create and edit issues with your project's fields
+- Plan sprints from the Backlog
+- Manage epics and their stories
 
 ### Improved
-- Wider issue detail panel
-
-### Fixed
-- Sprints from other projects on the board
-- Epic badges showing no name
+- The issue panel gives details more room
 
 ## [1.1] — 2026-03-13
 
@@ -789,24 +722,22 @@ Polish across every feature.
 
 ### New
 - Stories group their subtasks on the sprint board
-- MR Attention tab
-- Dashboard panels for subtasks, MRs and sprint
-- Notifications page
-- Debug Logs page
+- See MRs that need your attention
+- Dashboard panels for subtasks, MRs and the sprint
+- A full page for all notifications
 
 ### Fixed
-- Story points always showing zero
-- Duplicate notifications
-- False disconnected warnings
+- Story points show their real values
+- No more false "disconnected" warnings
 
 ## [1.0] — 2026-03-12
 
-Initial release — one desktop app for Jira and GitLab.
+Jira and GitLab, together in one desktop app.
 
 ### New
-- Connect Jira and GitLab with tokens kept in your keychain
-- Setup wizard
-- Dashboard with your tasks and MRs
-- Issues and MRs linked by branch name
-- Change status and comment from task rows
-- Notifications and global search
+- Connect Jira and GitLab, with tokens safe in your keychain
+- A guided setup to get you connected
+- A dashboard with your tasks and merge requests
+- Issues and MRs linked automatically by branch name
+- Change status and comment without opening Jira
+- Notifications and search across Jira and GitLab

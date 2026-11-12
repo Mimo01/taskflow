@@ -103,14 +103,21 @@ function ReleaseRow({
   const { release, summary } = item;
   const plainSummary = summary?.replace(/\*\*|`/g, '') ?? '';
   return (
-    <li className={cn('list-none rounded-lg', open && 'bg-muted/50')}>
+    <li
+      className={cn(
+        'list-none',
+        // Opened release: its own bordered card, spaced off its neighbours; the
+        // hairline below it is dropped so the card edge does the separating.
+        open && 'my-2 rounded-lg border border-border bg-muted/40 [&+li]:border-t-transparent',
+      )}
+    >
       <button
         type="button"
         aria-expanded={open}
         onClick={onToggle}
         className={cn(
           ROW_GRID,
-          'h-8 w-full rounded-lg px-2 text-left text-sm',
+          'h-9 w-full rounded-lg px-2 text-left text-sm',
           !open && 'hover:bg-muted/50',
         )}
       >
@@ -215,7 +222,7 @@ function VersionHistory() {
             {key}
             <span aria-hidden="true" className="h-px flex-1 bg-border/60" />
           </h4>
-          <ul className="m-0 flex flex-col p-0">
+          <ul className="m-0 flex flex-col divide-y divide-border/60 p-0">
             {items.map((item) => (
               <ReleaseRow
                 key={item.release.version}
