@@ -258,7 +258,7 @@ describe('EPIC-03: epic stories list in IssueDetailContent (isEpic branch)', () 
       { wrapper },
     );
 
-    // Heading shows "Stories (2)"
-    expect(screen.getByText('Stories (2)')).toBeInTheDocument();
+    // Heading shows "Stories 2" (shared SectionHeader: muted count, no parentheses)
+    expect(screen.getByRole('heading', { name: 'Stories 2' })).toBeInTheDocument();
   });
 });

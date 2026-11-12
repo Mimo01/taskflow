@@ -14,6 +14,7 @@ import { useSettingsStore } from '@/stores/settings.store';
 import type { AttachmentMap, UserMap } from '../WikiRenderer';
 import { ChangelogEntry } from './ChangelogEntry';
 import { groupChangeBursts } from './changelogDiff';
+import { SectionHeader } from './SectionHeader';
 import { TimelineFilterChips } from './TimelineFilterChips';
 import { WorklogEntry } from './WorklogEntry';
 
@@ -148,12 +149,14 @@ export function ActivityTimeline({
 
   return (
     <section className="mt-6 density-compact:mt-4 density-comfortable:mt-8 pb-4 density-compact:pb-3 density-comfortable:pb-5">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-medium text-muted-foreground">Activity</h3>
-        {!noActivity && (
-          <TimelineFilterChips counts={counts} active={filter} onFilterChange={setFilter} />
-        )}
-      </div>
+      <SectionHeader
+        title="Activity"
+        actions={
+          noActivity ? undefined : (
+            <TimelineFilterChips counts={counts} active={filter} onFilterChange={setFilter} />
+          )
+        }
+      />
 
       {noActivity ? (
         <div className="text-center py-8">

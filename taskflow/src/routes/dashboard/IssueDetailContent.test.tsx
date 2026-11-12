@@ -508,9 +508,8 @@ describe('Subtasks section header (261112-eep)', () => {
 
   it('empty story shows heading, "No subtasks" and the Add button', () => {
     render(<IssueDetailContent {...base} issue={makeStoryIssue([])} />, { wrapper });
-    expect(screen.getByText('Subtasks', { exact: true })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Subtasks' })).toBeTruthy();
     expect(screen.getByText('No subtasks')).toBeTruthy();
-    expect(screen.queryByText(/Subtasks \(/)).toBeNull();
     expect(screen.getByRole('button', { name: 'Add subtask' })).toBeTruthy();
   });
 
@@ -523,7 +522,7 @@ describe('Subtasks section header (261112-eep)', () => {
       />,
       { wrapper },
     );
-    expect(screen.getByText('Subtasks (1)')).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Subtasks 1' })).toBeTruthy();
     expect(screen.queryByText('No subtasks')).toBeNull();
   });
 
@@ -532,7 +531,7 @@ describe('Subtasks section header (261112-eep)', () => {
       wrapper,
     });
     expect(screen.getByTestId('subtasks-skeleton')).toBeTruthy();
-    expect(screen.getByText('Subtasks (1)')).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Subtasks 1' })).toBeTruthy();
     expect(screen.queryByText('No subtasks')).toBeNull();
   });
 
@@ -546,12 +545,10 @@ describe('Subtasks section header (261112-eep)', () => {
     expect(onAddSubtask).toHaveBeenCalledWith('PROJ-20');
   });
 
-  it('menu item opens the bulk create modal', async () => {
+  it('Bulk create opens the bulk create modal', async () => {
     render(<IssueDetailContent {...base} issue={makeStoryIssue([])} />, { wrapper });
     expect(screen.queryByTestId('bulk-modal')).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'More subtask actions' }));
-    const items = await screen.findAllByRole('menuitem');
-    fireEvent.click(items[0]);
+    fireEvent.click(screen.getByRole('button', { name: 'Bulk create' }));
     expect(await screen.findByTestId('bulk-modal')).toBeTruthy();
   });
 });

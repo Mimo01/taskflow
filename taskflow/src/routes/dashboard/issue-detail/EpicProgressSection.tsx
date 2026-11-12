@@ -80,6 +80,7 @@ import {
 import { EpicProgressSummary } from './EpicProgressSummary';
 import { STAT_CONTAINER_CLASS, STAT_GRID_CLASS } from './EpicStatCard';
 import { EpicTimeBurnup } from './EpicTimeBurnup';
+import { SectionHeader } from './SectionHeader';
 import {
   useEpicStatusHistory,
   useEpicWorkCalendar,
@@ -359,26 +360,30 @@ export function EpicProgressSection({
 
   return (
     <section aria-label="Epic progress" className={SECTION_CLASS}>
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-medium text-muted-foreground">Progress</h3>
-        {/* biome-ignore lint/a11y/useSemanticElements: button toggle group; <fieldset> would add unwanted chrome */}
-        <div role="group" aria-label="Progress metric" className="flex gap-1">
-          {METRICS.map(([m, label]) => (
-            <button
-              key={m}
-              type="button"
-              aria-pressed={metric === m}
-              onClick={() => setMetric(m)}
-              className={cn(
-                'cursor-pointer rounded-md px-2 py-0.5 text-xs ring-1 ring-foreground/10',
-                metric === m ? 'bg-primary text-primary-foreground' : 'hover:bg-accent',
-              )}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      </div>
+      {/* mb-0: the section's space-y-5 owns the gap below the header. */}
+      <SectionHeader
+        title="Progress"
+        className="mb-0"
+        actions={
+          // biome-ignore lint/a11y/useSemanticElements: button toggle group; <fieldset> would add unwanted chrome
+          <div role="group" aria-label="Progress metric" className="flex gap-1">
+            {METRICS.map(([m, label]) => (
+              <button
+                key={m}
+                type="button"
+                aria-pressed={metric === m}
+                onClick={() => setMetric(m)}
+                className={cn(
+                  'cursor-pointer rounded-md px-2 py-0.5 text-xs ring-1 ring-foreground/10',
+                  metric === m ? 'bg-primary text-primary-foreground' : 'hover:bg-accent',
+                )}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        }
+      />
       <EpicProgressSummary
         metric={metric}
         summary={summary}

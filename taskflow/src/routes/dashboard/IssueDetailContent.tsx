@@ -25,6 +25,7 @@ import { AttachmentsSection } from './issue-detail/AttachmentsSection';
 import { EpicProgressSection } from './issue-detail/EpicProgressSection';
 import { LogWorkPopover } from './issue-detail/LogWorkPopover';
 import { RelatedIssueRow } from './issue-detail/RelatedIssueRow';
+import { SectionHeader } from './issue-detail/SectionHeader';
 import { SubtaskCreateControl } from './issue-detail/SubtaskCreateControl';
 import { SubtasksSkeleton } from './issue-detail/SubtasksSkeleton';
 import type { AttachmentMap } from './WikiRenderer';
@@ -254,7 +255,7 @@ export function IssueDetailContent({
 
       {/* Description */}
       <section>
-        <h3 className="text-sm font-medium text-muted-foreground mb-2">Description</h3>
+        <SectionHeader title="Description" />
         {description ? (
           <WikiRenderer wikiText={description} attachments={attachmentMap} users={userMap} />
         ) : (
@@ -283,9 +284,10 @@ export function IssueDetailContent({
       )}
       {isEpic && (
         <section>
-          <h3 className="text-sm font-medium text-muted-foreground mb-2">
-            Stories{epicStories && epicStories.length > 0 ? ` (${epicStories.length})` : ''}
-          </h3>
+          <SectionHeader
+            title="Stories"
+            count={epicStories && epicStories.length > 0 ? epicStories.length : undefined}
+          />
           {!epicStories && <p className="text-sm text-muted-foreground">Loading stories…</p>}
           {epicStories && epicStories.length === 0 && (
             <p className="text-sm text-muted-foreground italic">No stories in this epic</p>
@@ -315,17 +317,18 @@ export function IssueDetailContent({
       {/* Story/task → Subtasks list */}
       {!isEpic && !isSubtask && (
         <section>
-          {/* Header row: fixed height so it is identical with or without subtasks. N comes from
-              the base `subtasks` field so the label does not shift when enrichment lands. */}
-          <div className="flex h-7 items-center justify-between mb-1">
-            <h3 className="text-sm font-medium text-muted-foreground">
-              Subtasks{subtasks.length > 0 ? ` (${subtasks.length})` : ''}
-            </h3>
-            <SubtaskCreateControl
-              onAdd={() => onAddSubtask?.(issueKey)}
-              onBulk={() => setBulkCreateOpen(true)}
-            />
-          </div>
+          {/* N comes from the base `subtasks` field so the label does not shift when
+              enrichment lands. */}
+          <SectionHeader
+            title="Subtasks"
+            count={subtasks.length > 0 ? subtasks.length : undefined}
+            actions={
+              <SubtaskCreateControl
+                onAdd={() => onAddSubtask?.(issueKey)}
+                onBulk={() => setBulkCreateOpen(true)}
+              />
+            }
+          />
           {subtasks.length === 0 && (
             <p className="text-sm text-muted-foreground italic">No subtasks</p>
           )}
@@ -357,7 +360,7 @@ export function IssueDetailContent({
           (key, summary, assignee, status pill) as a Story's Subtasks section. */}
       {isSubtask && parent && (
         <section>
-          <h3 className="text-sm font-medium text-muted-foreground mb-2">Parent</h3>
+          <SectionHeader title="Parent" />
           <RelatedIssueRow
             issueKey={parent.key}
             summary={parent.fields.summary}

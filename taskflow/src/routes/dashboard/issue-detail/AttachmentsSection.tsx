@@ -1,6 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetch } from '@tauri-apps/plugin-http';
-import { ChevronDown, ChevronRight, Paperclip } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { assertOk, openSavedFile, saveBytes } from '@/lib/save-attachment';
 import type { JiraAttachment } from '@/services/jira';
@@ -11,6 +10,7 @@ import { AttachmentPreviewModal } from './AttachmentPreviewModal';
 import { AttachmentThumbnail } from './AttachmentThumbnail';
 import { AttachmentUpload } from './AttachmentUpload';
 import { resolvePreviewKind } from './resolvePreviewKind';
+import { SectionHeader } from './SectionHeader';
 
 interface AttachmentsSectionProps {
   attachments: JiraAttachment[];
@@ -156,8 +156,6 @@ export function AttachmentsSection({
     }
   }
 
-  const ChevronIcon = isExpanded ? ChevronDown : ChevronRight;
-
   return (
     <section
       onDragOver={handleDragOver}
@@ -166,20 +164,13 @@ export function AttachmentsSection({
       aria-label="Drag and drop files to attach"
     >
       {/* Section header */}
-      <div className="flex items-center gap-2 mb-2">
-        <button
-          type="button"
-          onClick={() => setIsExpanded(!isExpanded)}
-          className="flex items-center gap-1.5 text-sm font-semibold hover:text-foreground/80"
-        >
-          <ChevronIcon className="size-4" />
-          <Paperclip className="size-3.5 text-muted-foreground" />
-          Attachments ({attachments.length})
-        </button>
-        <div className="ml-auto">
-          <AttachmentUpload issueKey={issueKey} jiraBaseUrl={jiraBaseUrl} />
-        </div>
-      </div>
+      <SectionHeader
+        title="Attachments"
+        count={attachments.length}
+        expanded={isExpanded}
+        onToggle={() => setIsExpanded(!isExpanded)}
+        actions={<AttachmentUpload issueKey={issueKey} jiraBaseUrl={jiraBaseUrl} />}
+      />
 
       {/* Drag overlay */}
       {isDragging && (
@@ -208,12 +199,7 @@ export function AttachmentsSection({
       {isExpanded && (
         <div className="space-y-3 density-compact:space-y-2 density-comfortable:space-y-4">
           {attachments.length === 0 ? (
-            <div className="text-center py-4">
-              <p className="text-sm font-medium text-muted-foreground">No attachments</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Attach files using the button above or drag and drop.
-              </p>
-            </div>
+            <p className="text-sm text-muted-foreground italic">No attachments</p>
           ) : (
             <>
               {/* Image thumbnails grid */}
