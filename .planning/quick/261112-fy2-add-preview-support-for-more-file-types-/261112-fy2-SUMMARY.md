@@ -34,3 +34,11 @@ None to production code; AttachmentPreviewModal.tsx unchanged. In the modal test
 
 ## Self-Check: PASSED
 Full pre-commit suite (vitest, biome, tsc) passed on both commits.
+
+## UAT follow-ups (orchestrator, inline)
+- 4363a970: preview modal says "Too large to preview" with file size + cap (2 MB text/code, 50 MB media); unsupported types say "No preview available · size".
+- 970c4f15: shared caps + `previewUnavailableReason` in resolvePreviewKind; oversized files are non-clickable like unsupported ones.
+- d5c9f027 → 503d5382 → 12bf92c8 → 5f4d5f4f → 4723f4dd: tile styling iterated through rendered options; final = identical tile, only a faint in-card reason line ("No preview" / "Too large to preview").
+- ac2d8eb8: tile download busy/✓/✕ + bottom-strip message (replaces text line under the grid); two-click "Delete?" confirmation (3 s revert, Esc/outside click/blur cancel); delete errors shown on the tile.
+
+**UAT:** approved 2026-11-12.
