@@ -11,7 +11,7 @@ interface AttachmentTileProps {
   onDownload: (attachment: JiraAttachment) => void;
   onDelete?: (attachment: JiraAttachment) => void;
   onPreview?: (attachment: JiraAttachment) => void;
-  /** Non-clickable tile: softer, faded thumbnail with a faint reason inside it (261112-fy2). */
+  /** Non-clickable tile: same thumbnail as previewable tiles plus a faint reason line (261112-fy2). */
   previewUnavailable?: PreviewUnavailable;
 }
 
@@ -50,9 +50,7 @@ export function AttachmentTile({
         />
       )}
       <div className="pointer-events-none">
-        <div
-          className={`relative aspect-[4/3] w-full rounded-md border overflow-hidden ${unavailable ? 'border-border/70 bg-muted/40' : 'border-border bg-muted'}`}
-        >
+        <div className="relative aspect-[4/3] w-full rounded-md border border-border bg-muted overflow-hidden">
           {isImage ? (
             <AuthImage
               {...getAttachmentImageSrc(attachment)}
@@ -62,9 +60,7 @@ export function AttachmentTile({
           ) : (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 px-2">
               <div className="flex flex-col items-center gap-1.5">
-                <Icon
-                  className={`size-[26px] text-muted-foreground ${unavailable ? 'opacity-50' : ''}`}
-                />
+                <Icon className="size-[26px] text-muted-foreground" />
                 {ext && (
                   <span className="font-mono text-[10px] leading-none text-muted-foreground">
                     {ext}
