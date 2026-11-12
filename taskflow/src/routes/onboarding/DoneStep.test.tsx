@@ -57,10 +57,16 @@ describe('DoneStep', () => {
     expect(mockStore.setOnboardingComplete).toHaveBeenCalledWith(true);
   });
 
-  it('records WIZARD_VERSION and ends the re-run on mount', () => {
-    useOnboardingStore.getState().set({ rerunActive: true });
+  it('records WIZARD_VERSION on mount and holds the wizard open so Done stays visible', () => {
+    useOnboardingStore.getState().set({ rerunActive: false });
     render(<DoneStep />);
     expect(mockStore.setOnboardingVersion).toHaveBeenCalledWith(WIZARD_VERSION);
+    expect(useOnboardingStore.getState().rerunActive).toBe(true);
+  });
+
+  it('"Go to Dashboard" releases the wizard hold', () => {
+    render(<DoneStep />);
+    fireEvent.click(screen.getByRole('button', { name: /go to dashboard/i }));
     expect(useOnboardingStore.getState().rerunActive).toBe(false);
   });
 

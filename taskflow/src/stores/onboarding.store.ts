@@ -25,7 +25,10 @@ interface OnboardingState {
   jiraValidated: boolean;
   gitlabValidated: boolean;
   integrationsVisited: boolean;
-  /** In-memory: a wizard re-run is in progress (onboardingComplete stays true). */
+  /**
+   * In-memory: keep the wizard shown although onboardingComplete is true — during a re-run,
+   * and on the Done step of any run until 'Go to Dashboard' is clicked.
+   */
   rerunActive: boolean;
   set: (partial: Partial<Omit<OnboardingState, 'set' | 'goNext' | 'goBack'>>) => void;
   goNext: () => void;
