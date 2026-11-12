@@ -10,6 +10,11 @@
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef } from 'react';
+import {
+  formatOsNotification,
+  logOsDispatches,
+  type OsDispatchLogEntry,
+} from '../lib/notification-dispatch-log';
 import type { GitLabMR } from '../services/gitlab';
 import { fetchAssignedMRs, fetchAuthoredMRs, fetchReviewerMRs } from '../services/gitlab';
 import { validateJira } from '../services/jira';
@@ -235,18 +240,24 @@ export function useNotificationPolling() {
         // Use allItems to advance cursors (avoid cursor drift from filtered items)
         advanceCursors(allItems);
         // Dispatch OS notifications only for items not already known to the store
+        const dispatchLog: OsDispatchLogEntry[] = [];
         for (const item of newItems) {
-          if (existingIds.has(item.id)) continue;
+          if (existingIds.has(item.id)) {
+            if (desktopNotificationsEnabledRef.current) {
+              dispatchLog.push({ item, ...formatOsNotification(item), outcome: 'skipped' });
+            }
+            continue;
+          }
           // Per-type check already passed via filter above
           if (desktopNotificationsEnabledRef.current) {
-            const result = await tryDispatchOsNotification(
-              `${item.source === 'jira' ? 'Jira' : 'GitLab'} — ${item.entityTitle}`,
-              `${item.author}: ${item.bodyPreview}`,
-            );
+            const { title, body } = formatOsNotification(item);
+            const result = await tryDispatchOsNotification(title, body);
             if (result === 'denied') setPermissionDenied(true);
             if (result === 'error') setNotificationSendError(true);
+            dispatchLog.push({ item, title, body, outcome: result });
           }
         }
+        if (import.meta.env.DEV) logOsDispatches(dispatchLog);
       } else if (allItems.length > 0) {
         // Even if all items were filtered, advance cursors so we don't refetch them
         advanceCursors(allItems);

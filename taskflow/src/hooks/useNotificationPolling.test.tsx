@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAuthStore } from '../stores/auth.store';
 import { useNotificationBanners } from '../stores/notification-banners.store';
 import { useNotificationsStore } from '../stores/notifications.store';
@@ -39,7 +39,13 @@ function wrapper({ children }: { children: ReactNode }) {
 }
 
 describe('useNotificationPolling banners', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllEnvs();
+  });
+
   beforeEach(() => {
+    dispatch.mockResolvedValue('sent');
     fetchNew.mockReset();
     dispatch.mockClear();
     act(() => {
@@ -113,6 +119,66 @@ describe('useNotificationPolling banners', () => {
     expect(dispatch).not.toHaveBeenCalled();
     expect(useNotificationsStore.getState().items.map((i) => i.id)).toEqual(['new-1']);
     expect(useNotificationBanners.getState().ids).toEqual(['new-1']);
+  });
+
+  const spyConsole = () => ({
+    group: vi.spyOn(console, 'groupCollapsed').mockImplementation(() => {}),
+    log: vi.spyOn(console, 'log').mockImplementation(() => {}),
+    end: vi.spyOn(console, 'groupEnd').mockImplementation(() => {}),
+  });
+
+  it('dev + switch on: logs one collapsed group with exact title/body and result', async () => {
+    const c = spyConsole();
+    await pollOnce(true);
+    await waitFor(() => expect(c.group).toHaveBeenCalledTimes(1));
+    expect(c.group).toHaveBeenCalledWith('[notifications] 1 dispatched, 0 skipped');
+    expect(c.log).toHaveBeenCalledWith(
+      'sent',
+      'Jira — PROJ-1: Title',
+      'Cara Doe: body',
+      expect.objectContaining({ id: 'new-1' }),
+    );
+    expect(dispatch).toHaveBeenCalledWith('Jira — PROJ-1: Title', 'Cara Doe: body');
+  });
+
+  it('switch off: nothing is logged', async () => {
+    const c = spyConsole();
+    await pollOnce(false);
+    expect(c.group).not.toHaveBeenCalled();
+  });
+
+  it('DEV false: nothing is logged but the OS dispatch still runs', async () => {
+    vi.stubEnv('DEV', false);
+    const c = spyConsole();
+    await pollOnce(true);
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    expect(c.group).not.toHaveBeenCalled();
+  });
+
+  it('already-known items are listed as skipped', async () => {
+    const c = spyConsole();
+    act(() => {
+      useSettingsStore.setState({ desktopNotificationsEnabled: true });
+      useNotificationsStore.setState({ items: [item('known-1')] } as never);
+    });
+    fetchNew.mockResolvedValueOnce([]);
+    const { result } = renderHook(
+      () => {
+        useNotificationPolling();
+        return useNotificationsStore((s) => s.retryFetch);
+      },
+      { wrapper },
+    );
+    await waitFor(() => expect(result.current).toBeTypeOf('function'));
+    await waitFor(() => expect(fetchNew).toHaveBeenCalledTimes(1));
+    fetchNew.mockResolvedValueOnce([item('known-1'), item('new-2')]);
+    await act(async () => {
+      result.current?.();
+    });
+    await waitFor(() =>
+      expect(c.group).toHaveBeenCalledWith('[notifications] 1 dispatched, 1 skipped'),
+    );
+    expect(c.log.mock.calls.some((a) => a[0] === 'skipped (already known)')).toBe(true);
   });
 
   it('never moves the Jira cursor backwards (edited comment keeps its older created)', async () => {
