@@ -7,9 +7,9 @@ export const LIMITS = {
   headline: 120,
   boldTitle: 50,
   detail: 70,
-  plainBullet: 90,
+  plainBullet: 70,
   perSection: 6,
-  fixed: 3,
+  fixed: 5,
   total: 14,
 } as const;
 
@@ -77,7 +77,9 @@ export function lintReleaseNotes(md: string): { errors: string[]; warnings: stri
     for (const i of s.items) lintItem(i, errors);
   }
   if (fixed > LIMITS.fixed) {
-    errors.push(`Fixed has ${fixed} bullets (max ${LIMITS.fixed}); collapse fixes.`);
+    errors.push(
+      `Fixed has ${fixed} bullets (max ${LIMITS.fixed}); list only the fixes users notice.`,
+    );
   }
   if (total > LIMITS.total) {
     errors.push(`${total} bullets in total (max ${LIMITS.total}).`);

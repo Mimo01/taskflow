@@ -10,38 +10,22 @@ The same text goes everywhere: `CHANGELOG.md`, the git tag annotation, the GitHu
 One headline sentence.
 
 ### New
-- **Title** — short clause
-- **Title only**
+- Notification panel with stacks and quick actions
+- Change a story's epic from its sidebar
 
 ### Improved
-- **Title**
+- Attachments show as a tile grid
 
 ### Fixed
-- Several small fixes, collapsed into one bullet
+- Duplicate notifications
+- Peek panel scrolling into blank space
 ```
 
-- One headline sentence first (plain paragraph).
+- One headline sentence first (plain paragraph). It is also the one-line summary in Settings → Updates.
 - Then `### New`, `### Improved`, `### Fixed`. Use `### Removed` or `### Security` when needed. Older notes used `Added` / `Changed`; the app understands both.
-- A bullet is `**Bold title**`, optionally followed by ` — ` and ONE short clause (a few words). No multi-sentence descriptions.
-- Collapse fixes into 1-3 bullets. A plain (non-bold) bullet is fine for a comma-joined list of fixes.
-
-## Approved example
-
-```
-Notifications got a full redesign.
-
-### New
-- **Notification panel** — stacks per issue, quick actions
-- **Epic picker on stories**
-- **Searchable pickers** in Settings and setup
-
-### Improved
-- **Attachment tiles**
-- **No active sprint** messaging
-
-### Fixed
-- Duplicate notifications, package mismatches, peek over-scroll
-```
+- Every bullet is ONE plain, short, complete phrase written from the user's view: what they can now do or what now works. Sentence case, no trailing period, no bold, no `Title — fragment` split.
+- One change per bullet: no comma-joined lists. Each fix is its own line; list only the fixes a user would notice (at most 5).
+- Prefer under 60 characters; the lint stops at 70.
 
 ## Lint
 
@@ -50,11 +34,11 @@ Notifications got a full redesign.
 | Rule | Limit |
 |---|---|
 | Headline | present, one sentence, at most 120 chars |
-| Bold-titled bullet: title | at most 50 chars (applies to bold-titled bullets only) |
-| Bold-titled bullet: detail | at most 70 chars, no `. ` or `;` |
-| Plain (non-bold) bullet | whole bullet at most 90 chars (no separate title limit) |
+| Bold-titled bullet (legacy): title | at most 50 chars |
+| Bold-titled bullet (legacy): detail | at most 70 chars, no `. ` or `;` |
+| Plain bullet (preferred) | whole bullet at most 70 chars |
 | Bullets per section | at most 6 |
-| Fixed bullets | at most 3 |
+| Fixed bullets | at most 5 |
 | Bullets in total | at most 14 |
 | Sections | at least one `###` section |
 
@@ -81,6 +65,6 @@ The notes are plain GitHub markdown (paragraph, `###` headings, bullets), so old
 1. `git log --oneline <last-tag>..HEAD` (user-facing commits only).
 2. Group by what a user notices: New, Improved, Fixed.
 3. Write the headline last: one sentence describing the release theme.
-4. Reduce each item to a short bold title; add a clause only if the title is unclear.
-5. Merge small fixes into 1-3 bullets.
+4. Write each item as one short plain phrase (what the user can now do / what now works).
+5. One fix per line; keep the 5 most noticeable.
 6. Pipe it to `release.sh` and fix whatever the lint reports.

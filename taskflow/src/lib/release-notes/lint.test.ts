@@ -15,15 +15,15 @@ describe('lintReleaseNotes', () => {
     expect(errors.some((e) => /headline/i.test(e))).toBe(true);
   });
 
-  it('passes a plain bullet of exactly 90 chars', () => {
+  it('passes a plain bullet exactly at the limit', () => {
     const bullet = `- ${'x'.repeat(LIMITS.plainBullet)}`;
     expect(lintReleaseNotes(wrap(bullet)).errors).toEqual([]);
   });
 
-  it('fails a 91-char plain bullet naming the plain-bullet limit', () => {
+  it('fails a plain bullet one char over the limit, naming the limit', () => {
     const { errors } = lintReleaseNotes(wrap(`- ${'x'.repeat(LIMITS.plainBullet + 1)}`));
     expect(errors).toHaveLength(1);
-    expect(errors[0]).toMatch(/90-char plain-bullet limit/);
+    expect(errors[0]).toMatch(new RegExp(`${LIMITS.plainBullet}-char plain-bullet limit`));
   });
 
   it('fails a bold title over 50 chars naming the title limit', () => {
@@ -64,7 +64,7 @@ describe('lintReleaseNotes', () => {
       true,
     );
     expect(
-      lintReleaseNotes(`H.\n\n### Fixed\n${many(4)}`).errors.some((e) => /Fixed has 4/.test(e)),
+      lintReleaseNotes(`H.\n\n### Fixed\n${many(6)}`).errors.some((e) => /Fixed has 6/.test(e)),
     ).toBe(true);
     const total = `H.\n\n### New\n${many(6)}\n\n### Improved\n${many(6)}\n\n### Removed\n${many(3)}`;
     expect(lintReleaseNotes(total).errors.some((e) => /15 bullets in total/.test(e))).toBe(true);
