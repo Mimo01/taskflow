@@ -275,5 +275,13 @@ describe('AttachmentPreviewModal textual application MIME previews', () => {
     // The visible text button is the DownloadFallback (the toolbar one is icon-only).
     expect(await screen.findByText('Download')).toBeTruthy();
     expect(document.querySelector('code.hljs')).toBeNull();
+    expect(screen.getByText('Too large to preview')).toBeTruthy();
+    expect(screen.getByText(/This file is 3\.0 MB\. Previews are limited to 2\.0 MB/)).toBeTruthy();
+  });
+
+  it('explains an unsupported type without claiming it is too large', () => {
+    renderModal([att('12', 'archive.zip', 'application/zip')], 0);
+    expect(screen.queryByText('Too large to preview')).toBeNull();
+    expect(screen.getByText(/No preview available/)).toBeTruthy();
   });
 });

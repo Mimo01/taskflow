@@ -60,14 +60,31 @@ function TruncationNotice() {
 function DownloadFallback({
   attachment,
   onDownload,
+  cap,
 }: {
   attachment: JiraAttachment;
   onDownload: (attachment: JiraAttachment) => void;
+  /** Set when the file exceeds a preview size cap — explains why there's no preview. */
+  cap?: number;
 }) {
+  const size = formatFileSize(attachment.size);
   return (
-    <div className="flex flex-col items-center gap-3 bg-white rounded-lg p-8 text-black">
+    <div className="flex max-w-md flex-col items-center gap-3 bg-white rounded-lg p-8 text-black text-center">
       <File className="size-12 text-muted-foreground" />
-      <p className="text-sm font-medium">{attachment.filename}</p>
+      <p className="text-sm font-medium break-all">{attachment.filename}</p>
+      {cap != null ? (
+        <div className="space-y-1">
+          <p className="text-sm font-semibold">Too large to preview</p>
+          <p className="text-xs text-muted-foreground">
+            This file is {size}. Previews are limited to {formatFileSize(cap)} — download it to view
+            the full file.
+          </p>
+        </div>
+      ) : (
+        <p className="text-xs text-muted-foreground">
+          No preview available{size ? ` · ${size}` : ''}
+        </p>
+      )}
       <Button
         variant="secondary"
         size="sm"
@@ -116,7 +133,13 @@ function TextPreview({
   }, [attachment.content, oversized, loading, error]);
 
   if (oversized) {
-    return <DownloadFallback attachment={attachment} onDownload={onDownload} />;
+    return (
+      <DownloadFallback
+        attachment={attachment}
+        onDownload={onDownload}
+        cap={MAX_PREVIEW_FILE_SIZE}
+      />
+    );
   }
 
   if (error || textError) {
@@ -175,7 +198,13 @@ function CodePreview({
   }, [attachment.content, oversized, loading, error]);
 
   if (oversized) {
-    return <DownloadFallback attachment={attachment} onDownload={onDownload} />;
+    return (
+      <DownloadFallback
+        attachment={attachment}
+        onDownload={onDownload}
+        cap={MAX_PREVIEW_FILE_SIZE}
+      />
+    );
   }
 
   if (error || textError) {
@@ -246,7 +275,13 @@ function PdfPreview({
   }, [failed, onFallback]);
 
   if (oversized) {
-    return <DownloadFallback attachment={attachment} onDownload={onDownload} />;
+    return (
+      <DownloadFallback
+        attachment={attachment}
+        onDownload={onDownload}
+        cap={MAX_MEDIA_PREVIEW_SIZE}
+      />
+    );
   }
   if (failed) return null;
   if (!dataUrl) {
@@ -275,7 +310,13 @@ function VideoPreview({
   const { blobUrl, loading, error } = useAuthBlob(attachment.content, { lazy: oversized });
 
   if (oversized) {
-    return <DownloadFallback attachment={attachment} onDownload={onDownload} />;
+    return (
+      <DownloadFallback
+        attachment={attachment}
+        onDownload={onDownload}
+        cap={MAX_MEDIA_PREVIEW_SIZE}
+      />
+    );
   }
   if (error) {
     onFallback();
@@ -308,7 +349,13 @@ function AudioPreview({
   const { blobUrl, loading, error } = useAuthBlob(attachment.content, { lazy: oversized });
 
   if (oversized) {
-    return <DownloadFallback attachment={attachment} onDownload={onDownload} />;
+    return (
+      <DownloadFallback
+        attachment={attachment}
+        onDownload={onDownload}
+        cap={MAX_MEDIA_PREVIEW_SIZE}
+      />
+    );
   }
   if (error) {
     onFallback();
