@@ -14,6 +14,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { EpicPicker } from '@/components/ui/epic-picker';
 import { Input } from '@/components/ui/input';
 import { PersonPicker, toPersonValue } from '@/components/ui/person-picker';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -133,7 +134,6 @@ export function FieldsSection({
   epicColorFieldKey,
   flaggedFieldKey = 'customfield_10021',
   mutation,
-  epicIssue,
   epicNameFieldKey,
   onOpenIssue,
   timeSubtasks,
@@ -540,10 +540,6 @@ export function FieldsSection({
     mutation.mutate({ fieldName: 'fixVersions', value: newVersions.map((v) => ({ id: v.id })) });
   }
 
-  const epicName = epicIssue
-    ? ((epicIssue.fields[epicNameFieldKey] as string | null) ?? epicIssue.fields.summary)
-    : null;
-
   const deploymentPackageSet = !!extractDeploymentPackage(f.customfield_15725);
   const packageWarning = (embedded: boolean, fallback?: React.ReactNode) => (
     <DeploymentPackageWarning
@@ -829,25 +825,40 @@ export function FieldsSection({
         </MetaRow>
       )}
 
-      {/* Epic -- stories only: key + name with color, navigable */}
+      {/* Epic -- stories only: coloured pill, click to change/remove; footer navigates.
+          Always mounted: never branch on epicLink (the optimistic patch flips it mid-write). */}
       {isStory && (
         <MetaRow label="Epic">
-          {epicLink
-            ? (() => {
-                const epicColor = (epicIssue?.fields[epicColorFieldKey] as string | null) ?? null;
-                const colorResult = epicColorToTailwind(epicColor, epicLink);
-                return (
-                  <button
-                    type="button"
-                    onClick={() => onOpenIssue?.(epicLink)}
-                    className={`inline-flex items-center rounded border px-1.5 py-0.5 text-xs font-medium hover:opacity-80 transition-opacity ${colorResult.className}`}
-                    style={colorResult.style}
-                  >
-                    {epicName || epicLink}
-                  </button>
-                );
-              })()
-            : '—'}
+          <EpicPicker
+            variant="inline"
+            triggerTestId="epic-edit"
+            aria-label="Change epic"
+            value={epicLink}
+            projectKey={f.project?.key ?? activeJiraProject ?? undefined}
+            openAction={
+              epicLink
+                ? { label: `Open ${epicLink}`, onSelect: () => onOpenIssue?.(epicLink) }
+                : undefined
+            }
+            footer={
+              mutation.isError && mutation.variables?.fieldName === epicLinkFieldKey ? (
+                <p className="text-xs text-destructive mt-1">Save failed — changes reverted</p>
+              ) : undefined
+            }
+            onChange={(epic) => {
+              if (epic) {
+                // Seed the pill cache so the optimistic pill is coloured immediately.
+                queryClient.setQueryData(['jira-issue-name', epic.key, jiraBaseUrl], {
+                  fields: {
+                    summary: epic.summary,
+                    [epicNameFieldKey]: epic.name,
+                    [epicColorFieldKey]: epic.color,
+                  },
+                });
+              }
+              mutation.mutate({ fieldName: epicLinkFieldKey, value: epic?.key ?? null });
+            }}
+          />
         </MetaRow>
       )}
 

@@ -90,6 +90,11 @@ export function useFieldMutation(issueKey: string, jiraBaseUrl: string, boardId?
         invalidateGhBacklogData(queryClient);
       }
       queryClient.invalidateQueries({ queryKey: ['jira-epics-basic'] });
+      // Epic link changes move a story between epics: refresh the old/new epic's Stories
+      // section and progress (mirrors parentCompletion.ts invalidateAfterTransition).
+      queryClient.invalidateQueries({ queryKey: ['jira-epic-stories'] });
+      queryClient.invalidateQueries({ queryKey: ['jira-epic-worklogs'] });
+      queryClient.invalidateQueries({ queryKey: ['jira-epic-status-history'] });
       queryClient.invalidateQueries({ queryKey: ['jira-fixversion-issues'] });
       queryClient.invalidateQueries({ queryKey: ['jira-version-counts'] });
       // My Tasks page (and other list surfaces: sprint board, subtasks panel,

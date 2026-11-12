@@ -1,8 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { useBoardId } from '@/hooks/useBoardId';
-import { apiFetch } from '@/lib/apiFetch';
 import type { TimedSource } from '@/lib/time-bar';
 import type { JiraIssueDetail } from '@/services/jira';
+import { fetchEpicSummary } from '@/services/jira/epics';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useSettingsStore } from '@/stores/settings.store';
@@ -61,15 +61,13 @@ export function IssueDetailSidebar({
     queryFn: async () => {
       const token = await readSecret('jira-pat').catch(() => null);
       if (!token) return null;
-      const url = `${effectiveJiraBaseUrl.replace(/\/$/, '')}/rest/api/2/issue/${epicLink}?fields=summary,${epicNameFieldKey},${epicColorFieldKey}`;
-      const resp = await apiFetch(
-        'jira',
-        url,
-        { headers: { Authorization: `Bearer ${token}` } },
-        'Load Issue Detail',
+      return fetchEpicSummary(
+        effectiveJiraBaseUrl,
+        token,
+        epicLink as string,
+        epicNameFieldKey,
+        epicColorFieldKey,
       );
-      if (!resp.ok) return null;
-      return resp.json() as Promise<{ fields: { summary: string; [k: string]: unknown } }>;
     },
     enabled: isStory && !!epicLink && !!effectiveJiraBaseUrl && !!jiraConnected,
     staleTime: 60_000,

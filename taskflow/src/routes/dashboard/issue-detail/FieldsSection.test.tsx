@@ -72,6 +72,15 @@ vi.mock('@/services/jira/transitions', () => ({
   ],
 }));
 
+vi.mock('@/services/jira/epics', () => ({
+  searchOpenEpics: vi
+    .fn()
+    .mockResolvedValue([
+      { key: 'PROJ-9', name: 'Payments', summary: 'Payments', color: 'ghx-label-4' },
+    ]),
+  fetchEpicSummary: vi.fn().mockResolvedValue(null),
+}));
+
 vi.mock('@/services/jira/versions', () => ({
   fetchFixVersions: vi.fn().mockResolvedValue([]),
 }));
@@ -810,5 +819,89 @@ describe('Parent completion prompt (subtask -> done)', () => {
     await waitFor(() => expect(postTransition).toHaveBeenCalled());
     await new Promise((r) => setTimeout(r, 20));
     expect(checkParentCompletion).not.toHaveBeenCalled();
+  });
+});
+
+describe('FieldsSection epic picker', () => {
+  async function renderEpic(issue: JiraIssueDetail, onOpenIssue = vi.fn()) {
+    const { FieldsSection } = await import('./FieldsSection');
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const mutation = {
+      isPending: false,
+      isError: false,
+      mutate: vi.fn(),
+      variables: undefined,
+      data: undefined,
+    };
+    const ui = (i: JiraIssueDetail) => (
+      <QueryClientProvider client={qc}>
+        <FieldsSection
+          issue={i}
+          issueKey={i.key}
+          jiraBaseUrl="https://jira.example.com"
+          storyPointsFieldKey="customfield_10016"
+          epicLinkFieldKey="customfield_10014"
+          epicNameFieldKey="customfield_10015"
+          sprintFieldKey="customfield_10020"
+          epicColorFieldKey="customfield_10013"
+          mutation={mutation as any}
+          epicIssue={null}
+          onOpenIssue={onOpenIssue}
+        />
+      </QueryClientProvider>
+    );
+    const view = render(ui(issue));
+    return { mutation, onOpenIssue, rerender: (i: JiraIssueDetail) => view.rerender(ui(i)) };
+  }
+
+  it.each([
+    ['Story', { name: 'Story', subtask: false }, true],
+    ['Epic', { name: 'Epic', subtask: false }, false],
+    ['Sub-task', { name: 'Sub-task', subtask: true }, false],
+  ])('%s: epic-edit trigger visibility', async (_n, issuetype, shown) => {
+    await renderEpic(makeIssue({ issuetype } as any));
+    expect(screen.queryByTestId('epic-edit') !== null).toBe(shown);
+  });
+
+  it('selecting an epic mutates the epic link field', async () => {
+    const { mutation } = await renderEpic(makeIssue());
+    fireEvent.click(screen.getByTestId('epic-edit'));
+    fireEvent.click(await screen.findByText('Payments'));
+    expect(mutation.mutate).toHaveBeenCalledWith({
+      fieldName: 'customfield_10014',
+      value: 'PROJ-9',
+    });
+  });
+
+  it('No epic clears the link', async () => {
+    const { mutation } = await renderEpic(makeIssue({ customfield_10014: 'PROJ-9' } as any));
+    fireEvent.click(screen.getByTestId('epic-edit'));
+    await screen.findByText('Payments');
+    fireEvent.click(screen.getByText('No epic', { selector: '[role=option]' }));
+    expect(mutation.mutate).toHaveBeenCalledWith({
+      fieldName: 'customfield_10014',
+      value: null,
+    });
+  });
+
+  it('Open footer navigates when an epic is set, absent otherwise', async () => {
+    const { onOpenIssue } = await renderEpic(makeIssue({ customfield_10014: 'PROJ-9' } as any));
+    fireEvent.click(screen.getByTestId('epic-edit'));
+    fireEvent.click(await screen.findByText('Open PROJ-9'));
+    expect(onOpenIssue).toHaveBeenCalledWith('PROJ-9');
+  });
+
+  it('has no Open footer when there is no epic', async () => {
+    await renderEpic(makeIssue());
+    fireEvent.click(screen.getByTestId('epic-edit'));
+    await screen.findByText('Payments');
+    expect(screen.queryByText(/^Open PROJ/)).not.toBeInTheDocument();
+  });
+
+  it('keeps the same trigger element when epicLink flips to null (optimistic patch)', async () => {
+    const { rerender } = await renderEpic(makeIssue({ customfield_10014: 'PROJ-9' } as any));
+    const before = screen.getByTestId('epic-edit');
+    rerender(makeIssue({ customfield_10014: null } as any));
+    expect(screen.getByTestId('epic-edit')).toBe(before);
   });
 });
