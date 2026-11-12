@@ -72,3 +72,18 @@ None.
 ## Self-Check: PASSED
 
 All created files exist and the three commits are on the branch; full vitest suite (5198 tests), tsc and biome pass.
+
+## Follow-up iterations (UAT, 2026-11-12)
+
+| Commit | Change |
+|--------|--------|
+| 740688cd | Code review fixes (release.sh flags/stdin, fetch timeout, rate-limit retry, dedupe, section param, http-only links) |
+| ac15c433, d4265500 | Calm release-history list; top Updates controls restored to app-consistent layout (kept Select `items` label fix) |
+| 2614532f | CHANGELOG bundled into the app (`lib/release-notes/bundled.ts`); history/roll-up/What's new prefer it over wordy GitHub bodies |
+| 45faac2a | Search + type filter removed; one-line note items |
+| 3077ace4, 5d0566a5, 7a2d2a4d, bdb07a1d | Opened release as one block on the row grid; section labels with kind icons tinted in the chip-tone palette (badges tried and rejected) |
+| deee3338 | Changelog as plain short sentences; lint plainBullet 70, Fixed ≤5 |
+| 214ea200 | Opened title outweighs its muted note items |
+| 1ec6f92e | Engaging, user-benefit changelog (57 sections, headers/dates unchanged); hairline dividers + bordered card for opened releases; [1.6]→[1.6.0], added [0.1.0] earlier in 7a2d2a4d |
+
+Backwards compatibility unchanged: GitHub release bodies, tags and latest.json untouched; notes stay plain markdown.
