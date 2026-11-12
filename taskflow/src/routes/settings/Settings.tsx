@@ -23,7 +23,8 @@ import {
   RefreshCw,
   Settings2,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import AppearanceSection from './AppearanceSection';
 import ConnectionsSection from './ConnectionsSection';
@@ -65,8 +66,28 @@ const SECTIONS: { id: SettingsSection; label: string; icon: React.ReactNode }[] 
   { id: 'advanced', label: 'Advanced', icon: <Settings2 className="h-4 w-4" /> },
 ];
 
+function asSection(value: string | null): SettingsSection | null {
+  return SECTIONS.find((s) => s.id === value)?.id ?? null;
+}
+
 export default function Settings() {
-  const [activeSection, setActiveSection] = useState<SettingsSection>('connections');
+  // ?section=updates deep-links to a section (e.g. What's new -> "See all updates").
+  const [searchParams, setSearchParams] = useSearchParams();
+  const sectionParam = asSection(searchParams.get('section'));
+  const [activeSection, setActiveSection] = useState<SettingsSection>(
+    sectionParam ?? 'connections',
+  );
+
+  // Also honour the param changing while Settings is already mounted.
+  useEffect(() => {
+    if (sectionParam) setActiveSection(sectionParam);
+  }, [sectionParam]);
+
+  function selectSection(id: SettingsSection) {
+    setActiveSection(id);
+    // Clear the deep-link param so it does not stick.
+    if (searchParams.has('section')) setSearchParams({}, { replace: true });
+  }
 
   return (
     <div className="flex h-full min-h-0">
@@ -78,7 +99,7 @@ export default function Settings() {
           <button
             key={id}
             type="button"
-            onClick={() => setActiveSection(id)}
+            onClick={() => selectSection(id)}
             aria-current={activeSection === id ? 'page' : undefined}
             className={cn(
               'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium w-full text-left',

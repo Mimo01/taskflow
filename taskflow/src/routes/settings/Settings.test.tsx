@@ -8,17 +8,22 @@
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen } from '@testing-library/react';
+import { MemoryRouter, useNavigate } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { applyDensity, applyFontScale } from '@/services/theme';
 import AppearanceSection from './AppearanceSection';
 import Settings from './Settings';
 import WorkflowSection from './WorkflowSection';
 
-function renderWithQuery(ui: React.ReactElement) {
+function renderWithQuery(ui: React.ReactElement, entry = '/settings') {
   const queryClient = new QueryClient({
     defaultOptions: { mutations: { retry: false }, queries: { retry: false } },
   });
-  return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter initialEntries={[entry]}>{ui}</MemoryRouter>
+    </QueryClientProvider>,
+  );
 }
 
 // Mock build-info
@@ -226,6 +231,47 @@ describe('Settings sidebar nav', () => {
       'aria-current',
       'page',
     );
+  });
+
+  it('opens on the Updates section when the URL has ?section=updates', () => {
+    renderWithQuery(<Settings />, '/settings?section=updates');
+    expect(screen.getByTestId('section-updates')).toBeVisible();
+    expect(screen.queryByTestId('section-connections')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /updates/i })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+  });
+
+  it('ignores an unknown ?section value', () => {
+    renderWithQuery(<Settings />, '/settings?section=nope');
+    expect(screen.getByTestId('section-connections')).toBeVisible();
+  });
+
+  it('follows the ?section param changing while already mounted', () => {
+    function Jump() {
+      const navigate = useNavigate();
+      return (
+        <button type="button" onClick={() => navigate('/settings?section=updates')}>
+          jump
+        </button>
+      );
+    }
+    renderWithQuery(
+      <>
+        <Jump />
+        <Settings />
+      </>,
+    );
+    expect(screen.getByTestId('section-connections')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'jump' }));
+    expect(screen.getByTestId('section-updates')).toBeVisible();
+  });
+
+  it('clicking a nav item after a deep link switches section normally', () => {
+    renderWithQuery(<Settings />, '/settings?section=updates');
+    fireEvent.click(screen.getByRole('button', { name: /appearance/i }));
+    expect(screen.getByTestId('section-appearance')).toBeVisible();
   });
 });
 

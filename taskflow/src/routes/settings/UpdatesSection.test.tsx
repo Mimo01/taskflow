@@ -1,13 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import UpdatesSection from './UpdatesSection';
-
-// Mock react-markdown to render children as plain text
-vi.mock('react-markdown', () => ({
-  default: ({ children }: { children: string }) => <span>{children}</span>,
-}));
-vi.mock('remark-gfm', () => ({ default: vi.fn() }));
 
 // Mock build-info
 vi.mock('@/lib/build-info', () => ({
@@ -56,6 +50,33 @@ vi.mock('@/services/updater', () => ({
 const mockFetch = vi.fn();
 vi.stubGlobal('fetch', mockFetch);
 
+function release(tag: string, body: string, published = '2026-03-01T12:00:00Z') {
+  return {
+    tag_name: tag,
+    name: tag,
+    published_at: published,
+    body,
+    prerelease: false,
+    draft: false,
+  };
+}
+
+function page(rows: unknown[], link?: string) {
+  return {
+    ok: true,
+    status: 200,
+    json: () => Promise.resolve(rows),
+    headers: { get: (n: string) => (n.toLowerCase() === 'link' ? (link ?? null) : null) },
+  };
+}
+
+/** The release row button for a version (not the "Current version" text). */
+function row(version: string) {
+  return screen.queryByRole('button', {
+    name: new RegExp(`^${version.replace(/\./g, '\\.')}(?!\\d)`),
+  });
+}
+
 function renderWithQuery(ui: React.ReactElement) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(<QueryClientProvider client={qc}>{ui}</QueryClientProvider>);
@@ -68,28 +89,16 @@ describe('UpdatesSection', () => {
     mockSettingsStore.lastChecked = null;
     mockUpdateStore.status = 'idle';
     mockUpdateStore.availableVersion = null;
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: () =>
-        Promise.resolve([
-          {
-            tag_name: 'v1.6.0',
-            name: 'v1.6.0',
-            published_at: '2026-03-24T12:00:00Z',
-            body: '## Changes\n- Feature A',
-            prerelease: false,
-            draft: false,
-          },
-          {
-            tag_name: 'v1.5.0',
-            name: 'v1.5.0',
-            published_at: '2026-03-20T12:00:00Z',
-            body: '## Changes\n- Feature B',
-            prerelease: false,
-            draft: false,
-          },
-        ]),
-    });
+    mockFetch.mockResolvedValue(
+      page([
+        release(
+          'v1.6.0',
+          'Newest.\n\n### New\n- **Feature A** — does a thing',
+          '2026-03-24T12:00:00Z',
+        ),
+        release('v1.5.0', 'Older.\n\n### Fixed\n- **Fix B**', '2026-03-20T12:00:00Z'),
+      ]),
+    );
   });
 
   it('renders section-updates testid', () => {
@@ -152,56 +161,89 @@ describe('UpdatesSection', () => {
     expect(skeletons.length).toBeGreaterThan(0);
   });
 
-  it('renders version history release rows when loaded', async () => {
+  it('groups releases by minor version; installed group open, others collapsed', async () => {
     renderWithQuery(<UpdatesSection />);
-    await waitFor(() => {
-      expect(screen.getByText('v1.6.0')).toBeInTheDocument();
-      expect(screen.getByText('v1.5.0')).toBeInTheDocument();
-    });
+    await screen.findByRole('button', { name: /1\.6\.x/ });
+    expect(row('1.6.0')).toBeInTheDocument();
+    const older = screen.getByRole('button', { name: /1\.5\.x/ });
+    expect(older).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.getByRole('button', { name: /1\.6\.x/ })).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    );
+    expect(row('1.5.0')).not.toBeInTheDocument();
+    fireEvent.click(older);
+    expect(row('1.5.0')).toBeInTheDocument();
+    fireEvent.click(older);
+    expect(row('1.5.0')).not.toBeInTheDocument();
   });
 
-  it('shows (current) badge for matching version', async () => {
+  it('shows an Installed badge on the installed version only', async () => {
     renderWithQuery(<UpdatesSection />);
-    await waitFor(() => {
-      expect(screen.getByText('current')).toBeInTheDocument();
-    });
+    expect(await screen.findByText('Installed')).toBeInTheDocument();
+    expect(screen.getAllByText('Installed')).toHaveLength(1);
   });
 
-  it('shows error state with Retry when fetch fails', async () => {
+  it('loads every page via the Link header (no 20-release cap)', async () => {
+    const first = Array.from({ length: 13 }, (_, i) => release(`v1.6.${12 - i}`, `Notes ${i}.`));
+    const second = Array.from({ length: 13 }, (_, i) => release(`v1.3.${12 - i}`, `Old ${i}.`));
+    mockFetch
+      .mockResolvedValueOnce(page(first, '<https://api.example/page2>; rel="next"'))
+      .mockResolvedValueOnce(page(second));
+    renderWithQuery(<UpdatesSection />);
+    expect(await screen.findByRole('button', { name: /1\.3\.x/ })).toBeInTheDocument();
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+    expect(screen.getByRole('button', { name: /1\.3\.x.*13 releases/ })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /1\.3\.x/ }));
+    expect(row('1.3.0')).toBeInTheDocument();
+  });
+
+  it('expands a release to show titles first, details on click', async () => {
+    renderWithQuery(<UpdatesSection />);
+    fireEvent.click(await screen.findByRole('button', { name: /1\.6\.0/ }));
+    expect(screen.getByText('Feature A')).toBeInTheDocument();
+    expect(screen.queryByText('does a thing')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Feature A/ }));
+    expect(screen.getByText('does a thing')).toBeInTheDocument();
+  });
+
+  it('search filters releases and auto-expands matching groups', async () => {
+    renderWithQuery(<UpdatesSection />);
+    await screen.findByRole('button', { name: /1\.6\.x/ });
+    fireEvent.change(screen.getByRole('searchbox', { name: /search updates/i }), {
+      target: { value: 'FIX B' },
+    });
+    expect(row('1.5.0')).toBeInTheDocument();
+    expect(row('1.6.0')).not.toBeInTheDocument();
+    fireEvent.change(screen.getByRole('searchbox', { name: /search updates/i }), {
+      target: { value: 'zzzz' },
+    });
+    expect(screen.getByText('No matching updates')).toBeInTheDocument();
+  });
+
+  it('type chips restrict the listed releases', async () => {
+    renderWithQuery(<UpdatesSection />);
+    await screen.findByRole('button', { name: /1\.6\.x/ });
+    const fixed = screen.getByRole('button', { name: 'Fixed' });
+    fireEvent.click(fixed);
+    expect(fixed).toHaveAttribute('aria-pressed', 'true');
+    expect(row('1.5.0')).toBeInTheDocument();
+    expect(row('1.6.0')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'New' }));
+    expect(row('1.6.0')).toBeInTheDocument();
+    expect(row('1.5.0')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'All' }));
+    expect(row('1.6.0')).toBeInTheDocument();
+  });
+
+  it('shows error state with Retry that refetches', async () => {
     mockFetch.mockRejectedValue(new Error('Network error'));
-    // Override queryFn retry at the client level to skip exponential backoff
-    const qc = new QueryClient({
-      defaultOptions: {
-        queries: {
-          retry: false, // Override component-level retry:1 via client default
-          gcTime: 0,
-          staleTime: 0,
-        },
-      },
-    });
-    render(
-      <QueryClientProvider client={qc}>
-        <UpdatesSection />
-      </QueryClientProvider>,
-    );
-    await waitFor(
-      () => {
-        expect(screen.getByText(/unable to load release history/i)).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: /retry/i })).toBeInTheDocument();
-      },
-      { timeout: 5000 },
-    );
-  });
-
-  it('expands release row to show changelog on click', async () => {
     renderWithQuery(<UpdatesSection />);
-    await waitFor(() => {
-      expect(screen.getByText('v1.5.0')).toBeInTheDocument();
-    });
-    // Click v1.5.0 row to expand
-    fireEvent.click(screen.getByText('v1.5.0'));
-    await waitFor(() => {
-      expect(screen.getByText(/feature b/i)).toBeInTheDocument();
-    });
+    const retry = await screen.findByRole('button', { name: /retry/i }, { timeout: 5000 });
+    expect(screen.getByText(/unable to load release history/i)).toBeInTheDocument();
+    mockFetch.mockResolvedValue(page([release('v1.6.0', 'Back.\n\n### New\n- **Again**')]));
+    fireEvent.click(retry);
+    await screen.findByRole('button', { name: /1\.6\.x/ });
+    expect(row('1.6.0')).toBeInTheDocument();
   });
 });
