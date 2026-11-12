@@ -141,8 +141,29 @@ function osTitle(item: NotificationItem): string {
     if (m) ref = `!${m[1]}`;
   }
   const title = getEntityTitle(item);
+  // Subtask names ("Implementation", "Code review") say nothing alone: lead with the story,
+  // shortened so the subtask name still fits on the banner's single title line.
+  if (item.source === 'jira' && item.parentKey) {
+    const story = item.parentSummary?.trim();
+    const short =
+      story && story.length > STORY_CAP ? `${cutAtWord(story, STORY_CAP)}\u2026` : story;
+    return short
+      ? `${item.parentKey} ${short} \u203A ${title}`
+      : `${item.parentKey} \u203A ${title}`;
+  }
   return ref ? `${ref} \u00B7 ${title}` : title;
 }
+
+/** Cut to at most `max` chars at a word boundary (mid-word only if a word is huge). */
+function cutAtWord(s: string, max: number): string {
+  const head = s.slice(0, max + 1);
+  const space = head.lastIndexOf(' ');
+  const cut = space >= max / 2 ? head.slice(0, space) : s.slice(0, max);
+  return cut.replace(/[\s.,;:!?\-\u2013]+$/, '');
+}
+
+/** Longest story summary kept in a subtask's OS title before it is ellipsized. */
+const STORY_CAP = 24;
 
 function osWhat(item: NotificationItem, ctx?: OsFormatContext): string {
   const raw = item.fullBody || item.bodyPreview;

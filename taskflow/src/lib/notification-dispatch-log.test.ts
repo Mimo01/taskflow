@@ -158,6 +158,23 @@ describe('formatOsNotification', () => {
     }
   });
 
+  it('subtask title leads with its story (shortened) then the subtask name', () => {
+    const sub = (parentSummary?: string) =>
+      formatOsNotification(
+        mk({ entityTitle: 'PROJ-7: Code review', parentKey: 'PROJ-5', parentSummary }),
+      ).title;
+    expect(sub('Pricing 18.11.2026')).toBe('PROJ-5 Pricing 18.11.2026 › Code review');
+    expect(sub('HW SALE - device s vianocnou zlavou -130e - submit spadne')).toBe(
+      'PROJ-5 HW SALE - device s… › Code review',
+    );
+    expect(sub(undefined)).toBe('PROJ-5 › Code review');
+    // GitLab items never carry a story.
+    expect(
+      formatOsNotification(mk({ source: 'gitlab', entityTitle: 'MR', mrIid: 3, parentKey: 'X-1' }))
+        .title,
+    ).toBe('!3 · MR');
+  });
+
   it('sprint change names only the sprints this change added or removed', () => {
     const upd = (b: string) =>
       formatOsNotification(
