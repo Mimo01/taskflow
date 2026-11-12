@@ -2,6 +2,40 @@
 
 All notable changes to Taskflow are documented here.
 
+## [1.14.20] — 2026-11-12
+
+### Added
+
+- **Redesigned notifications** — the bell opens a floating panel that slides in under the top bar. Notifications for the same issue or MR collapse into a stack you can open in place. Each card names who did what, lists up to 10 changes or comments, and colours only the part you can act on. Hover a card to mark it done, toggle read or open it, or use the Reply, Review and View pipeline quick actions. Filter Unread / All and by source, use Mark all read, Clear all, j/k and arrow keys, and close the panel with Cmd+Shift+I or a two-finger swipe right.
+- **In-app notification banners** — new notifications briefly appear as banners (up to 3, paused on hover) with the same quick actions. Set Banner duration (Off, 3s, 5s, 8s) in Settings.
+- **Condensed desktop notifications** — OS notifications lead with the item ("PROJ-1 · Title", "!482 · MR title") and a one-line summary, show subtasks in the context of their story, and fold bursts of more than 3 into one summary. One Desktop notifications switch replaces the separate Jira and GitLab switches, and nothing fires for the catch-up check at launch.
+- **Editable epic on stories** — the story sidebar has an Epic row with a searchable epic picker, also used in Create and Edit issue.
+- **Add story from an epic** — the epic Stories section has an Add story button that creates a story already linked to the epic.
+- **Searchable project and board pickers** — Jira project and board, GitLab project, AIO and Release Management pickers in Settings and the setup wizard can be searched, and long GitLab project and Jira board lists are loaded in full.
+- **Token links** — the setup wizard and Settings connections link straight to the Jira and GitLab pages for creating a personal access token.
+- **Release Management in setup** — the setup wizard's Integrations step has an optional Release Management project picker.
+- **Wizard re-runs after updates** — when an update changes a setup step, the wizard reopens at that step with your current settings filled in.
+- **More previewable attachments** — XML, JSON, YAML, SQL and more code and text files open in the preview with syntax highlighting.
+- **Notifications in Developer Tools** — a Notifications tab lists every desktop notification sent, denied, failed or skipped, with a banner-style preview.
+- **Priority in release tables** — release task rows and deployment package mismatch rows show the issue priority icon, hidden in narrow windows.
+
+### Changed
+
+- **Attachment tiles** — attachments show as one tile grid with two-line names, file type and size. Files that can't be previewed look the same with a short reason, downloads show progress and the result on the tile, and delete asks for a second click. The section can no longer be collapsed.
+- **Issue section headers** — all issue detail sections share one header style, and Subtasks always has its header with an add-subtask control.
+- **No active sprint** — Standup Today, the Sprint Board, My Tasks and the dashboard's My Issues say when there is no active sprint instead of showing an empty list, centred in the pane.
+- **Dashboard card errors** — My Issues, Upcoming Releases and Past 7 days show a compact error inside the card, and the chart says "Commits unavailable" when commits fail to load.
+- **Find and notifications** — find-in-page and the notification panel close each other, and the search, recent items and bell buttons show when they are open.
+- **Clear notification cache** — the cache can be cleared even when it holds no notifications, which resets the polling position.
+
+### Fixed
+
+- **Duplicate notifications** — the same change line or card no longer repeats, being assigned no longer adds a second card, comments seen by two queries show once, and multi-value changes keep every value. Flag changes are now tracked.
+- **Package mismatches** — the release detail mismatch list includes stories carrying the release week's package but another release's fix version.
+- **Peek over-scroll** — opening the peek panel no longer lets My Tasks or AIO cycle detail scroll into blank space.
+- **Settings after saving credentials** — saving a token reloads data with the new credentials, and Reset all opens the setup wizard.
+- **Setup wizard** — the Done step stays visible until you finish, and the Jira sprint board is filled in when the wizard is re-run.
+
 ## [1.14.19] — 2026-11-09
 
 ### Added
