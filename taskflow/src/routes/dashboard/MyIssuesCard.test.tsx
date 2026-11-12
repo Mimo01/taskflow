@@ -11,9 +11,10 @@
  * - Render: role="region" accessibility
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { ApiError } from '@/lib/api-error';
 import { NO_ACTIVE_SPRINT_SUBTITLE } from '@/lib/sprint-empty-state';
 import type { JiraIssue } from '@/services/jira';
 import { filterNonSubtasks } from './dashboardMetrics';
@@ -319,5 +320,36 @@ describe('MyIssuesCard — region accessibility', () => {
 
     const region = screen.getByRole('region', { name: /my issues this sprint/i });
     expect(region).toBeTruthy();
+  });
+});
+
+describe('MyIssuesCard — error state', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  it('401 jira shows token rejected + Open Settings, no counts or empty state', async () => {
+    const { fetchSprintIssues } = await import('@/services/jira');
+    vi.mocked(fetchSprintIssues).mockRejectedValueOnce(new ApiError('x', 401, 'jira'));
+    const MyIssuesCard = await importComponent();
+    renderWithQuery(<MyIssuesCard {...defaultProps} />);
+
+    expect(await screen.findByText('Jira token rejected')).toBeTruthy();
+    expect(screen.getByText('Open Settings')).toBeTruthy();
+    expect(screen.queryByText(/of \d+ done/)).toBeNull();
+    expect(screen.queryByText('No issues assigned')).toBeNull();
+  });
+
+  it('generic error: Retry refetches and does not activate the card', async () => {
+    const { fetchSprintIssues } = await import('@/services/jira');
+    vi.mocked(fetchSprintIssues).mockRejectedValueOnce(new Error('boom'));
+    const onActivate = vi.fn();
+    const MyIssuesCard = await importComponent();
+    renderWithQuery(<MyIssuesCard {...defaultProps} onActivate={onActivate} />);
+
+    fireEvent.click(await screen.findByText('Retry'));
+    await vi.waitFor(() => expect(vi.mocked(fetchSprintIssues)).toHaveBeenCalledTimes(2));
+    expect(onActivate).not.toHaveBeenCalled();
   });
 });

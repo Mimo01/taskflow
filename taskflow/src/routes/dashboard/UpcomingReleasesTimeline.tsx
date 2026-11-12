@@ -14,7 +14,7 @@ import { useQueries, useQuery } from '@tanstack/react-query';
 import { Rocket } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
-import { ErrorState } from '@/components/ui/error-state';
+import { CardErrorState } from '@/components/ui/error-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { clickableCard } from '@/lib/clickable-card';
@@ -122,7 +122,7 @@ export default function UpcomingReleasesTimeline({
 
         {/* Error */}
         {!showSkeleton && error && (
-          <ErrorState error={error} onRetry={refetch} viewName="Upcoming Releases" />
+          <CardErrorState error={error} onRetry={refetch} viewName="Upcoming Releases" />
         )}
 
         {/* Empty state — 0 upcoming releases with due dates (D-06/D-08) */}

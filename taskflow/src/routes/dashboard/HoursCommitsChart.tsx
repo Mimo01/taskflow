@@ -38,7 +38,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { ChartConfig } from '@/components/ui/chart';
 import { ChartContainer } from '@/components/ui/chart';
 import { EmptyState } from '@/components/ui/empty-state';
-import { ErrorState } from '@/components/ui/error-state';
+import { CardErrorState } from '@/components/ui/error-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { clickableCard } from '@/lib/clickable-card';
@@ -180,7 +180,13 @@ interface LabelDatum {
   hoursNorm: number;
   commitsNorm: number;
 }
-function ValueLabels({ data }: { data: LabelDatum[] }) {
+function ValueLabels({
+  data,
+  commitsUnavailable = false,
+}: {
+  data: LabelDatum[];
+  commitsUnavailable?: boolean;
+}) {
   // Center each label on its column. The category band scale's bandwidth isn't reliably
   // exposed, so derive the column center from the plot area + index instead.
   const plot = usePlotArea();
@@ -200,7 +206,7 @@ function ValueLabels({ data }: { data: LabelDatum[] }) {
               {b.hours > 0 ? formatHoursMinutes(b.hours) : '0h'}
             </text>
             <text x={cx} y={yBot} textAnchor="middle" fontSize={12} fill="var(--muted-foreground)">
-              {b.commits}
+              {commitsUnavailable ? '\u2013' : b.commits}
             </text>
           </g>
         );
@@ -285,6 +291,10 @@ export default function HoursCommitsChart({
     })),
   });
 
+  // GitLab commit failures must not masquerade as "0 commits" (e.g. a rejected GitLab PAT)
+  const commitsError = commitsResults.find((r) => r.error)?.error;
+  const commitsUnavailable = !!commitsError;
+
   // Build commitsByDay Map from 7 useQueries results (result.data?.length ?? 0 per day)
   const commitsByDay = new Map<string, number>(
     rolling7.map((day, i) => [day, commitsResults[i]?.data?.length ?? 0]),
@@ -330,7 +340,7 @@ export default function HoursCommitsChart({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div style={{ height: 280 }} className="w-full flex items-center justify-center">
+          <div style={{ height: 300 }} className="w-full flex items-center justify-center">
             <EmptyState
               icon={Timer}
               title="Tempo not connected"
@@ -354,38 +364,40 @@ export default function HoursCommitsChart({
           <CardTitle className="text-sm font-bold text-muted-foreground/70 uppercase tracking-wide">
             PAST 7 DAYS · HOURS &amp; COMMITS PER DAY
           </CardTitle>
-          {/* Legend — single line, square swatches, uncolored text */}
-          <div className="flex items-center gap-4 text-sm tabular-nums text-muted-foreground">
-            <span className="flex items-center gap-1.5 whitespace-nowrap">
-              <span
-                className="size-2.5 shrink-0 rounded-[2px]"
-                style={{ backgroundColor: HOURS_COLOR }}
-                aria-hidden
-              />
-              {formatHoursMinutes(totalHours)} logged
-            </span>
-            <span className="flex items-center gap-1.5 whitespace-nowrap">
-              <span
-                className="size-2.5 shrink-0 rounded-[2px]"
-                style={{ backgroundColor: COMMITS_COLOR }}
-                aria-hidden
-              />
-              {totalCommits} commits
-            </span>
-          </div>
+          {/* Legend — single line, square swatches, uncolored text. Hidden on error: totals would be false zeros. */}
+          {!worklogsError && (
+            <div className="flex items-center gap-4 text-sm tabular-nums text-muted-foreground">
+              <span className="flex items-center gap-1.5 whitespace-nowrap">
+                <span
+                  className="size-2.5 shrink-0 rounded-[2px]"
+                  style={{ backgroundColor: HOURS_COLOR }}
+                  aria-hidden
+                />
+                {formatHoursMinutes(totalHours)} logged
+              </span>
+              <span className="flex items-center gap-1.5 whitespace-nowrap">
+                <span
+                  className="size-2.5 shrink-0 rounded-[2px]"
+                  style={{ backgroundColor: COMMITS_COLOR }}
+                  aria-hidden
+                />
+                {commitsUnavailable ? 'Commits unavailable' : `${totalCommits} commits`}
+              </span>
+            </div>
+          )}
         </div>
       </CardHeader>
       <CardContent>
         {/* Loading skeleton — 200ms-gated via useDelayedLoading */}
         {showSkeleton && (
-          <div style={{ height: 280 }} className="w-full flex items-center" aria-busy="true">
+          <div style={{ height: 300 }} className="w-full flex items-center" aria-busy="true">
             <Skeleton className="w-full h-full rounded-md" />
           </div>
         )}
         {/* Error state — Tempo fetch failure; never hides the tempo-off empty state */}
         {!showSkeleton && worklogsError && (
-          <div style={{ height: 280 }} className="w-full flex items-center justify-center">
-            <ErrorState
+          <div style={{ height: 300 }} className="w-full flex items-center justify-center">
+            <CardErrorState
               error={worklogsError}
               onRetry={refetchWorklogs}
               viewName="Hours & Commits"
@@ -440,7 +452,7 @@ export default function HoursCommitsChart({
                   />
                   {/* Value labels for ALL days (incl. 0-value days that draw no bar):
                       hours above the bar tip, commits below — positioned from the live scales */}
-                  <ValueLabels data={chartData} />
+                  <ValueLabels data={chartData} commitsUnavailable={commitsUnavailable} />
                 </ComposedChart>
               </ChartContainer>
             </div>

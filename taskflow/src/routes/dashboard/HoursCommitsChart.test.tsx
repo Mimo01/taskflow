@@ -12,7 +12,7 @@
  * - D-12: all-zero connected week → ChartContainer present, no EmptyState
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { TempoWorklog } from '@/services/tempo/types';
@@ -299,5 +299,48 @@ describe('HoursCommitsChart — render: hours bar chart + commits below', () => 
 
     // ChartContainer renders with data-slot="chart"
     expect(document.querySelector('[data-slot="chart"]')).toBeTruthy();
+  });
+});
+
+describe('HoursCommitsChart — error states', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  it('worklogs error: CardErrorState in 300px body, no legend, Retry does not activate card', async () => {
+    const { fetchWorklogs } = await import('@/services/tempo/worklogs');
+    vi.mocked(fetchWorklogs).mockRejectedValueOnce(new Error('boom'));
+    const onActivate = vi.fn();
+    const HoursCommitsChart = await importComponent();
+    renderWithQuery(<HoursCommitsChart {...defaultProps} onActivate={onActivate} />);
+
+    expect(await screen.findByText("Couldn't load Hours & Commits")).toBeTruthy();
+    expect(screen.queryByText(/logged/)).toBeNull();
+    expect(screen.queryByText(/commits$/)).toBeNull();
+    expect((screen.getByRole('alert').parentElement as HTMLElement).style.height).toBe('300px');
+    fireEvent.click(screen.getByText('Retry'));
+    await vi.waitFor(() => expect(vi.mocked(fetchWorklogs)).toHaveBeenCalledTimes(2));
+    expect(onActivate).not.toHaveBeenCalled();
+  });
+
+  it('commits error: chart renders, legend says commits unavailable, hours total kept', async () => {
+    const { fetchUserCommits } = await import('@/services/gitlab');
+    vi.mocked(fetchUserCommits).mockRejectedValue(new Error('commits down'));
+    const HoursCommitsChart = await importComponent();
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    queryClient.setQueryData(['dashboard', 'tempo-7day', BASE_URL, getTodayDate(), USERNAME], []);
+    render(
+      <MemoryRouter>
+        <QueryClientProvider client={queryClient}>
+          <HoursCommitsChart {...defaultProps} />
+        </QueryClientProvider>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText('Commits unavailable')).toBeTruthy();
+    expect(screen.getByText(/logged/)).toBeTruthy();
+    expect(document.querySelector('[data-slot="chart"]')).toBeTruthy();
+    vi.mocked(fetchUserCommits).mockResolvedValue([]);
   });
 });

@@ -15,7 +15,7 @@ import { useQuery } from '@tanstack/react-query';
 import { CalendarOff, ListChecks } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
-import { ErrorState } from '@/components/ui/error-state';
+import { CardErrorState } from '@/components/ui/error-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useActiveSprint } from '@/hooks/useActiveSprint';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
@@ -116,7 +116,7 @@ export default function MyIssuesCard({
 
         {/* Error state */}
         {!showSkeleton && error && (
-          <ErrorState error={error} onRetry={refetch} viewName="My Issues" />
+          <CardErrorState error={error} onRetry={refetch} viewName="My Issues" />
         )}
 
         {/* Empty state — 0 issues is valid (D-05); never an error */}

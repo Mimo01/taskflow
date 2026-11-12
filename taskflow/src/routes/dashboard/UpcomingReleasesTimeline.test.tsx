@@ -12,7 +12,8 @@
  */
 import type { UseQueryResult } from '@tanstack/react-query';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import type React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -50,7 +51,11 @@ function renderWithQuery(ui: React.ReactElement) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false, staleTime: 0 } },
   });
-  return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
+  return render(
+    <MemoryRouter>
+      <QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>
+    </MemoryRouter>,
+  );
 }
 
 const defaultProps = {
@@ -379,5 +384,27 @@ describe('UpcomingReleasesTimeline — donePct readiness', () => {
     renderWithQuery(<UpcomingReleasesTimeline {...defaultProps} />);
 
     expect(screen.getByText('50% ready')).toBeTruthy();
+  });
+});
+
+describe('UpcomingReleasesTimeline — error state', () => {
+  it('shows CardErrorState; Retry calls refetch and does not activate the card', async () => {
+    const { useQuery, useQueries } = await import('@tanstack/react-query');
+    const refetch = vi.fn();
+    const onActivate = vi.fn();
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.mocked(useQuery).mockReturnValue(
+      mockQuery({ data: undefined, isLoading: false, error: new Error('boom'), refetch }),
+    );
+    vi.mocked(useQueries).mockReturnValue(mockQueriesResult([]));
+
+    const { default: UpcomingReleasesTimeline } = await import('./UpcomingReleasesTimeline');
+    renderWithQuery(<UpcomingReleasesTimeline {...defaultProps} onActivate={onActivate} />);
+
+    expect(screen.getByText("Couldn't load Upcoming Releases")).toBeTruthy();
+    expect(screen.queryByText('No upcoming releases')).toBeNull();
+    fireEvent.click(screen.getByText('Retry'));
+    expect(refetch).toHaveBeenCalledOnce();
+    expect(onActivate).not.toHaveBeenCalled();
   });
 });
