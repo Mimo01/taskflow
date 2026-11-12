@@ -191,56 +191,16 @@ describe('UpdatesSection', () => {
     expect(screen.queryByRole('button', { name: /show older versions/i })).not.toBeInTheDocument();
   });
 
-  it('searching lists every match, not just the latest 8', async () => {
-    const rows = Array.from({ length: 12 }, (_, i) => release(`v1.6.${11 - i}`, `Notes ${i}.`));
-    mockFetch.mockResolvedValue(page(rows));
-    renderWithQuery(<UpdatesSection />);
-    await screen.findByRole('button', { name: /show older versions/i });
-    fireEvent.change(screen.getByRole('searchbox', { name: /search updates/i }), {
-      target: { value: 'notes' },
-    });
-    expect(row('1.6.0')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /show older versions/i })).not.toBeInTheDocument();
-  });
-
-  it('expands a release to show titles with their description underneath', async () => {
+  it('expands a release to one-line title · description items', async () => {
     renderWithQuery(<UpdatesSection />);
     const r = await screen.findByRole('button', { name: /1\.6\.0/ });
     expect(screen.queryByText('Feature A')).not.toBeInTheDocument();
     fireEvent.click(r);
     expect(r).toHaveAttribute('aria-expanded', 'true');
     expect(screen.getByText('Feature A')).toBeInTheDocument();
-    // Legacy lowercase detail is capitalised once split from its title
-    expect(screen.getByText('Does a thing')).toBeInTheDocument();
-  });
-
-  it('search filters releases', async () => {
-    renderWithQuery(<UpdatesSection />);
-    await screen.findByRole('heading', { name: '1.6' });
-    fireEvent.change(screen.getByRole('searchbox', { name: /search updates/i }), {
-      target: { value: 'FIX B' },
-    });
-    expect(row('1.5.0')).toBeInTheDocument();
-    expect(row('1.6.0')).not.toBeInTheDocument();
-    fireEvent.change(screen.getByRole('searchbox', { name: /search updates/i }), {
-      target: { value: 'zzzz' },
-    });
-    expect(screen.getByText('No matching updates')).toBeInTheDocument();
-  });
-
-  it('type chips restrict the listed releases', async () => {
-    renderWithQuery(<UpdatesSection />);
-    await screen.findByRole('heading', { name: '1.6' });
-    const fixed = screen.getByRole('button', { name: 'Fixed' });
-    fireEvent.click(fixed);
-    expect(fixed).toHaveAttribute('aria-pressed', 'true');
-    expect(row('1.5.0')).toBeInTheDocument();
-    expect(row('1.6.0')).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'New' }));
-    expect(row('1.6.0')).toBeInTheDocument();
-    expect(row('1.5.0')).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'All' }));
-    expect(row('1.6.0')).toBeInTheDocument();
+    // One line: title, then the description muted on the same line; headline not repeated
+    expect(screen.getByText(/· does a thing/)).toBeInTheDocument();
+    expect(screen.getAllByText('Newest.')).toHaveLength(1);
   });
 
   it('shows error state with Retry that refetches', async () => {

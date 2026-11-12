@@ -7,15 +7,14 @@
  * - Check Now button with inline status feedback
  * - Last checked timestamp (relative time)
  * - VersionHistory: all releases (shared useReleaseHistory query), grouped by minor version,
- *   with search, change-type chips and titles-first notes (ReleaseNotesBody)
+ *   latest 8 with "Show older versions", notes via ReleaseNotesBody
  */
 
 import { compareVersions } from 'compare-versions';
-import { CheckCircle, Loader2, PackageOpen, Search, SearchX, WifiOff } from 'lucide-react';
+import { CheckCircle, Loader2, PackageOpen, WifiOff } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
-import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
@@ -27,7 +26,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ReleaseNotesBody } from '@/components/update/ReleaseNotesBody';
 import { useReleaseHistory } from '@/hooks/useReleaseHistory';
 import { buildInfo } from '@/lib/build-info';
-import { type NoteKind, parseReleaseNotes, summarizeNotes } from '@/lib/release-notes/parse';
+import { parseReleaseNotes, summarizeNotes } from '@/lib/release-notes/parse';
 import { cn } from '@/lib/utils';
 import type { ReleaseEntry } from '@/services/releases';
 import { updaterService } from '@/services/updater';
@@ -63,18 +62,9 @@ function relativeTime(iso: string): string {
   return rtf.format(-Math.floor(diffSecs / 86400), 'day');
 }
 
-const KIND_CHIPS: { value: 'all' | NoteKind; label: string }[] = [
-  { value: 'all', label: 'All' },
-  { value: 'new', label: 'New' },
-  { value: 'improved', label: 'Improved' },
-  { value: 'fixed', label: 'Fixed' },
-];
-
 interface ParsedRelease {
   release: ReleaseEntry;
-  kinds: Set<NoteKind>;
   summary: string | null;
-  searchText: string;
 }
 
 function minorKey(version: string): string {
@@ -82,7 +72,7 @@ function minorKey(version: string): string {
   return `${major}.${minor}`;
 }
 
-/** Releases shown before "Show older versions" when not searching/filtering. */
+/** Releases shown before "Show older versions". */
 const INITIAL_VISIBLE = 8;
 
 function shortDate(iso: string): string {
@@ -104,15 +94,11 @@ function ReleaseRow({
   installed,
   open,
   onToggle,
-  kind,
-  highlight,
 }: {
   item: ParsedRelease;
   installed: boolean;
   open: boolean;
   onToggle: () => void;
-  kind: 'all' | NoteKind;
-  highlight: string;
 }) {
   const { release, summary } = item;
   const plainSummary = summary?.replace(/\*\*|`/g, '') ?? '';
@@ -148,12 +134,7 @@ function ReleaseRow({
       </button>
       {open && (
         <div className="pb-3 pl-[calc(4.5rem+1.25rem)] pr-2 pt-1">
-          <ReleaseNotesBody
-            notes={release.body}
-            details
-            filterKinds={kind === 'all' ? undefined : [kind]}
-            highlight={highlight || undefined}
-          />
+          <ReleaseNotesBody notes={release.body} details hideHeadline compact />
         </div>
       )}
     </li>
@@ -162,8 +143,6 @@ function ReleaseRow({
 
 function VersionHistory() {
   const { data: releases, isLoading, isError, refetch } = useReleaseHistory();
-  const [query, setQuery] = useState('');
-  const [kind, setKind] = useState<'all' | NoteKind>('all');
   const [showAll, setShowAll] = useState(false);
   const [releaseToggles, setReleaseToggles] = useState<Record<string, boolean>>({});
 
@@ -171,27 +150,13 @@ function VersionHistory() {
     () =>
       (releases ?? []).map((release) => {
         const p = parseReleaseNotes(release.body);
-        return {
-          release,
-          kinds: new Set(p.sections.map((s) => s.kind)),
-          summary: summarizeNotes(p),
-          searchText: `${release.version}\n${p.raw}`.toLowerCase(),
-        };
+        return { release, summary: summarizeNotes(p) };
       }),
     [releases],
   );
 
-  const needle = query.trim().toLowerCase();
-  const filtering = needle !== '' || kind !== 'all';
-  const matching = useMemo(
-    () =>
-      parsed.filter(
-        (p) => (!needle || p.searchText.includes(needle)) && (kind === 'all' || p.kinds.has(kind)),
-      ),
-    [parsed, needle, kind],
-  );
-  const truncated = !filtering && !showAll && matching.length > INITIAL_VISIBLE;
-  const visible = truncated ? matching.slice(0, INITIAL_VISIBLE) : matching;
+  const truncated = !showAll && parsed.length > INITIAL_VISIBLE;
+  const visible = truncated ? parsed.slice(0, INITIAL_VISIBLE) : parsed;
 
   const groups = useMemo(() => {
     const map = new Map<string, ParsedRelease[]>();
@@ -240,89 +205,40 @@ function VersionHistory() {
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="relative min-w-40 flex-1">
-          <Search
-            aria-hidden="true"
-            className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"
-          />
-          <Input
-            type="search"
-            aria-label="Search updates"
-            placeholder="Search updates"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            className="pl-8"
-          />
-        </div>
-        <fieldset className="m-0 inline-flex rounded-lg border-0 bg-muted p-0.5">
-          <legend className="sr-only">Change type</legend>
-          {KIND_CHIPS.map(({ value, label }) => (
-            <button
-              key={value}
-              type="button"
-              aria-pressed={kind === value}
-              onClick={() => setKind(value)}
-              className={cn(
-                'rounded-md px-2.5 py-1 text-xs font-medium transition-colors',
-                kind === value
-                  ? 'bg-background text-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground',
-              )}
-            >
-              {label}
-            </button>
-          ))}
-        </fieldset>
-      </div>
-
-      {groups.length === 0 ? (
-        <EmptyState
-          compact
-          icon={SearchX}
-          title="No matching updates"
-          subtitle="Try a different search or change type."
-        />
-      ) : (
-        <div className="flex flex-col gap-3">
-          {groups.map(([key, items]) => (
-            <section key={key} aria-label={`Version ${key}`}>
-              <h4 className="mb-1 flex items-center gap-2 px-2 text-xs font-medium text-muted-foreground">
-                {key}
-                <span aria-hidden="true" className="h-px flex-1 bg-border/60" />
-              </h4>
-              <ul className="m-0 flex flex-col p-0">
-                {items.map((item) => (
-                  <ReleaseRow
-                    key={item.release.version}
-                    item={item}
-                    installed={item.release.version === buildInfo.version}
-                    open={releaseToggles[item.release.version] ?? false}
-                    onToggle={() =>
-                      setReleaseToggles((t) => ({
-                        ...t,
-                        [item.release.version]: !(t[item.release.version] ?? false),
-                      }))
-                    }
-                    kind={kind}
-                    highlight={needle}
-                  />
-                ))}
-              </ul>
-            </section>
-          ))}
-          {truncated && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="self-center text-muted-foreground"
-              onClick={() => setShowAll(true)}
-            >
-              Show older versions ({matching.length - INITIAL_VISIBLE})
-            </Button>
-          )}
-        </div>
+    <div className="flex flex-col gap-3">
+      {groups.map(([key, items]) => (
+        <section key={key} aria-label={`Version ${key}`}>
+          <h4 className="mb-1 flex items-center gap-2 px-2 text-xs font-medium text-muted-foreground">
+            {key}
+            <span aria-hidden="true" className="h-px flex-1 bg-border/60" />
+          </h4>
+          <ul className="m-0 flex flex-col p-0">
+            {items.map((item) => (
+              <ReleaseRow
+                key={item.release.version}
+                item={item}
+                installed={item.release.version === buildInfo.version}
+                open={releaseToggles[item.release.version] ?? false}
+                onToggle={() =>
+                  setReleaseToggles((t) => ({
+                    ...t,
+                    [item.release.version]: !(t[item.release.version] ?? false),
+                  }))
+                }
+              />
+            ))}
+          </ul>
+        </section>
+      ))}
+      {truncated && (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="self-center text-muted-foreground"
+          onClick={() => setShowAll(true)}
+        >
+          Show older versions ({parsed.length - INITIAL_VISIBLE})
+        </Button>
       )}
     </div>
   );

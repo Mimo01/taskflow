@@ -81,11 +81,6 @@ function plainText(s: string): string {
   return s.replace(/\*\*|`/g, '');
 }
 
-/** Legacy "**Title** — the bell opens…" details start lowercase once split from the title. */
-function capitalize(s: string): string {
-  return s.charAt(0).toUpperCase() + s.slice(1);
-}
-
 function matches(item: NoteItem, needle: string | undefined): boolean {
   if (!needle) return false;
   return item.raw.toLowerCase().includes(needle.toLowerCase());
@@ -168,39 +163,27 @@ function ItemRow({
 }
 
 /**
- * Inline-details item (Settings history): title with its description underneath,
- * no per-bullet toggles. Long legacy descriptions clamp to one line; click to read all.
+ * Inline-details item (Settings history): one line per item, the title then its short
+ * description in muted text on the same line. Inline bold is flattened so every line
+ * reads the same; long legacy text truncates (full text on hover).
  */
-function DetailItemRow({ item, highlight }: { item: NoteItem; highlight?: string }) {
-  const [full, setFull] = useState(false);
-  const hit = matches(item, highlight);
+function DetailItemRow({ item, nested = false }: { item: NoteItem; nested?: boolean }) {
+  const title = plainText(item.title);
+  const detail = item.detail ? plainText(item.detail) : null;
   return (
-    <li className={cn('list-none rounded-sm py-1', hit && 'bg-primary/10')}>
-      <div className="text-sm">
-        <InlineMarkdown text={item.title} links={false} />
-      </div>
-      {item.detail && (
-        <button
-          type="button"
-          aria-expanded={full}
-          onClick={() => setFull(!full)}
-          className={cn(
-            'm-0 w-full cursor-default text-left text-xs text-muted-foreground',
-            !full && 'line-clamp-1',
-          )}
-        >
-          <InlineMarkdown text={capitalize(item.detail)} links={false} />
-        </button>
-      )}
-      {item.children.length > 0 && (
-        <ul className="m-0 p-0 pl-3">
-          {item.children.map((c, i) => (
-            // biome-ignore lint/suspicious/noArrayIndexKey: static parsed list, never reordered
-            <DetailItemRow key={`${c.raw}-${i}`} item={c} highlight={highlight} />
-          ))}
-        </ul>
-      )}
-    </li>
+    <>
+      <li
+        className={cn('list-none truncate py-0.5 text-sm', nested && 'pl-3')}
+        title={detail ? `${title} · ${detail}` : title}
+      >
+        {title}
+        {detail && <span className="text-muted-foreground"> · {detail}</span>}
+      </li>
+      {item.children.map((c, i) => (
+        // biome-ignore lint/suspicious/noArrayIndexKey: static parsed list, never reordered
+        <DetailItemRow key={`${c.raw}-${i}`} item={c} nested />
+      ))}
+    </>
   );
 }
 
@@ -253,18 +236,21 @@ function Section({
     !details && section.kind === 'fixed' && section.items.length > FIXED_COLLAPSE_OVER;
   return (
     <section className={cn('flex flex-col', compact ? 'gap-0.5' : 'gap-1')}>
-      {label && (
-        <h4 className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-          {label}
-        </h4>
-      )}
+      {label &&
+        (details ? (
+          <h4 className="text-xs font-medium text-muted-foreground">{label}</h4>
+        ) : (
+          <h4 className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+            {label}
+          </h4>
+        ))}
       <ul className="m-0 flex flex-col p-0">
         {collapse ? (
           <CollapsedFixes items={section.items} highlight={highlight} />
         ) : details ? (
           section.items.map((it, i) => (
             // biome-ignore lint/suspicious/noArrayIndexKey: static parsed list, never reordered
-            <DetailItemRow key={`${it.raw}-${i}`} item={it} highlight={highlight} />
+            <DetailItemRow key={`${it.raw}-${i}`} item={it} />
           ))
         ) : (
           section.items.map((it, i) => (
@@ -282,8 +268,10 @@ export interface ReleaseNotesBodyProps {
   compact?: boolean;
   filterKinds?: NoteKind[];
   highlight?: string;
-  /** Show each title's description underneath (no per-bullet toggles). */
+  /** One line per item: title · description (no per-bullet toggles). */
   details?: boolean;
+  /** Omit the headline sentence (e.g. when the row already shows it). */
+  hideHeadline?: boolean;
 }
 
 export function ReleaseNotesBody({
@@ -292,6 +280,7 @@ export function ReleaseNotesBody({
   filterKinds,
   highlight,
   details = false,
+  hideHeadline = false,
 }: ReleaseNotesBodyProps) {
   const parsed = useMemo(() => parseReleaseNotes(notes), [notes]);
 
@@ -313,7 +302,7 @@ export function ReleaseNotesBody({
 
   return (
     <div className={cn('flex flex-col', compact ? 'gap-2' : 'gap-3')}>
-      {parsed.headline && (
+      {parsed.headline && !hideHeadline && (
         <p className="m-0 text-sm font-medium">
           <InlineMarkdown text={parsed.headline} />
         </p>
