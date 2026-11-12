@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-08-13)
 Phase: 95
 Plan: Not started
 Status: Milestone complete
-Last activity: 2026-11-12 - Completed quick task 261112-lrr: Add release management setup into the onboarding wizard
+Last activity: 2026-11-12 - Completed quick task 261112-lyx: Onboarding wizard: pre-fill Jira sprint board on re-run
 
 ## Performance Metrics
 
@@ -293,6 +293,7 @@ Acknowledged and deferred at v1.14 milestone close (2026-08-13) — 111 open art
 | 261112-l96 | Epic detail Stories SectionHeader gets ghost xs "Add story" button (EpicStoryCreateControl, same classes as Add subtask) on page + peek; opens shared create modal as Story with new defaultEpicLinkKey prefill (handleOpenAddEpicStory / openAddEpicStory); SET_ISSUE_TYPE now clears epic only when switching to Subtask | 2026-11-12 | 3be642a7, 5fe53ede | Approved | [261112-l96-epic-view-add-story-create-button-to-iss](./quick/261112-l96-epic-view-add-story-create-button-to-iss/) |
 | 261112-lpa | Notification rows no longer get the peek-sidebar highlight (bg-primary/10 tint + 3px inset leading bar) when their issue is open in peek; removed useIsPeeked/PEEKED_ROW_CLASS from NotificationRow (banners already exempt since abe9ffbe) | 2026-11-12 | ff9f66d1 | Done | [261112-lpa-drop-peek-highlight-from-notification-ro](./quick/261112-lpa-drop-peek-highlight-from-notification-ro/) |
 | 261112-lrr | Onboarding Integrations step mounts the existing ReleaseManagementBlock (RM project picker) between AIO and Tempo; optional, never gates Continue; subtitle updated; ordering + non-gating tests | 2026-11-12 | 8a4f704c | Approved | [261112-lrr-add-release-management-setup-into-the-on](./quick/261112-lrr-add-release-management-setup-into-the-on/) |
+| 261112-lyx | Re-running the onboarding wizard pre-selects the saved Jira sprint board: handleResetWizard seeds jiraBoardId from authStore.jiraBoardIds[activeJiraProject] (+ clears jiraBoards); DebugModeSection regression tests | 2026-11-12 | 39ca82f6 | | [261112-lyx-onboarding-wizard-pre-fill-jira-sprint-b](./quick/261112-lyx-onboarding-wizard-pre-fill-jira-sprint-b/) |
 
 ## Session Continuity
 
