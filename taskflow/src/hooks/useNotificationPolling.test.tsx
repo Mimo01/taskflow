@@ -130,12 +130,12 @@ describe('useNotificationPolling banners', () => {
     expect(logged()[0]).toEqual(
       expect.objectContaining({
         outcome: 'sent',
-        title: 'Jira — PROJ-1: Title',
-        body: 'Cara Doe: body',
+        title: 'PROJ-1 · Title',
+        body: 'Cara: body',
         item: expect.objectContaining({ id: 'new-1' }),
       }),
     );
-    expect(dispatch).toHaveBeenCalledWith('Jira — PROJ-1: Title', 'Cara Doe: body');
+    expect(dispatch).toHaveBeenCalledWith('PROJ-1 · Title', 'Cara: body');
   });
 
   it('switch off: nothing is recorded', async () => {
@@ -172,10 +172,67 @@ describe('useNotificationPolling banners', () => {
       result.current?.();
     });
     await waitFor(() => expect(logged()).toHaveLength(2));
-    expect(logged().map((e) => [e.item.id, e.outcome])).toEqual([
+    expect(logged().map((e) => [(e as { item: { id: string } }).item.id, e.outcome])).toEqual([
       ['new-2', 'sent'],
       ['known-1', 'skipped'],
     ]);
+  });
+
+  it('a burst of more than 3 fresh items sends one summary banner and logs grouped rows', async () => {
+    act(() => {
+      useSettingsStore.setState({ desktopNotificationsEnabled: true });
+    });
+    fetchNew.mockResolvedValueOnce([]);
+    const { result } = renderHook(
+      () => {
+        useNotificationPolling();
+        return useNotificationsStore((s) => s.retryFetch);
+      },
+      { wrapper },
+    );
+    await waitFor(() => expect(result.current).toBeTypeOf('function'));
+    await waitFor(() => expect(fetchNew).toHaveBeenCalledTimes(1));
+    fetchNew.mockResolvedValueOnce([item('b1'), item('b2'), item('b3'), item('b4')]);
+    await act(async () => {
+      result.current?.();
+    });
+    await waitFor(() => expect(logged()).toHaveLength(5));
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    expect(dispatch).toHaveBeenCalledWith('4 new notifications', '4 Jira');
+    // Newest first: the summary entry was appended first, so it is last.
+    expect(logged().map((e) => e.outcome)).toEqual([
+      'grouped',
+      'grouped',
+      'grouped',
+      'grouped',
+      'sent',
+    ]);
+    const summary = logged()[4];
+    expect(summary.kind).toBe('summary');
+    expect(summary.title).toBe('4 new notifications');
+  });
+
+  it('a denied summary send still raises the permission flag', async () => {
+    dispatch.mockResolvedValue('denied');
+    act(() => {
+      useSettingsStore.setState({ desktopNotificationsEnabled: true });
+    });
+    fetchNew.mockResolvedValueOnce([]);
+    const { result } = renderHook(
+      () => {
+        useNotificationPolling();
+        return useNotificationsStore((s) => s.retryFetch);
+      },
+      { wrapper },
+    );
+    await waitFor(() => expect(result.current).toBeTypeOf('function'));
+    await waitFor(() => expect(fetchNew).toHaveBeenCalledTimes(1));
+    fetchNew.mockResolvedValueOnce([item('d1'), item('d2'), item('d3'), item('d4')]);
+    await act(async () => {
+      result.current?.();
+    });
+    await waitFor(() => expect(logged().some((e) => e.outcome === 'denied')).toBe(true));
+    expect(dispatch).toHaveBeenCalledTimes(1);
   });
 
   it('never moves the Jira cursor backwards (edited comment keeps its older created)', async () => {

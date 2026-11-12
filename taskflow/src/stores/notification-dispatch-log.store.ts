@@ -7,18 +7,13 @@
  * retention limit (default 200).
  */
 import { create } from 'zustand';
-import type { OsDispatchOutcome } from '../lib/notification-dispatch-log';
-import type { NotificationItem } from './notifications.store';
+import type { OsDispatchLogEntry } from '../lib/notification-dispatch-log';
 import { useSettingsStore } from './settings.store';
 
-export interface NotificationDispatchLogEntry {
+export type NotificationDispatchLogEntry = OsDispatchLogEntry & {
   id: string;
   timestamp: string; // ISO; same for every entry of one poll
-  item: NotificationItem;
-  title: string;
-  body: string;
-  outcome: OsDispatchOutcome;
-}
+};
 
 interface NotificationDispatchLogState {
   entries: NotificationDispatchLogEntry[];

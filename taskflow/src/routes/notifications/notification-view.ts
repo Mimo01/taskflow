@@ -385,7 +385,7 @@ function pipelineDetail(snippet: string): string | undefined {
   return snippet || undefined;
 }
 
-function actorName(author: string): string | undefined {
+export function actorName(author: string): string | undefined {
   const a = author.trim();
   if (!a) return undefined;
   const first = a.split(/\s+/)[0];

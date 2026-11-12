@@ -35,19 +35,61 @@ describe('NotificationsTab', () => {
           id: 'a',
           timestamp: '2026-11-12T10:00:00.000Z',
           item,
-          title: 'Jira — PROJ-1: Title',
-          body: 'Cara Doe: hi',
+          title: 'PROJ-1 · Title',
+          body: 'Cara: hi',
           outcome: 'error',
         },
       ]);
     });
     render(<NotificationsTab />);
     expect(screen.getByText('Error')).toBeTruthy();
-    expect(screen.getByText('Cara Doe: hi')).toBeTruthy();
+    expect(screen.getByText('Cara: hi')).toBeTruthy();
     fireEvent.click(screen.getByRole('button'));
     expect(
-      screen.getByRole('img', { name: 'Notification preview: Jira — PROJ-1: Title. Cara Doe: hi' }),
+      screen.getByRole('img', { name: 'Notification preview: PROJ-1 · Title. Cara: hi' }),
     ).toBeTruthy();
     expect(screen.getByText(/"entityTitle": "PROJ-1: Title"/)).toBeTruthy();
+  });
+
+  it('renders a summary row with the exact strings and its real outcome', () => {
+    act(() => {
+      useNotificationDispatchLogStore.getState().append([
+        {
+          id: 's',
+          timestamp: '2026-11-12T10:00:00.000Z',
+          kind: 'summary',
+          items: [item, item, item, item],
+          title: '4 new notifications',
+          body: '3 Jira · 1 GitLab',
+          outcome: 'sent',
+        },
+      ]);
+    });
+    render(<NotificationsTab />);
+    expect(screen.getByText('summary')).toBeTruthy();
+    expect(screen.getByText('4 new notifications')).toBeTruthy();
+    expect(screen.getByText('3 Jira · 1 GitLab')).toBeTruthy();
+    expect(screen.getByText('Sent')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button'));
+    expect(screen.getByText('Raw items')).toBeTruthy();
+  });
+
+  it('renders a Grouped row with an explanatory note', () => {
+    act(() => {
+      useNotificationDispatchLogStore.getState().append([
+        {
+          id: 'g',
+          timestamp: '2026-11-12T10:00:00.000Z',
+          item,
+          title: 'PROJ-1 · Title',
+          body: 'Cara: hi',
+          outcome: 'grouped',
+        },
+      ]);
+    });
+    render(<NotificationsTab />);
+    expect(screen.getByText('Grouped')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button'));
+    expect(screen.getByText('Not sent individually: folded into a summary banner.')).toBeTruthy();
   });
 });

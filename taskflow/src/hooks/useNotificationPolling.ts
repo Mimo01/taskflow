@@ -14,6 +14,7 @@ import {
   formatOsNotification,
   logOsDispatches,
   type OsDispatchLogEntry,
+  planOsDispatch,
 } from '../lib/notification-dispatch-log';
 import type { GitLabMR } from '../services/gitlab';
 import { fetchAssignedMRs, fetchAuthoredMRs, fetchReviewerMRs } from '../services/gitlab';
@@ -241,20 +242,42 @@ export function useNotificationPolling() {
         advanceCursors(allItems);
         // Dispatch OS notifications only for items not already known to the store
         const dispatchLog: OsDispatchLogEntry[] = [];
+        const ctx = { jiraUsername, jiraDisplayName: jiraUserDisplayName };
+        const send = async (title: string, body: string) => {
+          const result = await tryDispatchOsNotification(title, body);
+          if (result === 'denied') setPermissionDenied(true);
+          if (result === 'error') setNotificationSendError(true);
+          return result;
+        };
+        const fresh: typeof newItems = [];
         for (const item of newItems) {
           if (existingIds.has(item.id)) {
             if (desktopNotificationsEnabledRef.current) {
-              dispatchLog.push({ item, ...formatOsNotification(item), outcome: 'skipped' });
+              dispatchLog.push({ item, ...formatOsNotification(item, ctx), outcome: 'skipped' });
             }
-            continue;
+          } else {
+            fresh.push(item);
           }
-          // Per-type check already passed via filter above
-          if (desktopNotificationsEnabledRef.current) {
-            const { title, body } = formatOsNotification(item);
-            const result = await tryDispatchOsNotification(title, body);
-            if (result === 'denied') setPermissionDenied(true);
-            if (result === 'error') setNotificationSendError(true);
-            dispatchLog.push({ item, title, body, outcome: result });
+        }
+        // Per-type check already passed via filter above
+        if (desktopNotificationsEnabledRef.current && fresh.length > 0) {
+          const plan = planOsDispatch(fresh, ctx);
+          if (plan.kind === 'summary') {
+            const outcome = await send(plan.title, plan.body);
+            dispatchLog.push({
+              kind: 'summary',
+              items: plan.items,
+              title: plan.title,
+              body: plan.body,
+              outcome,
+            });
+            for (const item of plan.items) {
+              dispatchLog.push({ item, ...formatOsNotification(item, ctx), outcome: 'grouped' });
+            }
+          } else {
+            for (const { item, title, body } of plan.banners) {
+              dispatchLog.push({ item, title, body, outcome: await send(title, body) });
+            }
           }
         }
         logOsDispatches(dispatchLog);

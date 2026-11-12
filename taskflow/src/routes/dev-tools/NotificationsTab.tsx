@@ -2,7 +2,8 @@
  * NotificationsTab — OS desktop notification attempts for Developer Tools.
  *
  * One row per notification the poller tried to show (or skipped as already known),
- * with the exact title/body handed to the OS and the result. Expand for a banner-style
+ * with the exact title/body handed to the OS and the result. A burst folded into one
+ * summary banner appears as a 'summary' row followed by one 'Grouped' row per folded item. Expand for a banner-style
  * preview and the raw item.
  */
 import { useState } from 'react';
@@ -20,12 +21,14 @@ const OUTCOME_LABEL: Record<OsDispatchOutcome, string> = {
   denied: 'Denied',
   error: 'Error',
   skipped: 'Skipped',
+  grouped: 'Grouped',
 };
 
 function outcomeClass(outcome: OsDispatchOutcome): string {
   const base = 'shrink-0 rounded px-1.5 py-0.5 text-xs font-semibold';
   if (outcome === 'sent') return `${base} text-green-600 dark:text-green-400`;
-  if (outcome === 'skipped') return `${base} bg-muted text-muted-foreground`;
+  if (outcome === 'skipped' || outcome === 'grouped')
+    return `${base} bg-muted text-muted-foreground`;
   return `${base} bg-red-500/15 text-red-600 dark:text-red-400`;
 }
 
@@ -62,7 +65,13 @@ function NotificationCard({ entry }: { entry: NotificationDispatchLogEntry }) {
         className="w-full flex items-center gap-3 px-4 py-3 density-compact:py-1.5 density-comfortable:py-4 text-left hover:bg-accent transition-colors text-sm"
       >
         <span className={outcomeClass(entry.outcome)}>{OUTCOME_LABEL[entry.outcome]}</span>
-        <span className={sourceBadgeClass(entry.item.source)}>{entry.item.source}</span>
+        {entry.kind === 'summary' ? (
+          <span className="shrink-0 rounded px-1.5 py-0.5 text-xs font-semibold bg-muted text-muted-foreground">
+            summary
+          </span>
+        ) : (
+          <span className={sourceBadgeClass(entry.item.source)}>{entry.item.source}</span>
+        )}
         <span className="font-medium truncate min-w-0 flex-[0_1_auto]">{entry.title}</span>
         <span className="text-xs truncate flex-1 min-w-0 text-muted-foreground">{entry.body}</span>
         <span className="shrink-0 text-xs text-muted-foreground">
@@ -78,13 +87,18 @@ function NotificationCard({ entry }: { entry: NotificationDispatchLogEntry }) {
               Not sent: this notification was already in the list before this poll.
             </p>
           )}
+          {entry.outcome === 'grouped' && (
+            <p className="text-sm text-muted-foreground">
+              Not sent individually: folded into a summary banner.
+            </p>
+          )}
           <OsNotificationPreview title={entry.title} body={entry.body} />
           <details>
             <summary className="text-xs font-semibold uppercase tracking-wider text-muted-foreground cursor-pointer select-none">
-              Raw item
+              {entry.kind === 'summary' ? 'Raw items' : 'Raw item'}
             </summary>
             <pre className="mt-1 text-xs bg-muted rounded p-2 overflow-auto max-h-64 whitespace-pre-wrap break-all">
-              {JSON.stringify(entry.item, null, 2)}
+              {JSON.stringify(entry.kind === 'summary' ? entry.items : entry.item, null, 2)}
             </pre>
           </details>
         </div>

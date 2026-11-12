@@ -1,11 +1,13 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { useNotificationDispatchLogStore } from '../stores/notification-dispatch-log.store';
-import { useSettingsStore } from '../stores/settings.store';
 import type { NotificationItem } from '../stores/notifications.store';
+import { useSettingsStore } from '../stores/settings.store';
 import {
   formatOsNotification,
   logOsDispatches,
   type OsDispatchLogEntry,
+  planOsDispatch,
+  toPlainNotificationText,
 } from './notification-dispatch-log';
 
 const item = (source: 'jira' | 'gitlab' = 'jira'): NotificationItem =>
@@ -34,13 +36,156 @@ beforeEach(() => {
 
 const logged = () => useNotificationDispatchLogStore.getState().entries;
 
+const mk = (over: Partial<NotificationItem>): NotificationItem => ({ ...item(), ...over });
+
 describe('formatOsNotification', () => {
-  it('formats jira and gitlab items', () => {
+  it('formats jira and gitlab items item-led', () => {
     expect(formatOsNotification(item())).toEqual({
-      title: 'Jira — PROJ-1: Title',
-      body: 'Cara Doe: body',
+      title: 'PROJ-1 · Title',
+      body: 'Cara: body',
     });
-    expect(formatOsNotification(item('gitlab')).title.startsWith('GitLab — ')).toBe(true);
+    expect(
+      formatOsNotification(mk({ source: 'gitlab', entityTitle: 'MR title', mrIid: 482 })).title,
+    ).toBe('!482 · MR title');
+  });
+
+  it('issue update shows the top-priority change plus the remainder count', () => {
+    const body = 'Assignee: A → B\nStatus: To Do → In Review\nPriority: Low → High';
+    const r = formatOsNotification(
+      mk({
+        notificationType: 'issue-update',
+        author: 'Alex Doe',
+        fullBody: body,
+        bodyPreview: body,
+      }),
+    );
+    expect(r.body).toBe('Alex: Status → In Review (+2 more)');
+  });
+
+  it('issue update single change has no remainder; from-only and text changes read short', () => {
+    const upd = (b: string) =>
+      formatOsNotification(
+        mk({ notificationType: 'issue-update', author: 'Alex Doe', fullBody: b, bodyPreview: b }),
+      ).body;
+    expect(upd('Status: To Do → Done')).toBe('Alex: Status → Done');
+    expect(upd('Assignee: Bob → (none)')).toBe('Alex: Assignee removed');
+    expect(upd('Labels: a → b')).toBe('Alex: Labels +b −a');
+    expect(upd('Description: updated')).toBe('Alex: Description edited');
+  });
+
+  it('system MR note reads as a short phrase', () => {
+    const r = formatOsNotification(
+      mk({
+        id: 'gitlab-system-9',
+        source: 'gitlab',
+        entityTitle: 'MR title',
+        mrIid: 482,
+        author: 'Alex Doe',
+        notificationType: 'mr-note',
+        fullBody: 'State: opened → merged',
+        bodyPreview: 'State: opened → merged',
+      }),
+    );
+    expect(r.title).toBe('!482 · MR title');
+    expect(r.body).toBe('Alex: Merged');
+  });
+
+  it('fixed-phrase types', () => {
+    const t = (notificationType: NotificationItem['notificationType'], over = {}) =>
+      formatOsNotification(mk({ notificationType, author: 'Alex Doe', ...over })).body;
+    expect(t('issue-assignment')).toBe('Alex: Assigned you');
+    expect(t('mr-approval')).toBe('Alex: Approved');
+    expect(t('due-date-reminder', { author: '', bodyPreview: 'Due tomorrow' })).toBe(
+      'Due tomorrow',
+    );
+    expect(
+      t('pipeline-failure', { author: '', bodyPreview: 'Pipeline #4821 failed on feature/x-y' }),
+    ).toBe('Pipeline failed on feature/x-y');
+  });
+
+  it('cleans Jira wiki comments and maps the current user mention', () => {
+    const full =
+      'h3. Note\n*Can* you check {{{}staging{}}} logs [~jdoe]? [docs|https://x] !shot.png|thumbnail!';
+    const base = mk({ notificationType: 'comment-mention', author: 'Alex Doe', fullBody: full });
+    expect(
+      formatOsNotification(base, { jiraUsername: 'jdoe', jiraDisplayName: 'Jane Doe' }).body,
+    ).toBe('Alex: Note Can you check staging logs @Jane Doe? docs');
+    expect(formatOsNotification(base).body).toBe(
+      'Alex: Note Can you check staging logs @jdoe? docs',
+    );
+  });
+
+  it('cleans GitLab Markdown comments', () => {
+    const full = '# Head\n**b** [t](http://u) ![a](u)\n- item\n```\ncode\n```';
+    for (const notificationType of ['mr-note', 'gitlab-mention'] as const) {
+      const r = formatOsNotification(
+        mk({ source: 'gitlab', mrIid: 1, notificationType, author: 'Alex Doe', fullBody: full }),
+      );
+      expect(r.body).toBe('Alex: Head b t item code');
+    }
+  });
+
+  it('leaves identifiers alone and caps long text', () => {
+    expect(toPlainNotificationText('snake_case a-b-c 2*3*4 feature/x-y')).toBe(
+      'snake_case a-b-c 2*3*4 feature/x-y',
+    );
+    const long = toPlainNotificationText('word '.repeat(100));
+    expect(long.endsWith('…')).toBe(true);
+    expect(long.length).toBeLessThanOrEqual(141);
+  });
+
+  it('falls back to the url for the MR ref, then to the bare title', () => {
+    const g = { source: 'gitlab' as const, entityTitle: 'MR title' };
+    expect(
+      formatOsNotification(mk({ ...g, url: 'https://g.example/p/merge_requests/77' })).title,
+    ).toBe('!77 · MR title');
+    expect(formatOsNotification(mk({ ...g })).title).toBe('MR title');
+  });
+
+  it('body is a single line and never starts with ": "', () => {
+    for (const notificationType of [
+      'jira-comment',
+      'issue-update',
+      'mr-note',
+      'due-date-reminder',
+      'pipeline-failure',
+    ] as const) {
+      const r = formatOsNotification(
+        mk({ notificationType, author: '', bodyPreview: 'a\nb', fullBody: 'a\nb' }),
+      );
+      expect(r.body.includes('\n')).toBe(false);
+      expect(r.body.startsWith(': ')).toBe(false);
+    }
+  });
+
+  it('survives pathological markup quickly', () => {
+    const t0 = Date.now();
+    toPlainNotificationText(`${'*a '.repeat(5000)}${'{{{'.repeat(2000)}${'[x'.repeat(3000)}`);
+    expect(Date.now() - t0).toBeLessThan(1000);
+  });
+});
+
+describe('planOsDispatch', () => {
+  const many = (n: number, gitlab = 0) =>
+    Array.from({ length: n }, (_, i) =>
+      mk({ id: `n${i}`, source: i < gitlab ? 'gitlab' : 'jira' }),
+    );
+
+  it('keeps per-item banners up to the threshold', () => {
+    const p = planOsDispatch(many(3));
+    expect(p.kind).toBe('items');
+    if (p.kind === 'items') expect(p.banners[0].title).toBe('PROJ-1 · Title');
+  });
+
+  it('folds bigger bursts into one summary, omitting a zero side', () => {
+    expect(planOsDispatch(many(4, 1))).toEqual(
+      expect.objectContaining({
+        kind: 'summary',
+        title: '4 new notifications',
+        body: '3 Jira · 1 GitLab',
+      }),
+    );
+    expect(planOsDispatch(many(5))).toEqual(expect.objectContaining({ body: '5 Jira' }));
   });
 });
 
