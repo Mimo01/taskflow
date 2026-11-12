@@ -61,10 +61,10 @@ export function AttachmentTile({
             />
           ) : (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 px-2">
-              <div
-                className={`flex flex-col items-center gap-1.5 ${unavailable ? 'opacity-50' : ''}`}
-              >
-                <Icon className="size-[26px] text-muted-foreground" />
+              <div className="flex flex-col items-center gap-1.5">
+                <Icon
+                  className={`size-[26px] text-muted-foreground ${unavailable ? 'opacity-50' : ''}`}
+                />
                 {ext && (
                   <span className="font-mono text-[10px] leading-none text-muted-foreground">
                     {ext}
@@ -72,7 +72,7 @@ export function AttachmentTile({
                 )}
               </div>
               {unavailable && (
-                <span className="text-center text-[10px] leading-tight text-muted-foreground/70">
+                <span className="text-center text-[10px] leading-tight text-muted-foreground/60">
                   {unavailable}
                 </span>
               )}
