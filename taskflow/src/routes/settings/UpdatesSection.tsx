@@ -12,7 +12,7 @@
 
 import { compareVersions } from 'compare-versions';
 import { CheckCircle, Loader2, PackageOpen, Search, SearchX, WifiOff } from 'lucide-react';
-import { type ReactNode, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Input } from '@/components/ui/input';
@@ -399,88 +399,79 @@ export default function UpdatesSection() {
     }, 5000);
   }
 
-  const frequencyValue =
-    updateCheckInterval === 'manual' ? 'manual' : updateCheckInterval.toString();
-
-  let status: ReactNode;
-  if (checkState === 'checking') {
-    status = (
-      <span className="flex items-center gap-1.5">
-        <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
-        Checking…
-      </span>
-    );
-  } else if (checkState === 'done' && checkResult === 'available' && availableVersion) {
-    status = <span className="text-foreground">Update available ({availableVersion})</span>;
-  } else if (checkState === 'done' && checkResult === 'up-to-date') {
-    status = (
-      <span className="flex items-center gap-1.5 text-green-600 dark:text-green-500">
-        <CheckCircle className="size-3.5" aria-hidden="true" />
-        Up to date
-      </span>
-    );
-  } else if (lastChecked !== null) {
-    status = <span>Last checked {relativeTime(lastChecked)}</span>;
-  } else {
-    status = null;
-  }
-
   return (
     <div data-testid="section-updates" className="flex flex-col gap-8">
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-1">
         <h2 className="text-lg font-semibold">Updates</h2>
+        <p className="text-sm">
+          Current version: <span className="font-mono">{buildInfo.version}</span>
+        </p>
+      </div>
 
-        <div className="flex flex-col divide-y divide-border/60 rounded-lg border border-border">
-          <div className="flex items-center gap-3 px-4 py-3">
-            <div className="flex min-w-0 flex-1 flex-col">
-              <span className="text-sm font-medium">
-                Taskflow <span className="tabular-nums">{buildInfo.version}</span>
-              </span>
-              {status && (
-                <span className="text-xs text-muted-foreground" aria-live="polite">
-                  {status}
-                </span>
-              )}
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleCheckNow}
-              disabled={checkState === 'checking'}
-            >
-              Check now
-            </Button>
-          </div>
-          <div className="flex items-center gap-3 px-4 py-3">
-            <label htmlFor="update-check-frequency" className="min-w-0 flex-1 text-sm">
-              Check automatically
-            </label>
-            <Select
-              items={FREQUENCY_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
-              value={frequencyValue}
-              onValueChange={(val) =>
-                setUpdateCheckInterval(
-                  val === 'manual' ? 'manual' : (Number(val) as 1 | 6 | 12 | 24),
-                )
-              }
-            >
-              <SelectTrigger id="update-check-frequency" className="w-40">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {FREQUENCY_OPTIONS.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+      <div className="flex flex-col gap-4">
+        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+          Check for updates
+        </h3>
+        <div className="flex flex-col gap-2">
+          <label htmlFor="update-check-frequency" className="text-sm font-semibold">
+            Check frequency
+          </label>
+          <Select
+            items={FREQUENCY_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
+            value={updateCheckInterval === 'manual' ? 'manual' : updateCheckInterval.toString()}
+            onValueChange={(val) =>
+              setUpdateCheckInterval(val === 'manual' ? 'manual' : (Number(val) as 1 | 6 | 12 | 24))
+            }
+          >
+            <SelectTrigger id="update-check-frequency" className="w-48">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {FREQUENCY_OPTIONS.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {lastChecked !== null && (
+            <p className="text-xs text-muted-foreground">
+              Last checked: {relativeTime(lastChecked)}
+            </p>
+          )}
+        </div>
+        <div className="flex items-center gap-3">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleCheckNow}
+            disabled={checkState === 'checking'}
+          >
+            {checkState === 'checking' ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                Checking...
+              </>
+            ) : (
+              'Check Now'
+            )}
+          </Button>
+          {checkState === 'done' && checkResult === 'up-to-date' && (
+            <span className="text-sm text-green-500 flex items-center gap-1">
+              <CheckCircle className="h-4 w-4" />
+              Up to date
+            </span>
+          )}
+          {checkState === 'done' && checkResult === 'available' && availableVersion && (
+            <span className="text-sm text-yellow-500">Update available ({availableVersion})</span>
+          )}
         </div>
       </div>
 
-      <div className="flex flex-col gap-3">
-        <h3 className="text-sm font-semibold">Release history</h3>
+      <div className="flex flex-col gap-4">
+        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+          Release History
+        </h3>
         <VersionHistory />
       </div>
     </div>

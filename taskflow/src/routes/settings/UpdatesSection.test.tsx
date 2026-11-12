@@ -124,7 +124,7 @@ describe('UpdatesSection', () => {
 
   it('renders check frequency dropdown', () => {
     renderWithQuery(<UpdatesSection />);
-    expect(screen.getByText('Check automatically')).toBeInTheDocument();
+    expect(screen.getByText('Check frequency')).toBeInTheDocument();
     // Trigger shows the option label, not the raw interval value
     expect(screen.getByRole('combobox')).toHaveTextContent('Every 6 hours');
   });
