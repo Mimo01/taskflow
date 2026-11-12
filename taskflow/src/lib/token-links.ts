@@ -12,10 +12,6 @@
  */
 export const TOKEN_NAME = 'Taskflow';
 
-/** Hint copy shared by the wizard and Settings so both read identically. */
-export const JIRA_TOKEN_HINT = `— name it "${TOKEN_NAME}".`;
-export const GITLAB_TOKEN_HINT = '— name and api scope prefilled.';
-
 function baseRoot(raw: string): string | null {
   try {
     const u = new URL(raw.trim());

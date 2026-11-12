@@ -311,7 +311,6 @@ describe('ConnectionsSection token quick links', () => {
     expect(buttons).toHaveLength(2);
     fireEvent.click(buttons[0]);
     expect(openExternal).toHaveBeenCalledWith(jiraTokenUrl('https://jira.example.com'));
-    expect(screen.getByText(/name it "Taskflow"/)).toBeInTheDocument();
   });
 
   it('GitLab: keeps the context path and prefills the api scope', () => {

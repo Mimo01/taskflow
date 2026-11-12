@@ -74,9 +74,8 @@ describe('JiraStep', () => {
     expect(screen.queryByRole('button', { name: 'Create a token' })).not.toBeInTheDocument();
   });
 
-  it('shows the token quick link + name hint and opens the PAT page', () => {
+  it('shows the token quick link and opens the PAT page', () => {
     renderWithQuery(<JiraStep />);
-    expect(screen.getByText(/name it "Taskflow"/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Create a token' }));
     expect(openExternal).toHaveBeenCalledWith(jiraTokenUrl('https://jira.example.com'));
   });

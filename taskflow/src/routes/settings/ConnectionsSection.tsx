@@ -21,12 +21,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import { TokenLinkHint } from '@/components/ui/token-link-hint';
-import {
-  GITLAB_TOKEN_HINT,
-  gitlabTokenUrl,
-  JIRA_TOKEN_HINT,
-  jiraTokenUrl,
-} from '@/lib/token-links';
+import { gitlabTokenUrl, jiraTokenUrl } from '@/lib/token-links';
 import type { GitLabProject } from '@/services/gitlab';
 import { listGitLabProjects, validateGitLab } from '@/services/gitlab';
 import type { JiraProject } from '@/services/jira';
@@ -199,7 +194,7 @@ function JiraConnectionCard({
           onChange={(e) => handleTokenChange(e.target.value)}
           placeholder="••••••••"
         />
-        <TokenLinkHint url={jiraTokenUrl(draftUrl)} hint={JIRA_TOKEN_HINT} />
+        <TokenLinkHint url={jiraTokenUrl(draftUrl)} />
       </div>
 
       {/* Inline test status */}
@@ -414,7 +409,7 @@ function GitLabConnectionCard({
           onChange={(e) => handleTokenChange(e.target.value)}
           placeholder="••••••••"
         />
-        <TokenLinkHint url={gitlabTokenUrl(draftUrl)} hint={GITLAB_TOKEN_HINT} />
+        <TokenLinkHint url={gitlabTokenUrl(draftUrl)} />
       </div>
 
       {/* Inline test status */}

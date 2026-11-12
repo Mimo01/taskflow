@@ -1,9 +1,8 @@
 import { ExternalLink } from 'lucide-react';
-import type { ReactNode } from 'react';
 import { openExternal } from '@/lib/openExternal';
 
-/** One-line "Create a token" link + hint, shared by wizard and Settings. */
-export function TokenLinkHint({ url, hint }: { url: string | null; hint: ReactNode }) {
+/** "Create a token" link shared by wizard and Settings; hidden when url is null. */
+export function TokenLinkHint({ url }: { url: string | null }) {
   if (!url) return null;
   return (
     <p className="text-xs text-muted-foreground">
@@ -14,8 +13,7 @@ export function TokenLinkHint({ url, hint }: { url: string | null; hint: ReactNo
       >
         Create a token
         <ExternalLink className="h-3 w-3" aria-hidden="true" />
-      </button>{' '}
-      {hint}
+      </button>
     </p>
   );
 }

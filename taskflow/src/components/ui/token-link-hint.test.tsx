@@ -7,12 +7,11 @@ vi.mock('@/lib/openExternal', () => ({ openExternal: vi.fn() }));
 
 describe('TokenLinkHint', () => {
   it('renders nothing without a url', () => {
-    const { container } = render(<TokenLinkHint url={null} hint="hint" />);
+    const { container } = render(<TokenLinkHint url={null} />);
     expect(container).toBeEmptyDOMElement();
   });
-  it('opens the url externally and shows the hint', () => {
-    render(<TokenLinkHint url="https://x.example.com/t" hint="some hint" />);
-    expect(screen.getByText(/some hint/)).toBeInTheDocument();
+  it('opens the url externally', () => {
+    render(<TokenLinkHint url="https://x.example.com/t" />);
     fireEvent.click(screen.getByRole('button', { name: 'Create a token' }));
     expect(openExternal).toHaveBeenCalledWith('https://x.example.com/t');
   });
