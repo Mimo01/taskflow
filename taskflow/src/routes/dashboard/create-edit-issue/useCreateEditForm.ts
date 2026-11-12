@@ -64,6 +64,7 @@ export type FormAction =
       defaultIssueType?: IssueType;
       defaultParentKey?: string | null;
       initialValues?: EditInitialValues;
+      defaultEpicLinkKey?: string | null;
     }
   | { type: 'ASSIGNEE_PICK'; user: PersonValue }
   | { type: 'ASSIGNEE_PICK_UNASSIGNED' }
@@ -111,6 +112,7 @@ function buildInitialState(
   defaultIssueType?: IssueType,
   defaultParentKey?: string | null,
   initialValues?: EditInitialValues,
+  defaultEpicLinkKey?: string | null,
 ): FormState {
   const customFieldValues: Record<string, string> = {};
   const customFieldInputValues: Record<string, string> = {};
@@ -138,7 +140,7 @@ function buildInitialState(
     timeEstimate: '',
     priority: initialValues?.priority ?? null,
     storyPoints: initialValues?.storyPoints != null ? String(initialValues.storyPoints) : '',
-    epicLinkKey: initialValues?.epicLinkKey ?? null,
+    epicLinkKey: initialValues?.epicLinkKey ?? defaultEpicLinkKey ?? null,
     parentKey: defaultParentKey ?? null,
     customFieldValues,
     customFieldInputValues,
@@ -161,6 +163,7 @@ function formReducer(state: FormState, action: FormAction): FormState {
         action.defaultIssueType,
         action.defaultParentKey,
         action.initialValues,
+        action.defaultEpicLinkKey,
       );
 
     case 'ASSIGNEE_PICK':
@@ -183,9 +186,10 @@ function formReducer(state: FormState, action: FormAction): FormState {
       return {
         ...state,
         selectedIssueType: action.issueType,
-        // Reset parent/epic when switching types
-        parentKey: null,
-        epicLinkKey: null,
+        // Subtasks never carry an epic link; non-subtasks never carry a parent.
+        // Switching between Story/Bug keeps a prefilled epic.
+        parentKey: action.issueType === 'Subtask' ? state.parentKey : null,
+        epicLinkKey: action.issueType === 'Subtask' ? null : state.epicLinkKey,
       };
 
     case 'SET_CUSTOM_FIELD_VALUE':
@@ -243,6 +247,7 @@ interface UseCreateEditFormOptions {
   initialValues?: EditInitialValues;
   defaultIssueType?: IssueType;
   defaultParentKey?: string;
+  defaultEpicLinkKey?: string;
 }
 
 export function useCreateEditForm({
@@ -251,10 +256,11 @@ export function useCreateEditForm({
   initialValues,
   defaultIssueType,
   defaultParentKey,
+  defaultEpicLinkKey,
 }: UseCreateEditFormOptions) {
   const [state, dispatch] = useReducer(
     formReducer,
-    buildInitialState(defaultIssueType, defaultParentKey, initialValues),
+    buildInitialState(defaultIssueType, defaultParentKey, initialValues, defaultEpicLinkKey),
   );
 
   // Reset form state on each open — the component stays mounted in AppLayout
@@ -267,8 +273,9 @@ export function useCreateEditForm({
       defaultIssueType: defaultIssueType ?? 'Story',
       defaultParentKey: defaultParentKey ?? null,
       initialValues,
+      defaultEpicLinkKey: defaultEpicLinkKey ?? null,
     });
-  }, [open, defaultIssueType, defaultParentKey, initialValues]);
+  }, [open, defaultIssueType, defaultParentKey, defaultEpicLinkKey, initialValues]);
 
   const isSubtask = state.selectedIssueType === 'Subtask';
 

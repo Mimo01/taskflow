@@ -1,11 +1,12 @@
 // CREATE-01, CREATE-02, CREATE-03, CREATE-04: tests for CreateEditIssueModal
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as apiFetchModule from '@/lib/apiFetch';
 import * as jiraService from '@/services/jira';
 import { CreateEditIssueModal } from './CreateEditIssueModal';
+import { useCreateEditForm } from './create-edit-issue/useCreateEditForm';
 
 vi.mock('@/services/stronghold', () => ({
   readSecret: vi.fn().mockResolvedValue('test-pat'),
@@ -425,5 +426,42 @@ describe('CreateEditIssueModal', () => {
         expect(screen.getAllByPlaceholderText(/search by key/i)).toHaveLength(2);
       });
     });
+  });
+});
+
+describe('defaultEpicLinkKey (epic Add story flow)', () => {
+  it('prefills the Epic Link picker in create mode', () => {
+    render(
+      <CreateEditIssueModal
+        open={true}
+        onClose={vi.fn()}
+        mode="create"
+        defaultIssueType="Story"
+        defaultEpicLinkKey="PROJ-1"
+      />,
+      { wrapper },
+    );
+    expect(document.getElementById('modal-epic-link')).toHaveTextContent('PROJ-1');
+  });
+
+  it('leaves Epic Link empty without defaultEpicLinkKey', () => {
+    render(<CreateEditIssueModal open={true} onClose={vi.fn()} mode="create" />, { wrapper });
+    expect(document.getElementById('modal-epic-link')).toHaveTextContent('No epic');
+  });
+
+  it('keeps the epic when switching Story to Bug, clears it for Subtask', () => {
+    const { result } = renderHook(() =>
+      useCreateEditForm({
+        open: true,
+        mode: 'create',
+        defaultIssueType: 'Story',
+        defaultEpicLinkKey: 'PROJ-1',
+      }),
+    );
+    expect(result.current.state.epicLinkKey).toBe('PROJ-1');
+    act(() => result.current.dispatch({ type: 'SET_ISSUE_TYPE', issueType: 'Bug' }));
+    expect(result.current.state.epicLinkKey).toBe('PROJ-1');
+    act(() => result.current.dispatch({ type: 'SET_ISSUE_TYPE', issueType: 'Subtask' }));
+    expect(result.current.state.epicLinkKey).toBeNull();
   });
 });

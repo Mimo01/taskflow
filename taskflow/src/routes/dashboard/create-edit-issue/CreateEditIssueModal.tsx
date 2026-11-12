@@ -38,6 +38,8 @@ export interface CreateEditIssueModalProps {
   initialValues?: EditInitialValues;
   defaultIssueType?: 'Story' | 'Subtask' | 'Bug';
   defaultParentKey?: string;
+  /** Epic key to prefill the Epic Link field in create mode (epic-child flow). */
+  defaultEpicLinkKey?: string;
 }
 
 // ── Component ────────────────────────────────────────────────────────────────
@@ -49,6 +51,7 @@ export function CreateEditIssueModal({
   initialValues,
   defaultIssueType,
   defaultParentKey,
+  defaultEpicLinkKey,
 }: CreateEditIssueModalProps) {
   const { jiraBaseUrl, activeJiraProject } = useAuthStore();
   const { epicLinkFieldKey, storyPointsFieldKey } = useSettingsStore();
@@ -61,6 +64,7 @@ export function CreateEditIssueModal({
     initialValues,
     defaultIssueType,
     defaultParentKey,
+    defaultEpicLinkKey,
   });
 
   // ── Description attachments (Task 2: create-mode staging + edit-mode immediate upload) ──

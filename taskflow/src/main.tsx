@@ -135,6 +135,9 @@ function AppLayout() {
   const [createModalDefaultParent, setCreateModalDefaultParent] = useState<string | undefined>(
     undefined,
   );
+  const [createModalDefaultEpic, setCreateModalDefaultEpic] = useState<string | undefined>(
+    undefined,
+  );
   const wasStoryCreate = useRef(false);
   const isFullscreenRef = useRef(false);
   const queryClient = useQueryClient();
@@ -571,6 +574,7 @@ function AppLayout() {
     setCreateModalInitialValues(undefined);
     setCreateModalDefaultType(undefined);
     setCreateModalDefaultParent(undefined);
+    setCreateModalDefaultEpic(undefined);
     setCreateModalOpen(true);
   };
 
@@ -580,6 +584,7 @@ function AppLayout() {
     setCreateModalInitialValues(vals);
     setCreateModalDefaultType(undefined);
     setCreateModalDefaultParent(undefined);
+    setCreateModalDefaultEpic(undefined);
     setCreateModalOpen(true);
   };
 
@@ -589,6 +594,7 @@ function AppLayout() {
     setCreateModalInitialValues(vals);
     setCreateModalDefaultType(undefined);
     setCreateModalDefaultParent(undefined);
+    setCreateModalDefaultEpic(undefined);
     setCreateModalOpen(true);
   };
 
@@ -597,6 +603,7 @@ function AppLayout() {
     setCreateModalMode('create');
     setCreateModalDefaultType('Subtask');
     setCreateModalDefaultParent(parentKey);
+    setCreateModalDefaultEpic(undefined);
     setCreateModalInitialValues(undefined);
     setCreateModalOpen(true);
   };
@@ -607,6 +614,18 @@ function AppLayout() {
     setCreateModalDefaultType('Story');
     setCreateModalInitialValues(undefined);
     setCreateModalDefaultParent(undefined);
+    setCreateModalDefaultEpic(undefined);
+    setCreateModalOpen(true);
+  };
+
+  const handleOpenAddEpicStory = (epicKey: string) => {
+    // Same as Create story: refresh backlog data on close.
+    wasStoryCreate.current = true;
+    setCreateModalMode('create');
+    setCreateModalDefaultType('Story');
+    setCreateModalDefaultParent(undefined);
+    setCreateModalInitialValues(undefined);
+    setCreateModalDefaultEpic(epicKey);
     setCreateModalOpen(true);
   };
 
@@ -725,6 +744,7 @@ function AppLayout() {
                 openClone: handleOpenClone,
                 openAddSubtask: handleOpenAddSubtask,
                 openCreateStory: handleOpenCreateStory,
+                openAddEpicStory: handleOpenAddEpicStory,
                 onOpenIssue: handleOpenPeek,
               }}
             />
@@ -777,6 +797,7 @@ function AppLayout() {
         initialValues={createModalInitialValues}
         defaultIssueType={createModalDefaultType}
         defaultParentKey={createModalDefaultParent}
+        defaultEpicLinkKey={createModalDefaultEpic}
       />
       <KeyboardShortcutsPanel open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
       <AboutDialog open={aboutOpen} onClose={() => setAboutOpen(false)} />
