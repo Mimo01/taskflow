@@ -61,6 +61,7 @@ export interface IssueDetailViewProps {
   onEdit?: (vals: EditInitialValues) => void;
   onClone?: (vals: EditInitialValues) => void;
   onAddSubtask?: (parentKey: string) => void;
+  onAddEpicStory?: (epicKey: string) => void;
   isPinned?: boolean;
   onTogglePin?: (key: string) => void;
 }
@@ -72,6 +73,7 @@ export function IssueDetailView({
   onEdit,
   onClone,
   onAddSubtask,
+  onAddEpicStory,
   isPinned: isPinnedProp,
   onTogglePin: onTogglePinProp,
 }: IssueDetailViewProps) {
@@ -529,6 +531,7 @@ export function IssueDetailView({
       onEdit={onEdit}
       onClone={onClone}
       onAddSubtask={onAddSubtask}
+      onAddEpicStory={onAddEpicStory}
       storyPointsFieldKey={storyPointsFieldKey}
       sprintFieldKey={sprintFieldKey}
       epicLinkFieldKey={epicLinkFieldKey}

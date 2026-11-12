@@ -23,6 +23,7 @@ import { BulkCreateSubtasksModal } from './BulkCreateSubtasksModal';
 import type { EditInitialValues } from './CreateEditIssueModal';
 import { AttachmentsSection } from './issue-detail/AttachmentsSection';
 import { EpicProgressSection } from './issue-detail/EpicProgressSection';
+import { EpicStoryCreateControl } from './issue-detail/EpicStoryCreateControl';
 import { LogWorkPopover } from './issue-detail/LogWorkPopover';
 import { RelatedIssueRow } from './issue-detail/RelatedIssueRow';
 import { SectionHeader } from './issue-detail/SectionHeader';
@@ -45,6 +46,8 @@ interface IssueDetailContentProps {
   onEdit?: (initialValues: EditInitialValues) => void;
   onClone?: (initialValues: EditInitialValues) => void;
   onAddSubtask?: (parentKey: string) => void;
+  /** Epic detail: open the create modal for a Story prefilled with this epic. */
+  onAddEpicStory?: (epicKey: string) => void;
   epicStories?: JiraIssue[];
   /** Tailwind text-size class for the summary title. Defaults to text-xl (peek sheet); the full page passes text-2xl. */
   titleClassName?: string;
@@ -143,6 +146,7 @@ export function IssueDetailContent({
   onEdit,
   onClone,
   onAddSubtask,
+  onAddEpicStory,
   epicStories,
   isPinned,
   onTogglePin,
@@ -287,6 +291,7 @@ export function IssueDetailContent({
           <SectionHeader
             title="Stories"
             count={epicStories && epicStories.length > 0 ? epicStories.length : undefined}
+            actions={<EpicStoryCreateControl onAdd={() => onAddEpicStory?.(issueKey)} />}
           />
           {!epicStories && <p className="text-sm text-muted-foreground">Loading stories…</p>}
           {epicStories && epicStories.length === 0 && (

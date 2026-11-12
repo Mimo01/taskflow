@@ -42,6 +42,7 @@ export interface PeekPanelProps {
   onEdit?: (vals: EditInitialValues) => void;
   onClone?: (vals: EditInitialValues) => void;
   onAddSubtask?: (parentKey: string) => void;
+  onAddEpicStory?: (epicKey: string) => void;
 }
 
 export function PeekPanel({
@@ -55,6 +56,7 @@ export function PeekPanel({
   onEdit,
   onClone,
   onAddSubtask,
+  onAddEpicStory,
 }: PeekPanelProps) {
   const {
     width: panelWidth,
@@ -189,6 +191,7 @@ export function PeekPanel({
           onEdit={onEdit}
           onClone={onClone}
           onAddSubtask={onAddSubtask}
+          onAddEpicStory={onAddEpicStory}
         />
       </div>
     </div>

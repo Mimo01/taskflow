@@ -16,6 +16,7 @@ interface IssueDetailSheetProps {
   onOpenIssue?: (key: string) => void;
   onEdit?: (initialValues: EditInitialValues) => void;
   onAddSubtask?: (parentKey: string) => void;
+  onAddEpicStory?: (epicKey: string) => void;
   /** Whether the current issue is pinned (Plan 03 will add UI for this). */
   isPinned?: boolean;
   /** Toggle pin state for the current issue (Plan 03 will add UI for this). */
@@ -28,6 +29,7 @@ export function IssueDetailSheet({
   onOpenIssue,
   onEdit,
   onAddSubtask,
+  onAddEpicStory,
   isPinned,
   onTogglePin,
 }: IssueDetailSheetProps) {
@@ -50,6 +52,7 @@ export function IssueDetailSheet({
             onOpenIssue={onOpenIssue}
             onEdit={onEdit}
             onAddSubtask={onAddSubtask}
+            onAddEpicStory={onAddEpicStory}
             isPinned={isPinned}
             onTogglePin={onTogglePin}
           />
@@ -64,6 +67,7 @@ function IssueDetailBody({
   onOpenIssue,
   onEdit,
   onAddSubtask,
+  onAddEpicStory,
   isPinned,
   onTogglePin,
 }: {
@@ -72,6 +76,7 @@ function IssueDetailBody({
   onOpenIssue?: (key: string) => void;
   onEdit?: (initialValues: EditInitialValues) => void;
   onAddSubtask?: (parentKey: string) => void;
+  onAddEpicStory?: (epicKey: string) => void;
   isPinned?: boolean;
   onTogglePin?: (key: string) => void;
 }) {
@@ -129,6 +134,7 @@ function IssueDetailBody({
           onOpenIssue={onOpenIssue}
           onEdit={onEdit}
           onAddSubtask={onAddSubtask}
+          onAddEpicStory={onAddEpicStory}
           storyPointsFieldKey={storyPointsFieldKey}
           sprintFieldKey={sprintFieldKey}
           epicLinkFieldKey={epicLinkFieldKey}

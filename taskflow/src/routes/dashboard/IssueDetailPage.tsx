@@ -21,11 +21,12 @@ export default function IssueDetailPage() {
   const trail = useBreadcrumbStore((s) => s.trail);
   const breadcrumbPop = useBreadcrumbStore((s) => s.pop);
 
-  const { onIssueClick, openEdit, openClone, openAddSubtask } = useOutletContext<{
+  const { onIssueClick, openEdit, openClone, openAddSubtask, openAddEpicStory } = useOutletContext<{
     onIssueClick: (key: string) => void;
     openEdit: (vals: EditInitialValues) => void;
     openClone: (vals: EditInitialValues) => void;
     openAddSubtask: (parentKey: string) => void;
+    openAddEpicStory: (epicKey: string) => void;
   }>();
   // NOTE: `onOpenIssue` is also provided in the outlet context (main.tsx wires it to
   // handleOpenPeek), but is intentionally NOT consumed here. On the full-page route,
@@ -86,6 +87,7 @@ export default function IssueDetailPage() {
         onEdit={openEdit}
         onClone={openClone}
         onAddSubtask={openAddSubtask}
+        onAddEpicStory={openAddEpicStory}
       />
     </div>
   );

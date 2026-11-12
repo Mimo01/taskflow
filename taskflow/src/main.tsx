@@ -766,6 +766,7 @@ function AppLayout() {
               onEdit={handleOpenEdit}
               onClone={handleOpenClone}
               onAddSubtask={handleOpenAddSubtask}
+              onAddEpicStory={handleOpenAddEpicStory}
             />
           )}
         </div>

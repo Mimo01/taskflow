@@ -65,7 +65,7 @@ vi.mock('@tauri-apps/plugin-opener', () => ({
 // --- Imports ---
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -488,6 +488,59 @@ describe('IssueDetailContent', () => {
       await user.hover(screen.getByTestId('story-time-bar'));
       await waitFor(() => expect(rowTexts().length).toBeGreaterThan(0));
       expect(rowTexts()).toContain('Remaining0m');
+    });
+
+    describe('Add story button', () => {
+      function renderWith(stories: unknown[] | undefined, onAddEpicStory = vi.fn(), story = false) {
+        const issue = epicIssue() as { fields: { issuetype: { name: string } } };
+        if (story) issue.fields.issuetype.name = 'Story';
+        render(
+          <IssueDetailContent
+            issue={issue as never}
+            issueKey="PROJ-30"
+            jiraBaseUrl="https://jira.example.com"
+            storyPointsFieldKey="story_points"
+            sprintFieldKey="sprint"
+            epicLinkFieldKey="epic_link"
+            epicStories={stories as never}
+            onAddEpicStory={onAddEpicStory}
+          />,
+          { wrapper },
+        );
+        return onAddEpicStory;
+      }
+
+      it('renders in the loading, empty and populated states', () => {
+        for (const stories of [undefined, [], [epicStory('S-1', 'new', {})]]) {
+          renderWith(stories);
+          expect(screen.getAllByRole('button', { name: 'Add story' })).toHaveLength(1);
+          cleanup();
+        }
+      });
+
+      it('matches the Add subtask button styling', () => {
+        renderWith([]);
+        const btn = screen.getByRole('button', { name: 'Add story' });
+        expect(btn.className).toContain('h-6');
+        expect(btn.className).toContain('text-muted-foreground');
+        expect(btn.className).toContain('hover:text-foreground');
+        expect(btn.className).not.toContain('border-border');
+        expect(btn.querySelector('svg')?.getAttribute('class')).toContain('size-3');
+      });
+
+      it('calls onAddEpicStory with the epic key', () => {
+        const onAdd = renderWith([]);
+        fireEvent.click(screen.getByRole('button', { name: 'Add story' }));
+        expect(onAdd).toHaveBeenCalledWith('PROJ-30');
+      });
+
+      it('epic has no Add subtask button; non-epic has no Add story button', () => {
+        renderWith([]);
+        expect(screen.queryByRole('button', { name: 'Add subtask' })).toBeNull();
+        cleanup();
+        renderWith([], vi.fn(), true);
+        expect(screen.queryByRole('button', { name: 'Add story' })).toBeNull();
+      });
     });
   });
 });
