@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { fetchAllReleases } from '@/services/releases';
+import { fetchAllReleases, isRateLimited } from '@/services/releases';
 
 /**
  * Shared release-history query for the Update modal, What's new modal and
@@ -12,6 +12,6 @@ export function useReleaseHistory({ enabled = true }: { enabled?: boolean } = {}
     enabled,
     staleTime: 30 * 60 * 1000,
     refetchOnWindowFocus: false,
-    retry: 1,
+    retry: (failureCount, error) => failureCount < 1 && !isRateLimited(error),
   });
 }

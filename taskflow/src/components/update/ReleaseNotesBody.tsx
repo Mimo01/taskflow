@@ -38,7 +38,8 @@ type AnchorProps = ComponentPropsWithoutRef<'a'> & { node?: unknown };
 
 const LINK_COMPONENTS = {
   a: ({ href, children, node: _node, ...rest }: AnchorProps) => {
-    if (!href || href.startsWith('#')) return <span>{children}</span>;
+    // Remote release bodies: only http(s) links may reach the OS opener.
+    if (!href || !/^https?:\/\//i.test(href)) return <span>{children}</span>;
     return (
       <a
         href={href}

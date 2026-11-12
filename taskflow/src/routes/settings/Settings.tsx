@@ -86,7 +86,11 @@ export default function Settings() {
   function selectSection(id: SettingsSection) {
     setActiveSection(id);
     // Clear the deep-link param so it does not stick.
-    if (searchParams.has('section')) setSearchParams({}, { replace: true });
+    if (searchParams.has('section')) {
+      const next = new URLSearchParams(searchParams);
+      next.delete('section');
+      setSearchParams(next, { replace: true });
+    }
   }
 
   return (

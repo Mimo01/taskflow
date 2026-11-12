@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { fetchAllReleases, type ReleaseEntry, selectRollup } from './releases';
+import {
+  fetchAllReleases,
+  isRateLimited,
+  type ReleaseEntry,
+  ReleasesFetchError,
+  selectRollup,
+} from './releases';
 
 function res(rows: unknown[], link?: string, ok = true, status = 200) {
   return {
@@ -48,6 +54,29 @@ describe('fetchAllReleases', () => {
       vi.fn().mockResolvedValue({ ok: true, json: async () => [rel('v1.0.0')] }),
     );
     expect((await fetchAllReleases()).map((r) => r.version)).toEqual(['1.0.0']);
+  });
+
+  it('dedupes v-prefixed and bare tags of the same version', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(res([rel('v1.2.0'), rel('1.2.0'), rel('v1.1.0')])),
+    );
+    expect((await fetchAllReleases()).map((r) => r.version)).toEqual(['1.2.0', '1.1.0']);
+  });
+
+  it('drops unflagged semver prerelease tags', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(res([rel('v1.3.0-rc1'), rel('v1.2.0')])));
+    expect((await fetchAllReleases()).map((r) => r.version)).toEqual(['1.2.0']);
+  });
+
+  it('flags 403/429 as rate limited, not other errors', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(res([], undefined, false, 403)));
+    const err = await fetchAllReleases().catch((e) => e);
+    expect(err).toBeInstanceOf(ReleasesFetchError);
+    expect(isRateLimited(err)).toBe(true);
+    expect(isRateLimited(new ReleasesFetchError(429))).toBe(true);
+    expect(isRateLimited(new ReleasesFetchError(500))).toBe(false);
+    expect(isRateLimited(new Error('x'))).toBe(false);
   });
 
   it('caps pagination at 10 pages', async () => {

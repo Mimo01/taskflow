@@ -33,7 +33,7 @@ for arg in "$@"; do
   case "$arg" in
     --skip-bump) SKIP_BUMP=true ;;
     --allow-wordy-notes) ALLOW_WORDY=true ;;
-    --*) ;;
+    --*) echo "Error: unknown flag $arg" >&2; exit 1 ;;
     *) VERSION="$arg" ;;
   esac
 done
@@ -44,7 +44,11 @@ if [[ -z "$VERSION" ]]; then
 fi
 
 # Capture release notes from stdin early (before anything else reads stdin)
-RELEASE_NOTES="$(cat)"
+RELEASE_NOTES=""
+# With --skip-bump from an interactive terminal there is nothing piped in — do not block on stdin.
+if [[ "$SKIP_BUMP" == "false" ]] || [[ ! -t 0 ]]; then
+  RELEASE_NOTES="$(cat)"
+fi
 if [[ -z "$RELEASE_NOTES" ]] && [[ "$SKIP_BUMP" == "false" ]]; then
   echo "Error: No release notes provided on stdin." >&2
   echo "Usage: printf 'One-line summary.\n\n### Fixed\n- **Bug title**' | ./scripts/release.sh 1.7.1" >&2
