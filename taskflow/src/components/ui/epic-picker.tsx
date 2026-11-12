@@ -112,8 +112,9 @@ function EpicPickerPanel({
     // Escape is handled by the Popover (closes without calling onChange).
   }
 
-  // Rows share one column grid (subgrid): pill | key | check. Fixed h-8 so "No epic",
-  // epic rows and the footer action all sit on the same rhythm.
+  // Rows share one column grid (subgrid): check | pill | key — check leads, like the Fix
+  // Versions picker. Fixed h-8 so "No epic", epic rows and the footer action share one rhythm;
+  // the check column sits under the search icon / footer icon, pills under the search text.
   const rowBase =
     'col-span-3 grid grid-cols-subgrid h-8 w-full items-center rounded-md px-1.5 text-left text-xs outline-none hover:bg-accent';
   const checkSlot = (selected: boolean, testId?: string) => (
@@ -147,7 +148,7 @@ function EpicPickerPanel({
       <div
         id={listId}
         role="listbox"
-        className="grid max-h-64 grid-cols-[minmax(0,1fr)_auto_auto] gap-x-3 overflow-y-auto"
+        className="grid max-h-64 grid-cols-[auto_minmax(0,1fr)_auto] gap-x-2 overflow-y-auto"
       >
         <button
           id={optionId(0)}
@@ -157,13 +158,13 @@ function EpicPickerPanel({
           onClick={() => onChange(null)}
           className={cn(rowBase, activeIndex === 0 && 'bg-accent')}
         >
+          {checkSlot(value === null)}
           <span className="min-w-0">
             <span className="inline-flex items-center rounded border border-dashed border-border px-1.5 py-0.5 text-xs text-muted-foreground">
               No epic
             </span>
           </span>
           <span />
-          {checkSlot(value === null)}
         </button>
         {epics.map((epic, j) => {
           const selected = value === epic.key;
@@ -177,16 +178,16 @@ function EpicPickerPanel({
               onClick={() => onChange(epic)}
               className={cn(rowBase, activeIndex === j + 1 && 'bg-accent')}
             >
+              {checkSlot(selected, 'epic-check')}
               <span className="flex min-w-0">
                 <EpicPill name={epic.name} epicKey={epic.key} color={epic.color} />
               </span>
-              <span className="text-muted-foreground tabular-nums">{epic.key}</span>
-              {checkSlot(selected, 'epic-check')}
+              <span className="pl-2 text-muted-foreground tabular-nums">{epic.key}</span>
             </button>
           );
         })}
         {(isLoading || epics.length === 0) && (
-          <p className="col-span-3 flex h-8 items-center px-1.5 text-xs text-muted-foreground">
+          <p className="col-span-3 flex h-8 items-center pr-1.5 pl-7 text-xs text-muted-foreground">
             {isLoading ? 'Searching…' : 'No open epics match'}
           </p>
         )}
@@ -290,9 +291,10 @@ export function EpicPicker({
       <PopoverContent
         align="start"
         sideOffset={4}
-        // Line the list pills up with the trigger's pill: inline trigger pads its pill 4px
-        // (px-1 -ml-1), list rows inset theirs 10px (p-1 + px-1.5); the field trigger uses pl-2.5.
-        alignOffset={variant === 'inline' ? -6 : 0}
+        // Inline (sidebar): the leading check column hangs left so list pills line up with the
+        // trigger pill — trigger pads its pill 4px (px-1 -ml-1), list pills sit at 32px
+        // (p-1 + px-1.5 + check 14 + gap 8). Field variant keeps the popover flush with the box.
+        alignOffset={variant === 'inline' ? -28 : 0}
         className="w-[max(20rem,var(--anchor-width))] max-w-(--available-width) p-1"
       >
         <EpicPickerPanel
