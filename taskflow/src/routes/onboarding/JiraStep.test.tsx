@@ -4,7 +4,11 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { openExternal } from '@/lib/openExternal';
+import { jiraTokenUrl } from '@/lib/token-links';
 import JiraStep from './JiraStep';
+
+vi.mock('@/lib/openExternal', () => ({ openExternal: vi.fn() }));
 
 // Mock the jira service module
 vi.mock('@/services/jira', () => ({
@@ -62,6 +66,19 @@ describe('JiraStep', () => {
     mockStore.set.mockImplementation((updates: Partial<typeof mockStore>) =>
       Object.assign(mockStore, updates),
     );
+  });
+
+  it('hides the token quick link when the URL is empty', () => {
+    mockStore.jiraUrl = '';
+    renderWithQuery(<JiraStep />);
+    expect(screen.queryByRole('button', { name: 'Create a token' })).not.toBeInTheDocument();
+  });
+
+  it('shows the token quick link + name hint and opens the PAT page', () => {
+    renderWithQuery(<JiraStep />);
+    expect(screen.getByText(/name it "Taskflow"/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Create a token' }));
+    expect(openExternal).toHaveBeenCalledWith(jiraTokenUrl('https://jira.example.com'));
   });
 
   it('AUTH-04: renders URL input, token input, and Test & Continue button', () => {

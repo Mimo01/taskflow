@@ -11,8 +11,12 @@ import { fireEvent, render as rtlRender, screen, waitFor } from '@testing-librar
 import userEvent from '@testing-library/user-event';
 import type { ReactElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { openExternal } from '@/lib/openExternal';
+import { jiraTokenUrl } from '@/lib/token-links';
 import { listJiraProjects } from '@/services/jira';
 import ConnectionsSection from './ConnectionsSection';
+
+vi.mock('@/lib/openExternal', () => ({ openExternal: vi.fn() }));
 
 // All renders need a QueryClientProvider — ConnectionsSection calls useQueryClient
 // to invalidate active-sprint caches on a board switch (FB8-4).
@@ -282,5 +286,43 @@ describe('ConnectionsSection', () => {
 
     await waitFor(() => expect(mockAuthStore.bumpCredentialsRevision).toHaveBeenCalledTimes(1));
     expect(client.getQueryData(['jira-pat'])).toBeUndefined();
+  });
+});
+
+describe('ConnectionsSection token quick links', () => {
+  const linkName = { name: 'Create a token' };
+
+  beforeEach(() => {
+    vi.mocked(openExternal).mockClear();
+  });
+
+  function typeUrl(label: string, value: string) {
+    fireEvent.change(screen.getByLabelText(label), { target: { value } });
+  }
+
+  it('Jira: hidden for empty and Cloud URLs, opens the PAT page for a DC URL', () => {
+    render(<ConnectionsSection />);
+    typeUrl('Jira URL', '');
+    expect(screen.queryAllByRole('button', linkName)).toHaveLength(1); // GitLab card only
+    typeUrl('Jira URL', 'https://acme.atlassian.net');
+    expect(screen.queryAllByRole('button', linkName)).toHaveLength(1);
+    typeUrl('Jira URL', 'https://jira.example.com');
+    const buttons = screen.getAllByRole('button', linkName);
+    expect(buttons).toHaveLength(2);
+    fireEvent.click(buttons[0]);
+    expect(openExternal).toHaveBeenCalledWith(jiraTokenUrl('https://jira.example.com'));
+    expect(screen.getByText(/name it "Taskflow"/)).toBeInTheDocument();
+  });
+
+  it('GitLab: keeps the context path and prefills the api scope', () => {
+    render(<ConnectionsSection />);
+    typeUrl('GitLab URL', 'https://gitlab.example.com/gitlab');
+    const buttons = screen.getAllByRole('button', linkName);
+    fireEvent.click(buttons[buttons.length - 1]);
+    const url = vi.mocked(openExternal).mock.calls[0][0];
+    expect(
+      url.startsWith('https://gitlab.example.com/gitlab/-/user_settings/personal_access_tokens'),
+    ).toBe(true);
+    expect(url).toContain('scopes=api');
   });
 });

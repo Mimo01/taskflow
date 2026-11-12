@@ -20,6 +20,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { SearchableSelect } from '@/components/ui/searchable-select';
+import { TokenLinkHint } from '@/components/ui/token-link-hint';
+import {
+  GITLAB_TOKEN_HINT,
+  gitlabTokenUrl,
+  JIRA_TOKEN_HINT,
+  jiraTokenUrl,
+} from '@/lib/token-links';
 import type { GitLabProject } from '@/services/gitlab';
 import { listGitLabProjects, validateGitLab } from '@/services/gitlab';
 import type { JiraProject } from '@/services/jira';
@@ -177,7 +184,7 @@ function JiraConnectionCard({
           type="url"
           value={draftUrl}
           onChange={(e) => handleUrlChange(e.target.value)}
-          placeholder="https://yourorg.atlassian.net"
+          placeholder="https://jira.example.com"
           className="truncate"
         />
       </div>
@@ -192,6 +199,7 @@ function JiraConnectionCard({
           onChange={(e) => handleTokenChange(e.target.value)}
           placeholder="••••••••"
         />
+        <TokenLinkHint url={jiraTokenUrl(draftUrl)} hint={JIRA_TOKEN_HINT} />
       </div>
 
       {/* Inline test status */}
@@ -406,6 +414,7 @@ function GitLabConnectionCard({
           onChange={(e) => handleTokenChange(e.target.value)}
           placeholder="••••••••"
         />
+        <TokenLinkHint url={gitlabTokenUrl(draftUrl)} hint={GITLAB_TOKEN_HINT} />
       </div>
 
       {/* Inline test status */}

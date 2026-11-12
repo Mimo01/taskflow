@@ -19,6 +19,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { SearchableSelect } from '@/components/ui/searchable-select';
+import { TokenLinkHint } from '@/components/ui/token-link-hint';
+import { JIRA_TOKEN_HINT, jiraTokenUrl } from '@/lib/token-links';
 import { listJiraProjects, validateJira } from '@/services/jira';
 import { listProjectBoards } from '@/services/jira/sprints';
 import { storeSecret } from '@/services/stronghold';
@@ -153,6 +155,7 @@ export default function JiraStep() {
             onChange={(e) => set({ jiraToken: e.target.value })}
             disabled={mutation.isPending}
           />
+          <TokenLinkHint url={jiraTokenUrl(jiraUrl)} hint={JIRA_TOKEN_HINT} />
         </div>
 
         {/* Error message — exact string from jira.ts, locked per CONTEXT.md */}
