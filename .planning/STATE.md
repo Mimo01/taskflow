@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-08-13)
 Phase: 95
 Plan: Not started
 Status: Milestone complete
-Last activity: 2026-11-12 - Completed quick task 261112-dai: Condense desktop notification content
+Last activity: 2026-11-12 - Completed quick task 261112-eep: Subtask create control in Subtasks section header
 
 ## Performance Metrics
 
@@ -284,6 +284,7 @@ Acknowledged and deferred at v1.14 milestone close (2026-08-13) — 111 open art
 | 261111-un4 | Centred, consistent sprint empty states: EmptyState opt-in `fill` (centres in page/pane); Sprint Board + My Tasks list-area states centred; canonical NO_ACTIVE_SPRINT_SUBTITLE across Sprint Board, My Tasks, MY ISSUES, Standup Today; "No sprint issues" copy tidied | 2026-11-11 | 32318ef6, ac107d8f | Approved | [261111-un4-nicer-centred-no-sprint-no-tasks-empty-s](./quick/261111-un4-nicer-centred-no-sprint-no-tasks-empty-s/) |
 | 261112-cmy | Desktop notification attempts in Developer Tools → Notifications tab: each OS notification the poller sent/denied/errored or skipped as already known, with a macOS-style banner preview and the raw item; recorded when Developer Tools is on and Desktop notifications is enabled; shared `formatOsNotification` in lib/notification-dispatch-log.ts | 2026-11-12 | 86c11a8a, 37de5963, 1254b818, 748e9de3 | Approved | [261112-cmy-dev-mode-devtools-log-of-desktop-notific](./quick/261112-cmy-dev-mode-devtools-log-of-desktop-notific/) |
 | 261112-dai | Condensed desktop (OS) notifications: item-led title (`PROJ-123 · summary` / `!iid · title`), one-line `Actor: what` body with headline change + `(+N more)`, OS-only plain-text comment cleanup (own [~user] → display name, 140 cap); >3 fresh items in one poll → single summary banner; Dev Tools logs summary + Grouped rows; in-app unchanged | 2026-11-12 | fc3e2505, a1d56862, b1689129, f414a14e | Approved | [261112-dai-condense-desktop-notification-content-so](./quick/261112-dai-condense-desktop-notification-content-so/) |
+| 261112-eep | Story/task detail Subtasks section always rendered: heading row (count only when N>0) with right-aligned split create control (outline `Add subtask` + chevron menu `Bulk create subtasks…`, new issue-detail/SubtaskCreateControl.tsx), muted `No subtasks` when empty (keyed on base subtasks, fixes never-shown empty state), old bottom button row removed | 2026-11-12 | f40739ae, a4499b60, 5a4719db | Needs Review | [261112-eep-subtask-create-buttons-in-story-detail-s](./quick/261112-eep-subtask-create-buttons-in-story-detail-s/) |
 
 ## Session Continuity
 
