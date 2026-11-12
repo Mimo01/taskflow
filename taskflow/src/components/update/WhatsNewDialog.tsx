@@ -6,6 +6,7 @@
  *
  * "Got it" sets lastSeenVersion to current version — dialog won't reappear.
  * "See all updates" does the same, then opens Settings → Updates.
+ * Notes shown: this build's bundled CHANGELOG.md section, else lastSeenChangelog.
  * lastSeenChangelog is NOT cleared on dismiss (kept for future reference per UI-SPEC)
  * and stays a raw markdown string (written by older clients too).
  */
@@ -24,6 +25,7 @@ import {
 } from '@/components/ui/dialog';
 import { useReleaseHistory } from '@/hooks/useReleaseHistory';
 import { buildInfo } from '@/lib/build-info';
+import { bundledNotesFor } from '@/lib/release-notes/bundled';
 import { selectRollup } from '@/services/releases';
 import { useSettingsStore } from '@/stores/settings.store';
 import { ReleaseNotesBody } from './ReleaseNotesBody';
@@ -64,7 +66,7 @@ export function WhatsNewDialog() {
           {fromVersion && <DialogDescription>from {fromVersion}</DialogDescription>}
         </DialogHeader>
         <div className="flex max-h-[60vh] flex-col gap-4 overflow-y-auto">
-          <ReleaseNotesBody notes={lastSeenChangelog} />
+          <ReleaseNotesBody notes={bundledNotesFor(buildInfo.version) ?? lastSeenChangelog} />
           <ReleaseRollup releases={skipped} />
         </div>
         <DialogFooter>

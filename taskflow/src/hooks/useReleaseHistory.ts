@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { withBundledNotes } from '@/lib/release-notes/bundled';
 import { fetchAllReleases, isRateLimited } from '@/services/releases';
 
 /**
@@ -8,7 +9,8 @@ import { fetchAllReleases, isRateLimited } from '@/services/releases';
 export function useReleaseHistory({ enabled = true }: { enabled?: boolean } = {}) {
   return useQuery({
     queryKey: ['github-releases', 'all'],
-    queryFn: fetchAllReleases,
+    // Prefer the concise CHANGELOG.md rewrite shipped in this build over wordy GitHub bodies.
+    queryFn: async () => withBundledNotes(await fetchAllReleases()),
     enabled,
     staleTime: 30 * 60 * 1000,
     refetchOnWindowFocus: false,

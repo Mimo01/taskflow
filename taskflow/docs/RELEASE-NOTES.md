@@ -72,6 +72,8 @@ Check notes by hand: `printf '...' | node scripts/lint-release-notes.mjs`.
 
 ## Compatibility
 
+`CHANGELOG.md` is bundled into the app (`src/lib/release-notes/bundled.ts`). For every X.Y.Z version it contains, the in-app history, the skipped-version roll-up and What's new show the CHANGELOG text instead of the GitHub release body. GitHub bodies for releases up to 1.14.20 are the old wordy notes; the CHANGELOG history was rewritten in the short format on 2026-11-12 (version headers and dates unchanged). Releases newer than an installed build fall back to their GitHub body, so keep new notes short there too. A test lints every shipped CHANGELOG section.
+
 The notes are plain GitHub markdown (paragraph, `###` headings, bullets), so older installed clients render them with their markdown view as before. The tag is created with `--cleanup=verbatim` so the `###` lines survive. Never lose that flag.
 
 ## Deriving notes from the git log

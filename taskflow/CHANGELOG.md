@@ -4,1024 +4,752 @@ All notable changes to Taskflow are documented here.
 
 ## [1.14.20] — 2026-11-12
 
-### Added
+Notifications got a full redesign, plus easier setup and story editing.
 
-- **Redesigned notifications** — the bell opens a floating panel that slides in under the top bar. Notifications for the same issue or MR collapse into a stack you can open in place. Each card names who did what, lists up to 10 changes or comments, and colours only the part you can act on. Hover a card to mark it done, toggle read or open it, or use the Reply, Review and View pipeline quick actions. Filter Unread / All and by source, use Mark all read, Clear all, j/k and arrow keys, and close the panel with Cmd+Shift+I or a two-finger swipe right.
-- **In-app notification banners** — new notifications briefly appear as banners (up to 3, paused on hover) with the same quick actions. Set Banner duration (Off, 3s, 5s, 8s) in Settings.
-- **Condensed desktop notifications** — OS notifications lead with the item ("PROJ-1 · Title", "!482 · MR title") and a one-line summary, show subtasks in the context of their story, and fold bursts of more than 3 into one summary. One Desktop notifications switch replaces the separate Jira and GitLab switches, and nothing fires for the catch-up check at launch.
-- **Editable epic on stories** — the story sidebar has an Epic row with a searchable epic picker, also used in Create and Edit issue.
-- **Add story from an epic** — the epic Stories section has an Add story button that creates a story already linked to the epic.
-- **Searchable project and board pickers** — Jira project and board, GitLab project, AIO and Release Management pickers in Settings and the setup wizard can be searched, and long GitLab project and Jira board lists are loaded in full.
-- **Token links** — the setup wizard and Settings connections link straight to the Jira and GitLab pages for creating a personal access token.
-- **Release Management in setup** — the setup wizard's Integrations step has an optional Release Management project picker.
-- **Wizard re-runs after updates** — when an update changes a setup step, the wizard reopens at that step with your current settings filled in.
-- **More previewable attachments** — XML, JSON, YAML, SQL and more code and text files open in the preview with syntax highlighting.
-- **Notifications in Developer Tools** — a Notifications tab lists every desktop notification sent, denied, failed or skipped, with a banner-style preview.
-- **Priority in release tables** — release task rows and deployment package mismatch rows show the issue priority icon, hidden in narrow windows.
+### New
+- **Notification panel** — stacks per issue, quick actions
+- **In-app notification banners**
+- **Condensed desktop notifications**
+- **Epic picker on stories** — and Add story from an epic
+- **Searchable pickers** in Settings and setup
+- **Wizard reopens** at steps an update changed
 
-### Changed
-
-- **Attachment tiles** — attachments show as one tile grid with two-line names, file type and size. Files that can't be previewed look the same with a short reason, downloads show progress and the result on the tile, and delete asks for a second click. The section can no longer be collapsed.
-- **Issue section headers** — all issue detail sections share one header style, and Subtasks always has its header with an add-subtask control.
-- **No active sprint** — Standup Today, the Sprint Board, My Tasks and the dashboard's My Issues say when there is no active sprint instead of showing an empty list, centred in the pane.
-- **Dashboard card errors** — My Issues, Upcoming Releases and Past 7 days show a compact error inside the card, and the chart says "Commits unavailable" when commits fail to load.
-- **Find and notifications** — find-in-page and the notification panel close each other, and the search, recent items and bell buttons show when they are open.
-- **Clear notification cache** — the cache can be cleared even when it holds no notifications, which resets the polling position.
+### Improved
+- **Attachment tiles** — one grid, more file types preview
+- **Issue section headers** — one shared style
+- **No active sprint** messaging and card error states
 
 ### Fixed
-
-- **Duplicate notifications** — the same change line or card no longer repeats, being assigned no longer adds a second card, comments seen by two queries show once, and multi-value changes keep every value. Flag changes are now tracked.
-- **Package mismatches** — the release detail mismatch list includes stories carrying the release week's package but another release's fix version.
-- **Peek over-scroll** — opening the peek panel no longer lets My Tasks or AIO cycle detail scroll into blank space.
-- **Settings after saving credentials** — saving a token reloads data with the new credentials, and Reset all opens the setup wizard.
-- **Setup wizard** — the Done step stays visible until you finish, and the Jira sprint board is filled in when the wizard is re-run.
+- Duplicate notifications, package mismatches, peek over-scroll
+- Settings reload after saving a token, setup wizard Done step
 
 ## [1.14.19] — 2026-11-09
 
-### Added
+Clearer handling of issues you can't open.
 
-- **Issue unavailable panel** — issues you can't open (no permission, deleted or moved) show a clear panel with the issue key, a short explanation and Open in Jira, Copy key and Try again actions, instead of a generic error. Access errors are no longer retried.
-- **No access in Recent** — Recent items you can no longer open show a lock, a muted title and "No access" in the status column.
-- **Refresh on issue detail** — the issue detail action row has a Refresh button, styled like Pin, Edit and Clone, that reloads the issue and its related data.
+### New
+- **Issue unavailable panel** — with Open in Jira and Try again
+- **No access** marker in Recent
+- **Refresh button** on issue detail
 
-### Changed
-
-- **Compact issue actions** — when the action row is narrow, Refresh, Pin, Log Work, Edit and Clone collapse to icon buttons with tooltips. Open in Jira keeps its label.
-- **Square row selection** — My Tasks and Standup rows use straight-edged selection and hover bands, matching other lists.
+### Improved
+- **Compact issue actions** in narrow windows
+- **Square row selection** on My Tasks and Standup
 
 ### Fixed
-
-- **Story time in All assigned / All reported** — story time bars in these My Tasks scopes include subtask time.
-- **Peek highlight on Standup** — Yesterday activity rows and Today In Progress / Up Next rows highlight the issue open in the peek panel, and a click no longer overrides the highlight.
-- **Download links** — the Linux download links on the releases page are correct, and broken links stop the release before the page is updated.
+- Story time in All assigned, Standup peek highlight, Linux download links
 
 ## [1.14.18] — 2026-11-05
 
-### Added
+Zoomable previews and one person picker everywhere.
 
-- **Zoomable previews** — attachment and asset previews share one viewer with zoom controls: Fit fills the window, a single click zooms, and text previews can change font size. Open externally opens the file in its default app, and Download only saves. Toolbar actions show a short floating confirmation.
-- **One person picker everywhere** — assignee and user fields on the issue detail page, Create/Edit issue, subtask templates, the standup watched person and Worklogs all use the same picker, which searches people on the server instead of filtering a short preloaded list.
-- **All my subtasks on Standup Today** — stories under Today list every subtask assigned to you, done ones included. Which stories appear is still decided by active subtasks.
+### New
+- **Zoomable previews** — fit, zoom and font size controls
+- **One person picker** — searches people on the server
+- **All my subtasks** on Standup Today
 
-### Changed
-
-- **One time bar design** — My Tasks, standup, the issue sidebar and epic rows use the same time bar: status colours, the Jira remaining estimate (so forecast overruns show), an estimate tick only when the bar runs past it, and a dashed track when there is no estimate. Every bar has a tooltip, and story bars include their subtasks. The issue detail Worklog tab no longer shows a time bar.
-- **Story subtask rows** — subtask rows on a story look like epic Stories rows, with a time bar and tooltip.
-- **Responsive relationship rows** — Stories, Subtasks and Parent rows on the issue detail page drop secondary details step by step as the panel narrows, keeping the key and title readable.
-- **Release detail graphs** — every release uses the same graph layout. By status is three clickable rows (to do, in progress, done) stacked above By type, and the MR donut is always shown in its own slot, filling its column and showing how many tasks have MRs. Small releases stay balanced, and the loading skeleton matches the layout.
-- **Release detail tooltips** — tooltips on the release detail page open instantly.
-- **Page headers** — Standup, Releases, My Tasks, Epics, Worklogs, Test cycles and Backlog share one responsive header. Buttons collapse to icons as the window narrows (Refresh below 50rem), and the release detail header actions collapse sooner so the title keeps room.
-- **Standup in narrow windows** — the two panes stack when the window is narrow, rows compact step by step so Today titles stay visible, and the split is kept as a ratio so both panes resize with the sidebar.
-- **Epic By person** — rows are sorted by bar length on every tab.
+### Improved
+- **One time bar design** across the app
+- **Responsive relationship rows** and page headers
+- **Release detail graphs** — same layout for every release
+- **Standup in narrow windows**
 
 ### Fixed
-
-- **Deployment package for Bugs** — the Deployment package warning, the release detail mismatch list and the missing-fix-version check now cover Bugs as well as Stories.
-- **Subtask estimates** — subtask time bars take their estimate from Jira's aggregate fields.
-- **Preview layering** — attachment previews and the lightbox are no longer painted over by the sidebar border.
-- **Closing previews** — Escape closes a preview in macOS fullscreen without leaving fullscreen, and clicking the empty space around a preview closes it.
-- **Person picker width** — the picker dropdown matches the width of wide fields.
-- **Worklogs people filter** — the selected person's avatar shows in the filter.
+- Deployment package checks cover Bugs, subtask estimates
+- Preview layering and closing, person picker width
 
 ## [1.14.17] — 2026-11-03
 
-### Added
+Fix release coverage straight from the release page.
 
-- **Fix tasks not covered by the release** — the "Not covered by tasks" section on the release detail page is now an orange callout with a Fix column. Apply adds the release fix version to the issue, keeping its other versions. Link task adds the task key to the MR title. Epics that can't take a fix version keep the "Not in version" state, with a note in place of Apply.
-- **MR status on task rows** — each release task row shows one status for all of its MRs: a glyph and word when they share a state, or a compact ring when they are mixed. Click it for a popover listing every MR, sorted by number, with author and per-MR branch and milestone fixes. Single-MR tasks fix the branch or milestone straight from the row, and multi-MR tasks can fix all of them at once.
-- **Milestone on merged MRs** — merged MRs can be assigned the release milestone. Branch fixes stay limited to open MRs.
-- **Graph rows filter the Issues table** — clicking a By status, By type or By assignee row on the release detail page toggles the matching Issues table filter. The "+N more" popover lists the remaining rows the same way, and row tooltips appear beside the row after a short delay.
-- **Epic time by status and person** — the epic Time view shows bars grouped by status with overspend, under-budget time and an estimate tick. Person chips include everyone who logged time on the epic, and each status has a time tooltip.
-- **Exact timestamps** — hover a date on the issue detail page to see the exact date and time.
+### New
+- **Fix tasks not covered** by the release
+- **MR status on task rows** — with per-MR fixes
+- **Milestone on merged MRs**
+- **Graph rows filter the Issues table**
+- **Epic time by status and person**
 
-### Changed
-
-- **Epic time numbers** — epic Time compares time logged against the Jira remaining estimate, so story rows and epic bars add up.
-- **Time bar colours** — time bars fill by time spent against the original estimate, so closed issues no longer show a full bar. Bars stay amber up to 125% of the estimate and turn red beyond it.
-- **Release detail header** — the header matches the AIO cycle header, with release stats in one bordered block. MR labels sit in a row under the graphs, with a small warning and count at the end for MRs without a label. The MR donut is ring only.
-- **Release Progress graph** — the burnup is larger and less cluttered, with a denser date axis, an unlabelled Today line, marker and end labels that don't overlap, and the previous release name as its start. Future releases show a short "No burnup yet" message instead of an empty chart.
-- **Release graph band** — graph slots are split by hairlines, By type and By assignee are wider, By status rows are more compact, and the Issues heading matches the graph headings.
-- **Page headers** — page titles use one consistent size: larger on pages with a subtitle, smaller elsewhere and on subpages. The Settings page header and the MR page title icon are gone.
+### Improved
+- **Time bar colours** — amber up to 125%, then red
+- **Release Progress graph** — larger, less cluttered
+- **Release detail header** and page header sizes
 
 ### Fixed
-
-- **Linked MRs on issues** — the issue detail page lists every linked MR (open, merged or closed), not just those among the project's 20 most recently updated.
-- **MR donut count** — the release MR donut counts each MR once across all the ways it is linked to the release.
-- **Not covered reasons** — merged MRs count when deciding why a task isn't covered, and closed MRs are hidden.
-- **Package fix with several fix versions** — the deployment package mismatch fix is offered when an issue has more than one fix version.
-- **Release page scrolling** — the release detail page can no longer scroll into blank space below its content.
-- **RM week children** — a deployment week only lists children from the RM project, not linked issues from other projects.
-- **Weekend holidays** — Tempo holidays that fall on a weekend are coloured as holidays in worklogs.
+- Linked MRs on issues, MR donut count, not-covered reasons
+- Package fix with several fix versions, release page scrolling
 
 ## [1.14.16] — 2026-11-02
 
-### Added
+Filter and sort release issues.
 
-- **Filter and sort release issues** — the release detail Issues table has a toolbar with search, Status, Type and Assignee filters (including Unassigned), removable filter chips and Clear all. Key, Summary, Assignee and Status headers sort ascending, descending or off. When nothing matches, a short message offers to clear the filters.
-- **Filter release tasks by MR label** — click an MR label pill on the release detail page to show only the tasks with that label. An unlabeled chip filters to tasks whose MRs have no label.
-- **Uncovered MR details** — each uncovered MR row shows why it is uncovered, its author, all reviewers and an Open, Draft, Merged or Closed pill. The section header sums up the count by reason.
-- **Resizable Standup Notes columns** — drag the divider between Yesterday and Today, or use the keyboard, to resize them. The width is remembered, and a double-click resets it.
-- **Standup Today rows** — every In Progress and Up Next row shows the My Tasks time bar, even with no time logged, plus a trailing status pill and story points aligned in columns.
+### New
+- **Filter and sort release issues**
+- **Filter release tasks by MR label**
+- **Uncovered MR details** — reason, author, reviewers
+- **Resizable Standup Notes columns**
 
-### Changed
-
-- **All MR labels shown** — the release detail page shows every MR label instead of collapsing extras into "+N more". Labels sit to the right of the MR donut, with its legend centred under the ring.
-- **Standup density** — the Standup Notes page uses one density scale throughout, so row padding and group spacing follow the density setting.
-- **Uncovered MR titles** — the leading ticket key is dropped from uncovered MR titles, and the section header no longer repeats the total count.
+### Improved
+- **All MR labels shown**
+- **Standup density** follows the density setting
 
 ### Fixed
-
-- **MR label counts** — MR label pills and the unlabeled warning count the same MRs the task filter shows.
-- **Release task table header** — the sticky column header stays above row content while scrolling.
-- **Release team avatars** — a single extra person shows as their avatar instead of a "+1" chip.
-- **AIO assignee names** — assignee names in the AIO Executions and Defects tables truncate with an ellipsis instead of wrapping.
-- **Dark mode app icon** — the app icon tile and sidebar tagline match the dark background and are easier to read.
+- MR label counts, sticky table header, release team avatars
+- AIO assignee names, dark mode app icon
 
 ## [1.14.15] — 2026-10-30
 
-### Added
+Releases list and release detail are redesigned.
 
-- **Redesigned Releases page** — the Releases list is now driven by fix versions. A hero shows the release cadence and summary stats, an agenda rail lists upcoming releases with a card for the next one, and a Released panel lists shipped versions. Each row shows its status pill, an issue breakdown graph, the RM deployment package and the release team as a stack of avatars, busiest on top. Planned releases expand to show their issues.
-- **Redesigned release detail page** — a full-width, single-scroll page with a cycle-style header, a done bar and a property strip of release facts. A graph band shows a progress burnup, a merge request donut with MR labels, issues by status, by type (one square per issue) and by assignee (capped, with "+K more"). The graphs stay compact at every width, and empty or sparse slots show a short message instead of an empty chart.
-- **Deployment package mismatches** — mismatches between the RM deployment package and the fix version appear as a full-width action list with people, MR labels and a Fix cell per row.
-- **AIO Refresh** — the AIO cycles and cycle detail pages have a Refresh control that reloads from the source first.
+### New
+- **Redesigned Releases page**
+- **Redesigned release detail page**
+- **Deployment package mismatches** as an action list
+- **AIO Refresh**
 
-### Changed
-
-- **Release task table** — the task table has a sticky column header, drops the done badge and progress bar, and shows the description with a two-line clamp and a toggle only when it overflows. Columns drop in tiers as the page narrows, and the assignee avatar stays at every width.
-- **Narrow person columns** — avatar-only assignee and reporter columns use short "Asg." and "Rep." headers on release and AIO lists.
-- **Sync packages removed** — the bulk Sync packages button is gone from the Releases list.
+### Improved
+- **Release task table** — sticky header, responsive columns
+- **Sync packages** button removed
 
 ### Fixed
-
-- **Release detail reliability** — Refresh now also reloads deployment package data, a failed milestone MR fetch shows an error state instead of an empty donut, an unresolved milestone lookup no longer reads as Missing, and a paused issues query shows loading instead of an empty release.
-- **Milestone description links** — links in a milestone description open in the external browser.
-- **Wiki monospace** — `{{monospace}}` renders like Jira: `<`, `>` and `&` stay literal and a leading space does not open it.
+- Release detail reliability, milestone links, wiki monospace
 
 ## [1.14.14] — 2026-10-29
 
-### Added
+Bulk subtask creation is easier to correct.
 
-- **Remove rows in bulk subtask creation** — each pending or failed row in the bulk subtask preview now has an X button to remove it before creating.
+### New
+- **Remove rows** in bulk subtask creation
 
 ### Fixed
-
-- **Bulk subtask modal** — the modal now closes after the subtasks are created, and its state is reset whenever it is closed, so reopening it starts fresh.
-- **AIO defects sticky header** — the sticky column header now stays above the issue key links while scrolling, instead of the keys painting over it.
+- Bulk subtask modal closing and reset, AIO defects sticky header
 
 ## [1.14.13] — 2026-10-28
 
-### Added
+Story Points filter and a highlight for the peeked row.
 
-- **Story Points filter** — the Backlog and the Sprint Board have a Story Points filter. On the sprint board it applies to stories only, so their subtasks stay visible under a matching story.
-- **Peeked row highlight** — the row, card or story header whose peek panel is open is now highlighted on My Tasks, the Backlog, the Sprint Board, Release detail and AIO defect lists. A highlighted row darkens slightly on hover.
+### New
+- **Story Points filter** on Backlog and Sprint Board
+- **Peeked row highlight**
 
-### Changed
-
-- **AIO defects list** — Priority and Severity now come before Status, the Triggered by column is removed, and the Priority, Severity and Status columns are tighter. At the narrowest width the list shows a priority icon and an assignee avatar.
-- **My Tasks at narrow widths** — story points and labels are hidden and the time bar shrinks. The Flagged and MR chips turn into icon-only chips, so rows stay on one line.
+### Improved
+- **AIO defects list** — tighter columns
+- **My Tasks** stays on one line in narrow windows
 
 ### Fixed
-
-- **Peek panel shadow** — the peek panel's shadow now paints over sticky section headers instead of being cut off behind them.
+- Peek panel shadow over sticky headers
 
 ## [1.14.12] — 2026-10-27
 
-### Changed
+AIO cycle tabs split open and done work.
 
-- **AIO cycle Executions and Defects tabs** — each tab is now split into an Open section and a Done section, and each section shows its count and has its own sticky column header. Passed runs and defects that are done in Jira move to Done. One toolbar filters and sorts both sections. When filters hide every row in a section, it shows a short message with a Clear filters button.
+### Improved
+- **Executions and Defects tabs** — Open and Done sections
 
 ### Fixed
-
-- **Stale AIO defect rows** — changing a defect's status or fields from the issue sidebar, or moving it on the sprint board, now updates its row on the AIO cycle and test case pages straight away.
+- AIO defect rows update straight away after edits
 
 ## [1.14.11] — 2026-10-22
 
-### Added
+Find in page arrives.
 
-- **Find in page** — Cmd+F opens a find bar that searches the text of the current page, or the open dialog or peek panel. Matches are highlighted everywhere, including badges, status pills and field buttons, and matching ignores accents and extra whitespace. Global search moves to Cmd+Shift+F.
-- **AIO step-level stats** — the cycle stats block now shows Step pass rate, Steps executed and Steps per case in place of Ready to retest, Unlinked failures and Re-runs. Step totals load in a single request, and the last good figures stay on screen if a refresh fails.
+### New
+- **Find in page** — Cmd+F, global search moves to Cmd+Shift+F
+- **AIO step-level stats**
 
-### Changed
-
-- **AIO empty states** — the Defect Summary shows a green "no defects" badge instead of an empty grey ring, and the Burndown section always appears, with a short message before the first execution or when the cycle has no test cases.
+### Improved
+- **AIO empty states**
 
 ### Fixed
-
-- **Wiki rendering** — an empty list bullet right before a `{code}` block no longer swallows the rest of the description.
-- **Command palette shortcuts** — navigation entries show shortcut glyphs (⌘⇧D) instead of raw key syntax (mod+shift+d).
+- Wiki list before a code block, command palette shortcut glyphs
 
 ## [1.14.10] — 2026-10-16
 
-### Added
+Global search is ranked and much faster.
 
-- **Ranked global search** — the command palette now groups results into Current sprint, Backlog and Closed tiers, so issues you're working on come first. Title matches appear instantly from the local board index, and descriptions and comments are searched on Jira in the background, with a one-line excerpt that highlights the match.
-- **Direct match by key** — typing an issue key (or just its number) pins that issue at the top. It's found in the local index first and only fetched from Jira when it isn't there.
-- **Include closed issues** — an opt-in toggle extends the search to closed issues. Done issues outside the current sprint are always listed under Closed.
-- **Epics in search** — epics get their own section, and subtasks show under their parent story as a dimmed context row.
+### New
+- **Ranked global search** — current sprint first
+- **Direct match by key**
+- **Include closed issues** toggle
+- **Epics in search**
 
-### Changed
-
-- **Search and Recent Items rows** — compact one-line rows on a strict column grid with type icon, key, title, status and assignee. Done issues have a struck-through key, stories show their epic, and recent subtasks show under their parent story even before the board has loaded.
-- **Palette groups** — merge requests, navigation and actions are filtered by the query too, and once the total result cap is reached the remaining groups are hidden.
+### Improved
+- **Compact search and Recent rows**
+- **Palette groups** follow the query
 
 ### Fixed
-
-- **Search states** — "No results found" no longer flashes while you type, a failed description/comment search shows an error instead of an empty result, and a missing or unread token is reported clearly while the index loads.
-- **Search accuracy** — hyphenated and key-shaped terms search descriptions and comments correctly, punctuation and stopwords are ignored, project keys with digits or underscores are recognised, and highlights stay aligned on text whose length changes when lower-cased.
-- **Switching Jira instances** — the previous instance's token is never sent to a new Jira host, and key lookups are scoped to the current instance.
-- **Recent merge requests** — MRs are tracked by project and number, so MRs with the same number in different projects no longer collide. Old entries that can't be told apart are dropped.
-- **AIO execution distribution** — the cycle donut no longer shows 0 executions when the test case statuses arrive after the page has opened.
+- Search states and accuracy, switching Jira instances
+- Recent MR collisions, AIO execution count
 
 ## [1.14.9] — 2026-10-14
 
-### Added
+Deployment package sync and a new AIO cycle dashboard.
 
-- **Deployment package sync** — the issue sidebar now shows the RM week (name and dates) that a story's deployment package maps to, and warns when the package is missing or doesn't match the fix version, with a one-click fix that names the target week. The release detail gets a package drift section, and stories with a package of the release week but no fix version are listed too.
-- **Unassign from issue detail** — the Edit Issue modal and the sidebar assignee popover now have an Unassign action, so an assignee can be cleared without picking someone else.
-- **Move story to Done prompt** — closing the last open subtask from the board or the sidebar now offers to move the parent story to Done, with a summary of the story and its status change.
-- **AIO cycle dashboard** — the AIO Cycles page is redesigned as a read-only dashboard with scope bar, KPI tiles, charts and a cross-filter, an Open | All filter, parent folder markers, and a virtualized list for large folders.
-- **AIO cycle burndown** — the cycle detail has a burndown chart with a working-day ideal line, non-working days shaded and evenly spaced date labels. Executions within one hour are merged into a single point.
-- **AIO cycle statistics** — a single stats block combines Pass rate, Ready to retest, Unlinked failures and Re-runs tiles with an execution distribution donut and Status, Priority and Severity defect donuts. Priority and severity use distinct colours matching the Jira icons, and severity is shown by its label only (Major rather than 2-Major).
+### New
+- **Deployment package sync** — RM week and one-click fix
+- **Unassign** from issue detail
+- **Move story to Done** prompt after the last subtask
+- **AIO cycle dashboard**, burndown and statistics
 
-### Changed
-
-- **AIO cycle and run detail** — redesigned to follow the app's detail-page conventions: key and title header, Prev/Next between runs, a resizable sidebar, compact step lists with clickable step defects, status-coloured test case pills and sticky tabs. Back-to-cycle lives in the breadcrumb.
-- **Smaller screens** — the cycle stats block tightens up on narrow widths: Priority and Severity keys hide below 896px with captions above the donuts, and donut tooltips show the colour swatch and any legend entries hidden behind "+N more".
-- **Epic and subtask detail** — Fix Versions and Deployment package are no longer shown there, since they only apply to stories.
+### Improved
+- **AIO cycle and run detail** redesign
+- **Smaller screens** for AIO stats
 
 ### Fixed
-
-- **Sidebar navigation labels** — labels stay visible at narrow widths.
-- **Wiki rendering** — underscores stay literal inside `{{monospace}}` spans.
-- **Deployment package lookups** — week titles with non-padded dates (2.11.2026) are parsed, and RM week lookups only query discovered link fields and load lazily, so opening an issue is faster.
+- Sidebar labels, wiki underscores, faster package lookups
 
 ## [1.14.8] — 2026-10-08
 
-### Fixed
+Token handling is more forgiving.
 
-- **Pasted tokens with stray whitespace no longer fail with 401** — Jira and GitLab personal access tokens are now trimmed before they are sent, stored or read back, in Settings, the token section and the onboarding steps. A trailing space or newline from copy-paste can't break authentication any more.
-- **Test connection uses the token you typed** — in Settings, Test connection (Jira and GitLab) and Jira board loading now use the token currently in the field and fall back to the stored one only when the field is empty. Previously they always tested the old saved token, so a corrected token still appeared to fail.
-- **Save stores the typed token** — saving a Jira or GitLab connection now writes the token you entered to the secure keychain, and shows an error if it can't be stored instead of silently keeping the old one.
+### Fixed
+- **Pasted tokens** with stray whitespace no longer fail
+- **Test connection** uses the token you typed
+- **Save** stores the typed token or shows an error
 
 ## [1.14.7] — 2026-10-07
 
-### Added
+Duplicate subtask templates and drag-and-drop attachments.
 
-- **Duplicate subtask template** — each subtask template card now has a Duplicate button. The copy is inserted right after the original with its own rows, so you can tweak it without touching the source.
-- **Attachments — drag and drop in the desktop app** — dropping files onto an issue now works in the Taskflow app. Images with a generic file type are recognised by their extension, and thumbnails fall back gracefully when a preview can't load.
+### New
+- **Duplicate subtask template**
+- **Drag and drop attachments** in the desktop app
 
-### Changed
-
-- **Epic forecast leads with logged time** — the averaged finish date now weights logged time 4× over item count and story points, and its confidence comes from time too. Time keeps moving while a story is in progress, whereas items and points only change on completion.
-- **Issue link search** — searching for an issue to link now understands issue keys. Results show the type icon, key, title, status and assignee avatar, with keyboard navigation, loading and empty states, and a chip for the chosen issue.
+### Improved
+- **Epic forecast** leads with logged time
+- **Issue link search** understands keys
 
 ### Fixed
-
-- **Issue link dialog overflow** — the link type select grows to fit its labels and shows the label rather than its id. The issue autocomplete flips and stays within the viewport instead of being clipped.
-- **Flagging from the issue sidebar** — the Flagged toggle in the sidebar now works. Jira rejected the previous request, so it now uses the same flag endpoint as the rest of the app.
-- **Backlog — title no longer squeezed by release and epic** — when a row is tight, the title keeps priority. The release badge truncates only under pressure, and the epic/release cell uses spare room before cropping while keeping a visible minimum.
+- Link dialog overflow, flagging from the sidebar, Backlog title width
 
 ## [1.14.6] — 2026-10-05
 
-### Fixed
+Wiki rendering fixes.
 
-- **Wiki rendering — underscores inside words stay literal** — identifiers like `DEMO_STD_VAS` in descriptions and comments no longer turn into italics (`DEMO*STD*VAS`); italic `_text_` now only applies at word boundaries.
-- **Wiki rendering — no stray backticks around monospace text** — `{{monospace}}` spans no longer show literal backtick characters around them.
+### Fixed
+- Underscores inside words stay literal, no stray backticks
 
 ## [1.14.5] — 2026-10-02
 
-### Added
+Epic progress on epic detail and a redesigned Changes tab.
 
-- **Epic progress section on epic detail** — epics now show a progress section above their stories list, in both the side sheet and the full view:
-  - **Hero forecast:** one shared forecast of the finish date, averaged and aware of working days and Tempo holidays. Confidence shows on hover.
-  - **Stat cards:** fixed cards with a Count / Story Points / Time toggle that stays the same across tabs.
-  - **Charts:** a cumulative flow diagram and a worklog-based time burnup with remaining work and a forecast band. Both use a shared, status-coloured axis.
-  - **Range navigator:** epics with longer histories get a two-thumb date navigator with a sparkline, panning, keyboard control, double-click reset and zoom presets. It replaces the old brush.
-  - **Status and assignee bars:** a status bar plus Jira-like per-assignee rows, with short tooltips.
-  - **Risks:** shown as compact icon pills. Hover a risk to see the issues behind it, and click any issue key to open it.
+### New
+- **Epic progress section** — forecast, charts and risks
 
-### Changed
-
-- **Issue detail — redesigned Changes tab:**
-  - **Grouping:** quick edits to the same issue by the same person are grouped into one entry.
-  - **Entry header:** matches Worklogs, with avatar, author, a "changed N fields" summary and the time.
-  - **Short fields:** shown as plain old → new, with the old value muted and struck through and the new value bold. This includes multi-value fields like Labels, Components, Fix Version and Sprint.
-  - **Long text:** fields like Description get a "Show changes +N −M" toggle that opens a full-height side-by-side Before/After word diff.
-  - **Reverted edits:** fields that were changed and then changed back within one group (A → B → A) are left out.
+### Improved
+- **Changes tab** — grouped entries, plain old → new, word diff
 
 ### Fixed
-
-- **Jira results silently truncated on instances with a lower page cap** — search and worklog pagination moved forward by a fixed 200 per page. On Jira servers that return fewer results per page (often 50 or 100), the issues in between were skipped. Pagination now moves forward by the number of results actually returned.
-- **Epic progress skeleton jumped when the chart loaded** — the loading placeholder now reserves the right height for epics whose chart includes the range navigator.
+- Jira results skipped on servers with a lower page cap
+- Epic progress skeleton jump
 
 ## [1.14.4] — 2026-09-29
 
-### Added
+New My Tasks bands and Worklogs presets.
 
-- **My Tasks — "In Review — my subtasks" band** — stories assigned to someone else that are In Review but still contain your subtasks now get their own band (indigo dot) instead of being scattered or hidden, so you can see which reviews are waiting on your work.
-- **My Tasks — Testing band** — issues in a testing status now appear in a dedicated Testing band (amber dot), and all My Day bands render in workflow order rather than priority-precedence order.
-- **Worklogs — "Last 7 Days" and rolling "Last Month" presets** — replace the old Last Week / Last Month / Last Working Day presets; saved filters with a removed preset fall back to This Week.
+### New
+- **In Review — my subtasks** band on My Tasks
+- **Testing band** on My Tasks
+- **Last 7 Days and Last Month** Worklogs presets
 
-### Changed
-
-- **Subtasks follow Jira's subtask order everywhere** — My Tasks, Standup (Today/Yesterday), Sprint Board, the My Subtasks panel, and Worklogs now list subtasks in the parent's Jira order (falling back to numeric key order) instead of arbitrary or lexical order.
+### Improved
+- **Subtasks follow Jira's order** everywhere
 
 ### Fixed
-
-- **DatePicker week now starts on Monday** — calendar columns previously started on Sunday.
+- Date picker weeks start on Monday
 
 ## [1.14.3] — 2026-09-22
 
-### Added
+One date picker everywhere and a tidier Sprint Board header.
 
-- **Shared DatePicker across the app** — every date input (Worklogs filters, issue fields, and the rest) now uses a single calendar-based DatePicker built on react-day-picker, replacing the native/plain date inputs with a consistent style.
-- **Sprint Board — sticky, compact, and decluttered header** — the goal, chips, and filters now stay sticky while scrolling; compact density got tighter avatar/text/row sizing to fit more on screen; header now matches the Backlog page's style with the sprint goal on its own line and a loading skeleton; the per-card "entered status" timestamp was removed.
+### New
+- **Shared date picker**
+- **Sticky Sprint Board header**
 
 ### Fixed
-
-- **Jira wiki `+` character corrupting unrelated text with underline styling** — a stray `+` could trigger the underline-markup regex against text far outside its intended scope.
-- **Jira wiki strikethrough dashes rendering literally in named-link labels** — `-text-` inside a `[label|url]` link label wasn't recognized as strikethrough.
-- **Jira wiki bold spans merging near strikethrough** — adjacent bold (`*text*`) and strikethrough (`-text-`) delimiters could merge into a single bold span or fail to render the strikethrough.
-- **Jira wiki underscores in link brackets corrupted by italic regex** — underscores inside `[text|url]` brackets were incorrectly treated as italic delimiters, mangling the link.
-- **DatePicker clear (X) icon vertical alignment and default width** — the clear icon wasn't vertically centered, and the picker didn't default to full width like other form inputs.
-- **DatePicker deselect-click cleared the date even when not clearable** — clicking the selected day again cleared the value regardless of the `clearable` setting.
+- Several Jira wiki formatting bugs
+- Date picker alignment and clearing
 
 ## [1.14.2] — 2026-09-17
 
-### Added
+Attachments in comments and descriptions.
 
-- **Attachments in comments and descriptions** — comments and issue descriptions now support inserting attachments directly, instead of only the issue-level attachments list. A paperclip toolbar button opens a picker over the issue's existing attachments, and paste/drop are also wired up. In the description editor, files can be staged before an issue is even created (uploaded once the issue is saved) or uploaded immediately when editing; comments upload immediately. Both editors gained an Edit/Preview toggle so inserted references render as image previews or styled file chips.
-- **Story creation and editing — more polished** — the create/edit issue modal's submit button now shows a spinner while saving, and staged/uploaded attachment status lines sit cleanly within the description field's layout.
-- **Releases — task-type icon on task rows** — the unified task table now shows each row's issue-type icon before its key, matching the Backlog row layout.
+### New
+- **Attachments in comments and descriptions**
+- **Task-type icon** on release rows
+
+### Improved
+- **Create and edit issue** saving feedback
 
 ### Fixed
-
-- **Releases view was missing subtasks that carry the fix version directly** — `fetchFixVersionIssues` and `fetchVersionIssueCounts` unconditionally excluded subtask-type issues (a rule copied from Backlog/Sprint, where subtasks nest under their parent instead of appearing as their own row); the flat Releases task table has no such nesting, so those subtasks now show up.
-- **Backlog drag — intermittent autoscroll near list edges** — the erratic autoscroll during drag wasn't dnd-kit's autoScroll (still disabled) but native browser text-selection autoscroll leaking in because the draggable row allowed text selection during the drag gesture. Selection is now disabled on the row, replaced by a custom scoped autoscroll loop that only runs for the drag's lifecycle.
-- **Attachment reference markup with multiple hazardous characters** — filenames containing more than one hazardous character (`!`, `|`, `]`) only had the first one stripped, corrupting the fallback markup.
-- **Comment drag-and-drop upload was silently non-functional** — the composer handled `onDrop` but not `onDragOver`, so the browser never fired a drop event per the HTML5 DnD spec.
-- **Description editor — attachment insertion while Preview tab is active** — inserting a reference no longer gets silently dropped when the underlying textarea is unmounted; it now falls back to appending via state.
-- **Description editor — paste/drop of multiple files** — only the first pasted or dropped file was handled; all files are now processed.
-- **Description editor — spurious no-op PATCH on save** — an asymmetric `trim()` comparison in the edit-mode description diff could trigger an unnecessary update.
-- **Create flow — duplicate issue risk on attachment upload failure** — the submit button now stays disabled after a create succeeds but a staged attachment fails to upload, preventing an accidental resubmit.
+- Releases missing subtasks, Backlog drag autoscroll
+- Attachment upload and paste bugs
 
 ## [1.14.1] — 2026-08-27
 
-### Added
+Open links in the browser you choose.
 
-- **Open links in a chosen browser** — links throughout the app (issue descriptions, comments, discussions, wiki text, notification rows, and release/MR sidebars) now support right-clicking to open with a specific installed browser via a context menu, instead of only the OS default. A new Settings → Links section lets you set a preferred default browser from the detected list, shown by friendly name rather than raw executable path.
-- **My Tasks — real per-MR review status** — the "needs review" badge now reflects actual per-MR approval state and gated discussions instead of a placeholder, with a GitPullRequest icon added to the badge for clarity.
+### New
+- **Open links in a chosen browser**
+- **Real MR review status** on My Tasks
 
 ### Fixed
-
-- **Sidebar field edits no longer leave My Tasks and other issue lists stale** — editing a field from the issue detail sidebar now invalidates the full `jira-issues` query family, so lists relying on cached issue data pick up the change immediately.
-- **Comment action menu no longer clipped near the composer** — the comment actions dropdown is now portaled so it escapes the sticky composer's overflow clipping instead of being cut off.
-
-### Removed
-
-- Dead `dashboard/TaskRow.tsx` and `dashboard/MrRow.tsx` components, superseded by the My Tasks MR-health helpers.
+- Stale lists after sidebar edits, clipped comment menu
 
 ## [1.14.0] — 2026-08-13
 
-### Added
+Releases gain branch, milestone and drift tools.
 
-- **Releases — release branch and GitLab milestone creation** — the release detail sidebar now resolves the release's GitLab branch and milestone and reports their state (present, missing, released, or check-failed with a retry). When either is missing, a Create action opens a confirm dialog that pre-fills the derived branch name / milestone title from the Jira version, enforces the naming format, blocks duplicates, shows the last five existing milestones for reference, and stays locked while the write is in flight. The Releases tab list gained per-row indicator icons so you can see branch and milestone coverage without opening a release.
-- **Releases — three-channel drift detection** — merge requests are now discovered through three independent channels (Jira issue linkage, GitLab milestone assignment, and branch target) and unioned into a single drift report, so an MR that is attached one way but not the others no longer disappears. Each task row carries a drift-count indicator, and MRs the release's tasks don't cover are listed separately, including out-of-scope MRs whose Jira key belongs to another fix version.
-- **Releases — per-MR corrective actions** — the BR (target branch) and MS (milestone) drift marks are now clickable fixes. Retargeting a merge request or assigning it the release milestone happens inline, updates optimistically across every cache holding that MR, and each cell locks, errors, and retries independently of the others; row order is frozen while you work so nothing jumps under the cursor.
-- **Releases — post-release merge-back verification** — a released version now gets an advisory "Merged back" row showing whether its release branch has landed in the default branch, derived from open source-branch MRs plus a ref comparison. The check stays silent rather than claiming "not merged back" when the underlying tag lookup itself failed.
-- **Releases — one line per task** — the separate Issues and MR Drift tables are replaced by a single unified task table: each Jira task in the fix version occupies exactly one row carrying its most relevant merge request (flagged first, then evaluated, tie-broken by highest iid) with a hoverable `+N` marker for the rest. The single flagged badge became two warning badges — wrong target branch and milestone drift — each of which filters the table to matching rows.
-- **Epics page redesign** — `/epics` now orders epics by creation (oldest first) instead of last-updated, and each single-line row carries priority (project's 9-level icon scheme), a segmented To Do / In Progress / Done breakdown bar, done/total story counts, and a done/total story-point sum. The enrichment data streams in progressively behind the fast first paint, with its pages fetched concurrently, and the row order never re-shuffles as it arrives.
-- **Appearance — compactness and text size settings** — Settings → Appearance gained a density selector (compact / default / comfortable) and a text-size selector. Density variants were applied across the app: My Tasks, backlog headers, notifications, worklogs, filter bars, popovers and pickers, issue detail rows and cards, MR list and detail, discussions, releases, standup notes, the Epics page, the settings and dev-tools lists, wiki prose, and all three AIO pages. Text size scales bounded px-to-rem values on ranked surfaces and is applied pre-paint so there's no flash on launch.
-- **Issue-type icons in recent items and search** — the Recently Visited popover now persists and renders each item's issue-type icon, and every result row in the command palette (both search results and recent items) shows it too.
+### New
+- **Release branch and milestone creation**
+- **MR drift detection** with one-click fixes
+- **Merged-back check** for released versions
+- **One line per task** release table
+- **Epics page redesign**
+- **Density and text size** settings
 
-### Changed
-
-- **Release detail — descriptions moved into the sidebar** — the release description and per-label descriptions now live in the sidebar instead of the main content column; everything else is unchanged.
-- **Release detail internals** — the 1518-line `ReleaseDetailPage.tsx` was decomposed into a `release-detail/` folder mirroring the existing `issue-detail/` structure (header, sidebar, sections, edit modal, and a `useReleaseDetail` data hook), with no user-visible change.
-- **Drift lookups are cheaper** — project-wide merge request pages are fetched in parallel and bounded by a window derived from the open releases, rather than walking the whole project history serially.
+### Improved
+- **Release descriptions** moved to the sidebar
+- **Faster drift lookups**
 
 ### Fixed
-
-- **Release detail — Jira tickets now ordered by created date** — the task table returned issues in Jira's default order instead of a stable creation order.
-- **Issue descriptions — literal HTML is escaped before rendering** — descriptions containing raw HTML-looking text no longer get interpreted by the wiki renderer.
-- **GitLab errors are readable again** — failed branch, milestone, and merge-request writes returned object-keyed error bodies that surfaced as unhelpful blobs; they're now flattened into a readable message, with a fallback to the `error` key. GitLab 401/403 responses on the create paths are classified after reading the body rather than before.
-- **Jira errors are readable again** — field-validation error bodies (including the rank API) are flattened across the Jira service's error paths instead of being shown as an opaque object.
-- **Settings panel width no longer drifts out of bounds** — a persisted panel width is clamped to the currently valid range on load.
-- **Density floors** — Sprint Board columns, the Subtasks and MR Health cards, and AIO test-run rows had fixed minimum heights that fought the compact setting; they now scale with density.
+- Readable Jira and GitLab errors, release ticket order
+- Escaped HTML in descriptions, density floors
 
 ## [1.13.5] — 2026-08-04
 
-### Added
+Small issue detail additions.
 
-- **Issue detail — Deployment package field under Fix Versions** — the sidebar now shows a read-only "Deployment package" row (sourced from Jira's custom field) between Fix Versions and Flagged, with an em dash placeholder when unset.
-- **Issue detail — Worklog progress bar** — the Worklog tab now shows a spent-vs-estimated progress bar, matching the Standup page's styling, rolling up time from the issue itself plus its subtasks.
-- **Issue detail — copy Jira link button** — a copy-link icon is now joined into the "Open in Jira" split button, copying the issue's browse URL with a brief checkmark confirmation.
+### New
+- **Deployment package** field
+- **Worklog progress bar**
+- **Copy Jira link** button
 
 ### Fixed
-
-- **Issue detail — Time Tracking field always showed "No time logged"** — the sidebar now reads Jira's server-computed aggregate time fields (which reliably cover Tempo-logged time and subtask estimates) instead of only the per-issue timetracking object, falling back to the nested object when aggregates are absent.
-- **Releases page — row click now opens a preview, key click navigates full-page** — clicking an issue row on the release detail page now opens the peek panel like the rest of the app, while clicking the issue key still navigates directly; the release-name breadcrumb is now preserved when opening a full page from the release peek panel instead of falling back to the generic "Release" label.
+- Time tracking showing "No time logged", release row clicks
 
 ## [1.13.4] — 2026-07-09
 
-### Added
+Preview more attachment types.
 
-- **Issue detail — attachment preview now supports text, code, PDF, video, and audio files** — the attachment lightbox has been generalized into a type-switching preview modal. Clicking a previewable attachment row now opens an inline viewer instead of only working for images: text/markdown/log/CSV files render as plain text, recognized source files (JS/TS, Python, Ruby, Go, Rust, Java, C/C++, shell, YAML, XML, HTML, CSS, JSON) get syntax highlighting, PDFs render in an embedded viewer, and video/audio files get native media playback controls.
+### New
+- **Attachment preview** — text, code, PDF, video and audio
 
 ### Fixed
-
-- **Attachment preview — hardened kind detection and loading behavior** — addressed follow-up code-review findings on the new preview modal: more reliable mimeType/extension-based classification, and fixes to how authenticated attachment blobs are fetched and released across preview types.
+- More reliable preview type detection and loading
 
 ## [1.13.3] — 2026-07-02
 
-### Added
+Fix versions on the Backlog.
 
-- **Backlog — fix version badge on each story row** — a new badge cell appears before the epic badge, showing the first fix version assigned to the story so you can see release targeting at a glance without opening the issue.
+### New
+- **Fix version badge** on Backlog rows
 
 ### Fixed
-
-- **Backlog — summary column fills available width without truncating too early** — the summary cell now uses a per-row flex layout instead of table layout, so it expands to fill all remaining space and only truncates when the row truly runs out of room. Fixed-width cells (type, key, priority, epic, fix version) take exactly the space they need; the summary absorbs the rest.
-- **Sprint board — dragging a card to the same-status column no longer fires a transition** — dropping an issue onto the column it already belongs to was silently posting a no-op transition to the Jira API; that call is now suppressed, leaving the board state unchanged.
-- **Issue edit — Sprint field now saves correctly** — the custom-field wrapper for Sprint fields now emits a bare integer id instead of `{ id: N }`. Jira Data Center rejects the object form with "Number value expected", causing Sprint changes made from the edit form to fail silently.
-- **Issue edit — Tempo Account field now saves correctly** — the wrapper for Tempo Account fields now emits a bare string id instead of `{ id: "…" }`. The Tempo plugin rejects the object wrapper, causing Account selections to fail with a 400 on save.
+- Backlog summary width, no-op sprint board transitions
+- Sprint and Tempo Account fields save correctly
 
 ## [1.13.2] — 2026-06-18
 
-### Changed
+Less noise on My Tasks.
 
-- **My Tasks — hide subtasks under DONE stories in Current Sprint** — in the Current Sprint tab, subtask rows are no longer rendered beneath a story whose status is in the DONE category, cutting noise from completed work while keeping the parent visible.
-- **Tempo worklog — sensible default description** — logging work with a blank comment now defaults the description to "Working on issue {PROJ-KEY}" instead of submitting an empty worklog comment.
+### Improved
+- **Subtasks hidden** — under done stories in Current Sprint
+- **Default worklog description**
 
 ### Fixed
-
-- **Backlog — flagging issues now works on Jira Data Center** — flagging an issue from the Backlog used to fail with "Field 'customfield_…' cannot be set. It is not on the appropriate screen" because it issued a direct custom-field PUT subject to edit-screen security. Flags are now set through Jira's own agile-board endpoint (the same mechanism the native board uses), which resolves the Flagged field server-side and bypasses that restriction. If a flag update still fails, a dismissible banner explains what to ask your Jira admin.
-- **Search — no more false-positive "Direct Match"** — the command palette's Direct Match row no longer shows a stale issue from a previous key lookup when the current query doesn't match a Jira key pattern. The key-lookup result is cleared when disabled and the row is gated on the active query.
-- **My Tasks — DONE story time still rolls up when subtasks are hidden** — time logged on a completed story's subtasks is now aggregated independently of whether those subtask rows are displayed, so the parent's time total no longer drops to zero once its subtasks are hidden.
-- **My Tasks — DONE stories strike through the key only** — a completed story now crosses out just its issue key, leaving the summary readable instead of striking through the whole row.
-- **Command palette — Space no longer closes the panel** — keydown events inside the command palette panel are no longer allowed to propagate, so pressing Space while typing a query keeps the palette open.
+- Flagging on Jira Data Center, false Direct Match in search
+- Done story time and strike-through, Space closing the palette
 
 ## [1.13.1] — 2026-06-17
 
-### Added
+Search as you type and new page shortcuts.
 
-- **Search — debounced auto text search in the Issues group** — the Issues section of the command palette now automatically searches as you type (with a short debounce), and while a query is active it shows only matching results rather than mixing in the recent-items list. The previous 10-item cap on text search results has also been removed.
-- **New keyboard shortcuts — navigate directly to 7 pages** — Go menu and global accelerators now cover: AIO Projects (Cmd+Shift+A), Backlog (Cmd+Shift+B), My Tasks (Cmd+Shift+M), Releases (Cmd+Shift+R), Sprint Board (Cmd+Shift+S), Standup (Cmd+Shift+N), and Dashboard (Cmd+Shift+D).
+### New
+- **Search as you type** in the Issues group
+- **Shortcuts for 7 pages**
 
-### Changed
-
-- **Command palette shortcut moved to Cmd+F** — the command palette/search is now opened with Cmd+F instead of Cmd+K, and a capture-phase handler suppresses the native WKWebView find-in-page panel so the shortcut never leaks to the OS.
-- **My Tasks — static status pill** — the status badge in My Tasks rows is now a plain display pill; status changes happen through the existing action menu, removing an accidental clickable area on the row.
+### Improved
+- **Command palette** moves to Cmd+F
+- **Static status pill** on My Tasks
 
 ### Fixed
-
-- **Issue edit — no more 400 errors when saving unchanged custom fields** — the edit form now only submits custom fields the user actually changed; pre-filled fields (such as Sprint or Tempo Account) that were not touched are omitted from the PUT body, fixing a 400 "Number value expected" / "Account is required" error that appeared immediately after opening an issue for edit.
-- **Issue detail — attachments now load on Jira Data Center** — the issue detail fetch now explicitly requests the `attachment` field alongside `*navigable`; attachment was silently absent on Jira DC because it is not a navigable field, causing the attachments panel to always appear empty.
-- **AIO cycles — breadcrumb back-navigation** — clicking a cycle from the AIO project overview now pushes a breadcrumb so the back button returns to the overview page instead of leaving the AIO section entirely.
-- **AIO issue detail — test runs always start collapsed** — test run groups on the issue detail panel now initialize collapsed on every open, preventing leftover expanded state from a previous issue.
+- Saving unchanged custom fields, attachments on Jira Data Center
+- AIO breadcrumbs and collapsed test runs
 
 ## [1.13.0] — 2026-06-16
 
-### Added
+My Tasks and a redesigned dashboard.
 
-- **My Tasks — a dedicated personal task page** — A new "My Tasks" entry in the sidebar gives you a focused home for your own work. It opens in a smart "My Day" order (flagged and blocked first, then overdue, then issues in review with your merge request, then in-progress, then to-do), with a count strip that doubles as quick filters. Each row shows type, key, priority, status, due date (overdue highlighted), story points, merge-request health, and time logged. You can peek or open an issue, change its status, and log work right from the row. A scope toggle switches between your current sprint and everything assigned to — or reported by — you across sprints and the backlog (fetched with full server-side paging, so nothing is silently cut off).
+### New
+- **My Tasks page** — your work in a smart order
 
-### Changed
-
-- **Dashboard redesign** — The dashboard is rebuilt around three focused regions: a personalized hero greeting that now shows the current sprint day, a top row pairing a "My Issues" sprint-progress card with an "Upcoming Releases" readiness timeline, and a full-width "Past 7 Days" chart that overlays your logged hours against your commit activity. Each section loads and degrades on its own and reuses already-fetched data, so the dashboard stays fast and adds no new API calls.
-- **Standup recap — choose today** — The standup notes day selector now lets you pick today, not just earlier working days, and resolves the selected day correctly around midnight.
+### Improved
+- **Dashboard redesign**
+- **Standup recap** can pick today
 
 ### Fixed
-
-- **AIO test status on deep links** — Test cases no longer show "Not Run" when you open a cycle through a pinned tab or a deep link; the execution-status map now initializes on the cycle detail page itself, not only from the overview page.
+- AIO test status on deep links
 
 ## [1.12.4] — 2026-06-12
 
-### Added
+Release milestone warnings and priority icons.
 
-- **Releases — wrong-milestone MR warning** — on the release detail page, a task whose linked merge request targets a different (or missing) release milestone now shows a "Wrong milestone" warning, with the MR clickable so you can jump straight to it.
-- **Issue detail — priority dropdown icons** — the Priority selector on the issue detail page now shows a colored priority icon next to each option and in the trigger, matching how priorities look elsewhere in the app.
+### New
+- **Wrong milestone warning** on release tasks
+- **Priority icons** in the priority picker
 
 ### Fixed
-
-- **Bulk subtasks — inherit required custom fields from the parent** — bulk subtask creation now inherits required custom fields (e.g. the Tempo "Account" field) from the parent issue, fixing a 400 "Account is required" error that only affected the bulk path while single-create worked.
-- **Priority pickers — scheme-scoped values** — priority pickers now offer only the priorities allowed by the issue project's priority scheme, instead of the full global list.
-- **Issue detail — subtask status changes propagate without reload** — transitioning a subtask from the drawer/peek preview now updates the issue detail view immediately, without needing a manual refresh.
-- **Peek panel — drawer actions wired up** — the edit, clone, and add-subtask actions now work from the issue peek/drawer preview.
+- Bulk subtasks inherit required fields, scheme-scoped priorities
+- Peek panel actions and subtask status updates
 
 ## [1.12.3] — 2026-06-10
 
-### Added
+Clickable issue keys in text.
 
-- **Wiki renderer — clickable issue keys in prose** — issue keys (e.g. `ABC-123`) written in issue descriptions, comments, and wiki text now render as links that open the issue, matching how keys already behave elsewhere in the app.
-- **Backlog — send a story to the top or bottom of its section** — the story right-click menu now has "Send to top" and "Send to bottom" actions that re-rank a story to the edge of its Backlog section in a single click.
+### New
+- **Clickable issue keys** in descriptions and comments
+- **Send to top or bottom** on the Backlog
 
-### Changed
-
-- **Backlog — tidier story context menu** — the story right-click menu is reordered and the redundant sprint/backlog divider removed.
+### Improved
+- **Tidier story context menu**
 
 ### Fixed
-
-- **Issue transitions — resolution picker dialog** — the Resolution prompt shown when moving an issue to a done status now appears as a properly centered dialog instead of being mispositioned.
-- **GitLab — clearer TLS certificate errors** — GitLab connection failures caused by TLS/SSL certificate problems now surface an actionable message instead of a generic failure.
+- Resolution dialog position, clearer GitLab TLS errors
 
 ## [1.12.2] — 2026-06-09
 
-### Added
+Setup wizard and keyboard polish.
 
-- **Setup wizard — expandable error log** — when the Jira or GitLab connection step encounters an error, an expandable panel shows the full event log so you can diagnose what went wrong without guessing.
-- **Setup wizard — save progress per step** — onboarding state is now saved at the end of each completed step, so restarting the wizard mid-flow resumes from where you left off.
-- **Command palette — always open full page** — selecting an issue from the command palette now navigates directly to the full issue page, bypassing the peek preview.
-- **Fullscreen ESC guard** — pressing Escape while the app is in fullscreen mode no longer exits fullscreen; the key is consumed so native fullscreen stays intact.
-- **Drag cancel with Escape** — pressing Escape during a drag on the backlog or sprint board cancels the drag and snaps the card back to its original position.
-- **Relative time — years + days** — time-ago labels (comments, issue detail, etc.) now show "1 year 3 days ago" for events over a year old, replacing the previous months-based fallback.
-- **Wiki renderer — triple-brace teletype** — `{{{...}}}` triple-brace macros now render as inline code/teletype, consistent with the `{{...}}` variant.
-- **AIO cycle defects — click to peek** — clicking a defect key on the AIO cycle defects page now opens the side peek preview; clicking the row title still opens the full page.
+### New
+- **Setup wizard** error log and saved progress
+- **Escape** cancels drags and keeps fullscreen
+- **Defect peek** on AIO cycles
+
+### Improved
+- **Relative times** show years and days
 
 ### Fixed
-
-- **Setup wizard — Jira infinite render loop** — fixed a loop in JiraStep that triggered repeated board-sync calls, causing the wizard to stall.
-- **AIO cycle defects — breadcrumb navigation** — clicking a defect key now correctly pushes the issue route to the breadcrumb trail.
-- **AIO cycle defects — horizontal overflow** — the defects table no longer overflows on narrow windows; the table is now horizontally scrollable with minimum column widths.
-- **Wiki renderer — Jira teletype inner-brace format** — fixed `{{{TEXT}}}`-style macros (with extra inner braces) not rendering as teletype.
+- Setup wizard stalling, AIO defects breadcrumbs and overflow
+- Jira teletype macros
 
 ## [1.12.1] — 2026-06-08
 
-### Added
+Standup Notes show more of your day.
 
-- **Standup Notes — created issues in Yesterday** — the Yesterday column now includes a "Created" section showing Jira issues you created that day, so work you kicked off is captured alongside activity and worklogs.
-- **Standup Notes — worklog descriptions** — worklog entries now show a second line with the log description (when present), replacing the previous single-line summary.
+### New
+- **Created issues** in Yesterday
+- **Worklog descriptions**
 
 ### Fixed
-
-- **Standup Notes — worklog display** — worklog rows now collapse to a single flat line per entry with a muted description, instead of accumulating into an unlabelled group.
-- **Standup Notes — JQL escaping and loading guards** — project keys with special characters are now correctly escaped in JQL queries; loading guards prevent stale renders while data is in-flight.
-- **Standup Notes — watched-person GitLab identity** — switching to a watched person now correctly resolves their GitLab user for commit matching, so MRs and commits attributed to teammates show up reliably.
+- Worklog rows, JQL escaping, watched-person commits
 
 ## [1.12.0] — 2026-06-07
 
-### Added
+Peek any issue and drag to rank or transition.
 
-- **Universal issue peek** — click any issue anywhere (sprint board, backlog, standup, dashboard, search, command palette) to open a non-blocking slideover preview on the right; the view behind it stays scrollable and clickable, clicking another issue swaps the preview without closing it, and the issue **key** still opens the full page. Dismiss with Escape, the close button, or "Open full page".
-- **Drag-to-rank on the Backlog** — drag stories within a Backlog section to reorder them; the new order saves to Jira and holds through background refreshes, with rollback if the save fails.
-- **Drag-to-transition on the Sprint Board** — drag a card between columns to change its status; columns that cover several workflow statuses split into labelled drop zones during the drag so you can pick the exact transition, with optimistic move and rollback on failure.
-- **Subtask templates & bulk creation** — create named subtask templates in Settings (each line with a required title plus optional fields like assignee, priority, labels, estimate, story points, due date, and components). From a parent issue, apply a template or build a list, preview and edit each row, then create all subtasks at once with per-row progress; a partial failure can be retried without duplicating already-created subtasks. Parent-inheritance placeholders (`@inherit`, `@current`, `@unassigned`) fill in at creation time.
-- **Resolution control on issue transitions** — setting an issue to a done status now prompts for a Resolution (e.g. Done, Won't Do) as part of the workflow transition, from the issue detail sidebar, the status popover, and sprint-board drag/right-click — so issues close with the correct resolution instead of being left unresolved.
-- **Done-state visuals everywhere** — done current-sprint stories now appear struck-through on the Backlog list, the Standup Notes Today section, and the Dashboard, matching the sprint board.
-- **Issue-type color on cards** — sprint-board and backlog cards carry a left-edge color accent by issue type (Bug, Story, Task/Subtask, Epic), and priority is now shown as the Jira priority icon in the card footer and swimlane header.
-- **Choose your Jira board** — pick which board drives the app (sprint board, backlog, ranking) from the onboarding wizard and Settings; the active board name is shown in the Jira connection card.
-- **Issue-type and priority icons in lists** — backlog rows, the sprint-board story swimlane header, and the Epics page now show issue-type and priority icons in their own columns.
-- **Filter by Unassigned** — the assignee filter on the Backlog and Sprint Board now includes an "Unassigned" option.
-- **Standup Notes — watched person** — switch the standup view to a teammate via a "Showing: <name>" header picker (defaults to you); MR sections that need a matched GitLab account show a hint instead of leaking your own MRs.
-- **Standup Notes — pick the recap day** — click the "Yesterday" column heading to recap any of the last 14 days instead of just the last working day.
-- **Clear app cache** — a new "Clear all app cache" action in Settings → Advanced → Data clears the avatar and data caches.
+### New
+- **Universal issue peek**
+- **Drag to rank** on the Backlog
+- **Drag to transition** on the Sprint Board
+- **Subtask templates** and bulk creation
+- **Resolution prompt** on done transitions
+- **Choose your Jira board**
 
-### Changed
-
-- **Subtask parent link** — on a subtask's detail page the parent is now shown in the main content area (matching how subtasks appear under a story), not tucked in the sidebar.
-- **Issue peek layout** — the peek is a single, consistently padded column with Linked Issues and Merge Requests placed just above the activity feed, and a header showing the issue-type icon, key, and title.
-- **Notifications & dashboard clicks** — clicking an issue in notifications or on the dashboard opens the full issue page directly (rather than the peek), since those surfaces are navigation entry points.
-- **Epics page** — restyled to match the Backlog (headerless table, consistent column widths, and the same Unassigned-avatar treatment).
-- **Standup Notes — status transitions** — yesterday's status changes now render as colored status pills (from → to) and collapse to a single initial → final transition per issue; sub-task activity nests under its parent story.
+### Improved
+- **Type colours and icons** on cards and lists
+- **Unassigned filter** and watched person on Standup
+- **Standup status transitions**
 
 ### Fixed
-
-- Peek: "Open full page" now keeps the breadcrumb trail back to the page you opened the peek from.
-- Sprint board / issue detail: editing fields or transitioning an issue now refreshes the board cache so the board stays in sync.
-- Backlog: drag-and-drop no longer drifts by a row or snaps back during auto-scroll.
-- Wiki: `[^filename]` attachment references now render as links instead of literal text.
-- Unassigned issues now show a visually distinct dashed avatar placeholder instead of looking like an assigned user.
-- Backlog: story-point badges use a fixed width so single- and double-digit values line up.
-- Bulk Create Subtasks: long resolved assignee names are truncated and fields no longer collapse on narrow rows; the issue-type and template name show in the dropdowns instead of their internal ids.
+- Breadcrumbs from peek, board sync, Backlog drag drift
+- Wiki attachment links, unassigned avatars, bulk subtask layout
 
 ## [1.11.0] — 2026-06-01
 
-### Added
+Faster boards and richer releases.
 
-- **Sprint board — time-in-column badge** — each card now shows how long the issue has been in its current column, sourced from the GreenHopper `timeInColumn` field
-- **Issue detail — progressive rendering** — the header (title, key, status, assignee) renders as soon as the base request resolves; comments, subtasks, and changelog each load independently with a localized skeleton, so a slow section never blanks the whole panel
-- **Releases — pin to tab strip** — releases can now be pinned to the header tab strip, just like issues and AIO cycles
-- **Releases — GitLab milestone description** — when a release is linked to a GitLab milestone, its description is shown alongside the Jira description
-- **Releases — detail panels** — the release detail page now includes MR-state distribution, contributor list, issue-status distribution, and story-point effort panels
-- **Releases — combined edit modal** — editing a release opens a modal that saves to both Jira (fix version) and the linked GitLab milestone in one action
+### New
+- **Time in column** on sprint cards
+- **Progressive issue detail**
+- **Pin releases** to the tab strip
+- **Release edit** saves to Jira and GitLab
 
-### Changed
+### Improved
+- **Sprint Board and Backlog** load in one request
+- **Cached workflow transitions**
 
-- **Sprint board — single-call data fetch** — all issues, columns, swimlanes, statuses, priorities, types, and epics now load in a single `allData.json` request (replaces the previous multi-call chain and per-issue enrichments)
-- **Backlog — single-call data fetch** — all backlog issues now load in a single `data.json` request (replaces paginated REST + per-issue lookups)
-- **Workflow transitions — cached per project** — available transitions are fetched once per project and cached by `projectId × issueTypeId → workflow`; the previous per-issue REST `/transitions` call on every drag-to-transition and status change is gone
-- **Sprint board — filter bar** — the filter row is now full-width with horizontal scroll; the reload and manage buttons stay pinned at the right and are unaffected by scroll
-- **Sprint board — quick filters** — Jira server-side quick filters (loaded from the board editmodel) have been removed; the app's own saved filters remain
-- **Filters — Jira "Save Filter" removed** — the Save Filter button and Jira-saved-filter flow are gone from the filter bar; only app-local saved filters remain
-- **Releases — layout** — deduplicated info between the main content and sidebar; issue status and story points moved to sidebar panels
+### Removed
+- **Jira quick filters and Save Filter**
 
 ### Fixed
-
-- Status transition from the issue detail panel now refreshes the sprint board immediately
-- Backlog: epic chips, flagged indicator, and flag action restored after the data-layer migration
-- Backlog: CLOSED sprints are excluded from the move-to-sprint index so they no longer appear as move targets
-- Backlog: epic column no longer clips the issue summary title at narrow widths
-- Sprint board: columns no longer overflow horizontally at narrow window widths
-- Notifications: scroll position no longer jumps when the list refreshes
-- Filters: the Save button is hidden when the active filter already matches a saved one
-- Fix versions (issue detail field) are now sorted by release date, with undated versions listed first
+- Board refresh after transitions, Backlog epic chips and flags
+- Narrow board columns, fix version order
 
 ## [1.10.4] — 2026-05-28
 
-### Fixed
+Worklog editing polish.
 
-- Worklogs: worklog entry actions (edit pencil, delete) now appear on hover so the row stays clean at a glance
-- Worklogs: the edit form's **Delete** button (previously labelled "Discard Changes") now deletes the entry directly instead of discarding edits
-- Worklogs: the cell popover removes its scroll cap while an entry is being edited so the edit form is never clipped
-- Worklogs: the "Log Work" button in the cell popover is now labelled **Add New Entry** to distinguish it clearly from editing an existing entry
+### Fixed
+- Worklog actions on hover, Delete deletes, unclipped edit form
 
 ## [1.10.3] — 2026-05-26
 
-### Fixed
+Wiki and Worklogs fixes.
 
-- Wiki: `{{[URL]}}` and `{{[display|URL]}}` monospace-wrapped links now render as clickable hyperlinks instead of raw angle-bracket text
-- Wiki: Jira `----` horizontal dividers now render as a styled separator line
-- Wiki: Lists following a `{quote}` block no longer appear inside the blockquote when the closing tag is on its own line
-- Worklogs: epic, story, and subtask key cells are now clickable and open the issue directly
-- Settings → Updates: update check results are now visible in the debug log panel
+### Fixed
+- Wiki monospace links, dividers and lists after quotes
+- Clickable keys in Worklogs, update checks in the debug log
 
 ## [1.10.2] — 2026-05-26
 
-### Added
+Subtasks inherit parent fields.
 
-- **Subtask parent-field inheritance** — required custom fields on the create-subtask form are now auto-populated from the parent issue's values, so you no longer need to re-enter fields like Tempo Account. The inherited values are visible in the inputs before submit and are sent to Jira with their original types preserved.
+### New
+- **Subtask field inheritance** from the parent
 
 ### Removed
-
-- **Sprint Progress page** — the tab, skeleton, health panel, sidebar entry, and route have been removed.
+- **Sprint Progress page**
 
 ### Fixed
-
-- Subtask creation no longer fails on Jira instances where the subtask issue type has a non-standard name; the type is now matched by the `subtask` flag rather than by name.
-- Parent issue detail refreshes automatically after a new subtask is created.
-- Standup **Today** story placement now uses the status of the issue actually assigned to you — the parent story if you're assigned to it, or your subtask's status if you're only assigned to the subtask. Previously it always used the parent story's status.
+- Subtask types with custom names, parent refresh, Standup Today
 
 ## [1.10.1] — 2026-05-25
 
-### Changed
+Standup Yesterday is easier to read.
 
-- The Standup Notes **Yesterday** column now groups all commits for the same task onto a single line and skips merge commits, and its section dividers were tidied up for a cleaner read.
+### Improved
+- **Commits grouped per task** in Yesterday
 
 ### Fixed
-
-- The **Yesterday** recap now lists every commit from your last working day instead of dropping some.
-- The **Yesterday** column heading now reflects your local date rather than UTC.
-- Summary stat lines now read correctly for a single item (e.g. "1 commit", "1 story", "1 merge-request event").
-- Jira and GitLab project pickers now show up under Settings → Connections.
-- The Standup page no longer breaks when a story is missing story points.
+- Missing commits, local dates, singular counts, project pickers
 
 ## [1.10.0] — 2026-05-25
 
-### Added
+Standup Notes arrive.
 
-- **Standup Notes page** — a new sidebar page that assembles your daily standup at a glance. *Yesterday* covers your last working day (Monday rolls back to Friday; weekends and Tempo holidays are skipped) with your Tempo worklogs, Jira status changes and comments, Git commits, and merge-request activity. *Today* shows your open sprint subtasks grouped under their parent stories, with participating merge requests. Includes one-click "Copy as markdown" and refresh.
-- **Integrations step in the onboarding wizard** — enable AIO Test Management (with project picker) and Tempo Timesheets during first-time setup instead of going to Settings afterwards.
+### New
+- **Standup Notes page**
+- **Integrations step** in the setup wizard
 
-### Changed
-
-- **Removed Developer / Project Manager roles** — everyone now sees every nav item and dashboard surface. The role step is gone from onboarding, and role toggles/presets are gone from Settings.
-- **Settings → Sidebar** is now a simple show/hide list; drag-to-reorder was removed.
+### Improved
+- **Roles removed** — everyone sees everything
+- **Simpler sidebar settings**
 
 ### Fixed
-
-- AIO test runs that are in progress now show as *In Progress* instead of *Not Executed*; AIO status mapping is more resilient to non-standard AIO instances.
-- Worklogs refresh immediately after you log time.
-- Merge-request discussions load past the previous 20-item cap.
-- Non-image attachments download correctly.
-- Searching a number also searches tasks in your selected projects.
-- Progress bars across the app share one consistent style.
+- AIO in-progress status, worklog refresh, MR discussions cap
+- Attachment downloads, number search, progress bar style
 
 ## [1.9.0] — 2026-05-23
 
-### Added
+Tempo worklogs and a new dashboard.
 
-- **Tempo Timesheets integration** — Worklogs page in the sidebar (when Tempo is enabled in Settings → Integrations) shows a 3-level Epic → Story → Subtask hierarchy table with sticky date header and sticky first column
-- **6 date presets** — This Week (default), Last Week, This Month, Last Month, Last Working Day, and Custom range with from ≥ to validation
-- **Single-select people filter** with combobox + chip + clear button
-- **Per-day totals row, per-person totals column, and grand total cell** computed client-side from the fetched worklog data
-- **Per-cell worklog CRUD via popover** — click any cell to view the worklog entries for that issue/day; inline edit with duration validation (rejects "abc"/empty), one-click trash delete (no confirmation), and "Add entry" reusing the LogWorkPopover for new worklogs; broad-prefix cache invalidation keeps cell + row + column + grand totals consistent
-- **Saved Tempo filters** — save any combo of date preset + person + custom range; load/rename/reorder/delete via right-click context menu on each filter pill; persists across app restarts via Zustand + Tauri Store
-- **Weekend and holiday columns** coloured grey/red via the Tempo schedule API
-- **Static dashboard welcome screen** — gradient hero with personalised greeting and en-GB long-form date
-- **Sprint health card** — current sprint name, days remaining, percent-complete progress bar from real story-point data
-- **My In-Progress card** — up to 3 of the user's own in-progress subtasks; clicking one pushes Dashboard onto the breadcrumb trail before navigating to the issue
-- **Next Release card** — soonest unreleased fix version with days-countdown timing label and a live progress bar showing percent of release issues done
+### New
+- **Worklogs page** with Tempo
+- **Date presets and saved filters**
+- **Edit worklogs** from any cell
+- **Dashboard welcome screen** — sprint and release cards
 
 ### Removed
-
-- **Widget-based customizable dashboard system** — drag/resize grid, widget picker, and all 11 widget types (replaced by the static welcome screen above)
-- **Workload page** and the `/workload` route + sidebar entry
-- **react-grid-layout** and **@types/react-grid-layout** dependencies
+- **Widget dashboard** and Workload page
 
 ### Fixed
-
-- **Dashboard greeting** now handles on-prem Jira display names of the form `SURNAME Firstname OrgCode (status)` (e.g. `DOE Jane ACME (ext.)` → `Jane`); previously the all-caps surname leaked into the greeting
-- **In-Progress card breadcrumb** — clicking a subtask now adds Dashboard to the breadcrumb trail so back-navigation works
-- **Release card** now shows a progress bar and "X% complete · N / M issues" caption beneath the timing label
-
-### Changed
-
-- **Test suite** — 1298 passing, 0 failing, 0 warnings after all v1.9 additions/removals
-- **Dead code sweep** — zero stale widget / workload references remain in the codebase
+- Dashboard greeting names, breadcrumbs, release progress
 
 ## [1.8.1] — 2026-05-19
 
-### Added
+Issue flagging.
 
-- **Issue flagging** — flag and unflag issues from the sprint board, backlog, and issue detail sidebar; flagged issues are highlighted with a yellow background and flag icon; right-click context menus in the sprint board and backlog include Flag/Unflag actions
+### New
+- **Flag issues** from the board, backlog and detail
 
 ### Fixed
-
-- WikiRenderer: nested ordered lists now render with correct indentation; bullet characters no longer appear on unordered list items; single newlines inside paragraphs no longer produce extra blank lines
-- Mention pills (`[~username]`) now resolve to display names for users not already present as assignee, reporter, or comment author — resolved via Jira API on first render
+- Wiki nested lists, mention names
 
 ## [1.8.0] — 2026-05-18
 
-### Added
+AIO Test Management integration.
 
-- **AIO Test Management integration** — connect to an AIO TCMS instance via Settings → Integrations; the Testing sidebar section appears when enabled
-- **AIO project overview** — two-panel layout with recursive folder tree (expand/collapse, per-folder cycle count badges) and a 5-column cycle table driven by the batch summary endpoint with zero N+1 fetches
-- **AIO cycle detail** — execution progress bar decoupled from run list (resolves ~0.4 s faster via batch summary POST); Executions tab with filterable run table and clickable rows; Defects tab with Jira-enriched reporter, assignee, priority, and severity columns
-- **Pin test cycles** — pin any AIO cycle to the header tab strip from the cycle detail page; tabs persist across restarts and can be unpinned
-- **AIO on issue detail** — lazy-loaded test runs section shows an impacted executions list with per-run status chips, step table (Step / Expected / Actual) with WikiRenderer rendering and failure markers, and an AIO attachments grid; opens in the existing in-app lightbox
-- **Draggable sidebar resize** — drag the right edge of the main nav sidebar or any detail panel sidebar to any width; preference persisted to local storage and restored on next launch
-- **Search closed Jira tasks** — command palette now searches resolved and closed issues; type a Jira key (`PROJ-123`) for a direct match at the top of results
-- **Assign to me** — quick action in the assignee popover sets the current user without opening the full picker
-- **Internal link routing** — Jira issue URLs and `fixForVersion` links in rendered wiki/descriptions now navigate within the app instead of opening the browser; source page is pushed to the breadcrumb trail
+### New
+- **AIO Test Management** — projects, cycles, runs
+- **Pin test cycles**
+- **Resizable sidebars**
+- **Search closed issues**
+- **Assign to me**
+- **In-app issue links**
+
+### Improved
+- **Unified status pills**
 
 ### Fixed
-
-- WikiRenderer: `\+` and `\\` in table cells, brace-quoted formatting (`{*}bold{*}`, `{_}italic{_}`), image rendering in issue descriptions, nested panel blocks inside table cells, numbered lists inside panels
-- Sprint board: epic pill now displays data; assignee-before-status column ordering restored
-- Self-authored changelog entries and comments filtered from the issue activity timeline
-- AIO credentials gate on all queries prevents first-load 401 flash
-
-### Changed
-
-- Backlog: Summary and Epic columns swapped; Epic column right-aligned
-- Status badges and pills unified to a single `statusPillClass` helper across all views
-- All API calls now carry an operation group label (visible in Dev Tools request log)
+- Wiki formatting, sprint board epic pill, AIO first-load errors
 
 ## [1.7.3] — 2026-05-10
 
+Updater restart fix.
+
 ### Fixed
-- Updater restart now uses the correct process plugin command (app.restart()) after applying an update
-- CI pipeline: fixed macOS Rust target and Windows package-lock version mismatch that caused build failures
+- Restart after an update, build fixes
 
 ## [1.7.2] — 2026-05-10
 
-### Added
-- Draggable sidebar resize — drag the sidebar edge to any width; resize handles on issue detail, MR detail, and releases detail panels
-- Story points field can now be cleared to empty (no story points set)
-- Request body now shown in Dev Tools request log for POST and PUT calls
-- Separate "updater" log category in Dev Tools for update-check calls
+Resizable sidebars and debugging tools.
+
+### New
+- **Resizable sidebars**
+- **Clear story points**
+- **Request bodies** in Dev Tools
 
 ### Fixed
-- Pagination loop no longer hangs when Jira returns empty issues with total > 0
-- versionId is validated before JQL interpolation to prevent injection
-- GitLab milestone column shows a dash instead of "Loading" when no milestone matched
-- Sidebar prefetch timer is now cleared on unmount
-- useResizable syncs width when initialWidth changes after mount
-- Drag handle border color uses state-driven hover, not CSS :hover
-- Issue detail panel pixel fallback computed correctly on first drag
-
-### Changed
-- Release script simplified: CI now owns all builds and release publishing; release.sh is a thin version-bump-and-tag-push trigger
-- Pre-commit hook now enforces a full quality gate: biome check + all tests must pass before any commit
+- Pagination hang, safer JQL, milestone column
+- Resize handle fixes
 
 ## [1.7.1] — 2026-04-06
 
+Update delivery fixes.
+
 ### Fixed
-- App now properly relaunches after installing an update
-- Resolved CI build and artifact collection issues that prevented auto-update delivery
+- Relaunch after installing an update, update builds
 
 ## [1.7.0] — 2026-04-06
 
-Maintenance release to close out the v1.7 milestone.
+Maintenance release.
 
-- Archived v1.7 phase directories and finalized milestone
+### Improved
+- **Milestone wrap-up**
 
 ## [1.7] — 2026-04-05
 
-Performance overhaul — every view now feels instant.
+Every view feels instant.
 
-### Added
-- Route code-splitting with lazy loading for 6 heavy views (sprint board, backlog, epics, workload, sprint progress, MR attention)
-- React Compiler auto-memoization, replacing all manual `useMemo`/`useCallback`/`memo` wrappers
-- Layout-matched skeleton screens on all 8 data views with flicker prevention via `useDelayedLoading`
-- Session-persistent caching (`gcTime: Infinity`) with route-aware smart polling
-- Query parallelization across sprint board and backlog, with sidebar hover/focus prefetch
-- Avatar caching system with memory + disk persistence via `CachedAvatar` component
-- `ChunkErrorBoundary` and `RouteSpinner` for graceful lazy-load failures
-- Bundle analysis tooling (`rollup-plugin-visualizer`)
-
-### Changed
-- Backlog view rewritten to per-section queries with progressive loading
-- Sprint board uses parallel queries and `useBoardId` hook for faster data resolution
-- Backlog grid converted from HTML table to div-based CSS grid with always-on virtualization
-- Removed all manual memoization from components (React Compiler handles it)
+### Improved
+- **Faster loading** — code splitting and smarter caching
+- **Skeleton screens** on all data views
+- **Avatar caching**
+- **Faster Backlog** with virtualized rows
 
 ### Fixed
-- Sticky header white flash, reload race conditions, and collapse jump on sprint board
-- Backlog progressive loading — broken rows, scroll jumps, wrong sprint assignments
-- Context menu group wrapping and unused import warnings
-- MR detail page polish per user feedback
+- Sprint board flashes and jumps, Backlog loading glitches
 
 ## [1.6.3] — 2026-03-29
 
-Release pipeline hardening and update dialog polish.
+Update dialog polish.
 
-### Added
-- Wider update dialogs with expanded changelog areas
-- Polished changelog rendering in settings release history
+### Improved
+- **Wider update dialogs**
 
 ### Fixed
-- Broken auto-restart countdown after update — now relaunches immediately
-- Idempotent version bump handling when tag already exists
-- Tighter changelog list item margins in update dialogs
-- Release script hardened with auto-credentials from macOS Keychain and correct artifact paths
+- Restart after update, release script fixes
 
 ## [1.6.2] — 2026-03-29
 
-Developer tooling and clipboard fix.
-
-### Added
-- Full local release lifecycle script (`release.sh`) replacing GitHub Actions release workflow
-- Husky pre-commit and pre-push hooks replacing CI-only linting
-- `bump-version.mjs` for atomic version bumps across all config files
+Clipboard fix.
 
 ### Fixed
-- macOS Edit menu added for clipboard shortcuts (Cmd+C/V/X) in Tauri
-- Duplicate OS notifications prevented by checking store before dispatch
+- Copy and paste shortcuts on macOS, duplicate OS notifications
 
 ## [1.6.1] — 2026-03-26
 
-Minor fixes and internal improvements.
-
-### Added
-- Release script with test and lint gates
-- Changelog generation script for categorized markdown output
-- Saved filter sync extracted into dedicated hook
+Minor fixes.
 
 ### Fixed
-- JS-driven sticky swimlane headers for virtual scroll compatibility
-- Sound added to OS notification dispatch
-- Removed saved filters section and unused imports from sidebar
+- Sticky swimlane headers, notification sound
 
 ## [1.6] — 2026-03-26
 
-Auto-update pipeline — Taskflow can now update itself.
+Taskflow can now update itself.
 
-### Added
-- Tauri updater plugin with signed update manifests and endpoint configuration
-- Update service wrapper with state machine store (idle → checking → available → downloading → relaunch)
-- Automatic update polling with configurable interval (1h, 6h, 12h, 24h, or manual)
-- `UpdateDialog` showing changelog and download progress
-- `WhatsNewDialog` displayed after restart with cached release notes
-- Version policy enforcement — soft minimum (dismissible banner) and hard minimum (blocking overlay)
-- `AboutDialog` accessible from native menu bar
-- Updates section in Settings with version history list fetched from GitHub releases
-- Build-time version injection pipeline (`inject-version.cjs`) with git tag, commit SHA, and build date
-- GitHub Actions cross-platform release workflow (Linux + Windows)
+### New
+- **Automatic updates** with configurable checks
+- **What's new** after updating
+- **About dialog**
+- **Release history** in Settings
 
 ## [1.5] — 2026-03-24
 
-Taskflow becomes a power tool with deep Jira feature parity and customizable layout.
+Deep Jira features and a customizable layout.
 
-### Added
-- Unified activity timeline combining changelog, comments, and worklogs with filter chips
-- Time tracking with worklog CRUD, natural language duration input (`1h 30m`), and sidebar summary
-- File attachments with thumbnails, lightbox preview, and drag-drop upload
-- `@mention` autocomplete in comment composer with cursor-anchored popover
-- Sprint goal banner and board quick filter chips
-- Saved filter management synced to Jira with sprint board integration
-- Customizable sidebar with drag-and-drop reorder and role presets
-- Widget-based dashboard with 11 widget types and responsive grid layout (`react-grid-layout`)
-- Release detail page with inline editing, issue-MR matching table, and label coverage indicator
-- Clone Issue button and watcher toggle in issue detail
-- Overdue badge on due dates across issue detail, task rows, and backlog
-- Fix version picker filtered to unreleased + recent released versions
-- Colored status transition badges replacing plain text buttons
+### New
+- **Activity timeline** — changes, comments and worklogs
+- **Time tracking** and worklogs
+- **Attachments** with previews
+- **Mentions** in comments
+- **Customizable sidebar and dashboard**
+- **Clone issue** and watchers
 
-### Changed
-- Status transitions unified across issue detail, task rows, and sprint board
-- Saved filters feature fully rebuilt from scratch with proper Jira CRUD
+### Improved
+- **Unified status transitions**
+- **Saved filters** rebuilt
 
 ## [1.4] — 2026-03-20
 
-Internal quality milestone — no new user features, but a much healthier codebase.
+A healthier codebase.
 
-### Added
-- Biome linter and formatter with CI-ready scripts; all 162 source files auto-formatted
-- 126 new tests (489 → 615+), zero failures, zero warnings
-- Developer Tools page with operation profiling waterfall and filterable log viewer
-- `@tanstack/react-virtual` virtualization for backlog, notifications, and sprint board lists
-- ARIA labels and roles on form inputs and custom dropdowns
-- Major dependency updates: Vite 8, TypeScript 5.9, plugin-react 6
+### New
+- **Developer Tools** page
+- **Faster long lists**
 
-### Changed
-- Monolithic `jira.ts` (2000+ lines) decomposed into 14 focused domain modules with barrel export
-- `CreateEditIssueModal` and `IssueDetailSidebar` split into composable sub-components
-- Zero `any` types and zero double-casts remaining in production code
-- Dev Tools moved from standalone page to Settings → Advanced section
-- Notification unread count cached in store to avoid recomputation
+### Improved
+- **Accessibility labels**
+- **Dependency updates**
 
 ## [1.3] — 2026-03-19
 
 Visual identity and keyboard-driven workflows.
 
-### Added
-- Custom node-graph SVG app icon generated for all platform sizes
-- Multi-page Settings with sidebar navigation (Connections, Appearance, Notifications, Workflow, Advanced)
-- Keyboard shortcuts system with `Cmd+/` help panel, J/K list navigation, and configurable bindings
-- Command palette (`Cmd+K`) with fuzzy search across Jira issues, pages, and actions
-- Header redesign with pinned-issue tab strip persisted across restarts
-- Recent items quick-access popover with tracked navigation history
-- Collapsible sidebar with `Cmd+B` toggle and centered icon mode
-- Illustrated empty states and actionable error recovery across 10+ views
-- Full MR detail page with discussions, labels, milestone, and internal navigation
-- Rich text rendering for Jira wiki markup (mentions, callout panels, image lightbox)
-- Native menu bar with all app shortcuts and conditional Debug menu
-- Notification redesign: avatar-led layout, type badges, hover quick actions, source filtering
+### New
+- **App icon**
+- **Multi-page Settings**
+- **Keyboard shortcuts** and command palette
+- **Pinned tabs** and recent items
+- **MR detail page**
+- **Rich Jira text**
 
-### Changed
-- Density system (compact/comfortable/spacious) applied to all list rows, cards, and sidebar
-- Notifications consolidated from dual icons to single tabbed popover
-- Comment sort order configurable in settings
-- Epic colors fetched from Jira and applied consistently across all badge locations
+### Improved
+- **Density settings**
+- **Notifications redesign**
 
 ### Fixed
-- Sprint board column header alignment with card columns
-- Sprint field parsing for all Jira Data Center response formats
-- Breadcrumb trail accumulation and attachment image rendering via auth proxy
-- Notification popover image re-renders eliminated
+- Board alignment, sprint parsing, breadcrumbs
 
 ## [1.2] — 2026-03-15
 
-Full Jira parity — work entirely within Taskflow without opening Jira.
+Work entirely within Taskflow.
 
-### Added
-- Issue detail panel with inline field editing, comment thread, and wiki rendering
-- Sprint board rebuilt with Jira-workflow columns, drag-and-drop transitions, and quick-create input
-- Create/edit issue form with dynamically discovered fields from Jira `createmeta` API
-- Backlog view with sprint sections, bulk move-to-sprint, and multi-filter comboboxes
-- Epic management: epics page, epic detail sheet, create epic dialog, epic filter on sprint board
-- Issue links section in create/edit modal
-- Custom field discovery infrastructure with settings persistence
+### New
+- **Issue detail** with inline editing
+- **Sprint board** with drag-and-drop
+- **Create and edit issues**
+- **Backlog** with sprint sections
+- **Epics**
 
-### Changed
-- Issue detail sheet widened to 75vw for comfortable metadata display
-- Backlog layout redesigned to match Jira's sprint-section grouping
-- Board sprints filtered by `originBoardId` to exclude cross-project sprints
+### Improved
+- **Wider issue detail**
 
 ### Fixed
-- Cross-project sprints appearing in board by filtering on project key
-- Assignee search pagination, fuzzy filter, and custom field autocomplete
-- Epic badge showing null custom field instead of fetched epic name
-- Sprint issue API endpoint variance across Jira Data Center instances
+- Cross-project sprints, assignee search, epic badges
 
 ## [1.1] — 2026-03-13
 
-Polish pass — fixes and enrichments across every existing feature.
+Polish across every feature.
 
-### Added
-- Subtask two-query strategy in sprint issue fetching for accurate parent/child data
-- Story points field auto-discovery at app startup
-- WorkloadTab with subtask nesting, time tracking columns, and expandable done stories
-- SprintProgressTab with stacked status bar, time totals, and per-assignee breakdown table
-- Story/subtask hierarchy in sprint board with collapsible parent swimlanes
-- MR Attention tab with project-level MR pool and subtask-linked MR inclusion
-- Dashboard panels: SubtasksPanel, MrHealthPanel, SprintHealthPanel
-- Full-page `/notifications` route with type labels, metadata chips, and linkified body
-- Tech Lead role with dual-section sidebar navigation
-- Debug Logs page with `apiFetch` wrapper for API call inspection
-- Comment count badge on task rows with inline comment viewing
+### New
+- **Story hierarchy** on the sprint board
+- **MR Attention** tab
+- **Dashboard panels**
+- **Notifications page**
+- **Debug Logs** page
 
 ### Fixed
-- Releases tab using wrong endpoint; now uses paginated `fixVersions` with sort and badges
-- Story points always showing zero (field discovery was missing)
-- Done stories incorrectly excluded from WorkloadTab (now shown as sub-rows)
-- GitLab group selection replaced with project-level selection for accurate MR/milestone data
-- Duplicate notifications on prepend prevented with deduplication guard
-- Network errors no longer cause false "disconnected" state
+- Releases list, story points, MR data, duplicate notifications
 
 ## [1.0] — 2026-03-12
 
-Initial release — a cross-platform desktop app unifying Jira and GitLab for development teams.
+Initial release — one desktop app for Jira and GitLab.
 
-### Added
-- Tauri 2 desktop app with React 18 frontend, no admin rights required
-- Secure PAT storage via OS keychain (Stronghold)
-- Onboarding wizard with Jira and GitLab connection validation
-- Developer dashboard with live task and MR data
-- Automatic Jira issue ↔ GitLab MR linking via branch name matching
-- Role-aware views: Developer (My Tasks, Sprint Board, MR Attention) and PM (Sprint Progress, Workload, Releases)
-- Jira write actions: status transitions and inline comments from task rows
-- Unified notification hub with OS desktop notifications and in-app badge
-- Global search across Jira issues and GitLab merge requests
-- Settings page with connection management and role selection
+### New
+- **Secure token storage**
+- **Setup wizard**
+- **Dashboard** with tasks and MRs
+- **Issue and MR linking** by branch name
+- **Status changes and comments**
+- **Notifications** and global search
