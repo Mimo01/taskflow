@@ -7,6 +7,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { useNotificationsStore } from '../../stores/notifications.store';
 import { useAuthStore } from '../../stores/auth.store';
 import { useOnboardingStore } from '../../stores/onboarding.store';
 import { useSettingsStore } from '../../stores/settings.store';
@@ -71,5 +72,40 @@ describe('DebugModeSection reset wizard', () => {
     useAuthStore.setState({ activeJiraProject: null, jiraBoardIds: { PROJ: 42 } } as never);
     await runWizardReset();
     expect(useOnboardingStore.getState().jiraBoardId).toBeNull();
+  });
+});
+
+describe('DebugModeSection clear notification cache', () => {
+  const seed = (items: unknown[]) =>
+    useNotificationsStore.setState({
+      items,
+      lastSeenCursor: '2026-11-12T10:00:00.000Z',
+      lastSeenJiraCursor: '2026-11-12T10:00:00.000Z',
+      lastSeenGitlabCursor: '2026-11-12T10:00:00.000Z',
+    } as never);
+
+  it('is enabled at 0 items and resets all cursors', async () => {
+    seed([]);
+    renderSection();
+    const btn = screen.getAllByRole('button', { name: 'Clear' })[0];
+    expect((btn as HTMLButtonElement).disabled).toBe(false);
+    fireEvent.click(btn);
+    const dialog = await screen.findByRole('dialog');
+    expect(dialog.textContent).toContain('polling cursor');
+    expect(dialog.textContent).not.toContain('0 cached notification');
+    fireEvent.click(await screen.findByRole('button', { name: 'Clear all' }));
+    await waitFor(() => {
+      const s = useNotificationsStore.getState();
+      expect(s.lastSeenCursor).toBeNull();
+      expect(s.lastSeenJiraCursor).toBeNull();
+      expect(s.lastSeenGitlabCursor).toBeNull();
+    });
+  });
+
+  it('states the count when notifications are cached', async () => {
+    seed([{ id: 'a' }, { id: 'b' }]);
+    renderSection();
+    fireEvent.click(screen.getAllByRole('button', { name: 'Clear' })[0]);
+    expect((await screen.findByRole('dialog')).textContent).toContain('2 cached notifications');
   });
 });

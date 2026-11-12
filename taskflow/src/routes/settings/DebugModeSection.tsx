@@ -224,7 +224,9 @@ export default function DebugModeSection() {
             <p className="text-xs text-muted-foreground">
               {cleared
                 ? 'Done — next poll will re-fetch the last 24 hours'
-                : `${itemCount} notification${itemCount !== 1 ? 's' : ''} cached. Clears all and resets the polling cursor.`}
+                : itemCount === 0
+                  ? 'No notifications cached. Resets the polling cursor.'
+                  : `${itemCount} notification${itemCount !== 1 ? 's' : ''} cached. Clears all and resets the polling cursor.`}
             </p>
           </div>
           {cleared ? (
@@ -234,16 +236,7 @@ export default function DebugModeSection() {
             </div>
           ) : (
             <Dialog>
-              <DialogTrigger
-                render={
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={itemCount === 0}
-                    className="shrink-0"
-                  />
-                }
-              >
+              <DialogTrigger render={<Button variant="outline" size="sm" className="shrink-0" />}>
                 <Trash2 className="h-3.5 w-3.5 mr-1.5" />
                 Clear
               </DialogTrigger>
@@ -251,9 +244,10 @@ export default function DebugModeSection() {
                 <DialogHeader>
                   <DialogTitle>Clear all notifications?</DialogTitle>
                   <DialogDescription>
-                    This removes all {itemCount} cached notification{itemCount !== 1 ? 's' : ''} and
-                    resets the polling cursor. The next poll cycle will re-fetch the last 24 hours
-                    of activity.
+                    {itemCount === 0
+                      ? 'This resets the polling cursor.'
+                      : `This removes all ${itemCount} cached notification${itemCount !== 1 ? 's' : ''} and resets the polling cursor.`}{' '}
+                    The next poll cycle will re-fetch the last 24 hours of activity.
                   </DialogDescription>
                 </DialogHeader>
                 <DialogFooter>
