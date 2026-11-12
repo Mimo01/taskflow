@@ -1,7 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { Check, ChevronDown, ExternalLink, Search } from 'lucide-react';
-import { type KeyboardEvent, type ReactNode, useEffect, useState } from 'react';
-import { Input } from '@/components/ui/input';
+import { type KeyboardEvent, type ReactNode, useEffect, useId, useState } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { epicColorToTailwind } from '@/lib/epicColors';
 import { cn } from '@/lib/utils';
@@ -58,6 +57,8 @@ function EpicPickerPanel({
 }: PanelProps) {
   const [query, setQuery] = useState('');
   const [activeIndex, setActiveIndex] = useState(-1);
+  const listId = useId();
+  const optionId = (i: number) => `${listId}-opt-${i}`;
 
   useEffect(() => {
     if (!open) {
@@ -71,6 +72,17 @@ function EpicPickerPanel({
   useEffect(() => {
     onSearchResults?.(epics);
   }, [epics, onSearchResults]);
+
+  // New results invalidate the highlighted index (it may now point past the end).
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reset is keyed on the result list
+  useEffect(() => {
+    setActiveIndex(-1);
+  }, [epics]);
+
+  useEffect(() => {
+    if (activeIndex < 0) return;
+    document.getElementById(optionId(activeIndex))?.scrollIntoView?.({ block: 'nearest' });
+  });
 
   // Index 0 is the "No epic" row; epic rows follow.
   const total = epics.length + 1;
@@ -87,24 +99,39 @@ function EpicPickerPanel({
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
       setActiveIndex((i) => Math.max(i - 1, 0));
-    } else if (e.key === 'Enter' && activeIndex >= 0) {
-      e.preventDefault();
-      selectIndex(activeIndex);
+    } else if (e.key === 'Enter') {
+      if (activeIndex >= 0) {
+        e.preventDefault();
+        selectIndex(activeIndex);
+      } else if (query.trim() && epics.length > 0) {
+        // Typed a search and hit Enter: take the top hit.
+        e.preventDefault();
+        selectIndex(1);
+      }
     }
     // Escape is handled by the Popover (closes without calling onChange).
   }
 
+  // Rows share one column grid (subgrid): pill | key | check. Fixed h-8 so "No epic",
+  // epic rows and the footer action all sit on the same rhythm.
   const rowBase =
-    'w-full text-left px-2 py-1 text-xs hover:bg-accent rounded flex items-center gap-2';
+    'col-span-3 grid grid-cols-subgrid h-8 w-full items-center rounded-md px-1.5 text-left text-xs outline-none hover:bg-accent';
+  const checkSlot = (selected: boolean, testId?: string) => (
+    <span className="flex size-3.5 items-center justify-center">
+      {selected && <Check className="size-3.5" data-testid={testId} aria-hidden="true" />}
+    </span>
+  );
 
   return (
     <>
-      <div className="relative mb-2">
-        <Search
-          className="pointer-events-none absolute top-1/2 left-2 size-3.5 -translate-y-1/2 text-muted-foreground"
-          aria-hidden="true"
-        />
-        <Input
+      <div className="-mx-1 -mt-1 mb-1 flex h-9 items-center gap-2 border-b border-border/60 px-2.5">
+        <Search className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+        <input
+          role="combobox"
+          aria-expanded={open}
+          aria-controls={listId}
+          aria-activedescendant={activeIndex >= 0 ? optionId(activeIndex) : undefined}
+          aria-autocomplete="list"
           placeholder="Search epics…"
           value={query}
           onChange={(e) => {
@@ -112,55 +139,64 @@ function EpicPickerPanel({
             setActiveIndex(-1);
           }}
           onKeyDown={handleKeyDown}
+          // biome-ignore lint/a11y/noAutofocus: popover search field, same as PersonPicker
           autoFocus
-          className="h-7 pl-7 text-xs"
+          className="h-full min-w-0 flex-1 bg-transparent text-xs outline-none placeholder:text-muted-foreground"
         />
       </div>
-      <div role="listbox" className="max-h-64 overflow-y-auto">
+      <div
+        id={listId}
+        role="listbox"
+        className="grid max-h-64 grid-cols-[minmax(0,1fr)_auto_auto] gap-x-3 overflow-y-auto"
+      >
         <button
+          id={optionId(0)}
           type="button"
           role="option"
           aria-selected={value === null}
           onClick={() => onChange(null)}
-          className={cn(rowBase, 'text-muted-foreground', activeIndex === 0 && 'bg-accent')}
+          className={cn(rowBase, activeIndex === 0 && 'bg-accent')}
         >
-          <span className="flex size-3.5 shrink-0 items-center justify-center">
-            {value === null && <Check className="size-3.5" aria-hidden="true" />}
+          <span className="min-w-0">
+            <span className="inline-flex items-center rounded border border-dashed border-border px-1.5 py-0.5 text-xs text-muted-foreground">
+              No epic
+            </span>
           </span>
-          No epic
+          <span />
+          {checkSlot(value === null)}
         </button>
         {epics.map((epic, j) => {
           const selected = value === epic.key;
           return (
             <button
               key={epic.key}
+              id={optionId(j + 1)}
               type="button"
               role="option"
               aria-selected={selected}
               onClick={() => onChange(epic)}
               className={cn(rowBase, activeIndex === j + 1 && 'bg-accent')}
             >
-              <span className="flex size-3.5 shrink-0 items-center justify-center">
-                {selected && (
-                  <Check className="size-3.5" data-testid="epic-check" aria-hidden="true" />
-                )}
+              <span className="flex min-w-0">
+                <EpicPill name={epic.name} epicKey={epic.key} color={epic.color} />
               </span>
-              <EpicPill name={epic.name} epicKey={epic.key} color={epic.color} />
-              <span className="ml-auto shrink-0 text-xs text-muted-foreground">{epic.key}</span>
+              <span className="text-muted-foreground tabular-nums">{epic.key}</span>
+              {checkSlot(selected, 'epic-check')}
             </button>
           );
         })}
+        {(isLoading || epics.length === 0) && (
+          <p className="col-span-3 flex h-8 items-center px-1.5 text-xs text-muted-foreground">
+            {isLoading ? 'Searching…' : 'No open epics match'}
+          </p>
+        )}
       </div>
-      {isLoading && <p className="px-1 py-1 text-xs text-muted-foreground">Searching…</p>}
-      {!isLoading && epics.length === 0 && (
-        <p className="px-1 py-1 text-xs text-muted-foreground">No open epics match</p>
-      )}
       {openAction && (
-        <div className="mt-1 border-t border-border/40 pt-1">
+        <div className="-mx-1 mt-1 border-t border-border/60 px-1 pt-1">
           <button
             type="button"
             onClick={openAction.onSelect}
-            className={cn(rowBase, 'text-muted-foreground hover:text-foreground')}
+            className="flex h-8 w-full items-center gap-2 rounded-md px-1.5 text-left text-xs text-muted-foreground outline-none hover:bg-accent hover:text-foreground"
           >
             <ExternalLink className="size-3.5 shrink-0" aria-hidden="true" />
             {openAction.label}
@@ -253,7 +289,11 @@ export function EpicPicker({
       </PopoverTrigger>
       <PopoverContent
         align="start"
-        className="w-[max(20rem,var(--anchor-width))] max-w-(--available-width) p-2"
+        sideOffset={4}
+        // Line the list pills up with the trigger's pill: inline trigger pads its pill 4px
+        // (px-1 -ml-1), list rows inset theirs 10px (p-1 + px-1.5); the field trigger uses pl-2.5.
+        alignOffset={variant === 'inline' ? -6 : 0}
+        className="w-[max(20rem,var(--anchor-width))] max-w-(--available-width) p-1"
       >
         <EpicPickerPanel
           value={value}

@@ -877,7 +877,7 @@ describe('FieldsSection epic picker', () => {
     const { mutation } = await renderEpic(makeIssue({ customfield_10014: 'PROJ-9' } as any));
     fireEvent.click(screen.getByTestId('epic-edit'));
     await screen.findByText('Payments');
-    fireEvent.click(screen.getByText('No epic', { selector: '[role=option]' }));
+    fireEvent.click(screen.getByRole('option', { name: 'No epic' }));
     expect(mutation.mutate).toHaveBeenCalledWith({
       fieldName: 'customfield_10014',
       value: null,

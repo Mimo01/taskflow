@@ -109,7 +109,7 @@ describe('EpicPicker', () => {
     const { onChange } = renderPicker({ value: 'PROJ-9' });
     await open();
     await screen.findByText('Onboarding');
-    fireEvent.click(screen.getByText('No epic', { selector: '[role=option]' }));
+    fireEvent.click(screen.getByRole('option', { name: 'No epic' }));
     expect(onChange).toHaveBeenCalledWith(null);
   });
 
@@ -121,6 +121,26 @@ describe('EpicPicker', () => {
     fireEvent.keyDown(input, { key: 'ArrowDown' });
     fireEvent.keyDown(input, { key: 'Enter' });
     expect(onChange).toHaveBeenCalledWith(EPICS[0]);
+  });
+
+  it('keyboard: typing a search then Enter with nothing highlighted picks the top hit', async () => {
+    const { onChange } = renderPicker();
+    const input = await open();
+    await screen.findByText('Payments');
+    mockSearch.mockResolvedValue([EPICS[1]]);
+    fireEvent.change(input, { target: { value: 'onb' } });
+    await waitFor(() => expect(screen.queryByText('Payments')).not.toBeInTheDocument());
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(onChange).toHaveBeenCalledWith(EPICS[1]);
+  });
+
+  it('keyboard: arrow highlight is exposed via aria-activedescendant', async () => {
+    renderPicker();
+    const input = await open();
+    await screen.findByText('Payments');
+    fireEvent.keyDown(input, { key: 'ArrowDown' });
+    const id = input.getAttribute('aria-activedescendant');
+    expect(id).toBe(screen.getAllByRole('option')[0].id);
   });
 
   it('Escape closes without calling onChange', async () => {
