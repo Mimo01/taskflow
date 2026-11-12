@@ -90,3 +90,13 @@ None. The regexes are anchored and non-nested, covered by a pathological-input t
 ## Self-Check: PASSED
 
 All 8 modified files exist and are in commit fc3e2505.
+
+## Post-UAT follow-ups (orchestrator, inline)
+
+- `a1d56862` — Sprint headline names only the sprint(s) added/removed (Jira Sprint value is cumulative history); backslash-escaped Jira chars render literally; Jira image stripping requires an image filename (`Fixed!Done!` survives); shared `actorName` returns the given name for "SURNAME Given" directory names (affects in-app too, user-approved).
+- `b1689129` — Launch catch-up gate: first poll after launch, unhydrated store, or a source with no cursor sends no OS notification; items logged as `Catch-up` (mirrors in-app banner gate). Dev tools summary row now sits above its Grouped rows.
+- `f414a14e` — Subtask OS title leads with its story: `STORY-KEY Story summary… › Subtask` (story cut at a word boundary, ~24 chars).
+
+Review findings left open (minor, not fixed): WR-01 Grouped rows still logged when the summary send is denied/errors; WR-03 `-5-` style text read as emphasis.
+
+**UAT:** Approved 2026-11-12.
