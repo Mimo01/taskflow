@@ -47,5 +47,8 @@ No other deviations. Full vitest suite (320 files), biome, and tsc passed in eac
 ## Known Stubs
 None.
 
+## UAT
+APPROVED by user (2026-11-12).
+
 ## Self-Check: PASSED
 Created files exist; commits 75f9efed, e1a6bb9b, 572a2d33 on branch worktree-agent-ae7d5a5a29fd3c4b7.
