@@ -71,9 +71,9 @@ describe('WhatsNewDialog', () => {
       lastSeenChangelog: '## v2.0\n- New feature',
     } as SettingsState);
     renderDialog();
-    expect(screen.getByText("You're on Taskflow 1.5.0")).toBeInTheDocument();
+    expect(screen.getByText('Welcome to Taskflow 1.5.0')).toBeInTheDocument();
     expect(screen.getByText('New feature')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Got it' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: "Let's go" })).toBeInTheDocument();
     // 'old' is not a valid version: no "from" line
     expect(screen.queryByText(/^from /)).not.toBeInTheDocument();
   });
@@ -98,7 +98,7 @@ describe('WhatsNewDialog', () => {
     expect(vi.mocked(useReleaseHistory)).toHaveBeenCalledWith({ enabled: true });
   });
 
-  it("'Got it' updates lastSeenVersion to current version", () => {
+  it("'Let's go' updates lastSeenVersion to current version", () => {
     const setLastSeenVersion = vi.fn();
     useSettingsStore.setState({
       lastSeenVersion: 'old',
@@ -106,7 +106,7 @@ describe('WhatsNewDialog', () => {
       setLastSeenVersion,
     } as SettingsState);
     renderDialog();
-    fireEvent.click(screen.getByRole('button', { name: 'Got it' }));
+    fireEvent.click(screen.getByRole('button', { name: "Let's go" }));
     expect(setLastSeenVersion).toHaveBeenCalledWith('1.5.0');
     expect(screen.getByTestId('loc')).toHaveTextContent('/');
   });

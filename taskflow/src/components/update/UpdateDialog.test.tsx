@@ -80,7 +80,7 @@ describe('UpdateDialog', () => {
       errorMessage: null,
     });
     render(<UpdateDialog />);
-    expect(screen.getByText('Taskflow 2.0.0 is available')).toBeInTheDocument();
+    expect(screen.getByText('Taskflow 2.0.0')).toBeInTheDocument();
     expect(screen.getByText(/You're on 1\.0\.0/)).toBeInTheDocument();
     expect(screen.getByText(/2\.0\.0/)).toBeInTheDocument();
     expect(screen.getByText(/Fix bug/)).toBeInTheDocument();
@@ -177,7 +177,7 @@ describe('UpdateDialog', () => {
       releaseDate: '2026-02-01T00:00:00Z',
     });
     render(<UpdateDialog />);
-    expect(screen.getByText(/· 3 releases/)).toBeInTheDocument();
+    expect(screen.getByText(/includes 3 releases/)).toBeInTheDocument();
     expect(screen.getByText('Also included')).toBeInTheDocument();
     expect(screen.getByText('1.5.0')).toBeInTheDocument();
     expect(screen.getByText('1.2.0')).toBeInTheDocument();

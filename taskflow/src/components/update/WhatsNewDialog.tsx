@@ -4,7 +4,7 @@
  * Shows when the user launches after an update:
  *   buildInfo.version !== settings.lastSeenVersion && settings.lastSeenChangelog !== null
  *
- * "Got it" sets lastSeenVersion to current version — dialog won't reappear.
+ * "Let's go" sets lastSeenVersion to current version — dialog won't reappear.
  * "See all updates" does the same, then opens Settings → Updates.
  * Notes shown: this build's bundled CHANGELOG.md section, else lastSeenChangelog.
  * lastSeenChangelog is NOT cleared on dismiss (kept for future reference per UI-SPEC)
@@ -15,21 +15,16 @@ import { validate } from 'compare-versions';
 import { CircleCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogFooter } from '@/components/ui/dialog';
 import { useReleaseHistory } from '@/hooks/useReleaseHistory';
 import { buildInfo } from '@/lib/build-info';
 import { bundledNotesFor } from '@/lib/release-notes/bundled';
+import { parseReleaseNotes } from '@/lib/release-notes/parse';
 import { selectRollup } from '@/services/releases';
 import { useSettingsStore } from '@/stores/settings.store';
 import { ReleaseNotesBody } from './ReleaseNotesBody';
 import { ReleaseRollup } from './ReleaseRollup';
+import { UpdateHero } from './UpdateHero';
 
 export function WhatsNewDialog() {
   const lastSeenVersion = useSettingsStore((s) => s.lastSeenVersion);
@@ -46,6 +41,8 @@ export function WhatsNewDialog() {
   const skipped =
     rollupEnabled && history ? selectRollup(history, fromVersion, buildInfo.version) : [];
 
+  const notes = bundledNotesFor(buildInfo.version) ?? lastSeenChangelog;
+
   function handleDismiss() {
     setLastSeenVersion(buildInfo.version);
   }
@@ -58,22 +55,20 @@ export function WhatsNewDialog() {
   return (
     <Dialog open={open} onOpenChange={handleDismiss}>
       <DialogContent showCloseButton={false} className="sm:max-w-[40rem]">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <CircleCheck aria-hidden="true" className="size-5 text-green-600 dark:text-green-400" />
-            You&apos;re on Taskflow {buildInfo.version}
-          </DialogTitle>
-          {fromVersion && (
-            <DialogDescription className="tabular-nums">
-              Updated from {fromVersion}
-            </DialogDescription>
-          )}
-        </DialogHeader>
+        <UpdateHero
+          eyebrow={
+            <span className="inline-flex items-center gap-1.5 text-green-600 dark:text-green-400">
+              <CircleCheck aria-hidden="true" className="size-3.5" />
+              Update installed
+            </span>
+          }
+          title={`Welcome to Taskflow ${buildInfo.version}`}
+          headline={parseReleaseNotes(notes).headline}
+          meta={fromVersion ? `Updated from ${fromVersion}` : undefined}
+          notes={notes}
+        />
         <div className="-mx-2 flex max-h-[60vh] flex-col gap-5 overflow-y-auto px-2">
-          <ReleaseNotesBody
-            notes={bundledNotesFor(buildInfo.version) ?? lastSeenChangelog}
-            details
-          />
+          <ReleaseNotesBody notes={notes} details hideHeadline />
           <ReleaseRollup releases={skipped} />
         </div>
         <DialogFooter>
@@ -81,7 +76,7 @@ export function WhatsNewDialog() {
             See all updates
           </Button>
           <Button variant="default" onClick={handleDismiss}>
-            Got it
+            Let&apos;s go
           </Button>
         </DialogFooter>
       </DialogContent>

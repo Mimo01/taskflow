@@ -12,6 +12,7 @@
 
 import { invoke } from '@tauri-apps/api/core';
 import { validate } from 'compare-versions';
+import { Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -23,12 +24,14 @@ import {
 } from '@/components/ui/dialog';
 import { useReleaseHistory } from '@/hooks/useReleaseHistory';
 import { buildInfo } from '@/lib/build-info';
+import { parseReleaseNotes } from '@/lib/release-notes/parse';
 import { persistChangelogBeforeRestart } from '@/lib/tauri-storage';
 import { selectRollup } from '@/services/releases';
 import { updaterService } from '@/services/updater';
 import { useUpdateStore } from '@/stores/update.store';
 import { ReleaseNotesBody } from './ReleaseNotesBody';
 import { ReleaseRollup } from './ReleaseRollup';
+import { UpdateHero } from './UpdateHero';
 
 // ─── Main UpdateDialog ──────────────────────────────────────────────────────
 
@@ -103,21 +106,26 @@ export function UpdateDialog() {
       <DialogContent showCloseButton={false} className="sm:max-w-[40rem]">
         {(status === 'available' || status === 'downloading') && (
           <>
-            <DialogHeader>
-              <DialogTitle>Taskflow {availableVersion} is available</DialogTitle>
-              <DialogDescription className="tabular-nums">
-                You&apos;re on {buildInfo.version}
-                {releaseDate &&
-                  ` · released ${new Date(releaseDate).toLocaleDateString('en-US', {
-                    month: 'short',
-                    day: 'numeric',
-                    year: 'numeric',
-                  })}`}
-                {skipped.length > 0 && ` · ${skipped.length + 1} releases`}
-              </DialogDescription>
-            </DialogHeader>
+            <UpdateHero
+              eyebrow="A new version is ready"
+              title={`Taskflow ${availableVersion}`}
+              headline={parseReleaseNotes(changelog).headline}
+              meta={
+                <>
+                  You&apos;re on {buildInfo.version}
+                  {releaseDate &&
+                    ` · released ${new Date(releaseDate).toLocaleDateString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric',
+                    })}`}
+                  {skipped.length > 0 && ` · includes ${skipped.length + 1} releases`}
+                </>
+              }
+              notes={changelog}
+            />
             <div className="-mx-2 flex max-h-[60vh] flex-col gap-5 overflow-y-auto px-2">
-              <ReleaseNotesBody notes={changelog} details />
+              <ReleaseNotesBody notes={changelog} details hideHeadline />
               <ReleaseRollup releases={skipped} />
             </div>
             <DialogFooter>
@@ -127,6 +135,7 @@ export function UpdateDialog() {
                     Later
                   </Button>
                   <Button variant="default" onClick={handleUpdateNow}>
+                    <Download data-icon="inline-start" />
                     Update now
                   </Button>
                 </>

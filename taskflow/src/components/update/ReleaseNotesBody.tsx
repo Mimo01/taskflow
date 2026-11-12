@@ -239,7 +239,7 @@ function CollapsedFixes({ items, highlight }: { items: NoteItem[]; highlight?: s
  * Section icon per kind, tinted with the text colour of the app's chip tones
  * (lib/statusStyles CHIP_TONE_CLASS) so it stays in the app palette.
  */
-const KIND_ICON: Record<NoteKind, { icon: LucideIcon; className: string }> = {
+export const KIND_ICON: Record<NoteKind, { icon: LucideIcon; className: string }> = {
   new: { icon: Sparkles, className: 'text-blue-600 dark:text-blue-400' },
   improved: { icon: ArrowUpCircle, className: 'text-purple-600 dark:text-purple-400' },
   fixed: { icon: Wrench, className: 'text-green-600 dark:text-green-400' },
