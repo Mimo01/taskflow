@@ -30,7 +30,7 @@ export function AttachmentTile({
   return (
     <div
       data-testid="attachment-tile"
-      className={`relative group p-1 -m-1 rounded-lg ${onPreview ? 'hover:bg-muted/60 focus-within:bg-muted/60' : ''}`}
+      className={`relative group p-1.5 -m-1.5 rounded-lg ${onPreview ? 'hover:bg-muted/60 focus-within:bg-muted/60' : ''}`}
     >
       {onPreview && (
         <button
@@ -61,20 +61,22 @@ export function AttachmentTile({
             </>
           )}
         </div>
-        <div className="mt-1.5">
+        {/* Reserve 2 name lines + the size line on the block, not the name, so the
+            size sits right under a short name while tiles still align. */}
+        <div className="mt-1.5 text-xs leading-snug min-h-[calc(2.75em+1rem)]">
           <span
             title={attachment.filename}
-            className={`block text-xs leading-snug line-clamp-2 [overflow-wrap:anywhere] min-h-[2.75em] ${onPreview ? 'group-hover:underline' : ''}`}
+            className={`line-clamp-2 [overflow-wrap:anywhere] ${onPreview ? 'group-hover:underline' : ''}`}
           >
             {attachment.filename}
           </span>
-          <span className="block text-[11px] text-muted-foreground tabular-nums">
+          <span className="block text-[11px] leading-4 text-muted-foreground tabular-nums">
             {sizeText || attachment.mimeType}
           </span>
         </div>
       </div>
       <div
-        className={`absolute top-2.5 right-2.5 z-10 flex gap-0.5 rounded bg-background/80 backdrop-blur-sm ${ACTION_VISIBILITY}`}
+        className={`absolute top-3 right-3 z-10 flex gap-0.5 rounded bg-background/80 backdrop-blur-sm ${ACTION_VISIBILITY}`}
       >
         <Button
           variant="ghost"

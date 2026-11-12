@@ -192,7 +192,7 @@ export function AttachmentsSection({
             <p className="text-sm text-muted-foreground italic">No attachments</p>
           ) : (
             <>
-              <div className="grid grid-cols-[repeat(auto-fill,minmax(112px,1fr))] gap-x-2.5 gap-y-3 density-compact:gap-y-2 density-comfortable:gap-y-4">
+              <div className="grid grid-cols-[repeat(auto-fill,minmax(112px,1fr))] gap-x-3 gap-y-3 density-compact:gap-y-2 density-comfortable:gap-y-4">
                 {attachments.map((att) => (
                   <AttachmentTile
                     key={att.id}
