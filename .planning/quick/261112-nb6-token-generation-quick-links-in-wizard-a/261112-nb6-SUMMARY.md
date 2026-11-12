@@ -31,3 +31,5 @@ User asked for the GitLab link to open a fine-grained token, not legacy. Commit 
 - Permissions were derived by mapping every GitLab endpoint in services/gitlab.ts + notifications.ts against docs `fine_grained_access_tokens_rest.md`. All are covered. Read: Project, Group, Merge Request, Branch, Commit, Repository, Repository Tag, Label, Work Item, Event, User (instance-level User Read needed for GET /users search). Update: Merge Request, Work Item (milestones are Work Item). Create: Branch, Work Item. Use: Global Search.
 
 **Decision (UAT):** reverted in `HEAD` (revert of 84f84140). The user chose to keep the prefilled legacy link and to add fine-grained once GitLab supports prefill on `granular/new` (tracking: gitlab-org/gitlab#572290). The permission mapping above stays valid for that future change.
+
+**Final (UAT approved):** hint copy removed entirely — the UI shows only the "Create a token ↗" link (b1f813f3 shortened it, 9076b4c4 dropped it). `TokenLinkHint` takes just `url`.
