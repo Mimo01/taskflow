@@ -125,7 +125,10 @@ function ReleaseRow({
           )}
           {installed && <span className="sr-only">Installed</span>}
         </span>
-        <span className="truncate text-muted-foreground" title={plainSummary}>
+        <span
+          className={cn('truncate', open ? 'text-foreground' : 'text-muted-foreground')}
+          title={plainSummary}
+        >
           {plainSummary}
         </span>
         <span className="whitespace-nowrap text-xs text-muted-foreground tabular-nums">

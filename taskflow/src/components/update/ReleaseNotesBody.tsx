@@ -182,11 +182,14 @@ function DetailItemRow({ item, nested = false }: { item: NoteItem; nested?: bool
   return (
     <>
       <li
-        className={cn('list-none truncate py-0.5 text-sm leading-5', nested && 'pl-3')}
+        className={cn(
+          'list-none truncate py-0.5 text-sm leading-5 text-muted-foreground',
+          nested && 'pl-3',
+        )}
         title={detail ? `${title} · ${detail}` : title}
       >
         {title}
-        {detail && <span className="text-muted-foreground"> · {detail}</span>}
+        {detail && <span className="text-muted-foreground/70"> · {detail}</span>}
       </li>
       {item.children.map((c, i) => (
         // biome-ignore lint/suspicious/noArrayIndexKey: static parsed list, never reordered
