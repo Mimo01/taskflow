@@ -7,13 +7,17 @@
 import { render, screen } from '@testing-library/react';
 import { fireEvent } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { WIZARD_VERSION } from '@/lib/onboarding-rerun';
+import { useOnboardingStore } from '@/stores/onboarding.store';
 import DoneStep from './DoneStep';
 
 // ── Settings store mock ──────────────────────────────────────────────────────
 const mockStore: {
   setOnboardingComplete: ReturnType<typeof vi.fn>;
+  setOnboardingVersion: ReturnType<typeof vi.fn>;
 } = {
   setOnboardingComplete: vi.fn(),
+  setOnboardingVersion: vi.fn(),
 };
 
 vi.mock('@/stores/settings.store', () => ({
@@ -51,6 +55,13 @@ describe('DoneStep', () => {
     render(<DoneStep />);
     expect(mockStore.setOnboardingComplete).toHaveBeenCalledTimes(1);
     expect(mockStore.setOnboardingComplete).toHaveBeenCalledWith(true);
+  });
+
+  it('records WIZARD_VERSION and ends the re-run on mount', () => {
+    useOnboardingStore.getState().set({ rerunActive: true });
+    render(<DoneStep />);
+    expect(mockStore.setOnboardingVersion).toHaveBeenCalledWith(WIZARD_VERSION);
+    expect(useOnboardingStore.getState().rerunActive).toBe(false);
   });
 
   it('does NOT call setOnboardingComplete from the "Go to Dashboard" handler', () => {

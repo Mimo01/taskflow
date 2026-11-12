@@ -50,6 +50,7 @@ import { loadAppearance, loadTheme } from './services/theme';
 import { updaterService } from './services/updater';
 import { useAuthStore } from './stores/auth.store';
 import { useBreadcrumbStore } from './stores/breadcrumb.store';
+import { useOnboardingStore } from './stores/onboarding.store';
 import { usePeekStore } from './stores/peek.store';
 import { usePinnedTabsStore } from './stores/pinned-tabs.store';
 import { useRecentItemsStore } from './stores/recent-items.store';
@@ -123,6 +124,7 @@ function useCustomFieldDiscovery() {
  */
 function AppLayout() {
   const { onboardingComplete } = useSettingsStore();
+  const rerunActive = useOnboardingStore((s) => s.rerunActive);
   const { jiraConnected, jiraBaseUrl, gitlabConnected, _hasHydrated } = useAuthStore();
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [createModalMode, setCreateModalMode] = useState<'create' | 'edit'>('create');
@@ -685,7 +687,7 @@ function AppLayout() {
   useUpdatePolling();
   useCustomFieldDiscovery();
 
-  if (!onboardingComplete) {
+  if (!onboardingComplete || rerunActive) {
     // During onboarding, no sidebar
     return <Outlet />;
   }

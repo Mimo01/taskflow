@@ -1,21 +1,26 @@
 /**
  * DoneStep — Final step in the onboarding wizard.
  *
- * On mount, marks onboarding as complete in the settings store (persisted).
+ * On mount, marks onboarding as complete and records the current wizard version in the
+ * settings store (persisted), and ends any in-progress re-run.
  * 'Go to Dashboard' navigates to /dashboard.
  */
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { WIZARD_VERSION } from '@/lib/onboarding-rerun';
+import { useOnboardingStore } from '@/stores/onboarding.store';
 import { useSettingsStore } from '@/stores/settings.store';
 
 export default function DoneStep() {
   const navigate = useNavigate();
-  const { setOnboardingComplete } = useSettingsStore();
+  const { setOnboardingComplete, setOnboardingVersion } = useSettingsStore();
 
   useEffect(() => {
     setOnboardingComplete(true);
-  }, [setOnboardingComplete]);
+    setOnboardingVersion(WIZARD_VERSION);
+    useOnboardingStore.getState().set({ rerunActive: false });
+  }, [setOnboardingComplete, setOnboardingVersion]);
 
   const handleGoToDashboard = () => {
     navigate('/dashboard');

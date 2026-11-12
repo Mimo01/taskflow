@@ -12,6 +12,7 @@
  * Completed steps are derived from the Zustand onboarding store (jiraValidated, gitlabValidated, integrationsVisited).
  */
 
+import { WIZARD_STEPS } from '@/lib/onboarding-rerun';
 import DoneStep from '@/routes/onboarding/DoneStep';
 import GitLabStep from '@/routes/onboarding/GitLabStep';
 import IntegrationsStep from '@/routes/onboarding/IntegrationsStep';
@@ -20,8 +21,9 @@ import WelcomeStep from '@/routes/onboarding/WelcomeStep';
 import { useOnboardingStore } from '@/stores/onboarding.store';
 import StepIndicator from './StepIndicator';
 
-const STEP_LABELS = ['Welcome', 'Jira', 'GitLab', 'Integrations', 'Done'];
+const STEP_LABELS = WIZARD_STEPS.map((s) => s.label);
 
+// Order must match WIZARD_STEPS (lib/onboarding-rerun.ts).
 const STEP_COMPONENTS = [WelcomeStep, JiraStep, GitLabStep, IntegrationsStep, DoneStep];
 
 export default function OnboardingWizard() {
