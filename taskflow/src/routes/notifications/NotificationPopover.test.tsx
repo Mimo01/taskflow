@@ -522,6 +522,72 @@ describe('NotificationPopover', () => {
       finishExit(300);
       expect(useNotificationsStore.getState().items).toHaveLength(0);
     });
+
+    describe('closes the panel (261112-o46)', () => {
+      const confirmClearAll = () => {
+        fireEvent.click(screen.getByRole('button', { name: 'Clear all notifications' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Confirm: clear all notifications' }));
+      };
+      const three = () => seed([jiraItem('j1'), jiraItem('j2', 'PROJ-2'), glItem('g1')]);
+
+      it('closes only after the exit animation, exactly once, with no ghost flash', () => {
+        vi.useFakeTimers();
+        three();
+        const onClose = vi.fn();
+        render(<NotificationPopover onClose={onClose} />);
+        confirmClearAll();
+        expect(onClose).not.toHaveBeenCalled();
+        expect(useNotificationsStore.getState().items).toHaveLength(3);
+        act(() => {
+          vi.advanceTimersByTime(NOTIF_EXIT_MS - 100);
+        });
+        expect(onClose).not.toHaveBeenCalled();
+        finishExit(300);
+        expect(useNotificationsStore.getState().items).toHaveLength(0);
+        expect(onClose).toHaveBeenCalledTimes(1);
+        expect(document.querySelector('[data-notif-empty]')).toBeNull();
+      });
+
+      it('under reduced motion clears and closes immediately', () => {
+        vi.stubGlobal('matchMedia', (q: string) => ({
+          matches: q.includes('reduce'),
+          media: q,
+          addEventListener: vi.fn(),
+          removeEventListener: vi.fn(),
+        }));
+        three();
+        const onClose = vi.fn();
+        render(<NotificationPopover onClose={onClose} />);
+        confirmClearAll();
+        expect(useNotificationsStore.getState().items).toHaveLength(0);
+        expect(onClose).toHaveBeenCalledTimes(1);
+        expect(document.querySelector('[data-leaving]')).toBeNull();
+      });
+
+      it('a single Done that empties the list does not close the panel', () => {
+        vi.useFakeTimers();
+        seed([jiraItem('a', 'PROJ-1')]);
+        const onClose = vi.fn();
+        render(<NotificationPopover onClose={onClose} />);
+        fireEvent.click(screen.getByRole('button', { name: 'Clear notification' }));
+        finishExit();
+        expect(useNotificationsStore.getState().items).toHaveLength(0);
+        expect(onClose).not.toHaveBeenCalled();
+        expect(document.querySelector('[data-notif-empty]')).not.toBeNull();
+      });
+
+      it('unmounting mid-clear applies the clear without calling onClose', () => {
+        vi.useFakeTimers();
+        three();
+        const onClose = vi.fn();
+        const { unmount } = render(<NotificationPopover onClose={onClose} />);
+        confirmClearAll();
+        unmount();
+        expect(useNotificationsStore.getState().items).toHaveLength(0);
+        finishExit(300);
+        expect(onClose).not.toHaveBeenCalled();
+      });
+    });
   });
 
   describe('states', () => {

@@ -188,9 +188,18 @@ export default function NotificationPopover({
     [removeItems],
   );
 
-  function leave(targets: { id: string; delay: number }[], storeIds: string[]) {
+  /** Set once Clear all finishes and the panel is closing: hides the empty ghost during the slide-out (261112-o46). */
+  const [closingAfterClearAll, setClosingAfterClearAll] = useState(false);
+
+  /** `onDone` runs after the removal (not from the unmount flush: the panel is already closing). */
+  function leave(
+    targets: { id: string; delay: number }[],
+    storeIds: string[],
+    onDone?: () => void,
+  ) {
     if (prefersReducedMotion()) {
       removeItems(storeIds);
+      onDone?.();
       return;
     }
     // Already on its way out (double click / key repeat).
@@ -209,6 +218,7 @@ export default function NotificationPopover({
         for (const t of targets) next.delete(t.id);
         return next;
       });
+      onDone?.();
     }, NOTIF_EXIT_MS + maxDelay);
     exitTimers.current.set(timer, storeIds);
   }
@@ -319,6 +329,12 @@ export default function NotificationPopover({
     leave(
       targets,
       items.map((i) => i.id),
+      onClose
+        ? () => {
+            setClosingAfterClearAll(true);
+            onClose();
+          }
+        : undefined,
     );
   }
 
@@ -460,7 +476,7 @@ export default function NotificationPopover({
                 viewName="notifications"
               />
             </div>
-          ) : (
+          ) : closingAfterClearAll ? null : (
             // Empty: a ghost notification card. Same geometry as a real card (padding, gap,
             // radius, 32px avatar slot, 12px / 11px lines) so it reads as part of the feed;
             // dashed edge + green check in the avatar slot (261111-m0g UAT, option c2).
