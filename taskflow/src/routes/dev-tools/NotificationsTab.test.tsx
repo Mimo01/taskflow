@@ -28,7 +28,7 @@ describe('NotificationsTab', () => {
     expect(screen.getByText('No desktop notifications yet')).toBeTruthy();
   });
 
-  it('lists entries with result, title and body; expands to the full item', () => {
+  it('lists entries with result, title and body; expands to a preview and the raw item', () => {
     act(() => {
       useNotificationDispatchLogStore.getState().append([
         {
@@ -45,6 +45,9 @@ describe('NotificationsTab', () => {
     expect(screen.getByText('Error')).toBeTruthy();
     expect(screen.getByText('Cara Doe: hi')).toBeTruthy();
     fireEvent.click(screen.getByRole('button'));
+    expect(
+      screen.getByRole('img', { name: 'Notification preview: Jira — PROJ-1: Title. Cara Doe: hi' }),
+    ).toBeTruthy();
     expect(screen.getByText(/"entityTitle": "PROJ-1: Title"/)).toBeTruthy();
   });
 });

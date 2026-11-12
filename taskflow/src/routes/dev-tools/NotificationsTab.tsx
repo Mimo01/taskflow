@@ -2,9 +2,11 @@
  * NotificationsTab — OS desktop notification attempts for Developer Tools.
  *
  * One row per notification the poller tried to show (or skipped as already known),
- * with the exact title/body handed to the OS and the result. Expand for the full item.
+ * with the exact title/body handed to the OS and the result. Expand for a banner-style
+ * preview and the raw item.
  */
 import { useState } from 'react';
+import AppIcon from '../../components/app/AppIcon';
 import type { OsDispatchOutcome } from '../../lib/notification-dispatch-log';
 import {
   type NotificationDispatchLogEntry,
@@ -25,6 +27,29 @@ function outcomeClass(outcome: OsDispatchOutcome): string {
   if (outcome === 'sent') return `${base} text-green-600 dark:text-green-400`;
   if (outcome === 'skipped') return `${base} bg-muted text-muted-foreground`;
   return `${base} bg-red-500/15 text-red-600 dark:text-red-400`;
+}
+
+/**
+ * Approximation of a macOS notification banner: app icon, bold one-line title, body clamped
+ * to two lines — roughly what the OS shows before the user expands it.
+ */
+function OsNotificationPreview({ title, body }: { title: string; body: string }) {
+  return (
+    <div
+      role="img"
+      aria-label={`Notification preview: ${title}. ${body}`}
+      className="w-[23rem] max-w-full flex items-start gap-3 rounded-2xl border border-border bg-card p-3 shadow-md"
+    >
+      <AppIcon className="size-9 shrink-0 -m-0.5" />
+      <div className="min-w-0 flex-1">
+        <div className="flex items-baseline gap-2">
+          <p className="text-[13px] font-semibold leading-snug truncate flex-1 min-w-0">{title}</p>
+          <span className="shrink-0 text-[11px] text-muted-foreground">now</span>
+        </div>
+        <p className="text-[13px] leading-snug line-clamp-2 break-words">{body}</p>
+      </div>
+    </div>
+  );
 }
 
 function NotificationCard({ entry }: { entry: NotificationDispatchLogEntry }) {
@@ -53,30 +78,15 @@ function NotificationCard({ entry }: { entry: NotificationDispatchLogEntry }) {
               Not sent: this notification was already in the list before this poll.
             </p>
           )}
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
-              Title
-            </p>
-            <pre className="text-xs bg-muted rounded p-2 overflow-auto whitespace-pre-wrap break-all">
-              {entry.title}
-            </pre>
-          </div>
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
-              Body
-            </p>
-            <pre className="text-xs bg-muted rounded p-2 overflow-auto whitespace-pre-wrap break-all">
-              {entry.body}
-            </pre>
-          </div>
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
-              Item
-            </p>
-            <pre className="text-xs bg-muted rounded p-2 overflow-auto max-h-64 whitespace-pre-wrap break-all">
+          <OsNotificationPreview title={entry.title} body={entry.body} />
+          <details>
+            <summary className="text-xs font-semibold uppercase tracking-wider text-muted-foreground cursor-pointer select-none">
+              Raw item
+            </summary>
+            <pre className="mt-1 text-xs bg-muted rounded p-2 overflow-auto max-h-64 whitespace-pre-wrap break-all">
               {JSON.stringify(entry.item, null, 2)}
             </pre>
-          </div>
+          </details>
         </div>
       )}
     </div>
