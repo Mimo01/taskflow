@@ -13,7 +13,23 @@ import { useNotificationDispatchLogStore } from '../stores/notification-dispatch
 import type { NotificationItem } from '../stores/notifications.store';
 import { useSettingsStore } from '../stores/settings.store';
 
-export type OsDispatchOutcome = 'sent' | 'denied' | 'error' | 'skipped' | 'grouped';
+export type OsDispatchOutcome = 'sent' | 'denied' | 'error' | 'skipped' | 'grouped' | 'catch-up';
+
+/**
+ * True when an unknown item comes from a catch-up poll rather than arriving live: the first
+ * poll after launch, a poll before the persisted list has loaded, or a source's first-ever
+ * backfill (no cursor yet). Mirrors the in-app banner gate (selectBannerItems).
+ */
+export function isOsCatchUp(
+  item: NotificationItem,
+  gate: {
+    isFirstPoll: boolean;
+    hydrated: boolean;
+    priorCursors: Record<NotificationItem['source'], string | null>;
+  },
+): boolean {
+  return gate.isFirstPoll || !gate.hydrated || gate.priorCursors[item.source] == null;
+}
 
 export type OsDispatchLogEntry =
   | {

@@ -1,10 +1,10 @@
 /**
  * NotificationsTab — OS desktop notification attempts for Developer Tools.
  *
- * One row per notification the poller tried to show (or skipped as already known),
- * with the exact title/body handed to the OS and the result. A burst folded into one
- * summary banner appears as a 'summary' row followed by one 'Grouped' row per folded item. Expand for a banner-style
- * preview and the raw item.
+ * One row per notification the poller tried to show (or skipped as already known, or held
+ * back as launch catch-up), with the exact title/body handed to the OS and the result. A burst
+ * folded into one summary banner appears as a 'summary' row followed by one 'Grouped' row per
+ * folded item. Expand for a banner-style preview and the raw item.
  */
 import { useState } from 'react';
 import AppIcon from '../../components/app/AppIcon';
@@ -22,12 +22,13 @@ const OUTCOME_LABEL: Record<OsDispatchOutcome, string> = {
   error: 'Error',
   skipped: 'Skipped',
   grouped: 'Grouped',
+  'catch-up': 'Catch-up',
 };
 
 function outcomeClass(outcome: OsDispatchOutcome): string {
   const base = 'shrink-0 rounded px-1.5 py-0.5 text-xs font-semibold';
   if (outcome === 'sent') return `${base} text-green-600 dark:text-green-400`;
-  if (outcome === 'skipped' || outcome === 'grouped')
+  if (outcome === 'skipped' || outcome === 'grouped' || outcome === 'catch-up')
     return `${base} bg-muted text-muted-foreground`;
   return `${base} bg-red-500/15 text-red-600 dark:text-red-400`;
 }
@@ -90,6 +91,12 @@ function NotificationCard({ entry }: { entry: NotificationDispatchLogEntry }) {
           {entry.outcome === 'grouped' && (
             <p className="text-sm text-muted-foreground">
               Not sent individually: folded into a summary banner.
+            </p>
+          )}
+          {entry.outcome === 'catch-up' && (
+            <p className="text-sm text-muted-foreground">
+              Not sent: the first check after launch only catches up on what arrived while the app
+              was closed.
             </p>
           )}
           <OsNotificationPreview title={entry.title} body={entry.body} />

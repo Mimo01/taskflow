@@ -12,6 +12,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef } from 'react';
 import {
   formatOsNotification,
+  isOsCatchUp,
   logOsDispatches,
   type OsDispatchLogEntry,
   planOsDispatch,
@@ -229,13 +230,14 @@ export function useNotificationPolling() {
           dismissedIds: useNotificationsStore.getState().dismissedIds,
         });
         prependItems(newItems);
+        const hydrated = useNotificationsStore.persist.hasHydrated();
         // In-app banners: only genuinely new items (not the first poll / a backfill).
         useNotificationBanners.getState().push(
           selectBannerItems(newItems, {
             existingIds,
             priorCursors,
             isFirstPoll,
-            hydrated: useNotificationsStore.persist.hasHydrated(),
+            hydrated,
           }).map((i) => i.id),
         );
         // Use allItems to advance cursors (avoid cursor drift from filtered items)
@@ -251,12 +253,16 @@ export function useNotificationPolling() {
         };
         const fresh: typeof newItems = [];
         for (const item of newItems) {
-          if (existingIds.has(item.id)) {
-            if (desktopNotificationsEnabledRef.current) {
-              dispatchLog.push({ item, ...formatOsNotification(item, ctx), outcome: 'skipped' });
-            }
-          } else {
-            fresh.push(item);
+          // Same gate as in-app banners: the launch/backfill poll only catches up, it never
+          // pops desktop notifications for items that arrived while the app was closed.
+          const outcome = existingIds.has(item.id)
+            ? 'skipped'
+            : isOsCatchUp(item, { isFirstPoll, hydrated, priorCursors })
+              ? 'catch-up'
+              : null;
+          if (outcome === null) fresh.push(item);
+          else if (desktopNotificationsEnabledRef.current) {
+            dispatchLog.push({ item, ...formatOsNotification(item, ctx), outcome });
           }
         }
         // Per-type check already passed via filter above
@@ -264,6 +270,10 @@ export function useNotificationPolling() {
           const plan = planOsDispatch(fresh, ctx);
           if (plan.kind === 'summary') {
             const outcome = await send(plan.title, plan.body);
+            // The log is shown newest-first (reversed), so the summary goes last to sit on top.
+            for (const item of plan.items) {
+              dispatchLog.push({ item, ...formatOsNotification(item, ctx), outcome: 'grouped' });
+            }
             dispatchLog.push({
               kind: 'summary',
               items: plan.items,
@@ -271,9 +281,6 @@ export function useNotificationPolling() {
               body: plan.body,
               outcome,
             });
-            for (const item of plan.items) {
-              dispatchLog.push({ item, ...formatOsNotification(item, ctx), outcome: 'grouped' });
-            }
           } else {
             for (const { item, title, body } of plan.banners) {
               dispatchLog.push({ item, title, body, outcome: await send(title, body) });

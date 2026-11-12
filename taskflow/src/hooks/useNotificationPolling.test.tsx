@@ -199,17 +199,53 @@ describe('useNotificationPolling banners', () => {
     await waitFor(() => expect(logged()).toHaveLength(5));
     expect(dispatch).toHaveBeenCalledTimes(1);
     expect(dispatch).toHaveBeenCalledWith('4 new notifications', '4 Jira');
-    // Newest first: the summary entry was appended first, so it is last.
+    // Newest first: the summary row sits on top of the rows it folded.
     expect(logged().map((e) => e.outcome)).toEqual([
-      'grouped',
-      'grouped',
-      'grouped',
-      'grouped',
       'sent',
+      'grouped',
+      'grouped',
+      'grouped',
+      'grouped',
     ]);
-    const summary = logged()[4];
+    const summary = logged()[0];
     expect(summary.kind).toBe('summary');
     expect(summary.title).toBe('4 new notifications');
+  });
+
+  it('the first poll after launch only catches up: no OS notification, logged as catch-up', async () => {
+    act(() => {
+      useSettingsStore.setState({ desktopNotificationsEnabled: true });
+    });
+    fetchNew.mockResolvedValueOnce([item('c1'), item('c2'), item('c3'), item('c4'), item('c5')]);
+    renderHook(() => useNotificationPolling(), { wrapper });
+    await waitFor(() => expect(logged()).toHaveLength(5));
+    expect(dispatch).not.toHaveBeenCalled();
+    expect(new Set(logged().map((e) => e.outcome))).toEqual(new Set(['catch-up']));
+    expect(useNotificationsStore.getState().items).toHaveLength(5);
+  });
+
+  it('a source with no cursor yet (first-ever backfill) is catch-up, not sent', async () => {
+    act(() => {
+      useSettingsStore.setState({ desktopNotificationsEnabled: true });
+      useNotificationsStore.setState({ lastSeenJiraCursor: null } as never);
+    });
+    fetchNew.mockResolvedValueOnce([]);
+    const { result } = renderHook(
+      () => {
+        useNotificationPolling();
+        return useNotificationsStore((s) => s.retryFetch);
+      },
+      { wrapper },
+    );
+    await waitFor(() => expect(result.current).toBeTypeOf('function'));
+    await waitFor(() => expect(fetchNew).toHaveBeenCalledTimes(1));
+    fetchNew.mockResolvedValueOnce([item('n1')]);
+    await act(async () => {
+      result.current?.();
+    });
+    await waitFor(() => expect(logged()).toHaveLength(1));
+    expect(logged()[0].outcome).toBe('catch-up');
+    expect(dispatch).not.toHaveBeenCalled();
   });
 
   it('a denied summary send still raises the permission flag', async () => {
