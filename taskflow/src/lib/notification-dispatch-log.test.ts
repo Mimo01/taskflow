@@ -59,17 +59,17 @@ describe('logOsDispatches', () => {
     const s = spies();
     logOsDispatches([entry('sent'), entry('sent'), entry('skipped')]);
     expect(s.group).toHaveBeenCalledTimes(1);
-    expect(s.group).toHaveBeenCalledWith('[notifications] 2 dispatched, 1 skipped');
+    expect(s.group).toHaveBeenCalledWith('[notifications] 2 sent, 0 failed, 1 skipped');
     expect(s.log).toHaveBeenCalledTimes(3);
     expect(s.end).toHaveBeenCalledTimes(1);
     expect(s.log.mock.calls[0]).toEqual(['sent', 'T', 'B', expect.objectContaining({ id: 'n1' })]);
     expect(s.log.mock.calls[2]?.[0]).toBe('skipped (already known)');
   });
 
-  it('counts denied and error as dispatched and shows the result', () => {
+  it('counts denied and error as failed and shows the result', () => {
     const s = spies();
     logOsDispatches([entry('denied'), entry('error')]);
-    expect(s.group).toHaveBeenCalledWith('[notifications] 2 dispatched, 0 skipped');
+    expect(s.group).toHaveBeenCalledWith('[notifications] 0 sent, 2 failed, 0 skipped');
     expect(s.log.mock.calls[0]?.[0]).toBe('denied');
     expect(s.log.mock.calls[1]?.[0]).toBe('error');
   });

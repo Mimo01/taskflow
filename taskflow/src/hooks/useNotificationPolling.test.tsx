@@ -131,7 +131,7 @@ describe('useNotificationPolling banners', () => {
     const c = spyConsole();
     await pollOnce(true);
     await waitFor(() => expect(c.group).toHaveBeenCalledTimes(1));
-    expect(c.group).toHaveBeenCalledWith('[notifications] 1 dispatched, 0 skipped');
+    expect(c.group).toHaveBeenCalledWith('[notifications] 1 sent, 0 failed, 0 skipped');
     expect(c.log).toHaveBeenCalledWith(
       'sent',
       'Jira — PROJ-1: Title',
@@ -176,7 +176,7 @@ describe('useNotificationPolling banners', () => {
       result.current?.();
     });
     await waitFor(() =>
-      expect(c.group).toHaveBeenCalledWith('[notifications] 1 dispatched, 1 skipped'),
+      expect(c.group).toHaveBeenCalledWith('[notifications] 1 sent, 0 failed, 1 skipped'),
     );
     expect(c.log.mock.calls.some((a) => a[0] === 'skipped (already known)')).toBe(true);
   });

@@ -21,9 +21,11 @@ export function formatOsNotification(item: NotificationItem): { title: string; b
 export function logOsDispatches(entries: OsDispatchLogEntry[]): void {
   if (!import.meta.env.DEV) return;
   if (entries.length === 0) return;
-  const skipped = entries.filter((e) => e.outcome === 'skipped').length;
-  const dispatched = entries.length - skipped;
-  console.groupCollapsed(`[notifications] ${dispatched} dispatched, ${skipped} skipped`);
+  const count = (o: OsDispatchOutcome) => entries.filter((e) => e.outcome === o).length;
+  const sent = count('sent');
+  const skipped = count('skipped');
+  const failed = entries.length - sent - skipped;
+  console.groupCollapsed(`[notifications] ${sent} sent, ${failed} failed, ${skipped} skipped`);
   for (const e of entries) {
     if (e.outcome === 'skipped') {
       console.log('skipped (already known)', e.title, e.body, e.item);
