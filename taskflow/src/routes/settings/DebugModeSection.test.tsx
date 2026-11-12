@@ -9,6 +9,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAuthStore } from '../../stores/auth.store';
 import { useOnboardingStore } from '../../stores/onboarding.store';
+import { useSettingsStore } from '../../stores/settings.store';
 import DebugModeSection from './DebugModeSection';
 
 vi.mock('@/services/stronghold', () => ({
@@ -49,11 +50,15 @@ describe('DebugModeSection reset wizard', () => {
       activeJiraProject: 'PROJ',
       jiraBoardIds: { PROJ: 42, OTHER: 7 },
     } as never);
+    const before = useSettingsStore.getState().onboardingComplete;
     await runWizardReset();
     const s = useOnboardingStore.getState();
     expect(s.jiraBoardId).toBe(42);
     expect(s.jiraBoards).toEqual([]);
     expect(s.jiraProject).toBe('PROJ');
+    expect(s.rerunActive).toBe(true);
+    expect(s.step).toBe(0);
+    expect(useSettingsStore.getState().onboardingComplete).toBe(before);
   });
 
   it('seeds null when no board is saved for the project', async () => {

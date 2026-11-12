@@ -35,6 +35,7 @@ import { WhatsNewDialog } from './components/update/WhatsNewDialog';
 import { useNotificationPolling } from './hooks/useNotificationPolling';
 import { useUpdatePolling } from './hooks/useUpdatePolling';
 import { useVersionPolicyCheck } from './hooks/useVersionPolicyCheck';
+import { useWizardRerunCheck } from './hooks/useWizardRerunCheck';
 import { type FindScopeKind, resolveFindScope } from './lib/find-in-page';
 import { ParentCompletionHost } from './routes/dashboard/CompleteParentDialog';
 import {
@@ -685,6 +686,7 @@ function AppLayout() {
   // Notification polling — runs inside QueryClientProvider context
   useNotificationPolling();
   useUpdatePolling();
+  useWizardRerunCheck();
   useCustomFieldDiscovery();
 
   if (!onboardingComplete || rerunActive) {

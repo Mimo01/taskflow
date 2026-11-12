@@ -27,11 +27,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { startWizardRerun } from '@/lib/onboarding-rerun';
 import { clearAvatarCache } from '../../services/avatarCache';
-import { readSecret, removeSecret } from '../../services/stronghold';
+import { removeSecret } from '../../services/stronghold';
 import { useAuthStore } from '../../stores/auth.store';
 import { useNotificationsStore } from '../../stores/notifications.store';
-import { useOnboardingStore } from '../../stores/onboarding.store';
 import { useSettingsStore } from '../../stores/settings.store';
 
 const RETENTION_OPTIONS = ['50', '100', '200', '500', '1000'] as const;
@@ -57,13 +57,6 @@ export default function DebugModeSection() {
   const clearAll = useNotificationsStore((s) => s.clearAll);
   const itemCount = useNotificationsStore((s) => s.items.length);
   const resetSettings = useSettingsStore((s) => s.resetSettings);
-  const setOnboardingComplete = useSettingsStore((s) => s.setOnboardingComplete);
-  const jiraBaseUrl = useAuthStore((s) => s.jiraBaseUrl);
-  const gitlabBaseUrl = useAuthStore((s) => s.gitlabBaseUrl);
-  const activeJiraProject = useAuthStore((s) => s.activeJiraProject);
-  const jiraBoardIds = useAuthStore((s) => s.jiraBoardIds);
-  const activeGitlabProject = useAuthStore((s) => s.activeGitlabProject);
-  const setWizardState = useOnboardingStore((s) => s.set);
   const [cleared, setCleared] = useState(false);
   const [cacheCleared, setCacheCleared] = useState(false);
   const [resetDone, setResetDone] = useState<null | 'preferences' | 'all'>(null);
@@ -82,29 +75,7 @@ export default function DebugModeSection() {
   }
 
   async function handleResetWizard() {
-    const [jiraToken, gitlabToken] = await Promise.all([
-      readSecret('jira-pat').catch(() => ''),
-      readSecret('gitlab-pat').catch(() => ''),
-    ]);
-    setWizardState({
-      step: 0,
-      jiraUrl: jiraBaseUrl ?? '',
-      jiraToken,
-      jiraProject: activeJiraProject,
-      jiraProjects: [],
-      // Seed the saved board so BoardPicker shows it pre-selected and a
-      // multi-board project doesn't gate Continue (261112-lyx).
-      jiraBoards: [],
-      jiraBoardId: activeJiraProject ? (jiraBoardIds[activeJiraProject] ?? null) : null,
-      jiraValidated: false,
-      gitlabUrl: gitlabBaseUrl ?? '',
-      gitlabToken,
-      gitlabProject: activeGitlabProject,
-      gitlabProjects: [],
-      gitlabValidated: false,
-      integrationsVisited: false,
-    });
-    setOnboardingComplete(false);
+    await startWizardRerun(0);
     navigate('/');
   }
 
