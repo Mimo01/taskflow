@@ -19,7 +19,7 @@ export function SubtaskCreateControl({ onAdd, onBulk }: { onAdd: () => void; onB
         type="button"
         variant="outline"
         size="sm"
-        className="gap-1.5 rounded-r-none border-r-0 text-xs"
+        className="relative gap-1.5 rounded-r-none border-r-0 text-xs focus-visible:z-10"
         onClick={onAdd}
       >
         <Plus className="size-3.5" />
@@ -32,7 +32,7 @@ export function SubtaskCreateControl({ onAdd, onBulk }: { onAdd: () => void; onB
               type="button"
               variant="outline"
               size="icon-sm"
-              className="rounded-l-none"
+              className="relative rounded-l-none focus-visible:z-10"
               aria-label="More subtask actions"
               title="More subtask actions"
             />
