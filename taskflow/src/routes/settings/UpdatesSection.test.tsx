@@ -8,6 +8,12 @@ vi.mock('@/lib/build-info', () => ({
   buildInfo: { version: '1.6.0', commitSha: 'abc1234', buildDate: '2026-03-24' },
 }));
 
+// Fixture versions must not be swapped for the shipped CHANGELOG.md notes
+vi.mock('@/lib/release-notes/bundled', () => ({
+  withBundledNotes: <T,>(releases: T[]) => releases,
+  bundledNotesFor: () => null,
+}));
+
 // Mock settings store
 const mockSettingsStore = {
   updateCheckInterval: 6 as 1 | 6 | 12 | 24 | 'manual',

@@ -223,7 +223,7 @@ Duplicate subtask templates and drag-and-drop attachments.
 
 ## [1.14.6] — 2026-10-05
 
-Wiki rendering fixes.
+Jira text renders more faithfully.
 
 ### Fixed
 - Underscores inside words stay literal, no stray backticks
@@ -317,7 +317,7 @@ Releases gain branch, milestone and drift tools.
 
 ## [1.13.5] — 2026-08-04
 
-Small issue detail additions.
+Handy additions on issue detail.
 
 ### New
 - **Deployment package** field
@@ -487,14 +487,14 @@ Faster boards and richer releases.
 
 ## [1.10.4] — 2026-05-28
 
-Worklog editing polish.
+Cleaner worklog editing.
 
 ### Fixed
 - Worklog actions on hover, Delete deletes, unclipped edit form
 
 ## [1.10.3] — 2026-05-26
 
-Wiki and Worklogs fixes.
+Better Jira text rendering and clickable worklog keys.
 
 ### Fixed
 - Wiki monospace links, dividers and lists after quotes
@@ -557,7 +557,7 @@ Tempo worklogs and a new dashboard.
 
 ## [1.8.1] — 2026-05-19
 
-Issue flagging.
+Flag issues from anywhere.
 
 ### New
 - **Flag issues** from the board, backlog and detail
@@ -585,10 +585,10 @@ AIO Test Management integration.
 
 ## [1.7.3] — 2026-05-10
 
-Updater restart fix.
+Updates restart the app properly.
 
 ### Fixed
-- Restart after an update, build fixes
+- **Restart after updating** — the app reopens on its own
 
 ## [1.7.2] — 2026-05-10
 
@@ -605,17 +605,17 @@ Resizable sidebars and debugging tools.
 
 ## [1.7.1] — 2026-04-06
 
-Update delivery fixes.
+Updates install and relaunch reliably.
 
 ### Fixed
 - Relaunch after installing an update, update builds
 
 ## [1.7.0] — 2026-04-06
 
-Maintenance release.
+Maintenance release with no visible changes.
 
 ### Improved
-- **Milestone wrap-up**
+- **Behind-the-scenes clean-up** ahead of 1.7.1
 
 ## [1.7] — 2026-04-05
 
@@ -632,7 +632,7 @@ Every view feels instant.
 
 ## [1.6.3] — 2026-03-29
 
-Update dialog polish.
+Roomier update dialogs and a fixed restart.
 
 ### Improved
 - **Wider update dialogs**
@@ -642,27 +642,35 @@ Update dialog polish.
 
 ## [1.6.2] — 2026-03-29
 
-Clipboard fix.
+Copy and paste work everywhere on macOS.
 
 ### Fixed
 - Copy and paste shortcuts on macOS, duplicate OS notifications
 
 ## [1.6.1] — 2026-03-26
 
-Minor fixes.
+Smoother board scrolling and a sound for notifications.
 
 ### Fixed
 - Sticky swimlane headers, notification sound
 
-## [1.6] — 2026-03-26
+## [1.6.0] — 2026-03-26
 
 Taskflow can now update itself.
 
 ### New
-- **Automatic updates** with configurable checks
-- **What's new** after updating
-- **About dialog**
+- **Automatic updates** — checked on a schedule you choose
+- **Update dialog** — release notes and download progress
+- **What's new** after each update
 - **Release history** in Settings
+- **About dialog** in the app menu
+
+## [0.1.0] — 2026-03-25
+
+A test build for the new update pipeline.
+
+### New
+- **Signed builds** for macOS, Linux and Windows
 
 ## [1.5] — 2026-03-24
 
@@ -682,15 +690,14 @@ Deep Jira features and a customizable layout.
 
 ## [1.4] — 2026-03-20
 
-A healthier codebase.
+Faster lists and a sturdier app under the hood.
 
 ### New
-- **Developer Tools** page
-- **Faster long lists**
+- **Developer Tools** — request log and timing waterfall
 
 ### Improved
-- **Accessibility labels**
-- **Dependency updates**
+- **Faster long lists** — backlog, board and notifications
+- **Accessibility** labels on inputs and menus
 
 ## [1.3] — 2026-03-19
 

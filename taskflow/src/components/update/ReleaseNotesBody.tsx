@@ -11,6 +11,7 @@ import { ChevronRight } from 'lucide-react';
 import { type ComponentPropsWithoutRef, useMemo, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { Badge } from '@/components/ui/badge';
 import { openExternal } from '@/lib/openExternal';
 import {
   type NoteItem,
@@ -18,6 +19,7 @@ import {
   type NoteSection,
   parseReleaseNotes,
 } from '@/lib/release-notes/parse';
+import type { ChipTone } from '@/lib/statusStyles';
 import { cn } from '@/lib/utils';
 
 const KIND_LABEL: Record<NoteKind, string | null> = {
@@ -220,11 +222,21 @@ function CollapsedFixes({ items, highlight }: { items: NoteItem[]; highlight?: s
   );
 }
 
-/** Same quiet label as the app's section headers (issue-detail SectionHeader). */
-function SectionLabel({ label }: { label: string | null }) {
+/** Tinted badge tone per section kind (the app's chip/status-pill family). */
+const KIND_TONE: Record<NoteKind, ChipTone> = {
+  new: 'blue',
+  improved: 'purple',
+  fixed: 'green',
+  removed: 'orange',
+  security: 'amber',
+  other: 'muted',
+};
+
+function SectionLabel({ kind, label }: { kind: NoteKind; label: string | null }) {
+  if (!label) return <span />;
   return (
-    <h4 className="m-0 self-start py-0.5 text-sm font-medium leading-5 text-muted-foreground">
-      {label}
+    <h4 className="m-0 self-start pt-0.5">
+      <Badge tone={KIND_TONE[kind]}>{label}</Badge>
     </h4>
   );
 }
@@ -248,7 +260,7 @@ function Section({
     // section label under the version column, items under the summary column.
     return (
       <section className="grid grid-cols-[4.5rem_minmax(0,1fr)] gap-x-3">
-        <SectionLabel label={label} />
+        <SectionLabel kind={section.kind} label={label} />
         <ul className="m-0 flex min-w-0 flex-col p-0">
           {section.items.map((it, i) => (
             // biome-ignore lint/suspicious/noArrayIndexKey: static parsed list, never reordered
