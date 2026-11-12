@@ -197,13 +197,18 @@ export function useNotificationPolling() {
       const advanceCursors = (items: typeof allItems) => {
         const jiraItems = items.filter((i) => i.source === 'jira');
         const gitlabItems = items.filter((i) => i.source === 'gitlab');
+        // Never move a cursor backwards: an edited comment is fetched by `updated` but carries
+        // its older `created`, and a regressed cursor re-reads changelog entries already shown.
         if (jiraItems.length > 0) {
           const newestJira = jiraItems.reduce((a, b) => (a.createdAt > b.createdAt ? a : b));
-          setLastSeenJiraCursor(newestJira.createdAt);
+          const prior = lastSeenJiraCursorRef.current;
+          if (!prior || newestJira.createdAt > prior) setLastSeenJiraCursor(newestJira.createdAt);
         }
         if (gitlabItems.length > 0) {
           const newestGitlab = gitlabItems.reduce((a, b) => (a.createdAt > b.createdAt ? a : b));
-          setLastSeenGitlabCursor(newestGitlab.createdAt);
+          const prior = lastSeenGitlabCursorRef.current;
+          if (!prior || newestGitlab.createdAt > prior)
+            setLastSeenGitlabCursor(newestGitlab.createdAt);
         }
       };
 

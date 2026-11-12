@@ -14,6 +14,7 @@ import {
   Eye,
   EyeOff,
   FileText,
+  Flag,
   GitBranch,
   GitMerge,
   GitPullRequest,
@@ -60,7 +61,8 @@ export type ActionKey =
   | 'closed'
   | 'reopened'
   | 'draft'
-  | 'automerge';
+  | 'automerge'
+  | 'flag';
 
 export type EventKind =
   | 'mention'
@@ -249,6 +251,7 @@ export const ACTION_STYLE: Record<ActionKey, EventStyle> = {
   reopened: action('reopened', GitPullRequest, 'green'),
   draft: action('draft', GitPullRequestDraft, 'slate'),
   automerge: action('automerge', GitMerge, 'slate'),
+  flag: action('flag', Flag, 'amber'),
 };
 
 /** Map a lower-cased change field label to its action key (undefined = no dedicated style). */
@@ -301,6 +304,9 @@ export function actionKeyForField(field: string): ActionKey | undefined {
       return 'draft';
     case 'auto-merge':
       return 'automerge';
+    case 'flagged':
+    case 'removed flag':
+      return 'flag';
     default:
       return undefined;
   }

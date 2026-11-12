@@ -111,6 +111,8 @@ async function fetchNewJiraComments(
     reporter: 'Reporter',
     duedate: 'Due Date',
     timeoriginalestimate: 'Estimate',
+    // Flag custom field: "(none) → Impediment" when flagged, "Impediment → (none)" when cleared.
+    Flagged: 'Flagged',
   };
 
   // ── Query A: issue updates (assignee / reporter / watcher) ──────────────────
@@ -173,8 +175,16 @@ async function fetchNewJiraComments(
         }
       }
       const histories = issue.changelog?.histories ?? [];
+      // Newest changelog entry read this poll. Jira Server reports `fields.updated` to the second
+      // (.000) but history `created` to the millisecond, so a cursor taken from `updated` alone
+      // sits just BEFORE the entry it came from (…:30.000 < …:30.250) and the next poll would
+      // re-read it into a new `jira-issue-{key}-{updated}` item — the same Sprint line repeated
+      // on every later edit (e.g. adding a flag). The item's createdAt (= the cursor) covers it.
+      let newestHistoryAt = '';
       for (const history of histories) {
-        if (toUtcIso(history.created) <= since) continue;
+        const historyAt = toUtcIso(history.created);
+        if (historyAt <= since) continue;
+        if (historyAt > newestHistoryAt) newestHistoryAt = historyAt;
         if (history.author?.displayName) {
           avatarCandidates.push([history.author.displayName, history.author.avatarUrls?.['48x48']]);
         }
@@ -189,13 +199,9 @@ async function fetchNewJiraComments(
             changeAuthor = changeAuthor ?? history.author.displayName;
             changeAuthorAvatar = changeAuthorAvatar ?? history.author.avatarUrls?.['48x48'];
           } else if (item.field === 'assignee') {
-            changeLines.push(
-              `Assignee: ${item.fromString || '(none)'} \u2192 ${item.toString || '(none)'}`,
-            );
-            changeAuthor = changeAuthor ?? history.author.displayName;
-            changeAuthorAvatar = changeAuthorAvatar ?? history.author.avatarUrls?.['48x48'];
-
-            // Emit separate issue-assignment notification when newly assigned to current user
+            // Newly assigned to the current user: a dedicated issue-assignment notification
+            // carries it, so the issue update must not repeat it as an "Assignee: X → me" line
+            // (one event, two cards).
             if (displayName && item.toString === displayName && item.fromString !== displayName) {
               results.push({
                 id: `jira-assign-${issue.key}-${history.created}`,
@@ -212,7 +218,13 @@ async function fetchNewJiraComments(
                 parentKey: issue.fields.parent?.key,
                 parentSummary: issue.fields.parent?.fields?.summary,
               });
+              continue;
             }
+            changeLines.push(
+              `Assignee: ${item.fromString || '(none)'} \u2192 ${item.toString || '(none)'}`,
+            );
+            changeAuthor = changeAuthor ?? history.author.displayName;
+            changeAuthorAvatar = changeAuthorAvatar ?? history.author.avatarUrls?.['48x48'];
           } else if (item.field === 'description') {
             changeLines.push(`Description: ${item.fromString ? 'updated' : 'set'}`);
             changeAuthor = changeAuthor ?? history.author.displayName;
@@ -247,7 +259,10 @@ async function fetchNewJiraComments(
         authorAvatarUrl: changeAuthorAvatar,
         bodyPreview,
         fullBody,
-        createdAt: toUtcIso(issue.fields.updated),
+        createdAt:
+          newestHistoryAt > toUtcIso(issue.fields.updated)
+            ? newestHistoryAt
+            : toUtcIso(issue.fields.updated),
         url: `${base}/browse/${issue.key}`,
         notificationType: 'issue-update',
         entityState: undefined,

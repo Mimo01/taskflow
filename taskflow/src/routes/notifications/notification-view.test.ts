@@ -904,12 +904,67 @@ describe('CR-03: merging multi-value field changes keeps every value', () => {
     expect(parts.changes?.map((c) => c.to)).toEqual(['1.0', '1.1']);
   });
 
+  it('the same change carried by two items shows once (sprint carry-over twice)', () => {
+    const sp = { field: 'sprint', from: 'S194', to: 'S194, S195' };
+    expect(mergeChanges([[sp], [{ ...sp }], [{ ...sp }]])).toEqual([sp]);
+  });
+
+  it('a value flipped back and forth still nets to the last change', () => {
+    expect(
+      mergeChanges([
+        [{ field: 'priority', from: 'Low', to: 'High' }],
+        [{ field: 'priority', from: 'High', to: 'Low' }],
+        [{ field: 'priority', from: 'Low', to: 'High' }],
+      ]),
+    ).toEqual([{ field: 'priority', from: 'Low', to: 'High' }]);
+  });
+
   it('GitLab: two "Assigned" notes keep both assignees', () => {
     const out = mergeChanges([
       [{ field: 'assignee', to: 'ana', action: 'assignee' }],
       [{ field: 'assignee', to: 'ben', action: 'assignee' }],
     ]);
     expect(out.map((c) => c.to)).toEqual(['ana', 'ben']);
+  });
+});
+
+describe('Jira flag changes', () => {
+  const upd = (id: string, min: number, body: string): NotificationItem =>
+    jira(id, 'PROJ-9', local(10, 10, 12, min), {
+      author: 'Cara Doe',
+      notificationType: 'issue-update',
+      bodyPreview: body,
+    });
+
+  it('parses flag / unflag as phrases, not the Impediment value', () => {
+    expect(parseChangeLines('Flagged: (none) \u2192 Impediment')).toEqual([
+      { field: 'flagged', action: 'flag' },
+    ]);
+    expect(parseChangeLines('Flagged: Impediment \u2192 (none)')).toEqual([
+      { field: 'removed flag', action: 'flag' },
+    ]);
+  });
+
+  it('a single flag reads "flagged" and is a changes item', () => {
+    const item = upd('f1', 0, 'Flagged: (none) \u2192 Impediment');
+    expect(mergeCategory(item)).toBe('changes');
+    expect(describeEventParts(item).verb).toBe('flagged');
+  });
+
+  it('sprint + flag merge into one card with both changes', () => {
+    const parts = describeEntryParts([
+      upd('f2', 10, 'Flagged: (none) \u2192 Impediment'),
+      upd('f1', 0, 'Sprint: S194 \u2192 S194, S195'),
+    ]);
+    expect(parts.changes?.map((c) => c.field)).toEqual(['sprint', 'flagged']);
+  });
+
+  it('flag then unflag nets out; unflag then flag nets out', () => {
+    const f = { field: 'flagged', action: 'flag' as const };
+    const u = { field: 'removed flag', action: 'flag' as const };
+    expect(mergeChanges([[f], [u]])).toEqual([]);
+    expect(mergeChanges([[u], [f]])).toEqual([]);
+    expect(mergeChanges([[f], [{ ...f }]])).toEqual([f]);
   });
 });
 

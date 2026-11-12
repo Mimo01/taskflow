@@ -649,6 +649,108 @@ describe('notifications service', () => {
       expect(result[0].author).toBe('Alice');
     });
 
+    it('Query A: createdAt covers the millisecond changelog time so the next poll skips it', async () => {
+      const issueUpdatesResp = {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          issues: [
+            {
+              key: 'PROJ-103',
+              fields: {
+                summary: 'Carried over',
+                updated: '2026-11-11T21:35:30.000+0100',
+              },
+              changelog: {
+                histories: [
+                  {
+                    created: '2026-11-11T21:35:30.250+0100',
+                    author: { displayName: 'Alice' },
+                    items: [{ field: 'Sprint', fromString: 'S194', toString: 'S194, S195' }],
+                  },
+                ],
+              },
+            },
+          ],
+        }),
+      };
+      const empty = { ok: true, status: 200, json: async () => ({ issues: [] }) };
+      vi.mocked(mockFetch)
+        .mockResolvedValueOnce(issueUpdatesResp as unknown as Response)
+        .mockResolvedValueOnce(empty as unknown as Response)
+        .mockResolvedValueOnce(empty as unknown as Response)
+        .mockResolvedValueOnce(empty as unknown as Response);
+
+      const result = await fetchNewNotifications(
+        'https://jira.example.com',
+        null,
+        { jira: 'jira-token', gitlab: null },
+        {
+          activeJiraProject: 'PROJ',
+          jiraUserDisplayName: 'John Doe',
+          jiraUsername: 'jdoe',
+          gitlabUserId: null,
+          gitlabUsername: null,
+          mrList: [],
+          lastSeenJiraCursor: '2026-11-11T09:00:00.000Z',
+          lastSeenGitlabCursor: null,
+        },
+      );
+
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe('jira-issue-PROJ-103-2026-11-11T21:35:30.000+0100');
+      expect(result[0].createdAt).toBe('2026-11-11T20:35:30.250Z');
+    });
+
+    it('Query A: a flag change produces a Flagged line', async () => {
+      const resp = {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          issues: [
+            {
+              key: 'PROJ-104',
+              fields: { summary: 'Blocked', updated: '2026-11-12T08:48:02.000+0100' },
+              changelog: {
+                histories: [
+                  {
+                    created: '2026-11-12T08:48:02.100+0100',
+                    author: { displayName: 'Alice' },
+                    items: [{ field: 'Flagged', fromString: null, toString: 'Impediment' }],
+                  },
+                ],
+              },
+            },
+          ],
+        }),
+      };
+      const empty = { ok: true, status: 200, json: async () => ({ issues: [] }) };
+      vi.mocked(mockFetch)
+        .mockResolvedValueOnce(resp as unknown as Response)
+        .mockResolvedValueOnce(empty as unknown as Response)
+        .mockResolvedValueOnce(empty as unknown as Response)
+        .mockResolvedValueOnce(empty as unknown as Response);
+
+      const result = await fetchNewNotifications(
+        'https://jira.example.com',
+        null,
+        { jira: 'jira-token', gitlab: null },
+        {
+          activeJiraProject: 'PROJ',
+          jiraUserDisplayName: 'John Doe',
+          jiraUsername: 'jdoe',
+          gitlabUserId: null,
+          gitlabUsername: null,
+          mrList: [],
+          lastSeenJiraCursor: '2026-11-11T09:00:00.000Z',
+          lastSeenGitlabCursor: null,
+        },
+      );
+
+      expect(result).toHaveLength(1);
+      expect(result[0].fullBody).toBe('Flagged: (none) \u2192 Impediment');
+    });
+
     it('filters out self: Query A — self-assignment (user assigns themselves) is skipped', async () => {
       const issueUpdatesResp = {
         ok: true,
@@ -757,6 +859,67 @@ describe('notifications service', () => {
       );
 
       expect(result.filter((r) => r.id.startsWith('jira-assign-'))).toHaveLength(1);
+      // The assignment card alone carries it — no second "Assignee: … → John Doe" update card.
+      expect(result.filter((r) => r.id.startsWith('jira-issue-'))).toHaveLength(0);
+    });
+
+    it('Query A: assignment alongside another change keeps only the other change on the update', async () => {
+      const issueUpdatesResp = {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          issues: [
+            {
+              key: 'PROJ-103',
+              fields: {
+                summary: 'Assigned by Alice',
+                status: { name: 'To Do' },
+                assignee: { displayName: 'John Doe' },
+                reporter: { displayName: 'Alice' },
+                updated: '2026-03-12T10:00:00.000Z',
+              },
+              changelog: {
+                histories: [
+                  {
+                    created: '2026-03-12T10:00:00.000Z',
+                    author: { displayName: 'Alice' }, // someone else assigns
+                    items: [
+                      { field: 'assignee', fromString: null, toString: 'John Doe' },
+                      { field: 'status', fromString: 'To Do', toString: 'In Progress' },
+                    ],
+                  },
+                ],
+              },
+            },
+          ],
+        }),
+      };
+      const empty = { ok: true, status: 200, json: async () => ({ issues: [] }) };
+      vi.mocked(mockFetch)
+        .mockResolvedValueOnce(issueUpdatesResp as unknown as Response)
+        .mockResolvedValueOnce(empty as unknown as Response)
+        .mockResolvedValueOnce(empty as unknown as Response)
+        .mockResolvedValueOnce(empty as unknown as Response);
+
+      const result = await fetchNewNotifications(
+        'https://jira.example.com',
+        null,
+        { jira: 'jira-token', gitlab: null },
+        {
+          activeJiraProject: 'PROJ',
+          jiraUserDisplayName: 'John Doe',
+          jiraUsername: 'jdoe',
+          gitlabUserId: null,
+          gitlabUsername: null,
+          mrList: [],
+          lastSeenJiraCursor: '2026-03-11T10:00:00.000Z',
+          lastSeenGitlabCursor: '2026-03-11T10:00:00.000Z',
+        },
+      );
+
+      expect(result.filter((r) => r.id.startsWith('jira-assign-'))).toHaveLength(1);
+      const update = result.find((r) => r.id.startsWith('jira-issue-'));
+      expect(update?.fullBody).toBe('Status: To Do \u2192 In Progress');
     });
 
     it('filters out self: Query C — self comment skipped via displayName', async () => {

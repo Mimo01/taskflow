@@ -353,6 +353,11 @@ export function parseChangeLines(body: string): ChangeLine[] {
       let act = actionKeyForField(field);
       if (field === 'assignee' && !toV) act = 'unassigned';
       const fromV = from && from !== NONE ? from : undefined;
+      // The flag value is always "Impediment": the event is the phrase ("flagged", like "merged").
+      if (field === 'flagged') {
+        if (toV || fromV) out.push({ field: toV ? 'flagged' : 'removed flag', action: 'flag' });
+        continue;
+      }
       if (field === 'labels') {
         const diff = labelDiff(fromV, toV);
         if (diff) {
@@ -668,6 +673,8 @@ export function mergeChanges(chronological: ChangeLine[][]): ChangeLine[] {
   const fieldDiffs = new Map<string, string[]>();
   const labels = new Map<string, number>();
   const labelOrder: string[] = [];
+  /** Net flag state over the merged window: flag then unflag cancels out. */
+  let flagNet = 0;
   const other = new Map<string, ChangeLine>();
   const order: string[] = [];
   for (const list of chronological) {
@@ -680,10 +687,23 @@ export function mergeChanges(chronological: ChangeLine[][]): ChangeLine[] {
         }
         continue;
       }
+      if (c.action === 'flag') {
+        if (!order.includes('flag')) order.push('flag');
+        flagNet = Math.max(-1, Math.min(1, flagNet + (c.field === 'flagged' ? 1 : -1)));
+        continue;
+      }
       const isDiff = !c.text && (c.from !== undefined || c.to !== undefined);
       const reviewish = c.action === 'review' || c.action === 'unreview';
       if (isDiff && !reviewish) {
         const keys = fieldDiffs.get(c.field) ?? [];
+        // The same change twice (one changelog entry carried by two polled items) is one change.
+        if (
+          keys.some((k) => {
+            const d = diffs.get(k);
+            return d?.from === c.from && d?.to === c.to;
+          })
+        )
+          continue;
         // Extend the most recent line of this field whose new value is this change's old value.
         let key = [...keys].reverse().find((k) => diffs.get(k)?.to === c.from);
         if (!key) {
@@ -710,6 +730,9 @@ export function mergeChanges(chronological: ChangeLine[][]): ChangeLine[] {
         .filter((n) => (labels.get(n) ?? 0) !== 0)
         .map((n) => ((labels.get(n) ?? 0) > 0 ? `+${n}` : `\u2212${n}`));
       if (parts.length > 0) out.push({ field: 'labels', text: parts.join(' '), action: 'labels' });
+    } else if (key === 'flag') {
+      if (flagNet !== 0)
+        out.push({ field: flagNet > 0 ? 'flagged' : 'removed flag', action: 'flag' });
     } else if (key.startsWith('d:')) {
       const c = diffs.get(key.slice(2));
       if (c && c.from !== c.to) out.push(c);

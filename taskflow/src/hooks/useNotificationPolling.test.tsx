@@ -114,4 +114,16 @@ describe('useNotificationPolling banners', () => {
     expect(useNotificationsStore.getState().items.map((i) => i.id)).toEqual(['new-1']);
     expect(useNotificationBanners.getState().ids).toEqual(['new-1']);
   });
+
+  it('never moves the Jira cursor backwards (edited comment keeps its older created)', async () => {
+    act(() => {
+      useNotificationsStore.setState({ lastSeenJiraCursor: '2026-11-11T09:00:00.000Z' } as never);
+    });
+    fetchNew.mockResolvedValueOnce([
+      { ...item('edited-1'), createdAt: '2026-11-10T08:00:00.000Z' },
+    ]);
+    renderHook(() => useNotificationPolling(), { wrapper });
+    await waitFor(() => expect(useNotificationsStore.getState().items.length).toBe(1));
+    expect(useNotificationsStore.getState().lastSeenJiraCursor).toBe('2026-11-11T09:00:00.000Z');
+  });
 });
