@@ -54,7 +54,7 @@ export function UpdateDialog() {
   // Skipped-releases roll-up: only while the notice is showing, never in dev
   // builds, and never blocking — loading/error just means local notes only.
   const rollupEnabled =
-    status === 'available' &&
+    (status === 'available' || status === 'downloading') &&
     !buildInfo.version.includes('-dev') &&
     validate(buildInfo.version) &&
     !!availableVersion &&
@@ -104,59 +104,61 @@ export function UpdateDialog() {
         {(status === 'available' || status === 'downloading') && (
           <>
             <DialogHeader>
-              <DialogTitle>Update available</DialogTitle>
-              <DialogDescription>
-                {buildInfo.version} &rarr; {availableVersion}
+              <DialogTitle>Taskflow {availableVersion} is available</DialogTitle>
+              <DialogDescription className="tabular-nums">
+                You&apos;re on {buildInfo.version}
                 {releaseDate &&
-                  ` · ${new Date(releaseDate).toLocaleDateString('en-US', {
+                  ` · released ${new Date(releaseDate).toLocaleDateString('en-US', {
                     month: 'short',
                     day: 'numeric',
                     year: 'numeric',
                   })}`}
-                {skipped.length > 0 && ` (${skipped.length + 1} releases)`}
+                {skipped.length > 0 && ` · ${skipped.length + 1} releases`}
               </DialogDescription>
             </DialogHeader>
-            <div className="flex max-h-[60vh] flex-col gap-4 overflow-y-auto">
-              <ReleaseNotesBody notes={changelog} />
+            <div className="-mx-2 flex max-h-[60vh] flex-col gap-5 overflow-y-auto px-2">
+              <ReleaseNotesBody notes={changelog} details />
               <ReleaseRollup releases={skipped} />
             </div>
-            {status === 'available' ? (
-              <DialogFooter>
-                <Button variant="outline" onClick={resetToIdle}>
-                  Later
-                </Button>
-                <Button variant="default" onClick={handleUpdateNow}>
-                  Update now
-                </Button>
-              </DialogFooter>
-            ) : (
-              <div className="flex flex-col gap-1">
-                <div
-                  className="w-full bg-muted rounded-full h-2"
-                  role="progressbar"
-                  aria-label="Downloading update"
-                  aria-valuenow={downloadProgress ?? 0}
-                  aria-valuemin={0}
-                  aria-valuemax={100}
-                >
+            <DialogFooter>
+              {status === 'available' ? (
+                <>
+                  <Button variant="outline" onClick={resetToIdle}>
+                    Later
+                  </Button>
+                  <Button variant="default" onClick={handleUpdateNow}>
+                    Update now
+                  </Button>
+                </>
+              ) : (
+                <div className="flex w-full items-center gap-3">
                   <div
-                    className="bg-primary h-2 rounded-full transition-all duration-200"
-                    style={{ width: `${downloadProgress ?? 0}%` }}
-                  />
+                    className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted"
+                    role="progressbar"
+                    aria-label="Downloading update"
+                    aria-valuenow={downloadProgress ?? 0}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                  >
+                    <div
+                      className="h-full rounded-full bg-primary transition-all duration-200"
+                      style={{ width: `${downloadProgress ?? 0}%` }}
+                    />
+                  </div>
+                  <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+                    Downloading… {downloadProgress ?? 0}%
+                  </span>
                 </div>
-                <p className="text-xs text-muted-foreground text-right">
-                  Downloading update… {downloadProgress ?? 0}%
-                </p>
-              </div>
-            )}
+              )}
+            </DialogFooter>
           </>
         )}
 
         {status === 'error' && (
           <>
             <DialogHeader>
-              <DialogTitle>Download Failed</DialogTitle>
-              <DialogDescription className="text-destructive">
+              <DialogTitle>Update failed</DialogTitle>
+              <DialogDescription>
                 {errorMessage ?? 'Download failed. Check your connection and try again.'}
               </DialogDescription>
             </DialogHeader>
@@ -164,8 +166,8 @@ export function UpdateDialog() {
               <Button variant="outline" onClick={resetToIdle}>
                 Dismiss
               </Button>
-              <Button variant="destructive" onClick={handleUpdateNow}>
-                Retry
+              <Button variant="default" onClick={handleUpdateNow}>
+                Try again
               </Button>
             </DialogFooter>
           </>

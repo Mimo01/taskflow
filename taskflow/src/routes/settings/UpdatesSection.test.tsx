@@ -180,19 +180,20 @@ describe('UpdatesSection', () => {
     expect(screen.getAllByText('Installed')).toHaveLength(1);
   });
 
-  it('loads every page via the Link header and shows the latest 8 until asked', async () => {
+  it('loads every page via the Link header and shows the latest 15 until asked', async () => {
     const first = Array.from({ length: 13 }, (_, i) => release(`v1.6.${12 - i}`, `Notes ${i}.`));
     const second = Array.from({ length: 13 }, (_, i) => release(`v1.3.${12 - i}`, `Old ${i}.`));
     mockFetch
       .mockResolvedValueOnce(page(first, '<https://api.example/page2>; rel="next"'))
       .mockResolvedValueOnce(page(second));
     renderWithQuery(<UpdatesSection />);
-    const more = await screen.findByRole('button', { name: /show older versions \(18\)/i });
+    const more = await screen.findByRole('button', { name: /show older versions \(11\)/i });
     expect(mockFetch).toHaveBeenCalledTimes(2);
     expect(row('1.6.12')).toBeInTheDocument();
-    expect(row('1.6.4')).not.toBeInTheDocument();
+    expect(row('1.3.11')).toBeInTheDocument();
+    expect(row('1.3.10')).not.toBeInTheDocument();
     fireEvent.click(more);
-    expect(row('1.6.4')).toBeInTheDocument();
+    expect(row('1.3.10')).toBeInTheDocument();
     expect(row('1.3.0')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /show older versions/i })).not.toBeInTheDocument();
   });

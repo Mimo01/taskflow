@@ -60,17 +60,24 @@ export function WhatsNewDialog() {
       <DialogContent showCloseButton={false} className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <CircleCheck aria-hidden="true" className="size-5 text-green-500" />
-            Updated to {buildInfo.version}
+            <CircleCheck aria-hidden="true" className="size-5 text-green-600 dark:text-green-400" />
+            You&apos;re on Taskflow {buildInfo.version}
           </DialogTitle>
-          {fromVersion && <DialogDescription>from {fromVersion}</DialogDescription>}
+          {fromVersion && (
+            <DialogDescription className="tabular-nums">
+              Updated from {fromVersion}
+            </DialogDescription>
+          )}
         </DialogHeader>
-        <div className="flex max-h-[60vh] flex-col gap-4 overflow-y-auto">
-          <ReleaseNotesBody notes={bundledNotesFor(buildInfo.version) ?? lastSeenChangelog} />
+        <div className="-mx-2 flex max-h-[60vh] flex-col gap-5 overflow-y-auto px-2">
+          <ReleaseNotesBody
+            notes={bundledNotesFor(buildInfo.version) ?? lastSeenChangelog}
+            details
+          />
           <ReleaseRollup releases={skipped} />
         </div>
         <DialogFooter>
-          <Button variant="link" onClick={handleSeeAll}>
+          <Button variant="ghost" onClick={handleSeeAll}>
             See all updates
           </Button>
           <Button variant="default" onClick={handleDismiss}>

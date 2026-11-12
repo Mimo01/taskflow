@@ -23,11 +23,10 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ReleaseNotesBody } from '@/components/update/ReleaseNotesBody';
+import { ReleaseRow } from '@/components/update/ReleaseRow';
 import { useReleaseHistory } from '@/hooks/useReleaseHistory';
 import { buildInfo } from '@/lib/build-info';
 import { parseReleaseNotes, summarizeNotes } from '@/lib/release-notes/parse';
-import { cn } from '@/lib/utils';
 import type { ReleaseEntry } from '@/services/releases';
 import { updaterService } from '@/services/updater';
 import { useDebugLogStore } from '@/stores/debug-log.store';
@@ -73,82 +72,7 @@ function minorKey(version: string): string {
 }
 
 /** Releases shown before "Show older versions". */
-const INITIAL_VISIBLE = 8;
-
-function shortDate(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return '';
-  const sameYear = d.getFullYear() === new Date().getFullYear();
-  return d.toLocaleDateString('en', {
-    month: 'short',
-    day: 'numeric',
-    ...(sameYear ? {} : { year: 'numeric' }),
-  });
-}
-
-/** Shared column grid: version | summary | date. Notes indent to the summary column. */
-const ROW_GRID = 'grid grid-cols-[4.5rem_minmax(0,1fr)_auto] items-center gap-x-3';
-
-function ReleaseRow({
-  item,
-  installed,
-  open,
-  onToggle,
-}: {
-  item: ParsedRelease;
-  installed: boolean;
-  open: boolean;
-  onToggle: () => void;
-}) {
-  const { release, summary } = item;
-  const plainSummary = summary?.replace(/\*\*|`/g, '') ?? '';
-  return (
-    <li
-      className={cn(
-        'list-none',
-        // Opened release: its own bordered card, spaced off its neighbours.
-        open && 'my-2 rounded-lg border border-border bg-muted/40',
-      )}
-    >
-      <button
-        type="button"
-        aria-expanded={open}
-        onClick={onToggle}
-        className={cn(
-          ROW_GRID,
-          'h-9 w-full rounded-lg px-2 text-left text-sm',
-          !open && 'hover:bg-muted/50',
-        )}
-      >
-        <span className="flex items-center gap-1.5 font-medium tabular-nums">
-          {release.version}
-          {installed && (
-            <span
-              title="Installed"
-              className="size-1.5 shrink-0 rounded-full bg-primary"
-              aria-hidden="true"
-            />
-          )}
-          {installed && <span className="sr-only">Installed</span>}
-        </span>
-        <span
-          className={cn('truncate', open ? 'text-foreground' : 'text-muted-foreground')}
-          title={plainSummary}
-        >
-          {plainSummary}
-        </span>
-        <span className="whitespace-nowrap text-xs text-muted-foreground tabular-nums">
-          {release.publishedAt ? shortDate(release.publishedAt) : ''}
-        </span>
-      </button>
-      {open && (
-        <div className="px-2 pb-3 pt-1">
-          <ReleaseNotesBody notes={release.body} details hideHeadline compact />
-        </div>
-      )}
-    </li>
-  );
-}
+const INITIAL_VISIBLE = 15;
 
 function VersionHistory() {
   const { data: releases, isLoading, isError, refetch } = useReleaseHistory();
@@ -225,7 +149,8 @@ function VersionHistory() {
             {items.map((item) => (
               <ReleaseRow
                 key={item.release.version}
-                item={item}
+                release={item.release}
+                summary={item.summary}
                 installed={item.release.version === buildInfo.version}
                 open={releaseToggles[item.release.version] ?? false}
                 onToggle={() =>

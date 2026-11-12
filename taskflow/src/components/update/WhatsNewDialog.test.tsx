@@ -71,7 +71,7 @@ describe('WhatsNewDialog', () => {
       lastSeenChangelog: '## v2.0\n- New feature',
     } as SettingsState);
     renderDialog();
-    expect(screen.getByText('Updated to 1.5.0')).toBeInTheDocument();
+    expect(screen.getByText("You're on Taskflow 1.5.0")).toBeInTheDocument();
     expect(screen.getByText('New feature')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Got it' })).toBeInTheDocument();
     // 'old' is not a valid version: no "from" line
@@ -91,8 +91,8 @@ describe('WhatsNewDialog', () => {
       lastSeenChangelog: 'Current.\n\n### New\n- **Big thing**',
     } as SettingsState);
     renderDialog();
-    expect(screen.getByText('from 1.2.0')).toBeInTheDocument();
-    expect(screen.getByText('Skipped releases')).toBeInTheDocument();
+    expect(screen.getByText('Updated from 1.2.0')).toBeInTheDocument();
+    expect(screen.getByText('Also included')).toBeInTheDocument();
     expect(screen.getByText('1.4.0')).toBeInTheDocument();
     expect(screen.queryByText('1.2.0')).not.toBeInTheDocument();
     expect(vi.mocked(useReleaseHistory)).toHaveBeenCalledWith({ enabled: true });

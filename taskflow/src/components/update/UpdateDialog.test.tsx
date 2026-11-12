@@ -80,8 +80,8 @@ describe('UpdateDialog', () => {
       errorMessage: null,
     });
     render(<UpdateDialog />);
-    expect(screen.getByText('Update available')).toBeInTheDocument();
-    expect(screen.getByText(/1\.0\.0 → 2\.0\.0/)).toBeInTheDocument();
+    expect(screen.getByText('Taskflow 2.0.0 is available')).toBeInTheDocument();
+    expect(screen.getByText(/You're on 1\.0\.0/)).toBeInTheDocument();
     expect(screen.getByText(/2\.0\.0/)).toBeInTheDocument();
     expect(screen.getByText(/Fix bug/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Update now' })).toBeInTheDocument();
@@ -177,8 +177,8 @@ describe('UpdateDialog', () => {
       releaseDate: '2026-02-01T00:00:00Z',
     });
     render(<UpdateDialog />);
-    expect(screen.getByText(/\(3 releases\)/)).toBeInTheDocument();
-    expect(screen.getByText('Skipped releases')).toBeInTheDocument();
+    expect(screen.getByText(/· 3 releases/)).toBeInTheDocument();
+    expect(screen.getByText('Also included')).toBeInTheDocument();
     expect(screen.getByText('1.5.0')).toBeInTheDocument();
     expect(screen.getByText('1.2.0')).toBeInTheDocument();
     expect(screen.queryByText('1.0.0')).not.toBeInTheDocument();
@@ -193,7 +193,7 @@ describe('UpdateDialog', () => {
     });
     render(<UpdateDialog />);
     expect(screen.getByText('Big thing')).toBeInTheDocument();
-    expect(screen.queryByText('Skipped releases')).not.toBeInTheDocument();
+    expect(screen.queryByText('Also included')).not.toBeInTheDocument();
     expect(screen.queryByText(/releases\)/)).not.toBeInTheDocument();
   });
 
@@ -207,9 +207,9 @@ describe('UpdateDialog', () => {
       errorMessage: 'Network timeout',
     });
     render(<UpdateDialog />);
-    expect(screen.getByText('Download Failed')).toBeInTheDocument();
+    expect(screen.getByText('Update failed')).toBeInTheDocument();
     expect(screen.getByText('Network timeout')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Dismiss' })).toBeInTheDocument();
   });
 
