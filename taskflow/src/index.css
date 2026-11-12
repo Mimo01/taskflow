@@ -268,6 +268,13 @@
   body {
     @apply bg-background text-foreground;
   }
+  /* Tailwind v4 dropped the pointer cursor on buttons; restore it app-wide.
+     Base layer, so explicit cursor utilities (drag handles, cursor-default
+     menu items) still win. */
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']) {
+    cursor: pointer;
+  }
   html {
     @apply font-sans;
   }
