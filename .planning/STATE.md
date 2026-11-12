@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-08-13)
 Phase: 95
 Plan: Not started
 Status: Milestone complete
-Last activity: 2026-11-12 - Completed quick task 261112-m5v: Re-run onboarding wizard on app update
+Last activity: 2026-11-12 - Completed quick task 261112-msr: Searchable selectors for active Jira project, board, GitLab project, AIO project and release management in settings and wizard
 
 ## Performance Metrics
 
@@ -295,6 +295,7 @@ Acknowledged and deferred at v1.14 milestone close (2026-08-13) — 111 open art
 | 261112-lrr | Onboarding Integrations step mounts the existing ReleaseManagementBlock (RM project picker) between AIO and Tempo; optional, never gates Continue; subtitle updated; ordering + non-gating tests | 2026-11-12 | 8a4f704c | Approved | [261112-lrr-add-release-management-setup-into-the-on](./quick/261112-lrr-add-release-management-setup-into-the-on/) |
 | 261112-lyx | Re-running the onboarding wizard pre-selects the saved Jira sprint board: handleResetWizard seeds jiraBoardId from authStore.jiraBoardIds[activeJiraProject] (+ clears jiraBoards); DebugModeSection regression tests | 2026-11-12 | 39ca82f6 | | [261112-lyx-onboarding-wizard-pre-fill-jira-sprint-b](./quick/261112-lyx-onboarding-wizard-pre-fill-jira-sprint-b/) |
 | 261112-m5v | Versioned onboarding wizard (WIZARD_VERSION + per-step `since`, lib/onboarding-rerun.ts): on launch, users who completed an older version get the wizard re-opened pre-filled at the first changed step (in-memory rerunActive); DoneStep stores onboardingVersion (settings v37 migration, pre-feature completers = v1 → land on Integrations); manual reset shares the seed helper | 2026-11-12 | 572a2d33 | Approved | [261112-m5v-re-run-onboarding-wizard-on-app-update-w](./quick/261112-m5v-re-run-onboarding-wizard-on-app-update-w/) |
+| 261112-msr | Shared SearchableSelect (Popover + cmdk, search by name + key/id, leading check, "No matches") replaces the Jira project, board, GitLab project, AIO project and RM project pickers in Settings and the wizard; listGitLabProjects/listProjectBoards now paginate past 100 | 2026-11-12 | 62c0875d | | [261112-msr-searchable-selectors-for-active-jira-pro](./quick/261112-msr-searchable-selectors-for-active-jira-pro/) |
 
 ## Session Continuity
 
