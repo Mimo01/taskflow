@@ -42,3 +42,6 @@ User wanted the log in the app's own Developer Tools page, not the browser conso
 - Rows: outcome (Sent/Denied/Error/Skipped), source badge, exact title + body, time; expand for the full item JSON.
 - Gating changed from `import.meta.env.DEV` to the Developer Tools master switch (same as Logs/Operations/Waterfall); still only recorded while Desktop notifications is on. Console group removed.
 - Commits: 37de5963 (sent/failed/skipped title, review WR-02 — superseded), 1254b818 (Developer Tools tab).
+- 748e9de3: expanded rows show a macOS-style banner preview (app icon, one-line title, 2-line body) instead of raw Title/Body blocks; raw item JSON collapsed under "Raw item". Checked via light/dark screenshots.
+
+**Status:** Approved by user after UAT (2026-11-12).
