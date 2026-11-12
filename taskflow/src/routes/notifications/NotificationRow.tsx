@@ -569,13 +569,17 @@ export default function NotificationRow({
       data-unread-card={isUnread ? 'true' : 'false'}
       className={cn(
         'group/row relative flex cursor-pointer items-start gap-3 rounded-[14px] px-3.5 py-3 text-xs transition-[translate,scale,transform,opacity,box-shadow,background-color] duration-200 ease-(--ease-out) hover:-translate-y-px active:scale-[.99] active:duration-75 density-compact:gap-2.5 density-compact:px-3 density-compact:py-2 density-comfortable:gap-3.5 density-comfortable:px-4 density-comfortable:py-3.5',
+        // A banner floats over page content, so its fill stays opaque: no read-state translucency
+        // and no peek tint (bg-primary/10 would replace bg-card and let the page bleed through).
         isBanner
           ? 'bg-card shadow-(--notif-sh-pop) hover:shadow-(--notif-sh-pop)'
-          : 'shadow-(--notif-sh-rest) hover:shadow-(--notif-sh-hover)',
-        isUnread
-          ? 'bg-card'
-          : 'bg-[color-mix(in_oklch,var(--color-card)_82%,transparent)] hover:bg-card focus-within:bg-card',
-        peeked && PEEKED_ROW_CLASS,
+          : cn(
+              'shadow-(--notif-sh-rest) hover:shadow-(--notif-sh-hover)',
+              isUnread
+                ? 'bg-card'
+                : 'bg-[color-mix(in_oklch,var(--color-card)_82%,transparent)] hover:bg-card focus-within:bg-card',
+              peeked && PEEKED_ROW_CLASS,
+            ),
       )}
       data-peeked={peeked ? 'true' : undefined}
     >

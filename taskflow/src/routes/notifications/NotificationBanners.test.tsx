@@ -3,6 +3,7 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useNotificationBanners } from '../../stores/notification-banners.store';
 import { useNotificationsStore } from '../../stores/notifications.store';
+import { usePeekStore } from '../../stores/peek.store';
 import { useSettingsStore } from '../../stores/settings.store';
 import NotificationBanners from './NotificationBanners';
 
@@ -247,5 +248,20 @@ describe('NotificationBanners', () => {
     });
     expect(useNotificationBanners.getState().ids).toEqual(['b']);
     expect(document.querySelectorAll('[data-notif-banner]')).toHaveLength(1);
+  });
+
+  // Floating over page content: the card must stay opaque even when its issue is open in the
+  // peek sidebar (PEEKED_ROW_CLASS tint) or the item is already read (82% list fill).
+  it.each([
+    ['peeked', [] as string[]],
+    ['read', ['a']],
+  ])('keeps an opaque card background when %s', (_label, readIds) => {
+    act(() => usePeekStore.setState({ peekIssueKey: 'PROJ-1' }));
+    seed(['a'], readIds);
+    setup();
+    const card = document.querySelector('[data-notif-banner] [data-card]') as HTMLElement;
+    const bgs = card.className.split(/\s+/).filter((c) => /^bg-/.test(c));
+    expect(bgs).toEqual(['bg-card']);
+    act(() => usePeekStore.setState({ peekIssueKey: null }));
   });
 });
