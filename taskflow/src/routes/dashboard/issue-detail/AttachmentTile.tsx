@@ -11,7 +11,7 @@ interface AttachmentTileProps {
   onDownload: (attachment: JiraAttachment) => void;
   onDelete?: (attachment: JiraAttachment) => void;
   onPreview?: (attachment: JiraAttachment) => void;
-  /** Shown on the meta line so non-clickable tiles say why (261112-fy2). */
+  /** Non-clickable tile: dashed, faded thumbnail + reason on the meta line (261112-fy2). */
   previewUnavailable?: PreviewUnavailable;
 }
 
@@ -50,7 +50,9 @@ export function AttachmentTile({
         />
       )}
       <div className="pointer-events-none">
-        <div className="relative aspect-[4/3] w-full rounded-md border border-border bg-muted overflow-hidden">
+        <div
+          className={`relative aspect-[4/3] w-full rounded-md border border-border overflow-hidden ${unavailable ? 'border-dashed bg-transparent' : 'bg-muted'}`}
+        >
           {isImage ? (
             <AuthImage
               {...getAttachmentImageSrc(attachment)}
@@ -58,7 +60,9 @@ export function AttachmentTile({
               className="w-full h-full object-cover"
             />
           ) : (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5">
+            <div
+              className={`absolute inset-0 flex flex-col items-center justify-center gap-1.5 ${unavailable ? 'opacity-60' : ''}`}
+            >
               <Icon className="size-[26px] text-muted-foreground" />
               {ext && (
                 <span className="font-mono text-[10px] leading-none text-muted-foreground">
@@ -73,7 +77,7 @@ export function AttachmentTile({
         <div className="mt-1.5 text-xs leading-snug min-h-[calc(2.75em+1rem)]">
           <span
             title={attachment.filename}
-            className={`line-clamp-2 [overflow-wrap:anywhere] ${onPreview ? 'group-hover:underline' : ''}`}
+            className={`line-clamp-2 [overflow-wrap:anywhere] ${onPreview ? 'group-hover:underline' : ''} ${unavailable ? 'text-muted-foreground' : ''}`}
           >
             {attachment.filename}
           </span>

@@ -115,6 +115,8 @@ describe('AttachmentTile', () => {
     const meta = screen.getByText(/No preview/);
     expect(meta.textContent).toBe('2.0 KB · No preview');
     expect(meta.getAttribute('title')).toMatch(/download to open/);
+    const thumb = screen.getByText('ZIP').parentElement?.parentElement;
+    expect(thumb?.className).toContain('border-dashed');
   });
 
   it('has no unavailable label on previewable tiles', () => {
