@@ -257,7 +257,7 @@ export function useNotificationPolling() {
             dispatchLog.push({ item, title, body, outcome: result });
           }
         }
-        if (import.meta.env.DEV) logOsDispatches(dispatchLog);
+        logOsDispatches(dispatchLog);
       } else if (allItems.length > 0) {
         // Even if all items were filtered, advance cursors so we don't refetch them
         advanceCursors(allItems);

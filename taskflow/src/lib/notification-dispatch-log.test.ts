@@ -1,4 +1,6 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { useNotificationDispatchLogStore } from '../stores/notification-dispatch-log.store';
+import { useSettingsStore } from '../stores/settings.store';
 import type { NotificationItem } from '../stores/notifications.store';
 import {
   formatOsNotification,
@@ -25,18 +27,12 @@ const entry = (outcome: OsDispatchLogEntry['outcome']): OsDispatchLogEntry => ({
   outcome,
 });
 
-afterEach(() => {
-  vi.restoreAllMocks();
-  vi.unstubAllEnvs();
+beforeEach(() => {
+  useSettingsStore.setState({ devToolsEnabled: true });
+  useNotificationDispatchLogStore.getState().clear();
 });
 
-function spies() {
-  return {
-    group: vi.spyOn(console, 'groupCollapsed').mockImplementation(() => {}),
-    log: vi.spyOn(console, 'log').mockImplementation(() => {}),
-    end: vi.spyOn(console, 'groupEnd').mockImplementation(() => {}),
-  };
-}
+const logged = () => useNotificationDispatchLogStore.getState().entries;
 
 describe('formatOsNotification', () => {
   it('formats jira and gitlab items', () => {
@@ -49,36 +45,28 @@ describe('formatOsNotification', () => {
 });
 
 describe('logOsDispatches', () => {
-  it('logs nothing for no entries', () => {
-    const s = spies();
+  it('records nothing for no entries', () => {
     logOsDispatches([]);
-    expect(s.group).not.toHaveBeenCalled();
+    expect(logged()).toEqual([]);
   });
 
-  it('logs one collapsed group with a line per entry', () => {
-    const s = spies();
-    logOsDispatches([entry('sent'), entry('sent'), entry('skipped')]);
-    expect(s.group).toHaveBeenCalledTimes(1);
-    expect(s.group).toHaveBeenCalledWith('[notifications] 2 sent, 0 failed, 1 skipped');
-    expect(s.log).toHaveBeenCalledTimes(3);
-    expect(s.end).toHaveBeenCalledTimes(1);
-    expect(s.log.mock.calls[0]).toEqual(['sent', 'T', 'B', expect.objectContaining({ id: 'n1' })]);
-    expect(s.log.mock.calls[2]?.[0]).toBe('skipped (already known)');
+  it('records each entry with outcome, exact title/body and item; newest poll first', () => {
+    logOsDispatches([entry('sent'), entry('skipped')]);
+    logOsDispatches([entry('error')]);
+    expect(logged().map((e) => e.outcome)).toEqual(['error', 'skipped', 'sent']);
+    expect(logged()[2]).toEqual(
+      expect.objectContaining({
+        title: 'T',
+        body: 'B',
+        item: expect.objectContaining({ id: 'n1' }),
+      }),
+    );
+    expect(new Set(logged().map((e) => e.id)).size).toBe(3);
   });
 
-  it('counts denied and error as failed and shows the result', () => {
-    const s = spies();
-    logOsDispatches([entry('denied'), entry('error')]);
-    expect(s.group).toHaveBeenCalledWith('[notifications] 0 sent, 2 failed, 0 skipped');
-    expect(s.log.mock.calls[0]?.[0]).toBe('denied');
-    expect(s.log.mock.calls[1]?.[0]).toBe('error');
-  });
-
-  it('logs nothing when DEV is false', () => {
-    vi.stubEnv('DEV', false);
-    const s = spies();
+  it('records nothing when Developer Tools are off', () => {
+    useSettingsStore.setState({ devToolsEnabled: false });
     logOsDispatches([entry('sent')]);
-    expect(s.group).not.toHaveBeenCalled();
-    expect(s.log).not.toHaveBeenCalled();
+    expect(logged()).toEqual([]);
   });
 });

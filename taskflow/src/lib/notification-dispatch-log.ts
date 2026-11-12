@@ -1,4 +1,6 @@
+import { useNotificationDispatchLogStore } from '../stores/notification-dispatch-log.store';
 import type { NotificationItem } from '../stores/notifications.store';
+import { useSettingsStore } from '../stores/settings.store';
 
 export type OsDispatchOutcome = 'sent' | 'denied' | 'error' | 'skipped';
 
@@ -17,21 +19,17 @@ export function formatOsNotification(item: NotificationItem): { title: string; b
   };
 }
 
-/** Dev-only: one collapsed devtools group per poll listing the OS notifications. */
+let nextLogId = 0;
+
+/**
+ * Record one poll's OS notification attempts in the Developer Tools "Notifications" tab.
+ * No-op unless the Developer Tools master switch is on.
+ */
 export function logOsDispatches(entries: OsDispatchLogEntry[]): void {
-  if (!import.meta.env.DEV) return;
   if (entries.length === 0) return;
-  const count = (o: OsDispatchOutcome) => entries.filter((e) => e.outcome === o).length;
-  const sent = count('sent');
-  const skipped = count('skipped');
-  const failed = entries.length - sent - skipped;
-  console.groupCollapsed(`[notifications] ${sent} sent, ${failed} failed, ${skipped} skipped`);
-  for (const e of entries) {
-    if (e.outcome === 'skipped') {
-      console.log('skipped (already known)', e.title, e.body, e.item);
-    } else {
-      console.log(e.outcome, e.title, e.body, e.item);
-    }
-  }
-  console.groupEnd();
+  if (!useSettingsStore.getState().devToolsEnabled) return;
+  const timestamp = new Date().toISOString();
+  useNotificationDispatchLogStore
+    .getState()
+    .append(entries.map((e) => ({ ...e, id: `os-dispatch-${++nextLogId}`, timestamp })));
 }
