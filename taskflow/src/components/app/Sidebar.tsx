@@ -100,19 +100,21 @@ export default function Sidebar() {
   const [handleHovered, setHandleHovered] = useState(false);
 
   const queryClient = useQueryClient();
-  const { jiraBaseUrl, activeJiraProject } = useAuthStore();
+  const { jiraBaseUrl, activeJiraProject, credentialsRevision } = useAuthStore();
   const epicNameFieldKey = useSettingsStore((s) => s.epicNameFieldKey);
   const epicColorFieldKey = useSettingsStore((s) => s.epicColorFieldKey);
 
-  // Load jira token for prefetch queryFn calls
+  // Load jira token for prefetch queryFn calls. The sidebar never unmounts, so
+  // credentialsRevision re-reads the PAT after a token is saved in Settings.
   const [jiraToken, setJiraToken] = useState<string | null>(null);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: credentialsRevision is a re-read trigger for a newly saved token.
   useEffect(() => {
     if (jiraBaseUrl) {
       readSecret('jira-pat')
         .then(setJiraToken)
         .catch(() => setJiraToken(null));
     }
-  }, [jiraBaseUrl]);
+  }, [jiraBaseUrl, credentialsRevision]);
 
   const prefetchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 

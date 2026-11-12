@@ -79,6 +79,14 @@ interface AuthState {
    * loading states prematurely before real store values are available.
    */
   _hasHydrated: boolean;
+  /**
+   * Bumped whenever credentials are saved in Settings. Transient — not persisted.
+   * Long-lived components that read a PAT into local state (Sidebar, global
+   * search) list it as an effect dependency so they re-read the new token
+   * instead of retrying with the expired one until an app restart.
+   */
+  credentialsRevision: number;
+  bumpCredentialsRevision: () => void;
   setJiraConnected: (connected: boolean, baseUrl?: string) => void;
   setGitlabConnected: (connected: boolean, baseUrl?: string) => void;
   setActiveJiraProject: (project: string | null) => void;
@@ -112,6 +120,9 @@ export const useAuthStore = create<AuthState>()(
     (set) => ({
       ...initialAuthState,
       _hasHydrated: false,
+      credentialsRevision: 0,
+      bumpCredentialsRevision: () =>
+        set((state) => ({ credentialsRevision: state.credentialsRevision + 1 })),
       setJiraConnected: (connected, baseUrl) =>
         set((state) => ({
           jiraConnected: connected,
@@ -149,10 +160,11 @@ export const useAuthStore = create<AuthState>()(
     {
       name: 'auth-store',
       storage: createTauriStorage('auth.json'),
-      // Exclude _hasHydrated from persistence — it is a transient runtime flag.
+      // Exclude transient runtime fields (_hasHydrated, credentialsRevision) from persistence.
       partialize: (state) => {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { _hasHydrated, ...persisted } = state as AuthState & Record<string, unknown>;
+        const { _hasHydrated, credentialsRevision, ...persisted } = state as AuthState &
+          Record<string, unknown>;
         return persisted;
       },
       onRehydrateStorage: () => (state) => {

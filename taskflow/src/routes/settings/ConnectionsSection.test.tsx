@@ -14,8 +14,9 @@ import ConnectionsSection from './ConnectionsSection';
 
 // All renders need a QueryClientProvider — ConnectionsSection calls useQueryClient
 // to invalidate active-sprint caches on a board switch (FB8-4).
+let client: QueryClient;
 function render(ui: ReactElement) {
-  const client = new QueryClient({
+  client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
   return rtlRender(<QueryClientProvider client={client}>{ui}</QueryClientProvider>);
@@ -99,6 +100,7 @@ const mockAuthStore = {
   setActiveJiraProject: vi.fn(),
   setActiveGitlabProject: vi.fn(),
   setJiraBoardId: vi.fn(),
+  bumpCredentialsRevision: vi.fn(),
 };
 
 vi.mock('@/stores/auth.store', () => ({
@@ -244,5 +246,21 @@ describe('ConnectionsSection', () => {
 
     await waitFor(() => expect(mockValidateGitLab).toHaveBeenCalled());
     expect(mockValidateGitLab.mock.calls[0][1]).toBe('typed-gl');
+  });
+
+  // Replacing an expired token must not leave the app on data/errors fetched with
+  // the old one: failed queries stay errored (gcTime: Infinity) and ['jira-pat']
+  // (staleTime: Infinity) keeps the expired PAT unless the cache is dropped.
+  it.each([
+    ['Jira', 0, /jira token/i],
+    ['GitLab', 1, /gitlab token/i],
+  ] as const)('saving a new %s token clears the query cache and bumps credentials', async (_name, idx, label) => {
+    render(<ConnectionsSection />);
+    client.setQueryData(['jira-pat'], 'expired-token');
+    fireEvent.change(screen.getByLabelText(label), { target: { value: 'fresh-token' } });
+    fireEvent.click(screen.getAllByRole('button', { name: /^save$/i })[idx]);
+
+    await waitFor(() => expect(mockAuthStore.bumpCredentialsRevision).toHaveBeenCalledTimes(1));
+    expect(client.getQueryData(['jira-pat'])).toBeUndefined();
   });
 });

@@ -518,8 +518,19 @@ export default function ConnectionsSection() {
     jiraBoardNames,
     activeGitlabProject,
     activeGitlabProjectPath,
+    bumpCredentialsRevision,
   } = useAuthStore();
   const queryClient = useQueryClient();
+
+  // Saving a connection (typically a replacement for an expired token) must drop
+  // everything fetched with the old credentials: queries that failed with 401
+  // stay errored forever (gcTime: Infinity), and ['jira-pat'] (staleTime:
+  // Infinity) would keep serving the expired token. Long-lived token holders
+  // re-read via credentialsRevision.
+  const resetAfterCredentialSave = () => {
+    queryClient.clear();
+    bumpCredentialsRevision();
+  };
 
   return (
     <div className="flex flex-col gap-6">
@@ -529,7 +540,10 @@ export default function ConnectionsSection() {
         activeProject={activeJiraProject}
         activeBoardId={activeJiraProject ? (jiraBoardIds?.[activeJiraProject] ?? null) : null}
         activeBoardName={activeJiraProject ? (jiraBoardNames?.[activeJiraProject] ?? null) : null}
-        onConnected={(url) => setJiraConnected(true, url)}
+        onConnected={(url) => {
+          setJiraConnected(true, url);
+          resetAfterCredentialSave();
+        }}
         onProjectSelected={(key) => setActiveJiraProject(key)}
         onBoardSelected={(key, boardId, boardName) => {
           setJiraBoardId(key, boardId, boardName);
@@ -542,7 +556,10 @@ export default function ConnectionsSection() {
         initialBaseUrl={gitlabBaseUrl ?? ''}
         activeProject={activeGitlabProject}
         activeProjectPath={activeGitlabProjectPath}
-        onConnected={(url) => setGitlabConnected(true, url)}
+        onConnected={(url) => {
+          setGitlabConnected(true, url);
+          resetAfterCredentialSave();
+        }}
         onProjectSelected={(id, path) => setActiveGitlabProject(id, path)}
       />
     </div>

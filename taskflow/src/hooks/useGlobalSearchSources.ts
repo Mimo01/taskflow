@@ -26,12 +26,14 @@ export function useGlobalSearchSources(open: boolean): {
 } {
   const jiraBaseUrl = useAuthStore((s) => s.jiraBaseUrl);
   const activeJiraProject = useAuthStore((s) => s.activeJiraProject);
+  const credentialsRevision = useAuthStore((s) => s.credentialsRevision);
   const [secret, setSecret] = useState<{
     baseUrl: string | null;
     token: string | null;
     read: boolean;
   }>({ baseUrl: null, token: null, read: false });
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: credentialsRevision is a re-read trigger — a token saved in Settings must replace the one held here.
   useEffect(() => {
     let cancelled = false;
     readSecret('jira-pat')
@@ -44,7 +46,7 @@ export function useGlobalSearchSources(open: boolean): {
     return () => {
       cancelled = true;
     };
-  }, [jiraBaseUrl]);
+  }, [jiraBaseUrl, credentialsRevision]);
   // WR-06: only trust a PAT read for the current instance — on the render where jiraBaseUrl
   // switches, the previous instance's token must not be sent to the new host.
   const token = secret.baseUrl === jiraBaseUrl ? secret.token : null;
