@@ -314,15 +314,15 @@ describe('ConnectionsSection token quick links', () => {
     expect(screen.getByText(/name it "Taskflow"/)).toBeInTheDocument();
   });
 
-  it('GitLab: keeps the context path and prefills the api scope', () => {
+  it('GitLab: keeps the context path and opens the fine-grained token form', () => {
     render(<ConnectionsSection />);
     typeUrl('GitLab URL', 'https://gitlab.example.com/gitlab');
     const buttons = screen.getAllByRole('button', linkName);
     fireEvent.click(buttons[buttons.length - 1]);
     const url = vi.mocked(openExternal).mock.calls[0][0];
-    expect(
-      url.startsWith('https://gitlab.example.com/gitlab/-/user_settings/personal_access_tokens'),
-    ).toBe(true);
-    expect(url).toContain('scopes=api');
+    expect(url).toBe(
+      'https://gitlab.example.com/gitlab/-/user_settings/personal_access_tokens/granular/new',
+    );
+    expect(screen.getByText('Update: Merge Request, Work Item')).toBeInTheDocument();
   });
 });

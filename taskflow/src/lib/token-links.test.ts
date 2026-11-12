@@ -1,16 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { gitlabTokenUrl, jiraTokenUrl } from './token-links';
 
-const GL = '/-/user_settings/personal_access_tokens';
+const GL = '/-/user_settings/personal_access_tokens/granular/new';
 
 describe('gitlabTokenUrl', () => {
-  it('builds a prefilled URL', () => {
-    const r = gitlabTokenUrl('https://gitlab.example.com') as string;
-    expect(r.startsWith(`https://gitlab.example.com${GL}?`)).toBe(true);
-    const p = new URL(r).searchParams;
-    expect(p.get('name')).toBe('Taskflow');
-    expect(p.get('scopes')).toBe('api');
-    expect(p.get('description')).toBeTruthy();
+  it('opens the fine-grained token form', () => {
+    expect(gitlabTokenUrl('https://gitlab.example.com')).toBe(`https://gitlab.example.com${GL}`);
   });
   it('normalises trailing slashes', () => {
     expect(gitlabTokenUrl('https://gitlab.example.com///')).toBe(
@@ -20,7 +15,7 @@ describe('gitlabTokenUrl', () => {
   });
   it('keeps a context path', () => {
     expect(gitlabTokenUrl('https://host.example.com/gitlab/')).toContain(
-      `https://host.example.com/gitlab${GL}?`,
+      `https://host.example.com/gitlab${GL}`,
     );
   });
   it('drops query and fragment, trims whitespace', () => {

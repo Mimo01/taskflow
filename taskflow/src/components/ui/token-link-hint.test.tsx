@@ -16,4 +16,13 @@ describe('TokenLinkHint', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Create a token' }));
     expect(openExternal).toHaveBeenCalledWith('https://x.example.com/t');
   });
+  it('renders detail lines as a list', () => {
+    render(
+      <TokenLinkHint url="https://x.example.com/t" hint="h" details={['Read: A', 'Use: B']} />,
+    );
+    expect(screen.getAllByRole('listitem').map((li) => li.textContent)).toEqual([
+      'Read: A',
+      'Use: B',
+    ]);
+  });
 });

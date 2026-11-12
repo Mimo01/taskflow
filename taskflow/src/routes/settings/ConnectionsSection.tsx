@@ -23,6 +23,7 @@ import { SearchableSelect } from '@/components/ui/searchable-select';
 import { TokenLinkHint } from '@/components/ui/token-link-hint';
 import {
   GITLAB_TOKEN_HINT,
+  GITLAB_TOKEN_PERMISSIONS,
   gitlabTokenUrl,
   JIRA_TOKEN_HINT,
   jiraTokenUrl,
@@ -414,7 +415,11 @@ function GitLabConnectionCard({
           onChange={(e) => handleTokenChange(e.target.value)}
           placeholder="••••••••"
         />
-        <TokenLinkHint url={gitlabTokenUrl(draftUrl)} hint={GITLAB_TOKEN_HINT} />
+        <TokenLinkHint
+          url={gitlabTokenUrl(draftUrl)}
+          hint={GITLAB_TOKEN_HINT}
+          details={GITLAB_TOKEN_PERMISSIONS}
+        />
       </div>
 
       {/* Inline test status */}

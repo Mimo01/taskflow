@@ -1,11 +1,13 @@
 /**
  * Builders for "create a personal access token" deep links.
  *
- * - GitLab scope is `api`, not `read_api`: release actions write (PUT milestone,
- *   PUT MR, POST branch, POST milestone) and would get 403 with read_api.
- * - GitLab cannot prefill expiry via URL.
+ * - GitLab opens the fine-grained token form (`…/personal_access_tokens/granular/new`,
+ *   GitLab ≥ 18.10, GA 19.2). That form reads no prefill params (only `source_token_id`
+ *   for duplicating), so the name and permissions are spelled out in the hint instead.
+ *   Every REST endpoint the app calls is covered by a fine-grained permission
+ *   (docs.gitlab.com/auth/tokens/fine_grained_access_tokens_rest/); writes need
+ *   Merge Request/Work Item Update and Branch/Work Item Create.
  * - Jira Data Center cannot prefill anything, and its PATs have no scopes.
- * - The GitLab `user_settings` path 404s on GitLab older than about 16.x; accepted.
  *
  * Both builders return null when the typed URL is not a plausible http(s) base,
  * which hides the link.
@@ -14,7 +16,14 @@ export const TOKEN_NAME = 'Taskflow';
 
 /** Hint copy shared by the wizard and Settings so both read identically. */
 export const JIRA_TOKEN_HINT = `— name it "${TOKEN_NAME}" and set an expiry (your org may cap it, 365 days by default). No permissions to pick; the token acts as you.`;
-export const GITLAB_TOKEN_HINT = `— opens with name "${TOKEN_NAME}" and the api scope prefilled; pick an expiry. If the form isn't filled in, choose Legacy token and tick api.`;
+export const GITLAB_TOKEN_HINT = `— GitLab can't prefill fine-grained tokens. Name it "${TOKEN_NAME}", allow all groups and projects you have access to, and grant:`;
+/** Fine-grained permissions covering every GitLab endpoint the app calls. */
+export const GITLAB_TOKEN_PERMISSIONS = [
+  'Read: Project, Group, Merge Request, Branch, Commit, Repository, Repository Tag, Label, Work Item, Event, User (incl. instance)',
+  'Update: Merge Request, Work Item',
+  'Create: Branch, Work Item',
+  'Use: Global Search',
+];
 
 function baseRoot(raw: string): string | null {
   try {
@@ -30,11 +39,7 @@ function baseRoot(raw: string): string | null {
 export function gitlabTokenUrl(raw: string): string | null {
   const root = baseRoot(raw);
   if (!root) return null;
-  const q = new URLSearchParams({
-    name: TOKEN_NAME,
-    description: 'Used by the Taskflow desktop app',
-  });
-  return `${root}/-/user_settings/personal_access_tokens?${q.toString()}&scopes=api`;
+  return `${root}/-/user_settings/personal_access_tokens/granular/new`;
 }
 
 export function jiraTokenUrl(raw: string): string | null {
