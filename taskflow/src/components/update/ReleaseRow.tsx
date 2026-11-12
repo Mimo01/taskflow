@@ -4,7 +4,7 @@
  * Shared by Settings → Updates and the skipped-release lists in the update dialogs.
  */
 
-import { Badge } from '@/components/ui/badge';
+import { CircleCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { ReleaseEntry } from '@/services/releases';
 import { ReleaseNotesBody } from './ReleaseNotesBody';
@@ -55,7 +55,17 @@ export function ReleaseRow({
           !open && 'hover:bg-muted/50',
         )}
       >
-        <span className="font-medium tabular-nums">{release.version}</span>
+        <span className="flex items-center gap-1 font-medium tabular-nums">
+          {release.version}
+          {installed && (
+            <CircleCheck
+              aria-label="Installed"
+              className="size-3.5 shrink-0 text-green-600 dark:text-green-400"
+            >
+              <title>Installed</title>
+            </CircleCheck>
+          )}
+        </span>
         <span
           className={cn('truncate', open ? 'text-foreground' : 'text-muted-foreground')}
           title={plainSummary}
@@ -63,19 +73,7 @@ export function ReleaseRow({
           {plainSummary}
         </span>
         <span className="flex items-center gap-2 whitespace-nowrap text-xs text-muted-foreground tabular-nums">
-          {/* The badge takes the date's slot so the summary keeps its full width. */}
-          {installed ? (
-            <Badge
-              tone="green"
-              title={release.publishedAt ? shortReleaseDate(release.publishedAt) : undefined}
-            >
-              Installed
-            </Badge>
-          ) : release.publishedAt ? (
-            shortReleaseDate(release.publishedAt)
-          ) : (
-            ''
-          )}
+          {release.publishedAt ? shortReleaseDate(release.publishedAt) : ''}
         </span>
       </button>
       {open && (

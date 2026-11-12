@@ -5,7 +5,7 @@ import { type NoteItem, parseReleaseNotes } from './parse.ts';
 
 export const LIMITS = {
   /** Must fit the one-line summary column (Settings rows, dialog rows) untruncated. */
-  headline: 62,
+  headline: 65,
   boldTitle: 50,
   detail: 70,
   plainBullet: 70,

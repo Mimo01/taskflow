@@ -64,6 +64,11 @@ describe('fetchAllReleases', () => {
     expect((await fetchAllReleases()).map((r) => r.version)).toEqual(['1.2.0', '1.1.0']);
   });
 
+  it('hides 0.x test builds', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(res([rel('v1.6.0'), rel('v0.1.0')])));
+    expect((await fetchAllReleases()).map((r) => r.version)).toEqual(['1.6.0']);
+  });
+
   it('drops unflagged semver prerelease tags', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(res([rel('v1.3.0-rc1'), rel('v1.2.0')])));
     expect((await fetchAllReleases()).map((r) => r.version)).toEqual(['1.2.0']);

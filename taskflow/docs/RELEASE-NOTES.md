@@ -33,7 +33,7 @@ One headline sentence.
 
 | Rule | Limit |
 |---|---|
-| Headline | present, one sentence, at most 62 chars (measured: fits the narrowest one-line summary column, 449px) |
+| Headline | present, one sentence, at most 65 chars (measured: widest glyph rate 7.15px/char fits the narrowest summary column, 471px) |
 | Bold-titled bullet (legacy): title | at most 50 chars |
 | Bold-titled bullet (legacy): detail | at most 70 chars, no `. ` or `;` |
 | Plain bullet (preferred) | whole bullet at most 70 chars |

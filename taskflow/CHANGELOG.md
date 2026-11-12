@@ -653,13 +653,6 @@ Taskflow now keeps itself up to date.
 - Find out what's new after each update
 - Browse past releases in Settings
 
-## [0.1.0] — 2026-03-25
-
-A test build for the new update pipeline.
-
-### New
-- Signed builds for macOS, Linux and Windows
-
 ## [1.5] — 2026-03-24
 
 Do almost everything Jira does, in a layout you control.

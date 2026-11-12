@@ -68,6 +68,8 @@ export async function fetchAllReleases(): Promise<ReleaseEntry[]> {
       const version = tag.replace(/^v/, '');
       // Strict X.Y.Z: an unflagged "1.2.3-rc1" tag must not show as a normal release.
       if (!STRICT_SEMVER.test(version) || byVersion.has(version)) continue;
+      // 0.x builds were internal update-pipeline tests, not user-facing releases.
+      if (version.startsWith('0.')) continue;
       byVersion.set(version, {
         version,
         tag,
