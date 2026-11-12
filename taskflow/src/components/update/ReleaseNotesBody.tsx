@@ -7,16 +7,7 @@
  * does not parse into bullets falls back to plain markdown.
  */
 
-import {
-  ArrowUpCircle,
-  ChevronRight,
-  type LucideIcon,
-  Minus,
-  ShieldCheck,
-  Sparkles,
-  Trash2,
-  Wrench,
-} from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 import { type ComponentPropsWithoutRef, useMemo, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -36,16 +27,6 @@ const KIND_LABEL: Record<NoteKind, string | null> = {
   removed: 'Removed',
   security: 'Security',
   other: null,
-};
-
-/** Icon + tint for the Settings history section labels. */
-const KIND_ICON: Record<NoteKind, { icon: LucideIcon; className: string }> = {
-  new: { icon: Sparkles, className: 'text-violet-500 dark:text-violet-400' },
-  improved: { icon: ArrowUpCircle, className: 'text-sky-600 dark:text-sky-400' },
-  fixed: { icon: Wrench, className: 'text-amber-600 dark:text-amber-400' },
-  removed: { icon: Trash2, className: 'text-muted-foreground' },
-  security: { icon: ShieldCheck, className: 'text-emerald-600 dark:text-emerald-400' },
-  other: { icon: Minus, className: 'text-muted-foreground' },
 };
 
 /** Fixed sections longer than this collapse into one "N fixes" row. */
@@ -239,11 +220,10 @@ function CollapsedFixes({ items, highlight }: { items: NoteItem[]; highlight?: s
   );
 }
 
-function SectionLabel({ kind, label }: { kind: NoteKind; label: string | null }) {
-  const { icon: Icon, className } = KIND_ICON[kind];
+/** Same quiet label as the app's section headers (issue-detail SectionHeader). */
+function SectionLabel({ label }: { label: string | null }) {
   return (
-    <h4 className="m-0 flex items-center gap-1.5 self-start py-0.5 text-xs font-medium leading-5 text-muted-foreground">
-      <Icon aria-hidden="true" className={cn('size-3.5 shrink-0', className)} />
+    <h4 className="m-0 self-start py-0.5 text-sm font-medium leading-5 text-muted-foreground">
       {label}
     </h4>
   );
@@ -268,7 +248,7 @@ function Section({
     // section label under the version column, items under the summary column.
     return (
       <section className="grid grid-cols-[4.5rem_minmax(0,1fr)] gap-x-3">
-        <SectionLabel kind={section.kind} label={label} />
+        <SectionLabel label={label} />
         <ul className="m-0 flex min-w-0 flex-col p-0">
           {section.items.map((it, i) => (
             // biome-ignore lint/suspicious/noArrayIndexKey: static parsed list, never reordered
