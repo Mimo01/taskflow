@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-08-13)
 Phase: 95
 Plan: Not started
 Status: Milestone complete
-Last activity: 2026-11-12 - Completed quick task 261112-l96: Epic view Add story button in Stories header
+Last activity: 2026-11-12 - Completed quick task 261112-lpa: Drop peek highlight from notification rows
 
 ## Performance Metrics
 
@@ -291,6 +291,7 @@ Acknowledged and deferred at v1.14 milestone close (2026-08-13) — 111 open art
 | 261112-fy2 | Attachment previews for more file types: application/xml, json, yaml, sql, js, shell (+xml/+json) MIMEs now preview as code/text; many more extensions (sql, ini, toml, properties, diff, xsd, kt, swift, php, cs, scss, Dockerfile, tsv, jsonl, avif, m4a…); 14 more hljs languages; text icon for textual MIMEs; UAT follow-ups: 'Too large to preview' card with size + cap (4363a970), non-previewable tiles labelled '· No preview' / '· Too large' and oversized made non-clickable (970c4f15), restyled to dashed + faded tile with the status inside the card after UAT (d5c9f027, 503d5382), final: identical tile + faint in-card reason line only; tile download busy/✓/✕ + strip message and two-click 'Delete?' confirm (ac2d8eb8) | 2026-11-12 | 43253904 | Approved | [261112-fy2-add-preview-support-for-more-file-types-](./quick/261112-fy2-add-preview-support-for-more-file-types-/) |
 | 261112-jfj | Shared EpicPicker (components/ui/epic-picker.tsx): server-side debounced search over open epics (services/jira/epics.ts, ['jira-epic-search']), one-line rows = epic-colour pill + muted key right + check, 'No epic' first; replaces the create/edit modal combobox (capped ['epics'] query removed) and makes the story sidebar Epic row editable (always-mounted picker, 'Open KEY' footer, epic-link field PUT via useFieldMutation + epic-stories invalidation); UAT polish: rows aligned on one subgrid (check | pill | key — check leads like Fix Versions, c5956f2e), dashed 'No epic' pill, borderless search header, list pills aligned with trigger pill, Enter picks top hit (77089ed9) | 2026-11-12 | dd9b92d5, b3354fee, 1f6fc321, 77089ed9, c5956f2e, eeb17e65 | Approved | [261112-jfj-nicer-epic-selector-in-story-creation-ep](./quick/261112-jfj-nicer-epic-selector-in-story-creation-ep/) |
 | 261112-l96 | Epic detail Stories SectionHeader gets ghost xs "Add story" button (EpicStoryCreateControl, same classes as Add subtask) on page + peek; opens shared create modal as Story with new defaultEpicLinkKey prefill (handleOpenAddEpicStory / openAddEpicStory); SET_ISSUE_TYPE now clears epic only when switching to Subtask | 2026-11-12 | 3be642a7, 5fe53ede | Approved | [261112-l96-epic-view-add-story-create-button-to-iss](./quick/261112-l96-epic-view-add-story-create-button-to-iss/) |
+| 261112-lpa | Notification rows no longer get the peek-sidebar highlight (bg-primary/10 tint + 3px inset leading bar) when their issue is open in peek; removed useIsPeeked/PEEKED_ROW_CLASS from NotificationRow (banners already exempt since abe9ffbe) | 2026-11-12 | ff9f66d1 | Done | [261112-lpa-drop-peek-highlight-from-notification-ro](./quick/261112-lpa-drop-peek-highlight-from-notification-ro/) |
 
 ## Session Continuity
 
