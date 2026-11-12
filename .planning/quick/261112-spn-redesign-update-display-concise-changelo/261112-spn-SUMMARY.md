@@ -91,5 +91,7 @@ Backwards compatibility unchanged: GitHub release bodies, tags and latest.json u
 | 9fbfd157, 81cfbb62, 3a428d2c, e5c23cc2, b7cacebc | Shared ReleaseRow; Installed badge + date; 15 recent releases; headline cap measured to fit (65 chars @ 7.15px/char in 471px); 0.x test builds hidden, [0.1.0] removed |
 | 1874f875, b11b166f | Celebratory UpdateHero (ambient curves + app icon + counts) on Update available / What's new; compact 36rem dialogs |
 | 1070e01d | Pointer cursor on enabled buttons app-wide (Tailwind v4 default) |
+| 84a8fc35 | Release tooling enforces the plain-sentence format (lint rejects bold / legacy headings; --skip-bump strict); docs updated |
+| (remote) | 49 GitHub release bodies on Mimo01/taskflow-releases synced to CHANGELOG; v1.14.20 latest.json notes replaced (other fields byte-identical); 0.1.0 and tag annotations untouched |
 
 **Status:** Approved by user at UAT (2026-11-12).
