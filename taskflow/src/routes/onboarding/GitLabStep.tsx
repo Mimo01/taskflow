@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import { TokenLinkHint } from '@/components/ui/token-link-hint';
-import { GITLAB_TOKEN_HINT, GITLAB_TOKEN_PERMISSIONS, gitlabTokenUrl } from '@/lib/token-links';
+import { GITLAB_TOKEN_HINT, gitlabTokenUrl } from '@/lib/token-links';
 import { type GitLabProject, listGitLabProjects, validateGitLab } from '@/services/gitlab';
 import { storeSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
@@ -127,11 +127,7 @@ export default function GitLabStep() {
             onChange={(e) => set({ gitlabToken: e.target.value })}
             disabled={mutation.isPending}
           />
-          <TokenLinkHint
-            url={gitlabTokenUrl(gitlabUrl)}
-            hint={GITLAB_TOKEN_HINT}
-            details={GITLAB_TOKEN_PERMISSIONS}
-          />
+          <TokenLinkHint url={gitlabTokenUrl(gitlabUrl)} hint={GITLAB_TOKEN_HINT} />
         </div>
 
         {/* Error message — exact string from gitlab.ts */}
