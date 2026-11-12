@@ -90,8 +90,9 @@ export default function DebugModeSection() {
     useAuthStore.getState().resetAuth();
     await removeSecret('jira-pat').catch(() => {});
     await removeSecret('gitlab-pat').catch(() => {});
-    setResetDone('all');
-    setTimeout(() => setResetDone(null), 3000);
+    // onboardingComplete is now false: AppLayout renders a bare <Outlet/>, so leave
+    // /settings (empty) and land on the wizard route.
+    navigate('/', { replace: true });
   }
 
   return (
