@@ -129,7 +129,12 @@ describe('EpicPicker', () => {
     await screen.findByText('Payments');
     mockSearch.mockResolvedValue([EPICS[1]]);
     fireEvent.change(input, { target: { value: 'onb' } });
-    await waitFor(() => expect(screen.queryByText('Payments')).not.toBeInTheDocument());
+    // Wait for the NEW result list (not just Payments vanishing — the list is briefly empty
+    // while the new search loads, and Enter in that gap has nothing to pick).
+    await waitFor(() => {
+      expect(screen.queryByText('Payments')).not.toBeInTheDocument();
+      expect(screen.getByText('Onboarding')).toBeInTheDocument();
+    });
     fireEvent.keyDown(input, { key: 'Enter' });
     expect(onChange).toHaveBeenCalledWith(EPICS[1]);
   });
