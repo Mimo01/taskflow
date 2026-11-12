@@ -12,7 +12,11 @@ import { usePreviewEscape } from '../usePreviewEscape';
 import { ViewerToolbar } from '../ViewerToolbar';
 import { formatFileSize } from './attachment-format';
 import { highlightCode } from './highlightCode';
-import { resolvePreviewKind } from './resolvePreviewKind';
+import {
+  MAX_MEDIA_PREVIEW_SIZE,
+  MAX_TEXT_PREVIEW_SIZE,
+  resolvePreviewKind,
+} from './resolvePreviewKind';
 import { useAuthBlob } from './useAuthBlob';
 
 interface AttachmentPreviewModalProps {
@@ -27,17 +31,13 @@ interface AttachmentPreviewModalProps {
   onOpenExternal?: (attachment: JiraAttachment) => Promise<'opened' | 'revealed' | undefined>;
 }
 
-// Text/code preview size guard: skip fetching entirely (show DownloadFallback
-// instead) once the attachment's reported size exceeds this. Applied
-// *before* any fetch — unlike a post-fetch truncation, this never downloads
-// an oversized file just to discard most of it.
-const MAX_PREVIEW_FILE_SIZE = 2 * 1024 * 1024;
+// Size caps (shared with the tiles via resolvePreviewKind). Text/code checks
+// the cap *before* any fetch, so an oversized file is never downloaded just to
+// be discarded. Tiles already disable preview past the cap; this is the guard.
+const MAX_PREVIEW_FILE_SIZE = MAX_TEXT_PREVIEW_SIZE;
 // Defense-in-depth: truncate the rendered string if a file with no reported
 // `size` (or one just under the cap) still turns out to be huge in practice.
 const MAX_PREVIEW_CHARS = 256 * 1024;
-// PDF/video/audio previews are decoded/embedded as a whole (no streaming via
-// blob/data URLs), so gate them behind a larger inline-preview cap too.
-const MAX_MEDIA_PREVIEW_SIZE = 50 * 1024 * 1024;
 
 function isOversized(attachment: JiraAttachment, cap: number) {
   return (attachment.size ?? 0) > cap;

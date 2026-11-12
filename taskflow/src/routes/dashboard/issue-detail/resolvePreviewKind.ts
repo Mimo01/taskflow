@@ -184,3 +184,27 @@ export function resolvePreviewKind(attachment: JiraAttachment): PreviewKind {
 
   return 'other';
 }
+
+// Preview size caps (bytes). Text/code is fetched + highlighted in full, so it
+// gets a small cap; PDF/video/audio are embedded whole via blob/data URLs.
+export const MAX_TEXT_PREVIEW_SIZE = 2 * 1024 * 1024;
+export const MAX_MEDIA_PREVIEW_SIZE = 50 * 1024 * 1024;
+
+export function previewSizeCap(kind: PreviewKind): number | undefined {
+  if (kind === 'text' || kind === 'code') return MAX_TEXT_PREVIEW_SIZE;
+  if (kind === 'pdf' || kind === 'video' || kind === 'audio') return MAX_MEDIA_PREVIEW_SIZE;
+  return undefined;
+}
+
+export type PreviewUnavailable = 'unsupported' | 'too-large';
+
+/** Why an attachment can't open in the preview modal, or null if it can. */
+export function previewUnavailableReason(
+  attachment: JiraAttachment,
+  kind: PreviewKind = resolvePreviewKind(attachment),
+): PreviewUnavailable | null {
+  if (kind === 'other') return 'unsupported';
+  const cap = previewSizeCap(kind);
+  if (cap != null && (attachment.size ?? 0) > cap) return 'too-large';
+  return null;
+}

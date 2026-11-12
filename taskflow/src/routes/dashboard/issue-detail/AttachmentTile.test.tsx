@@ -101,4 +101,26 @@ describe('AttachmentTile', () => {
     render(<AttachmentTile attachment={pdf} isImage={false} onDownload={vi.fn()} />);
     expect(screen.getByTitle('report.pdf')).toBeTruthy();
   });
+
+  it('explains why a tile has no preview on the meta line', () => {
+    const zip = { ...pdf, filename: 'build.zip', mimeType: 'application/zip' } as JiraAttachment;
+    render(
+      <AttachmentTile
+        attachment={zip}
+        isImage={false}
+        onDownload={vi.fn()}
+        previewUnavailable="unsupported"
+      />,
+    );
+    const meta = screen.getByText(/No preview/);
+    expect(meta.textContent).toBe('2.0 KB · No preview');
+    expect(meta.getAttribute('title')).toMatch(/download to open/);
+  });
+
+  it('has no unavailable label on previewable tiles', () => {
+    render(
+      <AttachmentTile attachment={pdf} isImage={false} onDownload={vi.fn()} onPreview={vi.fn()} />,
+    );
+    expect(screen.queryByText(/No preview|Too large/)).toBeNull();
+  });
 });

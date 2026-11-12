@@ -8,7 +8,7 @@ import { readSecret } from '@/services/stronghold';
 import { AttachmentPreviewModal } from './AttachmentPreviewModal';
 import { AttachmentTile } from './AttachmentTile';
 import { AttachmentUpload } from './AttachmentUpload';
-import { resolvePreviewKind } from './resolvePreviewKind';
+import { previewUnavailableReason, resolvePreviewKind } from './resolvePreviewKind';
 import { SectionHeader } from './SectionHeader';
 
 interface AttachmentsSectionProps {
@@ -37,7 +37,10 @@ export function AttachmentsSection({
   const queryClient = useQueryClient();
 
   const previewKinds = new Map(attachments.map((a) => [a.id, resolvePreviewKind(a)]));
-  const previewable = attachments.filter((a) => previewKinds.get(a.id) !== 'other');
+  const unavailable = new Map(
+    attachments.map((a) => [a.id, previewUnavailableReason(a, previewKinds.get(a.id))]),
+  );
+  const previewable = attachments.filter((a) => unavailable.get(a.id) == null);
 
   // Mutation for drag-drop uploads
   const dropMutation = useMutation({
@@ -196,7 +199,8 @@ export function AttachmentsSection({
                   isImage={previewKinds.get(att.id) === 'image'}
                   onDownload={handleDownload}
                   onDelete={onDelete}
-                  onPreview={previewKinds.get(att.id) !== 'other' ? openPreview : undefined}
+                  previewUnavailable={unavailable.get(att.id) ?? undefined}
+                  onPreview={unavailable.get(att.id) == null ? openPreview : undefined}
                 />
               ))}
             </div>

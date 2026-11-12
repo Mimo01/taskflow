@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import type { JiraAttachment } from '@/services/jira';
-import { isTextualMime, resolvePreviewKind } from './resolvePreviewKind';
+import {
+  isTextualMime,
+  MAX_MEDIA_PREVIEW_SIZE,
+  MAX_TEXT_PREVIEW_SIZE,
+  previewUnavailableReason,
+  resolvePreviewKind,
+} from './resolvePreviewKind';
 
 function makeAttachment(filename: string, mimeType: string): JiraAttachment {
   return { id: '1', filename, content: 'https://example.com/file', mimeType };
@@ -171,5 +177,39 @@ describe('resolvePreviewKind', () => {
     ]) {
       expect(isTextualMime(m)).toBe(false);
     }
+  });
+});
+
+describe('previewUnavailableReason', () => {
+  const withSize = (filename: string, mimeType: string, size?: number) => ({
+    ...makeAttachment(filename, mimeType),
+    size,
+  });
+
+  it('is unsupported for non-previewable types', () => {
+    expect(previewUnavailableReason(withSize('a.zip', 'application/zip', 10))).toBe('unsupported');
+  });
+
+  it('is too-large past the text cap and null at it', () => {
+    expect(
+      previewUnavailableReason(withSize('a.xml', 'application/xml', MAX_TEXT_PREVIEW_SIZE)),
+    ).toBeNull();
+    expect(
+      previewUnavailableReason(withSize('a.xml', 'application/xml', MAX_TEXT_PREVIEW_SIZE + 1)),
+    ).toBe('too-large');
+  });
+
+  it('uses the media cap for pdf and never caps images', () => {
+    expect(
+      previewUnavailableReason(withSize('a.pdf', 'application/pdf', 10 * 1024 * 1024)),
+    ).toBeNull();
+    expect(
+      previewUnavailableReason(withSize('a.pdf', 'application/pdf', MAX_MEDIA_PREVIEW_SIZE + 1)),
+    ).toBe('too-large');
+    expect(previewUnavailableReason(withSize('a.png', 'image/png', 500 * 1024 * 1024))).toBeNull();
+  });
+
+  it('treats unknown size as previewable', () => {
+    expect(previewUnavailableReason(withSize('a.xml', 'application/xml'))).toBeNull();
   });
 });

@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import type { JiraAttachment } from '@/services/jira';
 import { AuthImage } from '../AuthImage';
 import { formatFileSize, getAttachmentImageSrc, getFileIcon } from './attachment-format';
-import { getExtension } from './resolvePreviewKind';
+import { getExtension, type PreviewUnavailable } from './resolvePreviewKind';
 
 interface AttachmentTileProps {
   attachment: JiraAttachment;
@@ -11,7 +11,14 @@ interface AttachmentTileProps {
   onDownload: (attachment: JiraAttachment) => void;
   onDelete?: (attachment: JiraAttachment) => void;
   onPreview?: (attachment: JiraAttachment) => void;
+  /** Shown on the meta line so non-clickable tiles say why (261112-fy2). */
+  previewUnavailable?: PreviewUnavailable;
 }
+
+const UNAVAILABLE_LABEL: Record<PreviewUnavailable, { short: string; title: string }> = {
+  unsupported: { short: 'No preview', title: 'No preview for this file type — download to open' },
+  'too-large': { short: 'Too large', title: 'Too large to preview — download to open' },
+};
 
 const ACTION_VISIBILITY =
   'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 pointer-events-none group-hover:pointer-events-auto group-focus-within:pointer-events-auto';
@@ -22,7 +29,9 @@ export function AttachmentTile({
   onDownload,
   onDelete,
   onPreview,
+  previewUnavailable,
 }: AttachmentTileProps) {
+  const unavailable = previewUnavailable ? UNAVAILABLE_LABEL[previewUnavailable] : null;
   const Icon = getFileIcon(attachment.mimeType);
   const sizeText = formatFileSize(attachment.size);
   const ext = getExtension(attachment.filename ?? '').toUpperCase();
@@ -68,8 +77,12 @@ export function AttachmentTile({
           >
             {attachment.filename}
           </span>
-          <span className="block text-[11px] leading-4 text-muted-foreground tabular-nums">
+          <span
+            title={unavailable?.title}
+            className="block truncate text-[11px] leading-4 text-muted-foreground tabular-nums"
+          >
             {sizeText || attachment.mimeType}
+            {unavailable && ` · ${unavailable.short}`}
           </span>
         </div>
       </div>

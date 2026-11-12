@@ -56,4 +56,28 @@ describe('AttachmentsSection', () => {
     expect(screen.getByRole('button', { name: 'Preview b.png' })).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Preview c.zip' })).toBeNull();
   });
+
+  it('labels unsupported and oversized tiles and makes only them non-clickable', () => {
+    const big = { ...att('2', 'big.xml', 'application/xml'), size: 3 * 1024 * 1024 };
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <AttachmentsSection
+          attachments={[
+            att('1', 'a.xml', 'application/xml'),
+            big,
+            att('3', 'c.zip', 'application/zip'),
+          ]}
+          issueKey="ABC-1"
+          jiraBaseUrl="https://example.com"
+        />
+      </QueryClientProvider>,
+    );
+    const [ok, large, zip] = screen.getAllByTestId('attachment-tile').map((t) => t.textContent);
+    expect(ok).not.toMatch(/No preview|Too large/);
+    expect(large).toContain('3.0 MB · Too large');
+    expect(zip).toContain('100 B · No preview');
+    expect(screen.getByRole('button', { name: 'Preview a.xml' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Preview big.xml' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Preview c.zip' })).toBeNull();
+  });
 });
