@@ -87,3 +87,9 @@ All created files exist and the three commits are on the branch; full vitest sui
 | 1ec6f92e | Engaging, user-benefit changelog (57 sections, headers/dates unchanged); hairline dividers + bordered card for opened releases; [1.6]→[1.6.0], added [0.1.0] earlier in 7a2d2a4d |
 
 Backwards compatibility unchanged: GitHub release bodies, tags and latest.json untouched; notes stay plain markdown.
+| 565f7824, 8cff3561 | Bulleted, spaced note items; list dividers tried and removed |
+| 9fbfd157, 81cfbb62, 3a428d2c, e5c23cc2, b7cacebc | Shared ReleaseRow; Installed badge + date; 15 recent releases; headline cap measured to fit (65 chars @ 7.15px/char in 471px); 0.x test builds hidden, [0.1.0] removed |
+| 1874f875, b11b166f | Celebratory UpdateHero (ambient curves + app icon + counts) on Update available / What's new; compact 36rem dialogs |
+| 1070e01d | Pointer cursor on enabled buttons app-wide (Tailwind v4 default) |
+
+**Status:** Approved by user at UAT (2026-11-12).
