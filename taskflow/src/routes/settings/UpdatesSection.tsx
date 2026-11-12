@@ -11,17 +11,8 @@
  */
 
 import { compareVersions } from 'compare-versions';
-import {
-  CheckCircle,
-  ChevronRight,
-  Loader2,
-  PackageOpen,
-  Search,
-  SearchX,
-  WifiOff,
-} from 'lucide-react';
-import { useMemo, useState } from 'react';
-import { Badge } from '@/components/ui/badge';
+import { CheckCircle, Loader2, PackageOpen, Search, SearchX, WifiOff } from 'lucide-react';
+import { type ReactNode, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Input } from '@/components/ui/input';
@@ -91,6 +82,23 @@ function minorKey(version: string): string {
   return `${major}.${minor}`;
 }
 
+/** Releases shown before "Show older versions" when not searching/filtering. */
+const INITIAL_VISIBLE = 8;
+
+function shortDate(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  const sameYear = d.getFullYear() === new Date().getFullYear();
+  return d.toLocaleDateString('en', {
+    month: 'short',
+    day: 'numeric',
+    ...(sameYear ? {} : { year: 'numeric' }),
+  });
+}
+
+/** Shared column grid: version | summary | date. Notes indent to the summary column. */
+const ROW_GRID = 'grid grid-cols-[4.5rem_minmax(0,1fr)_auto] items-center gap-x-3';
+
 function ReleaseRow({
   item,
   installed,
@@ -109,39 +117,40 @@ function ReleaseRow({
   const { release, summary } = item;
   const plainSummary = summary?.replace(/\*\*|`/g, '') ?? '';
   return (
-    <li className={cn('list-none', installed && 'rounded-md bg-muted/50')}>
+    <li className="list-none">
       <button
         type="button"
         aria-expanded={open}
         onClick={onToggle}
-        className="group flex w-full items-center gap-3 rounded-md px-2 py-2 text-left text-sm hover:bg-muted/50"
-      >
-        <span className="shrink-0 font-mono text-sm font-semibold">{release.version}</span>
-        {installed && (
-          <Badge variant="secondary" className="shrink-0">
-            Installed
-          </Badge>
+        className={cn(
+          ROW_GRID,
+          'h-8 w-full rounded-md px-2 text-left text-sm hover:bg-muted/60',
+          open && 'bg-muted/60',
         )}
-        <span className="min-w-0 flex-1 truncate text-muted-foreground" title={plainSummary}>
+      >
+        <span className="flex items-center gap-1.5 font-medium tabular-nums">
+          {release.version}
+          {installed && (
+            <span
+              title="Installed"
+              className="size-1.5 shrink-0 rounded-full bg-primary"
+              aria-hidden="true"
+            />
+          )}
+          {installed && <span className="sr-only">Installed</span>}
+        </span>
+        <span className="truncate text-muted-foreground" title={plainSummary}>
           {plainSummary}
         </span>
-        {release.publishedAt && (
-          <span className="shrink-0 whitespace-nowrap text-xs text-muted-foreground">
-            {relativeTime(release.publishedAt)}
-          </span>
-        )}
-        <ChevronRight
-          aria-hidden="true"
-          className={cn(
-            'size-4 shrink-0 text-muted-foreground opacity-60 transition-transform group-hover:opacity-100',
-            open && 'rotate-90',
-          )}
-        />
+        <span className="whitespace-nowrap text-xs text-muted-foreground tabular-nums">
+          {release.publishedAt ? shortDate(release.publishedAt) : ''}
+        </span>
       </button>
       {open && (
-        <div className="mb-2 ml-3 border-l-2 border-muted pb-1 pl-4">
+        <div className="pb-3 pl-[calc(4.5rem+1.25rem)] pr-2 pt-1">
           <ReleaseNotesBody
             notes={release.body}
+            details
             filterKinds={kind === 'all' ? undefined : [kind]}
             highlight={highlight || undefined}
           />
@@ -155,7 +164,7 @@ function VersionHistory() {
   const { data: releases, isLoading, isError, refetch } = useReleaseHistory();
   const [query, setQuery] = useState('');
   const [kind, setKind] = useState<'all' | NoteKind>('all');
-  const [groupToggles, setGroupToggles] = useState<Record<string, boolean>>({});
+  const [showAll, setShowAll] = useState(false);
   const [releaseToggles, setReleaseToggles] = useState<Record<string, boolean>>({});
 
   const parsed = useMemo<ParsedRelease[]>(
@@ -173,13 +182,16 @@ function VersionHistory() {
   );
 
   const needle = query.trim().toLowerCase();
-  const visible = useMemo(
+  const filtering = needle !== '' || kind !== 'all';
+  const matching = useMemo(
     () =>
       parsed.filter(
         (p) => (!needle || p.searchText.includes(needle)) && (kind === 'all' || p.kinds.has(kind)),
       ),
     [parsed, needle, kind],
   );
+  const truncated = !filtering && !showAll && matching.length > INITIAL_VISIBLE;
+  const visible = truncated ? matching.slice(0, INITIAL_VISIBLE) : matching;
 
   const groups = useMemo(() => {
     const map = new Map<string, ParsedRelease[]>();
@@ -192,10 +204,10 @@ function VersionHistory() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col gap-2">
-        <Skeleton className="h-10 w-full rounded-md" />
-        <Skeleton className="h-10 w-full rounded-md" />
-        <Skeleton className="h-10 w-full rounded-md" />
+      <div className="flex flex-col gap-1">
+        <Skeleton className="h-8 w-full rounded-md" />
+        <Skeleton className="h-8 w-full rounded-md" />
+        <Skeleton className="h-8 w-full rounded-md" />
       </div>
     );
   }
@@ -227,14 +239,8 @@ function VersionHistory() {
     );
   }
 
-  const installedKey = minorKey(buildInfo.version);
-  const defaultOpenKey = groups.some(([k]) => k === installedKey)
-    ? installedKey
-    : (groups[0]?.[0] ?? null);
-  const filtering = needle !== '' || kind !== 'all';
-
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative min-w-40 flex-1">
           <Search
@@ -261,7 +267,7 @@ function VersionHistory() {
               className={cn(
                 'rounded-md px-2.5 py-1 text-xs font-medium transition-colors',
                 kind === value
-                  ? 'bg-foreground text-background shadow-sm'
+                  ? 'bg-background text-foreground shadow-sm'
                   : 'text-muted-foreground hover:text-foreground',
               )}
             >
@@ -279,52 +285,43 @@ function VersionHistory() {
           subtitle="Try a different search or change type."
         />
       ) : (
-        <div className="flex flex-col gap-1">
-          {groups.map(([key, items]) => {
-            const open = groupToggles[key] ?? (filtering || key === defaultOpenKey);
-            return (
-              <section key={key}>
-                <button
-                  type="button"
-                  aria-expanded={open}
-                  onClick={() => setGroupToggles((t) => ({ ...t, [key]: !open }))}
-                  className="group flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left hover:bg-muted/50"
-                >
-                  <span className="text-sm font-semibold">{key}.x</span>
-                  <span className="min-w-0 flex-1 text-xs text-muted-foreground">
-                    {items.length} {items.length === 1 ? 'release' : 'releases'}
-                  </span>
-                  <ChevronRight
-                    aria-hidden="true"
-                    className={cn(
-                      'size-4 shrink-0 text-muted-foreground opacity-60 transition-transform group-hover:opacity-100',
-                      open && 'rotate-90',
-                    )}
+        <div className="flex flex-col gap-3">
+          {groups.map(([key, items]) => (
+            <section key={key} aria-label={`Version ${key}`}>
+              <h4 className="mb-1 flex items-center gap-2 px-2 text-xs font-medium text-muted-foreground">
+                {key}
+                <span aria-hidden="true" className="h-px flex-1 bg-border/60" />
+              </h4>
+              <ul className="m-0 flex flex-col p-0">
+                {items.map((item) => (
+                  <ReleaseRow
+                    key={item.release.version}
+                    item={item}
+                    installed={item.release.version === buildInfo.version}
+                    open={releaseToggles[item.release.version] ?? false}
+                    onToggle={() =>
+                      setReleaseToggles((t) => ({
+                        ...t,
+                        [item.release.version]: !(t[item.release.version] ?? false),
+                      }))
+                    }
+                    kind={kind}
+                    highlight={needle}
                   />
-                </button>
-                {open && (
-                  <ul className="m-0 flex flex-col p-0">
-                    {items.map((item) => (
-                      <ReleaseRow
-                        key={item.release.version}
-                        item={item}
-                        installed={item.release.version === buildInfo.version}
-                        open={releaseToggles[item.release.version] ?? false}
-                        onToggle={() =>
-                          setReleaseToggles((t) => ({
-                            ...t,
-                            [item.release.version]: !(t[item.release.version] ?? false),
-                          }))
-                        }
-                        kind={kind}
-                        highlight={needle}
-                      />
-                    ))}
-                  </ul>
-                )}
-              </section>
-            );
-          })}
+                ))}
+              </ul>
+            </section>
+          ))}
+          {truncated && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="self-center text-muted-foreground"
+              onClick={() => setShowAll(true)}
+            >
+              Show older versions ({matching.length - INITIAL_VISIBLE})
+            </Button>
+          )}
         </div>
       )}
     </div>
@@ -402,78 +399,88 @@ export default function UpdatesSection() {
     }, 5000);
   }
 
+  const frequencyValue =
+    updateCheckInterval === 'manual' ? 'manual' : updateCheckInterval.toString();
+
+  let status: ReactNode;
+  if (checkState === 'checking') {
+    status = (
+      <span className="flex items-center gap-1.5">
+        <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
+        Checking…
+      </span>
+    );
+  } else if (checkState === 'done' && checkResult === 'available' && availableVersion) {
+    status = <span className="text-foreground">Update available ({availableVersion})</span>;
+  } else if (checkState === 'done' && checkResult === 'up-to-date') {
+    status = (
+      <span className="flex items-center gap-1.5 text-green-600 dark:text-green-500">
+        <CheckCircle className="size-3.5" aria-hidden="true" />
+        Up to date
+      </span>
+    );
+  } else if (lastChecked !== null) {
+    status = <span>Last checked {relativeTime(lastChecked)}</span>;
+  } else {
+    status = null;
+  }
+
   return (
     <div data-testid="section-updates" className="flex flex-col gap-8">
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-col gap-4">
         <h2 className="text-lg font-semibold">Updates</h2>
-        <p className="text-sm">
-          Current version: <span className="font-mono">{buildInfo.version}</span>
-        </p>
-      </div>
 
-      <div className="flex flex-col gap-4">
-        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-          Check for updates
-        </h3>
-        <div className="flex flex-col gap-2">
-          <label htmlFor="update-check-frequency" className="text-sm font-semibold">
-            Check frequency
-          </label>
-          <Select
-            value={updateCheckInterval === 'manual' ? 'manual' : updateCheckInterval.toString()}
-            onValueChange={(val) =>
-              setUpdateCheckInterval(val === 'manual' ? 'manual' : (Number(val) as 1 | 6 | 12 | 24))
-            }
-          >
-            <SelectTrigger id="update-check-frequency" className="w-48">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {FREQUENCY_OPTIONS.map((opt) => (
-                <SelectItem key={opt.value} value={opt.value}>
-                  {opt.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {lastChecked !== null && (
-            <p className="text-xs text-muted-foreground">
-              Last checked: {relativeTime(lastChecked)}
-            </p>
-          )}
-        </div>
-        <div className="flex items-center gap-3">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleCheckNow}
-            disabled={checkState === 'checking'}
-          >
-            {checkState === 'checking' ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                Checking...
-              </>
-            ) : (
-              'Check Now'
-            )}
-          </Button>
-          {checkState === 'done' && checkResult === 'up-to-date' && (
-            <span className="text-sm text-green-500 flex items-center gap-1">
-              <CheckCircle className="h-4 w-4" />
-              Up to date
-            </span>
-          )}
-          {checkState === 'done' && checkResult === 'available' && availableVersion && (
-            <span className="text-sm text-yellow-500">Update available ({availableVersion})</span>
-          )}
+        <div className="flex flex-col divide-y divide-border/60 rounded-lg border border-border">
+          <div className="flex items-center gap-3 px-4 py-3">
+            <div className="flex min-w-0 flex-1 flex-col">
+              <span className="text-sm font-medium">
+                Taskflow <span className="tabular-nums">{buildInfo.version}</span>
+              </span>
+              {status && (
+                <span className="text-xs text-muted-foreground" aria-live="polite">
+                  {status}
+                </span>
+              )}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleCheckNow}
+              disabled={checkState === 'checking'}
+            >
+              Check now
+            </Button>
+          </div>
+          <div className="flex items-center gap-3 px-4 py-3">
+            <label htmlFor="update-check-frequency" className="min-w-0 flex-1 text-sm">
+              Check automatically
+            </label>
+            <Select
+              items={FREQUENCY_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
+              value={frequencyValue}
+              onValueChange={(val) =>
+                setUpdateCheckInterval(
+                  val === 'manual' ? 'manual' : (Number(val) as 1 | 6 | 12 | 24),
+                )
+              }
+            >
+              <SelectTrigger id="update-check-frequency" className="w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {FREQUENCY_OPTIONS.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 
-      <div className="flex flex-col gap-4">
-        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-          Release History
-        </h3>
+      <div className="flex flex-col gap-3">
+        <h3 className="text-sm font-semibold">Release history</h3>
         <VersionHistory />
       </div>
     </div>

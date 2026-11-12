@@ -124,10 +124,9 @@ describe('UpdatesSection', () => {
 
   it('renders check frequency dropdown', () => {
     renderWithQuery(<UpdatesSection />);
-    // Check the label for the select is present
-    expect(screen.getByText('Check frequency')).toBeInTheDocument();
-    // Verify the Select trigger is rendered (aria-haspopup="listbox")
-    expect(screen.getByRole('combobox')).toBeInTheDocument();
+    expect(screen.getByText('Check automatically')).toBeInTheDocument();
+    // Trigger shows the option label, not the raw interval value
+    expect(screen.getByRole('combobox')).toHaveTextContent('Every 6 hours');
   });
 
   it('hides last checked when never checked', () => {
@@ -161,55 +160,63 @@ describe('UpdatesSection', () => {
     expect(skeletons.length).toBeGreaterThan(0);
   });
 
-  it('groups releases by minor version; installed group open, others collapsed', async () => {
+  it('groups releases under minor-version subheadings', async () => {
     renderWithQuery(<UpdatesSection />);
-    await screen.findByRole('button', { name: /1\.6\.x/ });
+    await screen.findByRole('heading', { name: '1.6' });
+    expect(screen.getByRole('heading', { name: '1.5' })).toBeInTheDocument();
     expect(row('1.6.0')).toBeInTheDocument();
-    const older = screen.getByRole('button', { name: /1\.5\.x/ });
-    expect(older).toHaveAttribute('aria-expanded', 'false');
-    expect(screen.getByRole('button', { name: /1\.6\.x/ })).toHaveAttribute(
-      'aria-expanded',
-      'true',
-    );
-    expect(row('1.5.0')).not.toBeInTheDocument();
-    fireEvent.click(older);
     expect(row('1.5.0')).toBeInTheDocument();
-    fireEvent.click(older);
-    expect(row('1.5.0')).not.toBeInTheDocument();
   });
 
-  it('shows an Installed badge on the installed version only', async () => {
+  it('marks the installed version only', async () => {
     renderWithQuery(<UpdatesSection />);
     expect(await screen.findByText('Installed')).toBeInTheDocument();
     expect(screen.getAllByText('Installed')).toHaveLength(1);
   });
 
-  it('loads every page via the Link header (no 20-release cap)', async () => {
+  it('loads every page via the Link header and shows the latest 8 until asked', async () => {
     const first = Array.from({ length: 13 }, (_, i) => release(`v1.6.${12 - i}`, `Notes ${i}.`));
     const second = Array.from({ length: 13 }, (_, i) => release(`v1.3.${12 - i}`, `Old ${i}.`));
     mockFetch
       .mockResolvedValueOnce(page(first, '<https://api.example/page2>; rel="next"'))
       .mockResolvedValueOnce(page(second));
     renderWithQuery(<UpdatesSection />);
-    expect(await screen.findByRole('button', { name: /1\.3\.x/ })).toBeInTheDocument();
+    const more = await screen.findByRole('button', { name: /show older versions \(18\)/i });
     expect(mockFetch).toHaveBeenCalledTimes(2);
-    expect(screen.getByRole('button', { name: /1\.3\.x.*13 releases/ })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: /1\.3\.x/ }));
+    expect(row('1.6.12')).toBeInTheDocument();
+    expect(row('1.6.4')).not.toBeInTheDocument();
+    fireEvent.click(more);
+    expect(row('1.6.4')).toBeInTheDocument();
     expect(row('1.3.0')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /show older versions/i })).not.toBeInTheDocument();
   });
 
-  it('expands a release to show titles first, details on click', async () => {
+  it('searching lists every match, not just the latest 8', async () => {
+    const rows = Array.from({ length: 12 }, (_, i) => release(`v1.6.${11 - i}`, `Notes ${i}.`));
+    mockFetch.mockResolvedValue(page(rows));
     renderWithQuery(<UpdatesSection />);
-    fireEvent.click(await screen.findByRole('button', { name: /1\.6\.0/ }));
+    await screen.findByRole('button', { name: /show older versions/i });
+    fireEvent.change(screen.getByRole('searchbox', { name: /search updates/i }), {
+      target: { value: 'notes' },
+    });
+    expect(row('1.6.0')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /show older versions/i })).not.toBeInTheDocument();
+  });
+
+  it('expands a release to show titles with their description underneath', async () => {
+    renderWithQuery(<UpdatesSection />);
+    const r = await screen.findByRole('button', { name: /1\.6\.0/ });
+    expect(screen.queryByText('Feature A')).not.toBeInTheDocument();
+    fireEvent.click(r);
+    expect(r).toHaveAttribute('aria-expanded', 'true');
     expect(screen.getByText('Feature A')).toBeInTheDocument();
-    expect(screen.queryByText('does a thing')).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: /Feature A/ }));
-    expect(screen.getByText('does a thing')).toBeInTheDocument();
+    // Legacy lowercase detail is capitalised once split from its title
+    expect(screen.getByText('Does a thing')).toBeInTheDocument();
   });
 
-  it('search filters releases and auto-expands matching groups', async () => {
+  it('search filters releases', async () => {
     renderWithQuery(<UpdatesSection />);
-    await screen.findByRole('button', { name: /1\.6\.x/ });
+    await screen.findByRole('heading', { name: '1.6' });
     fireEvent.change(screen.getByRole('searchbox', { name: /search updates/i }), {
       target: { value: 'FIX B' },
     });
@@ -223,7 +230,7 @@ describe('UpdatesSection', () => {
 
   it('type chips restrict the listed releases', async () => {
     renderWithQuery(<UpdatesSection />);
-    await screen.findByRole('button', { name: /1\.6\.x/ });
+    await screen.findByRole('heading', { name: '1.6' });
     const fixed = screen.getByRole('button', { name: 'Fixed' });
     fireEvent.click(fixed);
     expect(fixed).toHaveAttribute('aria-pressed', 'true');
@@ -243,7 +250,7 @@ describe('UpdatesSection', () => {
     expect(screen.getByText(/unable to load release history/i)).toBeInTheDocument();
     mockFetch.mockResolvedValue(page([release('v1.6.0', 'Back.\n\n### New\n- **Again**')]));
     fireEvent.click(retry);
-    await screen.findByRole('button', { name: /1\.6\.x/ });
+    await screen.findByRole('heading', { name: '1.6' });
     expect(row('1.6.0')).toBeInTheDocument();
   });
 });

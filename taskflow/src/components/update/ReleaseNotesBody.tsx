@@ -81,6 +81,11 @@ function plainText(s: string): string {
   return s.replace(/\*\*|`/g, '');
 }
 
+/** Legacy "**Title** — the bell opens…" details start lowercase once split from the title. */
+function capitalize(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
 function matches(item: NoteItem, needle: string | undefined): boolean {
   if (!needle) return false;
   return item.raw.toLowerCase().includes(needle.toLowerCase());
@@ -162,6 +167,43 @@ function ItemRow({
   );
 }
 
+/**
+ * Inline-details item (Settings history): title with its description underneath,
+ * no per-bullet toggles. Long legacy descriptions clamp to one line; click to read all.
+ */
+function DetailItemRow({ item, highlight }: { item: NoteItem; highlight?: string }) {
+  const [full, setFull] = useState(false);
+  const hit = matches(item, highlight);
+  return (
+    <li className={cn('list-none rounded-sm py-1', hit && 'bg-primary/10')}>
+      <div className="text-sm">
+        <InlineMarkdown text={item.title} links={false} />
+      </div>
+      {item.detail && (
+        <button
+          type="button"
+          aria-expanded={full}
+          onClick={() => setFull(!full)}
+          className={cn(
+            'm-0 w-full cursor-default text-left text-xs text-muted-foreground',
+            !full && 'line-clamp-1',
+          )}
+        >
+          <InlineMarkdown text={capitalize(item.detail)} links={false} />
+        </button>
+      )}
+      {item.children.length > 0 && (
+        <ul className="m-0 p-0 pl-3">
+          {item.children.map((c, i) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: static parsed list, never reordered
+            <DetailItemRow key={`${c.raw}-${i}`} item={c} highlight={highlight} />
+          ))}
+        </ul>
+      )}
+    </li>
+  );
+}
+
 function CollapsedFixes({ items, highlight }: { items: NoteItem[]; highlight?: string }) {
   const anyHit = !!highlight && items.some((i) => matches(i, highlight));
   const [toggled, setToggled] = useState<boolean | null>(null);
@@ -199,13 +241,16 @@ function Section({
   section,
   highlight,
   compact,
+  details,
 }: {
   section: NoteSection;
   highlight?: string;
   compact?: boolean;
+  details?: boolean;
 }) {
   const label = section.label ?? KIND_LABEL[section.kind];
-  const collapse = section.kind === 'fixed' && section.items.length > FIXED_COLLAPSE_OVER;
+  const collapse =
+    !details && section.kind === 'fixed' && section.items.length > FIXED_COLLAPSE_OVER;
   return (
     <section className={cn('flex flex-col', compact ? 'gap-0.5' : 'gap-1')}>
       {label && (
@@ -216,6 +261,11 @@ function Section({
       <ul className="m-0 flex flex-col p-0">
         {collapse ? (
           <CollapsedFixes items={section.items} highlight={highlight} />
+        ) : details ? (
+          section.items.map((it, i) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: static parsed list, never reordered
+            <DetailItemRow key={`${it.raw}-${i}`} item={it} highlight={highlight} />
+          ))
         ) : (
           section.items.map((it, i) => (
             // biome-ignore lint/suspicious/noArrayIndexKey: static parsed list, never reordered
@@ -232,6 +282,8 @@ export interface ReleaseNotesBodyProps {
   compact?: boolean;
   filterKinds?: NoteKind[];
   highlight?: string;
+  /** Show each title's description underneath (no per-bullet toggles). */
+  details?: boolean;
 }
 
 export function ReleaseNotesBody({
@@ -239,6 +291,7 @@ export function ReleaseNotesBody({
   compact = false,
   filterKinds,
   highlight,
+  details = false,
 }: ReleaseNotesBodyProps) {
   const parsed = useMemo(() => parseReleaseNotes(notes), [notes]);
 
@@ -267,7 +320,13 @@ export function ReleaseNotesBody({
       )}
       {sections.map((s, i) => (
         // biome-ignore lint/suspicious/noArrayIndexKey: static parsed list, never reordered
-        <Section key={`${s.kind}-${i}`} section={s} highlight={highlight} compact={compact} />
+        <Section
+          key={`${s.kind}-${i}`}
+          section={s}
+          highlight={highlight}
+          compact={compact}
+          details={details}
+        />
       ))}
       {parsed.extra.length > 0 && (
         <div className={PROSE_CLASS}>
