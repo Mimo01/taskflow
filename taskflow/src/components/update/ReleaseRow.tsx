@@ -29,12 +29,15 @@ export function ReleaseRow({
   open,
   onToggle,
   installed = false,
+  wrap = false,
 }: {
   release: ReleaseEntry;
   summary: string | null;
   open: boolean;
   onToggle: () => void;
   installed?: boolean;
+  /** Let the summary wrap to two lines (narrow containers such as dialogs). */
+  wrap?: boolean;
 }) {
   const plainSummary = summary?.replace(/\*\*|`/g, '') ?? '';
   return (
@@ -60,7 +63,7 @@ export function ReleaseRow({
           className={cn(
             // The installed row gives up width to its badge, so its summary may wrap
             // to a second line rather than truncate; every other row stays one line.
-            installed ? 'line-clamp-2 py-1.5' : 'truncate',
+            installed || wrap ? 'line-clamp-2 py-1.5' : 'truncate',
             open ? 'text-foreground' : 'text-muted-foreground',
           )}
           title={plainSummary}

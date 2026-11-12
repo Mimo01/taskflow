@@ -57,14 +57,14 @@ export function UpdateHero({
   notes: string | null | undefined;
 }) {
   return (
-    <div className="relative -mx-4 -mt-4 overflow-hidden rounded-t-xl border-b border-border/60 px-6 pb-5 pt-7 text-center">
+    <div className="relative -mx-4 -mt-4 overflow-hidden rounded-t-xl border-b border-border/60 px-6 pb-4 pt-5 text-center">
       {/* Same curves as the dashboard hero; strokes kept crisp at this smaller, wider box. */}
       <AmbientCurves className="[&_path]:[stroke-width:1.25px] [&_path]:[vector-effect:non-scaling-stroke]" />
-      <div className="relative flex flex-col items-center gap-3">
-        <AppIcon className="size-14 drop-shadow-sm" />
-        <div className="flex flex-col items-center gap-1.5">
+      <div className="relative flex flex-col items-center gap-2.5">
+        <AppIcon className="size-10 drop-shadow-sm" />
+        <div className="flex flex-col items-center gap-1">
           <span className="text-xs font-medium text-muted-foreground">{eyebrow}</span>
-          <DialogTitle className="text-2xl font-semibold tracking-tight">{title}</DialogTitle>
+          <DialogTitle className="text-xl font-semibold tracking-tight">{title}</DialogTitle>
           {headline && (
             <DialogDescription className="max-w-md text-sm text-foreground">
               {headline.replace(/\*\*|`/g, '')}

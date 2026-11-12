@@ -19,6 +19,7 @@ export function ReleaseRollup({ releases }: { releases: ReleaseEntry[] }) {
           <ReleaseRow
             key={r.version}
             release={r}
+            wrap
             summary={summarizeNotes(parseReleaseNotes(r.body))}
             open={openVersions[r.version] ?? false}
             onToggle={() =>

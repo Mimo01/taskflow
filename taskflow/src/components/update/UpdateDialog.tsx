@@ -103,7 +103,7 @@ export function UpdateDialog() {
 
   return (
     <Dialog open={open} onOpenChange={isDismissable ? () => resetToIdle() : undefined}>
-      <DialogContent showCloseButton={false} className="sm:max-w-[40rem]">
+      <DialogContent showCloseButton={false} className="sm:max-w-[36rem]">
         {(status === 'available' || status === 'downloading') && (
           <>
             <UpdateHero
@@ -124,7 +124,7 @@ export function UpdateDialog() {
               }
               notes={changelog}
             />
-            <div className="-mx-2 flex max-h-[60vh] flex-col gap-5 overflow-y-auto px-2">
+            <div className="-mx-2 flex max-h-[45vh] flex-col gap-4 overflow-y-auto px-2">
               <ReleaseNotesBody notes={changelog} details hideHeadline />
               <ReleaseRollup releases={skipped} />
             </div>

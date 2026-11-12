@@ -54,7 +54,7 @@ export function WhatsNewDialog() {
 
   return (
     <Dialog open={open} onOpenChange={handleDismiss}>
-      <DialogContent showCloseButton={false} className="sm:max-w-[40rem]">
+      <DialogContent showCloseButton={false} className="sm:max-w-[36rem]">
         <UpdateHero
           eyebrow={
             <span className="inline-flex items-center gap-1.5 text-green-600 dark:text-green-400">
@@ -67,7 +67,7 @@ export function WhatsNewDialog() {
           meta={fromVersion ? `Updated from ${fromVersion}` : undefined}
           notes={notes}
         />
-        <div className="-mx-2 flex max-h-[60vh] flex-col gap-5 overflow-y-auto px-2">
+        <div className="-mx-2 flex max-h-[45vh] flex-col gap-4 overflow-y-auto px-2">
           <ReleaseNotesBody notes={notes} details hideHeadline />
           <ReleaseRollup releases={skipped} />
         </div>
