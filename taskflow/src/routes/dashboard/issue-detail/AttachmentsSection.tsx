@@ -24,7 +24,6 @@ export function AttachmentsSection({
   jiraBaseUrl,
   onDelete,
 }: AttachmentsSectionProps) {
-  const [isExpanded, setIsExpanded] = useState(attachments.length > 0);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewIndex, setPreviewIndex] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
@@ -157,8 +156,6 @@ export function AttachmentsSection({
       <SectionHeader
         title="Attachments"
         count={attachments.length}
-        expanded={isExpanded}
-        onToggle={() => setIsExpanded(!isExpanded)}
         actions={<AttachmentUpload issueKey={issueKey} jiraBaseUrl={jiraBaseUrl} />}
       />
 
@@ -185,36 +182,34 @@ export function AttachmentsSection({
       {/* Drop upload error */}
       {dropUploadError && <p className="text-xs text-destructive mb-2">{dropUploadError}</p>}
 
-      {/* Expanded content */}
-      {isExpanded && (
-        <div className="space-y-3 density-compact:space-y-2 density-comfortable:space-y-4">
-          {attachments.length === 0 ? (
-            <p className="text-sm text-muted-foreground italic">No attachments</p>
-          ) : (
-            <>
-              <div className="grid grid-cols-[repeat(auto-fill,minmax(112px,1fr))] gap-x-3 gap-y-3 density-compact:gap-y-2 density-comfortable:gap-y-4">
-                {attachments.map((att) => (
-                  <AttachmentTile
-                    key={att.id}
-                    attachment={att}
-                    isImage={previewKinds.get(att.id) === 'image'}
-                    onDownload={handleDownload}
-                    onDelete={onDelete}
-                    onPreview={previewKinds.get(att.id) !== 'other' ? openPreview : undefined}
-                  />
-                ))}
-              </div>
-              {downloadFeedback && (
-                <p
-                  className={`text-xs ${downloadFeedback.isError ? 'text-destructive' : 'text-muted-foreground'}`}
-                >
-                  {downloadFeedback.message}
-                </p>
-              )}
-            </>
-          )}
-        </div>
-      )}
+      {/* Always open: a collapse toggle here only added visual noise (UAT 261112-f4u). */}
+      <div className="space-y-3 density-compact:space-y-2 density-comfortable:space-y-4">
+        {attachments.length === 0 ? (
+          <p className="text-sm text-muted-foreground italic">No attachments</p>
+        ) : (
+          <>
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(112px,1fr))] gap-x-3 gap-y-3 density-compact:gap-y-2 density-comfortable:gap-y-4">
+              {attachments.map((att) => (
+                <AttachmentTile
+                  key={att.id}
+                  attachment={att}
+                  isImage={previewKinds.get(att.id) === 'image'}
+                  onDownload={handleDownload}
+                  onDelete={onDelete}
+                  onPreview={previewKinds.get(att.id) !== 'other' ? openPreview : undefined}
+                />
+              ))}
+            </div>
+            {downloadFeedback && (
+              <p
+                className={`text-xs ${downloadFeedback.isError ? 'text-destructive' : 'text-muted-foreground'}`}
+              >
+                {downloadFeedback.message}
+              </p>
+            )}
+          </>
+        )}
+      </div>
 
       {/* Preview modal */}
       <AttachmentPreviewModal
