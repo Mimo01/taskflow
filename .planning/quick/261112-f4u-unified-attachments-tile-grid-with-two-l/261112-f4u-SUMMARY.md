@@ -25,3 +25,8 @@ None.
 None. Filename rendered only as React text / title attribute (T-f4u-01 mitigated).
 
 ## Self-Check: PASSED
+
+## UAT (2026-11-12) — Approved
+- cba6f45d: line-clamp-2 was overridden by `block` (names ran 3+ lines); caption block reserves 2 name lines + size so short names keep size directly beneath; roomier hover wash (p-1.5), column gap 12px.
+- 751bb11e: file-type label stacked directly under the icon (was pinned to thumb bottom — "too low").
+- 86285678: Attachments section no longer collapsible (chevron toggle = visual mess); always open.
