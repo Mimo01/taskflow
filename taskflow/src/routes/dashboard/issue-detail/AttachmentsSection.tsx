@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetch } from '@tauri-apps/plugin-http';
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { assertOk, openSavedFile, saveBytes } from '@/lib/save-attachment';
 import type { JiraAttachment } from '@/services/jira';
 import { uploadAttachment } from '@/services/jira/attachments';
@@ -15,7 +15,7 @@ interface AttachmentsSectionProps {
   attachments: JiraAttachment[];
   issueKey: string;
   jiraBaseUrl: string;
-  onDelete?: (attachment: JiraAttachment) => void;
+  onDelete?: (attachment: JiraAttachment) => unknown;
 }
 
 export function AttachmentsSection({
@@ -29,11 +29,6 @@ export function AttachmentsSection({
   const [isDragging, setIsDragging] = useState(false);
   const [dropUploadName, setDropUploadName] = useState<string | null>(null);
   const [dropUploadError, setDropUploadError] = useState<string | null>(null);
-  const [downloadFeedback, setDownloadFeedback] = useState<{
-    message: string;
-    isError: boolean;
-  } | null>(null);
-  const downloadFeedbackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const queryClient = useQueryClient();
 
   const previewKinds = new Map(attachments.map((a) => [a.id, resolvePreviewKind(a)]));
@@ -61,12 +56,6 @@ export function AttachmentsSection({
     },
   });
 
-  function showDownloadFeedback(message: string, isError: boolean) {
-    if (downloadFeedbackTimer.current) clearTimeout(downloadFeedbackTimer.current);
-    setDownloadFeedback({ message, isError });
-    downloadFeedbackTimer.current = setTimeout(() => setDownloadFeedback(null), 3000);
-  }
-
   async function fetchAndSave(att: JiraAttachment): Promise<string | null> {
     const token = await readSecret('jira-pat').catch(() => null);
     if (!token) return null;
@@ -77,18 +66,10 @@ export function AttachmentsSection({
     return saveBytes(new Uint8Array(arrayBuffer), att.filename);
   }
 
-  // Save only — launching is the explicit "Open externally" action.
-  async function handleDownload(att: JiraAttachment) {
-    try {
-      const savedPath = await fetchAndSave(att);
-      if (!savedPath) {
-        showDownloadFeedback('No Jira credentials found.', true);
-        return;
-      }
-      showDownloadFeedback(`${att.filename} saved to Downloads.`, false);
-    } catch {
-      showDownloadFeedback(`Failed to download ${att.filename}.`, true);
-    }
+  // Tile Download: the tile button shows busy/✓/✕ and floats this short confirmation.
+  async function handleTileDownload(att: JiraAttachment): Promise<string> {
+    await handlePreviewDownload(att);
+    return 'Saved to Downloads';
   }
 
   // Preview-toolbar Download: the toolbar shows busy/✓/✕ on the button, so this
@@ -190,28 +171,19 @@ export function AttachmentsSection({
         {attachments.length === 0 ? (
           <p className="text-sm text-muted-foreground italic">No attachments</p>
         ) : (
-          <>
-            <div className="grid grid-cols-[repeat(auto-fill,minmax(112px,1fr))] gap-x-3 gap-y-3 density-compact:gap-y-2 density-comfortable:gap-y-4">
-              {attachments.map((att) => (
-                <AttachmentTile
-                  key={att.id}
-                  attachment={att}
-                  isImage={previewKinds.get(att.id) === 'image'}
-                  onDownload={handleDownload}
-                  onDelete={onDelete}
-                  previewUnavailable={unavailable.get(att.id) ?? undefined}
-                  onPreview={unavailable.get(att.id) == null ? openPreview : undefined}
-                />
-              ))}
-            </div>
-            {downloadFeedback && (
-              <p
-                className={`text-xs ${downloadFeedback.isError ? 'text-destructive' : 'text-muted-foreground'}`}
-              >
-                {downloadFeedback.message}
-              </p>
-            )}
-          </>
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(112px,1fr))] gap-x-3 gap-y-3 density-compact:gap-y-2 density-comfortable:gap-y-4">
+            {attachments.map((att) => (
+              <AttachmentTile
+                key={att.id}
+                attachment={att}
+                isImage={previewKinds.get(att.id) === 'image'}
+                onDownload={handleTileDownload}
+                onDelete={onDelete}
+                previewUnavailable={unavailable.get(att.id) ?? undefined}
+                onPreview={unavailable.get(att.id) == null ? openPreview : undefined}
+              />
+            ))}
+          </div>
         )}
       </div>
 

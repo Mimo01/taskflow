@@ -1,7 +1,7 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { JiraAttachment } from '@/services/jira';
-import { AttachmentTile } from './AttachmentTile';
+import { AttachmentTile, DELETE_CONFIRM_MS } from './AttachmentTile';
 
 vi.mock('../AuthImage', () => ({
   AuthImage: ({ alt }: { alt: string }) => <img alt={alt} />,
@@ -73,6 +73,8 @@ describe('AttachmentTile', () => {
       />,
     );
     fireEvent.click(screen.getByRole('button', { name: 'Delete report.pdf' }));
+    expect(onDelete).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm: delete report.pdf' }));
     expect(onDelete).toHaveBeenCalledWith(pdf);
     expect(onPreview).not.toHaveBeenCalled();
 
@@ -122,5 +124,86 @@ describe('AttachmentTile', () => {
       <AttachmentTile attachment={pdf} isImage={false} onDownload={vi.fn()} onPreview={vi.fn()} />,
     );
     expect(screen.queryByText(/No preview|Too large/)).toBeNull();
+  });
+
+  describe('delete confirmation', () => {
+    const renderTile = (onDelete = vi.fn()) => {
+      render(
+        <AttachmentTile
+          attachment={pdf}
+          isImage={false}
+          onDownload={vi.fn()}
+          onDelete={onDelete}
+        />,
+      );
+      return onDelete;
+    };
+
+    it('first click arms a "Delete?" confirm instead of deleting', () => {
+      const onDelete = renderTile();
+      fireEvent.click(screen.getByRole('button', { name: 'Delete report.pdf' }));
+      expect(onDelete).not.toHaveBeenCalled();
+      expect(screen.getByText('Delete?')).toBeTruthy();
+    });
+
+    it('Escape disarms without deleting', () => {
+      const onDelete = renderTile();
+      fireEvent.click(screen.getByRole('button', { name: 'Delete report.pdf' }));
+      fireEvent.keyDown(screen.getByRole('button', { name: 'Confirm: delete report.pdf' }), {
+        key: 'Escape',
+      });
+      expect(screen.queryByText('Delete?')).toBeNull();
+      expect(onDelete).not.toHaveBeenCalled();
+    });
+
+    it('clicking elsewhere disarms', () => {
+      renderTile();
+      fireEvent.click(screen.getByRole('button', { name: 'Delete report.pdf' }));
+      fireEvent.pointerDown(document.body);
+      expect(screen.queryByText('Delete?')).toBeNull();
+    });
+
+    it('reverts on its own after the confirm window', () => {
+      vi.useFakeTimers();
+      try {
+        renderTile();
+        fireEvent.click(screen.getByRole('button', { name: 'Delete report.pdf' }));
+        act(() => {
+          vi.advanceTimersByTime(DELETE_CONFIRM_MS);
+        });
+        expect(screen.queryByText('Delete?')).toBeNull();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('shows the error when the delete fails', async () => {
+      renderTile(vi.fn().mockRejectedValue(new Error('Forbidden')));
+      fireEvent.click(screen.getByRole('button', { name: 'Delete report.pdf' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Confirm: delete report.pdf' }));
+      expect((await screen.findByRole('alert')).textContent).toBe('Forbidden');
+      expect(screen.getByRole('button', { name: 'Delete report.pdf' })).toBeTruthy();
+    });
+  });
+
+  describe('download feedback', () => {
+    it('shows busy, then the confirmation the handler resolves to', async () => {
+      let resolve!: (v: string) => void;
+      const onDownload = vi.fn(() => new Promise<string>((r) => (resolve = r)));
+      render(<AttachmentTile attachment={pdf} isImage={false} onDownload={onDownload} />);
+      const button = screen.getByRole('button', { name: 'Download report.pdf' });
+      fireEvent.click(button);
+      expect(button.getAttribute('aria-busy')).toBe('true');
+      await act(async () => resolve('Saved to Downloads'));
+      expect(button.getAttribute('aria-busy')).toBe('false');
+      expect(screen.getByRole('status').textContent).toBe('Saved to Downloads');
+    });
+
+    it('shows the error message when the download fails', async () => {
+      const onDownload = vi.fn().mockRejectedValue(new Error("Couldn't download report.pdf"));
+      render(<AttachmentTile attachment={pdf} isImage={false} onDownload={onDownload} />);
+      fireEvent.click(screen.getByRole('button', { name: 'Download report.pdf' }));
+      expect((await screen.findByRole('alert')).textContent).toBe("Couldn't download report.pdf");
+    });
   });
 });
