@@ -4,6 +4,7 @@ import { useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { uploadAttachment } from '@/services/jira/attachments';
 import { readSecret } from '@/services/stronghold';
+import { SECTION_ACTION_BUTTON_CLASS, SECTION_ACTION_ICON_CLASS } from './SectionHeader';
 
 interface AttachmentUploadProps {
   issueKey: string;
@@ -63,16 +64,16 @@ export function AttachmentUpload({
         tabIndex={-1}
       />
       <Button
-        variant="outline"
-        size="sm"
+        variant="ghost"
+        size="xs"
         onClick={(e) => {
           e.stopPropagation();
           fileInputRef.current?.click();
         }}
         disabled={mutation.isPending}
-        className="gap-1.5 text-xs"
+        className={SECTION_ACTION_BUTTON_CLASS}
       >
-        <Upload className="size-3.5" />
+        <Upload className={SECTION_ACTION_ICON_CLASS} />
         Attach file
       </Button>
 

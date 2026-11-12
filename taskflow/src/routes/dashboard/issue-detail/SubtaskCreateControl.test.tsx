@@ -11,6 +11,17 @@ describe('SubtaskCreateControl', () => {
     ]);
   });
 
+  it('renders both buttons as ghost xs with muted text and size-3 icons', () => {
+    render(<SubtaskCreateControl onAdd={vi.fn()} onBulk={vi.fn()} />);
+    for (const b of screen.getAllByRole('button')) {
+      expect(b.className).toContain('h-6');
+      expect(b.className).toContain('text-muted-foreground');
+      expect(b.className).toContain('hover:text-foreground');
+      expect(b.className).not.toContain('border-border');
+      expect(b.querySelector('svg')?.getAttribute('class')).toContain('size-3');
+    }
+  });
+
   it('Add subtask calls onAdd only', () => {
     const onAdd = vi.fn();
     const onBulk = vi.fn();

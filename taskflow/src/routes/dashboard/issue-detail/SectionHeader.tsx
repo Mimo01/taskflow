@@ -5,9 +5,17 @@ import { cn } from '@/lib/utils';
 const LABEL_CLASS = 'text-sm font-medium text-muted-foreground';
 
 /**
+ * Shared look for action buttons passed via `actions`. Use with
+ * `<Button variant="ghost" size="xs">` so Attach file / Bulk create / Add subtask never drift.
+ */
+export const SECTION_ACTION_BUTTON_CLASS = 'gap-1 text-muted-foreground hover:text-foreground';
+export const SECTION_ACTION_ICON_CLASS = 'size-3';
+
+/**
  * Shared heading row for every issue-detail section (Description, Attachments, Subtasks,
  * Stories, Parent, Progress, Activity). One look everywhere: quiet muted label, optional
- * muted count, optional collapse chevron AFTER the label, actions right-aligned with gap-2.
+ * muted count, optional collapse chevron AFTER the label, actions right-aligned with gap-2
+ * (ghost xs buttons styled via SECTION_ACTION_BUTTON_CLASS).
  * Fixed h-7 so the row height never depends on whether actions are present.
  */
 export function SectionHeader({

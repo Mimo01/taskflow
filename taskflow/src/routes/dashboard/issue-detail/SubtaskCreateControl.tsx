@@ -1,8 +1,9 @@
 import { LayoutList, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { SECTION_ACTION_BUTTON_CLASS, SECTION_ACTION_ICON_CLASS } from './SectionHeader';
 
 /**
- * Subtask create actions for the Subtasks SectionHeader: two separate outline buttons
+ * Subtask create actions for the Subtasks SectionHeader: two separate ghost xs buttons
  * ("Bulk create", "Add subtask"), same style as Attachments' "Attach file".
  * Parent SectionHeader supplies the gap-2 between them.
  */
@@ -11,16 +12,22 @@ export function SubtaskCreateControl({ onAdd, onBulk }: { onAdd: () => void; onB
     <>
       <Button
         type="button"
-        variant="outline"
-        size="sm"
-        className="gap-1.5 text-xs"
+        variant="ghost"
+        size="xs"
+        className={SECTION_ACTION_BUTTON_CLASS}
         onClick={onBulk}
       >
-        <LayoutList className="size-3.5" />
+        <LayoutList className={SECTION_ACTION_ICON_CLASS} />
         Bulk create
       </Button>
-      <Button type="button" variant="outline" size="sm" className="gap-1.5 text-xs" onClick={onAdd}>
-        <Plus className="size-3.5" />
+      <Button
+        type="button"
+        variant="ghost"
+        size="xs"
+        className={SECTION_ACTION_BUTTON_CLASS}
+        onClick={onAdd}
+      >
+        <Plus className={SECTION_ACTION_ICON_CLASS} />
         Add subtask
       </Button>
     </>
