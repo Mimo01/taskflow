@@ -990,7 +990,7 @@ export default function MyTasksPage() {
       )}
 
       {/* ── 3. Issue list ────────────────────────────────────────────────────── */}
-      <div className="flex-1 overflow-auto min-h-0">
+      <div className="relative flex-1 overflow-auto min-h-0">
         {renderContent()}
 
         {/* Progressive loading indicator — All Assigned / All Reported scope while fetching */}
