@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-08-13)
 Phase: 95
 Plan: Not started
 Status: Milestone complete
-Last activity: 2026-11-12 - Completed quick task 261112-o9i: Clear notification cache enabled at 0 notifications (polling cursor reset)
+Last activity: 2026-11-12 - Completed quick task 261112-of2: Dashboard cards look good in error state (bad PAT, connection error)
 
 ## Performance Metrics
 
@@ -299,6 +299,7 @@ Acknowledged and deferred at v1.14 milestone close (2026-08-13) — 111 open art
 | 261112-nb6 | "Create a token" quick link (no hint text) under the token field in the Jira/GitLab wizard steps and Settings Connections cards, built from the live URL: GitLab user_settings/personal_access_tokens prefilled with name Taskflow, description and api scope (legacy kept; fine-grained deferred until GitLab supports prefill); Jira DC deep-links to the PAT tab (no prefill possible); hidden for invalid URLs and *.atlassian.net | 2026-11-12 | 9076b4c4 | Approved | [261112-nb6-token-generation-quick-links-in-wizard-a](./quick/261112-nb6-token-generation-quick-links-in-wizard-a/) |
 | 261112-o46 | Clear all in the notification panel closes the panel once the row exit animation finishes (immediately under reduced motion); empty ghost suppressed during the slide-out; single/stack dismissals that empty the list keep the panel open | 2026-11-12 | 5406f723 | Approved | [261112-o46-clearing-all-notifications-should-close-](./quick/261112-o46-clearing-all-notifications-should-close-/) |
 | 261112-o9i | Settings → Advanced "Clear notification cache" enabled at 0 cached notifications so the polling cursor can be reset; 0-item copy says "Resets the polling cursor" | 2026-11-12 | c2851e18 | Approved | [261112-o9i-allow-clear-notifications-cache-in-setti](./quick/261112-o9i-allow-clear-notifications-cache-in-setti/) |
+| 261112-of2 | Dashboard cards error state: compact CardErrorState (EmptyState-based; token-rejected → Open Settings, else Retry; button click/keys don't navigate the card) on My Issues, Upcoming Releases, Hours & Commits; chart states all 300px, legend hidden on worklog error, GitLab commit failure → "Commits unavailable" + "–" per day | 2026-11-12 | 877523b5, 9c0b04c4 | Needs UAT | [261112-of2-dashboard-cards-look-good-in-error-state](./quick/261112-of2-dashboard-cards-look-good-in-error-state/) |
 
 ## Session Continuity
 
