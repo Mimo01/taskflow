@@ -73,7 +73,7 @@ describe('JiraStep', () => {
 
   it('AUTH-04: project dropdown is hidden before validation', () => {
     renderWithQuery(<JiraStep />);
-    expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Select Project')).not.toBeInTheDocument();
   });
 
   it('AUTH-04: project dropdown appears after successful validation', async () => {
@@ -91,7 +91,7 @@ describe('JiraStep', () => {
     fireEvent.click(screen.getByRole('button', { name: /test.*continue/i }));
 
     await waitFor(() => {
-      expect(screen.getByRole('combobox')).toBeInTheDocument();
+      expect(screen.getByLabelText('Select Project')).toBeInTheDocument();
     });
   });
 

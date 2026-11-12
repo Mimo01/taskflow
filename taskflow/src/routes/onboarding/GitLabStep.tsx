@@ -13,7 +13,7 @@ import { useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 import { type GitLabProject, listGitLabProjects, validateGitLab } from '@/services/gitlab';
 import { storeSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
@@ -162,30 +162,23 @@ export default function GitLabStep() {
         {showProjectDropdown && (
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="gitlab-project">Select Project</Label>
-            <Select
-              value={selectedProjectId ? String(selectedProjectId) : ''}
-              onValueChange={(v) => v && setSelectedProject(v)}
-            >
-              <SelectTrigger id="gitlab-project" className="w-full">
-                <span className="flex flex-1 text-left text-sm">
-                  {selectedProjectId ? (
-                    (() => {
-                      const p = projects.find((p) => p.id === selectedProjectId);
-                      return p ? p.name_with_namespace : String(selectedProjectId);
-                    })()
-                  ) : (
-                    <span className="text-muted-foreground">Choose a project...</span>
-                  )}
-                </span>
-              </SelectTrigger>
-              <SelectContent>
-                {projects.map((p) => (
-                  <SelectItem key={p.id} value={String(p.id)}>
-                    {p.name_with_namespace}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <SearchableSelect
+              id="gitlab-project"
+              value={selectedProjectId ? String(selectedProjectId) : null}
+              onValueChange={setSelectedProject}
+              placeholder={selectedProjectId ? String(selectedProjectId) : 'Choose a project...'}
+              searchPlaceholder="Search projects..."
+              options={projects.map((p) => ({
+                value: String(p.id),
+                label: p.name_with_namespace,
+                keywords: [
+                  String(p.id),
+                  p.name,
+                  p.name_with_namespace,
+                  p.path_with_namespace ?? '',
+                ],
+              }))}
+            />
           </div>
         )}
       </div>

@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Loader2, XCircle } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 import { fetchAioProjects } from '@/services/aio';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
@@ -110,36 +110,27 @@ export default function AioBlock() {
               </span>
             </div>
           ) : projects && projects.length === 0 ? (
-            <Select disabled value="">
-              <SelectTrigger id="aio-project" className="w-full">
-                <span className="flex flex-1 text-left text-sm text-muted-foreground">
-                  No AIO projects available
-                </span>
-              </SelectTrigger>
-              <SelectContent />
-            </Select>
+            <SearchableSelect
+              id="aio-project"
+              disabled
+              value={null}
+              onValueChange={() => {}}
+              options={[]}
+              placeholder="No AIO projects available"
+            />
           ) : (
-            <Select
-              value={selectedAioProjectKey ?? ''}
+            <SearchableSelect
+              id="aio-project"
+              value={selectedAioProjectKey}
               onValueChange={(v) => setSelectedAioProjectKey(v || null)}
-            >
-              <SelectTrigger id="aio-project" className="w-full">
-                <span className="flex flex-1 text-left text-sm">
-                  {selectedProject ? (
-                    selectedProject.name
-                  ) : (
-                    <span className="text-muted-foreground">Choose a project...</span>
-                  )}
-                </span>
-              </SelectTrigger>
-              <SelectContent>
-                {sortedProjects.map((p) => (
-                  <SelectItem key={p.projectKey} value={p.projectKey}>
-                    {p.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              placeholder="Choose a project..."
+              searchPlaceholder="Search projects..."
+              options={sortedProjects.map((p) => ({
+                value: p.projectKey,
+                label: p.name,
+                keywords: [p.projectKey, p.name],
+              }))}
+            />
           )}
           {selectedKeyIsStale && (
             <p className="text-xs text-destructive">

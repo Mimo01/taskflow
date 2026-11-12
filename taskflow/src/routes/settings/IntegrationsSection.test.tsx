@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import React, { type ReactElement } from 'react';
+import userEvent from '@testing-library/user-event';
+import type { ReactElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fetchAioProjects } from '@/services/aio';
 import { readSecret } from '@/services/stronghold';
@@ -32,8 +33,7 @@ vi.mock('@/services/stronghold', () => ({
 }));
 
 // The Release Management picker has its own tests (ReleaseManagementBlock.test.tsx). Stub it
-// here: it reuses the same Select stand-in below, which would collide on data-testid and on
-// the shared "Loading projects…" / "Retry" texts these AIO assertions query.
+// here: it renders its own picker, which would collide on the shared "Loading projects…" / "Retry" texts these AIO assertions query.
 vi.mock('@/components/integrations/ReleaseManagementBlock', () => ({
   default: () => null,
 }));
@@ -46,68 +46,17 @@ vi.mock('@/stores/auth.store', () => ({
   useAuthStore: () => ({ jiraBaseUrl: 'https://jira.example.com' }),
 }));
 
-// Replace the base-ui Select primitive with a deterministic <select>+<option>
-// stand-in. Reason: base-ui Select renders its options into a positioned portal
-// driven by floating-ui, which does not lay out reliably in jsdom — clicking
-// the trigger opens the listbox but options never mount in the test DOM. The
-// stand-in keeps the same prop API (`value`, `onValueChange`) so the wiring
-// from IntegrationsSection → setSelectedAioProjectKey is what gets exercised.
-vi.mock('@/components/ui/select', () => {
-  type SelectProps = {
-    value?: string;
-    onValueChange?: (v: string) => void;
-    disabled?: boolean;
-    children?: React.ReactNode;
-  };
-  type ItemProps = { value: string; children?: React.ReactNode };
-  type GenericProps = { children?: React.ReactNode; [key: string]: unknown };
-
-  const SelectContext = React.createContext<{
-    value: string;
-    onValueChange: (v: string) => void;
-    disabled: boolean;
-  }>({ value: '', onValueChange: () => {}, disabled: false });
-
-  function Select({
-    value = '',
-    onValueChange = () => {},
-    disabled = false,
-    children,
-  }: SelectProps) {
-    return (
-      <SelectContext.Provider value={{ value, onValueChange, disabled }}>
-        {children}
-      </SelectContext.Provider>
-    );
-  }
-  function SelectTrigger({ children, ...rest }: GenericProps) {
-    const ctx = React.useContext(SelectContext);
-    return (
-      <button type="button" disabled={ctx.disabled} {...rest}>
-        {children}
-      </button>
-    );
-  }
-  function SelectContent({ children }: GenericProps) {
-    const ctx = React.useContext(SelectContext);
-    return (
-      <select
-        data-testid="aio-project-select"
-        value={ctx.value}
-        onChange={(e) => ctx.onValueChange(e.target.value)}
-      >
-        <option value="" disabled hidden>
-          —
-        </option>
-        {children}
-      </select>
-    );
-  }
-  function SelectItem({ value, children }: ItemProps) {
-    return <option value={value}>{children}</option>;
-  }
-  return { Select, SelectTrigger, SelectContent, SelectItem };
-});
+/** Hand back the AIO trigger once the list has loaded (it is briefly rendered, then swapped for the loading row). */
+async function openablePicker(): Promise<HTMLElement> {
+  await waitFor(() => expect(fetchAioProjects).toHaveBeenCalled());
+  await waitFor(() => expect(screen.queryByText('Loading projects…')).toBeNull());
+  return waitFor(() => {
+    const trigger = document.getElementById('aio-project');
+    expect(trigger).not.toBeNull();
+    expect(trigger).toBeEnabled();
+    return trigger as HTMLElement;
+  });
+}
 
 function makeClient() {
   return new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -195,22 +144,17 @@ describe('IntegrationsSection — AIO project picker', () => {
     renderWithClient(<IntegrationsSection />);
     // Label is visible
     expect(screen.getByText('AIO Project Key')).toBeInTheDocument();
-    // After query resolves, all 3 projects render as <option>s inside the mocked
-    // SelectContent (one <option> per project + the disabled placeholder).
-    await waitFor(() => {
-      const opts = document.querySelectorAll('[data-testid="aio-project-select"] option');
-      expect(opts.length).toBe(4); // 1 placeholder + 3 projects
-    });
-    // Assert alphabetical order: Project One, Project Three, Project Two (alphabetical by name)
-    const opts = Array.from(document.querySelectorAll('[data-testid="aio-project-select"] option'));
-    const names = opts.map((el) => el.textContent);
-    // First option is the placeholder (—), then sorted alphabetically
-    expect(names).toEqual(['—', 'Project One', 'Project Three', 'Project Two']);
-    // The trigger label displays the project NAME from the selectedProject lookup
-    // (Pitfall 3) — name appears in both the trigger span and the matching option,
-    // so assert via findAllByText and require at least 2 occurrences (trigger + option).
-    const matches = await screen.findAllByText('Project Two');
-    expect(matches.length).toBeGreaterThanOrEqual(2);
+    const user = userEvent.setup();
+    const trigger = await openablePicker();
+    // The trigger label displays the project NAME from the selectedProject lookup (Pitfall 3).
+    expect(trigger).toHaveTextContent('Project Two');
+    await user.click(trigger);
+    // Alphabetical by name: Project One, Project Three, Project Two
+    expect((await screen.findAllByRole('option')).map((el) => el.textContent)).toEqual([
+      'Project One',
+      'Project Three',
+      'Project Two',
+    ]);
     // Helper text under picker is present
     expect(
       screen.getByText('Pick the AIO Test Management project key this app shows.'),
@@ -227,14 +171,13 @@ describe('IntegrationsSection — AIO project picker', () => {
       { id: 2, projectKey: 'B', name: 'bravo' },
     ]);
     renderWithClient(<IntegrationsSection />);
-    await waitFor(() => {
-      const opts = document.querySelectorAll('[data-testid="aio-project-select"] option');
-      expect(opts.length).toBe(4); // 1 placeholder + 3 projects
-    });
-    const opts = Array.from(document.querySelectorAll('[data-testid="aio-project-select"] option'));
-    const names = opts.map((el) => el.textContent);
+    await userEvent.setup().click(await openablePicker());
     // Case-insensitive alphabetical: Alpha → bravo → charlie
-    expect(names).toEqual(['—', 'Alpha', 'bravo', 'charlie']);
+    expect((await screen.findAllByRole('option')).map((el) => el.textContent)).toEqual([
+      'Alpha',
+      'bravo',
+      'charlie',
+    ]);
   });
 
   it('calls setSelectedAioProjectKey with the projectKey when an option is selected', async () => {
@@ -246,15 +189,9 @@ describe('IntegrationsSection — AIO project picker', () => {
       { id: 3, projectKey: 'PROJ3', name: 'Project Three' },
     ]);
     renderWithClient(<IntegrationsSection />);
-    // Wait for the data-loaded branch to render — the mocked Select renders a
-    // native <select data-testid="aio-project-select"> once the query resolves
-    // AND its <option> children are populated from the projects array.
-    await waitFor(() => {
-      const opts = document.querySelectorAll('[data-testid="aio-project-select"] option');
-      expect(opts.length).toBeGreaterThan(1); // placeholder + projects
-    });
-    const select = screen.getByTestId('aio-project-select') as HTMLSelectElement;
-    fireEvent.change(select, { target: { value: 'PROJ2' } });
+    const user = userEvent.setup();
+    await user.click(await openablePicker());
+    await user.click(await screen.findByRole('option', { name: 'Project Two' }));
     expect(mockStore.setSelectedAioProjectKey).toHaveBeenCalledWith('PROJ2');
   });
 
@@ -307,10 +244,7 @@ describe('IntegrationsSection — AIO project picker', () => {
     ]);
     renderWithClient(<IntegrationsSection />);
     // Wait for projects to resolve so the stale-key derivation has Array projects + non-match.
-    await waitFor(() => {
-      const opts = document.querySelectorAll('[data-testid="aio-project-select"] option');
-      expect(opts.length).toBeGreaterThan(1);
-    });
+    await openablePicker();
     expect(
       await screen.findByText(
         /Previously selected project "GHOST" is no longer available\. Pick another or clear the selection\./,
@@ -326,10 +260,7 @@ describe('IntegrationsSection — AIO project picker', () => {
       { id: 2, projectKey: 'PROJ2', name: 'Project Two' },
     ]);
     renderWithClient(<IntegrationsSection />);
-    await waitFor(() => {
-      const opts = document.querySelectorAll('[data-testid="aio-project-select"] option');
-      expect(opts.length).toBeGreaterThan(1);
-    });
+    await openablePicker();
     expect(screen.queryByText(/no longer available/)).toBeNull();
   });
 });

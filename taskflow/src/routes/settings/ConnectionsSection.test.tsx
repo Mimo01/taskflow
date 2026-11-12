@@ -8,8 +8,10 @@
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render as rtlRender, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import type { ReactElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { listJiraProjects } from '@/services/jira';
 import ConnectionsSection from './ConnectionsSection';
 
 // All renders need a QueryClientProvider — ConnectionsSection calls useQueryClient
@@ -246,6 +248,24 @@ describe('ConnectionsSection', () => {
 
     await waitFor(() => expect(mockValidateGitLab).toHaveBeenCalled());
     expect(mockValidateGitLab.mock.calls[0][1]).toBe('typed-gl');
+  });
+
+  it('Jira active-project picker opens a search box that narrows options by key and name', async () => {
+    vi.mocked(listJiraProjects).mockResolvedValueOnce([
+      { id: '1', key: 'APP', name: 'Application' },
+      { id: '2', key: 'BE', name: 'Backend' },
+    ] as Awaited<ReturnType<typeof listJiraProjects>>);
+    const user = userEvent.setup();
+    render(<ConnectionsSection />);
+    await user.click(screen.getAllByRole('button', { name: /test connection/i })[0]);
+
+    await user.click(await screen.findByLabelText('Active Project'));
+    expect(await screen.findAllByRole('option')).toHaveLength(2);
+
+    await user.type(screen.getByPlaceholderText('Search projects…'), 'be');
+    const opts = screen.getAllByRole('option');
+    expect(opts).toHaveLength(1);
+    expect(opts[0]).toHaveTextContent('BE — Backend');
   });
 
   // Replacing an expired token must not leave the app on data/errors fetched with

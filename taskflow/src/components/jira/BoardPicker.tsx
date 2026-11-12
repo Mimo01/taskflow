@@ -11,13 +11,13 @@
  * - error               -> destructive message + Retry button (onRetry)
  * - boards.length === 0 -> render nothing (caller falls back to first board)
  * - boards.length === 1 -> read-only line + auto-select that board once
- * - boards.length  > 1  -> a Select dropdown
+ * - boards.length  > 1  -> a searchable select
  */
 import { Loader2 } from 'lucide-react';
 import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 import type { JiraBoard } from '@/services/jira/sprints';
 
 export interface BoardPickerProps {
@@ -86,31 +86,21 @@ export default function BoardPicker({
   }
 
   // Multiple boards: a labelled Select so near-duplicate names are distinguishable.
-  const selected = boards.find((b) => b.id === value);
   return (
     <div className="flex flex-col gap-1.5">
       <Label htmlFor="jira-board-picker">Board</Label>
-      <Select
-        value={value != null ? String(value) : ''}
-        onValueChange={(v) => v && onChange(Number(v))}
-      >
-        <SelectTrigger id="jira-board-picker" className="w-full">
-          <span className="flex flex-1 text-left text-sm">
-            {selected ? (
-              `${selected.name} (${selected.id})`
-            ) : (
-              <span className="text-muted-foreground">Choose a board…</span>
-            )}
-          </span>
-        </SelectTrigger>
-        <SelectContent>
-          {boards.map((board) => (
-            <SelectItem key={board.id} value={String(board.id)}>
-              {board.name} ({board.id})
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <SearchableSelect
+        id="jira-board-picker"
+        value={value != null ? String(value) : null}
+        onValueChange={(v) => onChange(Number(v))}
+        placeholder="Choose a board…"
+        searchPlaceholder="Search boards…"
+        options={boards.map((board) => ({
+          value: String(board.id),
+          label: `${board.name} (${board.id})`,
+          keywords: [board.name, String(board.id)],
+        }))}
+      />
     </div>
   );
 }

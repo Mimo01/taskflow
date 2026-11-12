@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Loader2, XCircle } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 import { listJiraProjects } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
@@ -82,30 +82,17 @@ export default function ReleaseManagementBlock() {
             </span>
           </div>
         ) : (
-          <Select
+          <SearchableSelect
+            id="rm-project"
             value={rmProjectKey ?? NONE}
             onValueChange={(v) => setRmProjectKey(!v || v === NONE ? null : v)}
-          >
-            <SelectTrigger id="rm-project" className="w-full">
-              <span className="flex flex-1 text-left text-sm">
-                {selected ? (
-                  selected.name
-                ) : rmProjectKey ? (
-                  rmProjectKey
-                ) : (
-                  <span className="text-muted-foreground">None</span>
-                )}
-              </span>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={NONE}>None</SelectItem>
-              {sorted.map((p) => (
-                <SelectItem key={p.key} value={p.key}>
-                  {p.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            placeholder={rmProjectKey ?? 'None'}
+            searchPlaceholder="Search projects..."
+            options={[
+              { value: NONE, label: 'None', keywords: ['None'] },
+              ...sorted.map((p) => ({ value: p.key, label: p.name, keywords: [p.key, p.name] })),
+            ]}
+          />
         )}
         {keyIsStale && (
           <p className="text-xs text-destructive">

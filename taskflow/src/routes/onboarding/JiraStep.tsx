@@ -18,7 +18,7 @@ import BoardPicker from '@/components/jira/BoardPicker';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 import { listJiraProjects, validateJira } from '@/services/jira';
 import { listProjectBoards } from '@/services/jira/sprints';
 import { storeSecret } from '@/services/stronghold';
@@ -190,27 +190,18 @@ export default function JiraStep() {
         {showProjectDropdown && (
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="jira-project">Select Project</Label>
-            <Select value={selectedProject} onValueChange={(v) => v && setSelectedProject(v)}>
-              <SelectTrigger id="jira-project" className="w-full">
-                <span className="flex flex-1 text-left text-sm">
-                  {selectedProject ? (
-                    (() => {
-                      const p = projects.find((p) => p.key === selectedProject);
-                      return p ? `${p.key} — ${p.name}` : selectedProject;
-                    })()
-                  ) : (
-                    <span className="text-muted-foreground">Choose a project...</span>
-                  )}
-                </span>
-              </SelectTrigger>
-              <SelectContent>
-                {projects.map((project) => (
-                  <SelectItem key={project.id} value={project.key}>
-                    {project.key} — {project.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <SearchableSelect
+              id="jira-project"
+              value={selectedProject || null}
+              onValueChange={setSelectedProject}
+              placeholder={selectedProject || 'Choose a project...'}
+              searchPlaceholder="Search projects..."
+              options={projects.map((project) => ({
+                value: project.key,
+                label: `${project.key} — ${project.name}`,
+                keywords: [project.key, project.name],
+              }))}
+            />
           </div>
         )}
 

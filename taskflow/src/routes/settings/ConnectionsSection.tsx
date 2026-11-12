@@ -19,7 +19,7 @@ import BoardPicker from '@/components/jira/BoardPicker';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 import type { GitLabProject } from '@/services/gitlab';
 import { listGitLabProjects, validateGitLab } from '@/services/gitlab';
 import type { JiraProject } from '@/services/jira';
@@ -218,27 +218,18 @@ function JiraConnectionCard({
       {showProjectPicker && (
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="jira-project-picker">Active Project</Label>
-          <Select value={selectedProject} onValueChange={(v) => v && handleProjectChange(v)}>
-            <SelectTrigger id="jira-project-picker" className="w-full">
-              <span className="flex flex-1 text-left text-sm">
-                {selectedProject ? (
-                  (() => {
-                    const p = projects.find((p) => p.key === selectedProject);
-                    return p ? `${p.key} — ${p.name}` : selectedProject;
-                  })()
-                ) : (
-                  <span className="text-muted-foreground">Choose a project…</span>
-                )}
-              </span>
-            </SelectTrigger>
-            <SelectContent>
-              {projects.map((project) => (
-                <SelectItem key={project.id} value={project.key}>
-                  {project.key} — {project.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <SearchableSelect
+            id="jira-project-picker"
+            value={selectedProject || null}
+            onValueChange={handleProjectChange}
+            placeholder={selectedProject || 'Choose a project…'}
+            searchPlaceholder="Search projects…"
+            options={projects.map((project) => ({
+              value: project.key,
+              label: `${project.key} — ${project.name}`,
+              keywords: [project.key, project.name],
+            }))}
+          />
         </div>
       )}
 
@@ -440,30 +431,18 @@ function GitLabConnectionCard({
       {showProjectPicker && (
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="gitlab-project-picker">Active Project</Label>
-          <Select
-            value={selectedProjectId ? String(selectedProjectId) : ''}
-            onValueChange={(v) => v && handleProjectChange(v)}
-          >
-            <SelectTrigger id="gitlab-project-picker" className="w-full">
-              <span className="flex flex-1 text-left text-sm">
-                {selectedProjectId ? (
-                  (() => {
-                    const p = projects.find((p) => p.id === selectedProjectId);
-                    return p ? p.name_with_namespace : String(selectedProjectId);
-                  })()
-                ) : (
-                  <span className="text-muted-foreground">Choose a project…</span>
-                )}
-              </span>
-            </SelectTrigger>
-            <SelectContent>
-              {projects.map((p) => (
-                <SelectItem key={p.id} value={String(p.id)}>
-                  {p.name_with_namespace}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <SearchableSelect
+            id="gitlab-project-picker"
+            value={selectedProjectId ? String(selectedProjectId) : null}
+            onValueChange={handleProjectChange}
+            placeholder={selectedProjectId ? String(selectedProjectId) : 'Choose a project…'}
+            searchPlaceholder="Search projects…"
+            options={projects.map((p) => ({
+              value: String(p.id),
+              label: p.name_with_namespace,
+              keywords: [String(p.id), p.name, p.name_with_namespace, p.path_with_namespace ?? ''],
+            }))}
+          />
         </div>
       )}
 
