@@ -45,6 +45,13 @@ vi.mock('@/stores/onboarding.store', () => ({
   useOnboardingStore: () => mockOnboardingStore,
 }));
 
+// ── ReleaseManagementBlock stub ──────────────────────────────────────────────
+// Its own coverage lives in ReleaseManagementBlock.test.tsx; the block's
+// "Loading projects…" / "Retry" text would clash with AIO assertions.
+vi.mock('@/components/integrations/ReleaseManagementBlock', () => ({
+  default: () => <div data-testid="rm-block" />,
+}));
+
 // ── AioBlock stub ────────────────────────────────────────────────────────────
 // Isolates IntegrationsStep navigation/gating logic — AioBlock tested separately.
 vi.mock('@/components/integrations/AioBlock', () => ({
@@ -94,7 +101,9 @@ describe('IntegrationsStep', () => {
     renderWithClient(<IntegrationsStep />);
     expect(screen.getByRole('heading', { name: /set up integrations/i })).toBeInTheDocument();
     expect(
-      screen.getByText(/enable optional plugins to see test execution and worklog data/i),
+      screen.getByText(
+        /enable optional plugins and pick the release management project for test execution, worklog and deployment package data/i,
+      ),
     ).toBeInTheDocument();
   });
 
@@ -102,6 +111,27 @@ describe('IntegrationsStep', () => {
     vi.mocked(fetchAioProjects).mockResolvedValue([]);
     renderWithClient(<IntegrationsStep />);
     expect(screen.getByTestId('aio-block')).toBeInTheDocument();
+  });
+
+  it('mounts the ReleaseManagementBlock stub between AIO and Tempo', () => {
+    vi.mocked(fetchAioProjects).mockResolvedValue([]);
+    renderWithClient(<IntegrationsStep />);
+    const aio = screen.getByTestId('aio-block');
+    const rm = screen.getByTestId('rm-block');
+    const tempo = screen.getByRole('checkbox', { name: /enable tempo timesheets/i });
+    expect(aio.compareDocumentPosition(rm) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(rm.compareDocumentPosition(tempo) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('Release Management never gates Continue', async () => {
+    mockStore.aioEnabled = false;
+    vi.mocked(fetchAioProjects).mockResolvedValue([]);
+    renderWithClient(<IntegrationsStep />);
+    const continueBtn = await screen.findByRole('button', { name: /continue/i });
+    expect(continueBtn).toBeEnabled();
+    fireEvent.click(continueBtn);
+    expect(mockOnboardingStore.set).toHaveBeenCalledWith({ integrationsVisited: true });
+    expect(mockOnboardingStore.goNext).toHaveBeenCalledTimes(1);
   });
 
   it('renders Back and Continue buttons', () => {

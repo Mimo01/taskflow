@@ -2,6 +2,7 @@
  * IntegrationsStep — Wizard step 3 (Integrations).
  *
  * Mounts the self-contained AioBlock component (D-05) and adds an inline
+ * ReleaseManagementBlock (optional, never gates Continue) plus an inline
  * Tempo toggle (D-06 — not extracted, single checkbox). Continue is gated
  * per D-01..D-04 (see continueDisabled expression below). All settings bind
  * directly to useSettingsStore — no wizard-local state (D-10).
@@ -14,6 +15,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import AioBlock from '@/components/integrations/AioBlock';
+import ReleaseManagementBlock from '@/components/integrations/ReleaseManagementBlock';
 import { Button } from '@/components/ui/button';
 import { fetchAioProjects } from '@/services/aio';
 import { readSecret } from '@/services/stronghold';
@@ -88,12 +90,17 @@ export default function IntegrationsStep() {
       <div>
         <h2 className="text-xl font-semibold">Set up Integrations</h2>
         <p className="text-sm text-muted-foreground mt-1">
-          Enable optional plugins to see test execution and worklog data.
+          Enable optional plugins and pick the Release Management project for test execution,
+          worklog and deployment package data.
         </p>
       </div>
 
       {/* AIO block — self-contained toggle + project picker (D-05) */}
       <AioBlock />
+
+      {/* Release Management — optional, never gates Continue; writes
+          settings.releaseManagementProjectKey directly (no wizard-local state) */}
+      <ReleaseManagementBlock />
 
       {/* Tempo toggle — inline (D-06: not extracted; single checkbox) */}
       <div className="flex flex-col gap-4">
