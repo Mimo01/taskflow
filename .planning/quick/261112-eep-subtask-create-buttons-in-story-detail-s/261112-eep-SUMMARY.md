@@ -30,3 +30,15 @@ Targeted vitest pass; full pre-commit suite (vitest 4925 passed), biome and tsc 
 - Switching to two separate buttons is confined to `issue-detail/SubtaskCreateControl.tsx`.
 
 ## Self-Check: PASSED
+
+## UAT round 1 (2026-11-12) — c31efdd2
+
+Feedback: "too squished; subtask header differs from Attachments; unify everything on issue detail".
+Rendered Now / A (quiet labels) / B (strong titles + icons) preview; user chose **A** + **two separate buttons**.
+
+- New shared `issue-detail/SectionHeader.tsx` (+test): `h-7 mb-2` row, `text-sm font-medium text-muted-foreground` h3,
+  muted count without parentheses ("Subtasks 2"), optional collapse chevron after the label (aria-expanded), actions `ml-auto gap-2`.
+- Applied to Description, Attachments, Stories, Subtasks, Parent, Progress (`mb-0`, section owns space-y-5), Activity.
+- `SubtaskCreateControl`: split button → two outline sm buttons "Bulk create" + "Add subtask" (review WR-01 seam issue moot).
+- Attachments: bold icon+chevron header → SectionHeader; empty state → muted italic "No attachments" (drag-drop hint line dropped).
+- Out of scope: sidebar field-group labels (uppercase "Linked Issues") and Activity's centred empty state left as is.
