@@ -108,10 +108,10 @@ describe('IssueDetailHeader', () => {
       'Pin issue PROJ-10',
       'Edit issue',
       'Clone issue',
-      'Open in Jira',
-      'Copy Jira link',
+      null, // Log work trigger (named by its label text)
       'More actions',
-      null, // Log work trigger (named by its label text), the accent after the toolbar
+      'Open in Jira', // primary accent pair after the toolbar
+      'Copy Jira link',
     ]);
     // Secondary actions only show inline at 860px+; the ⋯ trigger only below it.
     for (const name of ['Refresh issue', 'Pin issue PROJ-10', 'Clone issue']) {
@@ -158,11 +158,13 @@ describe('IssueDetailHeader', () => {
     expect(h).toHaveAttribute('title', 'A subtask issue title');
   });
 
-  it('groups the tools in a toolbar with Log work as the filled accent outside it', () => {
+  it('groups the tools (incl. Log work) in a toolbar; Open in Jira + Copy link is the accent outside it', () => {
     render(<IssueDetailHeader {...base} onEdit={vi.fn()} />, { wrapper });
     const toolbar = screen.getByRole('toolbar', { name: 'Issue actions' });
     expect(within(toolbar).getByRole('button', { name: 'Edit issue' })).toBeTruthy();
-    expect(within(toolbar).queryByRole('button', { name: 'Log work' })).toBeNull();
+    expect(within(toolbar).getByRole('button', { name: 'Log work' })).toBeTruthy();
+    expect(within(toolbar).queryByRole('button', { name: 'Open in Jira' })).toBeNull();
+    expect(within(toolbar).queryByRole('button', { name: 'Copy Jira link' })).toBeNull();
   });
 
   it('Clone calls onClone with the built clone values', async () => {

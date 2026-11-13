@@ -35,7 +35,7 @@ interface LogWorkPopoverProps {
   /** Extra classes merged onto the trigger button (e.g. responsive icon-only sizing). */
   triggerClassName?: string;
   /** Trigger button style. Defaults to outline; the issue header uses the filled accent. */
-  triggerVariant?: 'outline' | 'default';
+  triggerVariant?: 'outline' | 'default' | 'ghost';
   /** When set, the label is wrapped in a span with these classes (e.g. `sr-only @[600px]:not-sr-only`). */
   triggerLabelClassName?: string;
 }

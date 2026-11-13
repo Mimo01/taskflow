@@ -30,10 +30,10 @@ import { LogWorkPopover } from './LogWorkPopover';
 
 /*
  * Quiet toolbar (one @container breakpoint on the header, 860px):
- * - wide: Refresh, Pin, Edit, Clone | Open in Jira + Copy link as borderless ghost buttons in one
- *   soft rounded group, plus Log work as the single filled accent button;
- * - narrow: Edit | Open in Jira + Copy link as icons (label kept as sr-only text + tooltip),
- *   Refresh / Pin / Clone move into a ⋯ menu, Log work becomes an icon.
+ * - wide: Refresh, Pin, Edit, Clone, Log work as borderless ghost tools in one soft rounded group,
+ *   plus Open in Jira + Copy link as the single filled accent (primary) pair;
+ * - narrow: Edit, Log work and Open in Jira collapse to icons (label kept as sr-only text +
+ *   tooltip), Refresh / Pin / Clone move into a ⋯ menu.
  */
 /** Ghost button inside the toolbar group. */
 const TOOL_CLASS =
@@ -44,7 +44,6 @@ const PRIMARY_TOOL_CLASS = cn(TOOL_CLASS, 'w-7 px-0 @[860px]:w-auto @[860px]:px-
 const LABEL_CLASS = 'sr-only @[860px]:not-sr-only @[860px]:whitespace-nowrap';
 /** Secondary tool: inline only at 860px+, otherwise it lives in the ⋯ menu. */
 const SECONDARY_TOOL_CLASS = cn(TOOL_CLASS, 'hidden @[860px]:inline-flex');
-const TOOL_DIVIDER = <div aria-hidden="true" className="mx-0.5 h-4 w-px shrink-0 bg-border" />;
 const MENU_ITEM_CLASS = 'cursor-pointer text-xs';
 
 export interface IssueDetailHeaderProps {
@@ -135,10 +134,10 @@ export function IssueDetailHeader({
     <div
       className={cn(
         '@container shrink-0 border-b bg-(--detail-surface,var(--background))',
-        peek ? 'px-4 py-2.5' : 'px-6 py-3',
+        peek ? 'px-4 pt-2.5 pb-3' : 'px-6 pt-3 pb-4',
       )}
     >
-      <div className="flex h-8 items-center gap-3">
+      <div className="flex h-7 items-center gap-3">
         {/* Left: parent link (subtasks) › type icon + key */}
         <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
           {parent && (
@@ -224,36 +223,15 @@ export function IssueDetailHeader({
                     Clone
                   </Button>
                 )}
-                {TOOL_DIVIDER}
-                {/* Open in Jira + Copy link stay side by side.
-                    `LinkContextMenu`'s default trigger is `span.contents` (no box). */}
-                <LinkContextMenu href={jiraUrl}>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => openExternal(jiraUrl)}
-                    aria-label="Open in Jira"
-                    title="Open in Jira"
-                    className={PRIMARY_TOOL_CLASS}
-                  >
-                    <ExternalLink className="size-3.5" />
-                    <span className={LABEL_CLASS}>Open in Jira</span>
-                  </Button>
-                </LinkContextMenu>
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  onClick={handleCopyJiraLink}
-                  aria-label={copiedLink ? 'Copied Jira link' : 'Copy Jira link'}
-                  title={copiedLink ? 'Copied!' : 'Copy Jira link'}
-                  className={cn(TOOL_CLASS, 'w-7 px-0')}
-                >
-                  {copiedLink ? (
-                    <Check className="size-3.5 text-primary" />
-                  ) : (
-                    <ClipboardCopy className="size-3.5" />
-                  )}
-                </Button>
+                <LogWorkPopover
+                  issueKey={issueKey}
+                  jiraBaseUrl={jiraBaseUrl}
+                  onSuccess={handleLogWorkSuccess}
+                  triggerLabel="Log work"
+                  triggerVariant="ghost"
+                  triggerClassName={PRIMARY_TOOL_CLASS}
+                  triggerLabelClassName={LABEL_CLASS}
+                />
                 {/* Narrow only: the secondary tools hidden above. */}
                 <DropdownMenu>
                   <DropdownMenuTrigger
@@ -304,15 +282,35 @@ export function IssueDetailHeader({
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
-              <LogWorkPopover
-                issueKey={issueKey}
-                jiraBaseUrl={jiraBaseUrl}
-                onSuccess={handleLogWorkSuccess}
-                triggerLabel="Log work"
-                triggerVariant="default"
-                triggerClassName="gap-1.5 text-xs w-7 px-0 @[860px]:w-auto @[860px]:px-2.5"
-                triggerLabelClassName={LABEL_CLASS}
-              />
+              {/* Primary action: Open in Jira + Copy link, one filled accent segmented pair.
+                  `LinkContextMenu`'s default trigger is `span.contents` (no box). */}
+              <div className="inline-flex items-stretch">
+                <LinkContextMenu href={jiraUrl}>
+                  <Button
+                    size="sm"
+                    onClick={() => openExternal(jiraUrl)}
+                    aria-label="Open in Jira"
+                    title="Open in Jira"
+                    className="w-7 gap-1.5 rounded-r-none px-0 text-xs @[860px]:w-auto @[860px]:px-2.5"
+                  >
+                    <ExternalLink className="size-3.5" />
+                    <span className={LABEL_CLASS}>Open in Jira</span>
+                  </Button>
+                </LinkContextMenu>
+                <Button
+                  size="icon-sm"
+                  onClick={handleCopyJiraLink}
+                  aria-label={copiedLink ? 'Copied Jira link' : 'Copy Jira link'}
+                  title={copiedLink ? 'Copied!' : 'Copy Jira link'}
+                  className="rounded-l-none border-l border-l-primary-foreground/20"
+                >
+                  {copiedLink ? (
+                    <Check className="size-3.5" />
+                  ) : (
+                    <ClipboardCopy className="size-3.5" />
+                  )}
+                </Button>
+              </div>
             </>
           )}
           {headerTrailing && (
@@ -328,8 +326,8 @@ export function IssueDetailHeader({
       {issue && (
         <h2
           className={cn(
-            'mt-1 line-clamp-2 font-semibold leading-snug',
-            peek ? 'text-base' : 'text-lg',
+            'mt-1.5 line-clamp-2 font-semibold leading-tight',
+            peek ? 'text-xl' : 'text-2xl',
           )}
           title={issue.fields.summary}
         >
