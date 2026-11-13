@@ -34,6 +34,8 @@ interface LogWorkPopoverProps {
   triggerLabel?: string;
   /** Extra classes merged onto the trigger button (e.g. responsive icon-only sizing). */
   triggerClassName?: string;
+  /** Trigger button style. Defaults to outline; the issue header uses the filled accent. */
+  triggerVariant?: 'outline' | 'default';
   /** When set, the label is wrapped in a span with these classes (e.g. `sr-only @[600px]:not-sr-only`). */
   triggerLabelClassName?: string;
 }
@@ -51,6 +53,7 @@ export function LogWorkPopover({
   triggerLabel = 'Log Work',
   triggerClassName,
   triggerLabelClassName,
+  triggerVariant = 'outline',
 }: LogWorkPopoverProps) {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
@@ -120,7 +123,7 @@ export function LogWorkPopover({
       }}
     >
       <PopoverTrigger
-        className={cn(buttonVariants({ variant: 'outline', size: 'sm' }), triggerClassName)}
+        className={cn(buttonVariants({ variant: triggerVariant, size: 'sm' }), triggerClassName)}
         title={triggerLabel}
       >
         <Clock className="size-3.5" />

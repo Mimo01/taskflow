@@ -19,7 +19,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { useMentionUserMap } from '@/hooks/useMentionUserMap';
 import { useResizable } from '@/hooks/useResizable';
-import { useScrolledPast } from '@/hooks/useScrolledPast';
 import { refreshIssueDetail } from '@/lib/issue-detail-refresh';
 import type { JiraComment, JiraIssue, TimelineFilter } from '@/services/jira';
 import {
@@ -48,7 +47,6 @@ import { ActivityTimeline } from './issue-detail/ActivityTimeline';
 import { AioTestRunsSection } from './issue-detail/AioTestRunsSection';
 import { CommentsSkeleton } from './issue-detail/CommentsSkeleton';
 import { IssueDetailHeader } from './issue-detail/IssueDetailHeader';
-import { IssueTitleBlock } from './issue-detail/IssueTitleBlock';
 import { IssueUnavailable } from './issue-detail/IssueUnavailable';
 import { LinkedIssuesSection } from './issue-detail/LinkedIssuesSection';
 import { MergeRequestsSection } from './issue-detail/MergeRequestsSection';
@@ -89,13 +87,6 @@ export function IssueDetailView({
   }, []);
 
   const [timelineFilter, setTimelineFilter] = useState<TimelineFilter>('comment');
-
-  // Shrink-on-scroll: the big in-content title is observed against the content scroller; once it
-  // leaves the top of the scroller the header shows the compact "KEY title". State-backed callback
-  // refs so the hook re-arms when the elements mount (after the skeleton) or the issue changes.
-  const [scrollEl, setScrollEl] = useState<HTMLElement | null>(null);
-  const [titleEl, setTitleEl] = useState<HTMLElement | null>(null);
-  const compact = useScrolledPast(scrollEl, titleEl, issueKey);
 
   // Auth + settings
   const { jiraBaseUrl, jiraConnected } = useAuthStore();
@@ -689,7 +680,6 @@ export function IssueDetailView({
       issue={issue}
       jiraBaseUrl={jiraBaseUrl ?? ''}
       layout={layout === 'two-column' ? 'page' : 'peek'}
-      compact={compact}
       parent={
         parentRef
           ? {
@@ -748,16 +738,8 @@ export function IssueDetailView({
         {headerNode}
         <div ref={containerRef} className="flex min-h-0 flex-1 overflow-hidden">
           {/* Left column: scrollable content */}
-          <div
-            ref={setScrollEl}
-            className="relative min-w-0 flex-1 overflow-auto [--detail-px:1.5rem]"
-          >
-            <div className="p-6">
-              <IssueTitleBlock summary={issue.fields.summary} size="page" titleRef={setTitleEl} />
-              <div className="mt-6 density-compact:mt-4 density-comfortable:mt-8">
-                {issueDetailContentNode}
-              </div>
-            </div>
+          <div className="relative min-w-0 flex-1 overflow-auto [--detail-px:1.5rem]">
+            <div className="p-6">{issueDetailContentNode}</div>
             {activitySectionNode}
           </div>
 
@@ -787,12 +769,7 @@ export function IssueDetailView({
   return (
     <div className={`flex h-full flex-col ${surfaceClass}`}>
       {headerNode}
-      <div ref={setScrollEl} className="relative min-h-0 flex-1 overflow-auto [--detail-px:1rem]">
-        {/* Big key + title first, so shrink-on-scroll works in the peek too */}
-        <div className="px-4 pt-4">
-          <IssueTitleBlock summary={issue.fields.summary} size="peek" titleRef={setTitleEl} />
-        </div>
-
+      <div className="relative min-h-0 flex-1 overflow-auto [--detail-px:1rem]">
         {/* Sidebar fields block */}
         <div className="px-4 py-4 border-b">{sidebarNode}</div>
 

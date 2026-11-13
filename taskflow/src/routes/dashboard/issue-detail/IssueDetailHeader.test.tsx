@@ -16,7 +16,7 @@ vi.mock('@tauri-apps/plugin-opener', () => ({
 }));
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { IssueDetailHeader, type IssueDetailHeaderProps } from './IssueDetailHeader';
@@ -46,7 +46,6 @@ const base: IssueDetailHeaderProps = {
   issue,
   jiraBaseUrl: 'https://jira.example.com',
   layout: 'page',
-  compact: false,
   storyPointsFieldKey: 'story_points',
   epicLinkFieldKey: 'epic_link',
 };
@@ -108,11 +107,11 @@ describe('IssueDetailHeader', () => {
       'Refresh issue',
       'Pin issue PROJ-10',
       'Edit issue',
-      null, // Log work trigger (named by its label text)
       'Clone issue',
       'Open in Jira',
       'Copy Jira link',
       'More actions',
+      null, // Log work trigger (named by its label text), the accent after the toolbar
     ]);
     // Secondary actions only show inline at 860px+; the ⋯ trigger only below it.
     for (const name of ['Refresh issue', 'Pin issue PROJ-10', 'Clone issue']) {
@@ -151,12 +150,19 @@ describe('IssueDetailHeader', () => {
     );
   });
 
-  it('always shows the type icon + key; the title joins it only once compact', () => {
-    const { rerender } = render(<IssueDetailHeader {...base} compact={false} />, { wrapper });
+  it('always shows the key and the title (2-line clamp, full summary as tooltip)', () => {
+    render(<IssueDetailHeader {...base} />, { wrapper });
     expect(screen.getByText('PROJ-10')).toBeTruthy();
-    expect(screen.queryByText('A subtask issue title')).toBeNull();
-    rerender(<IssueDetailHeader {...base} compact />);
-    expect(screen.getByText('PROJ-10')).toBeTruthy();
+    const h = screen.getByRole('heading', { level: 2, name: 'A subtask issue title' });
+    expect(h).toHaveClass('line-clamp-2');
+    expect(h).toHaveAttribute('title', 'A subtask issue title');
+  });
+
+  it('groups the tools in a toolbar with Log work as the filled accent outside it', () => {
+    render(<IssueDetailHeader {...base} onEdit={vi.fn()} />, { wrapper });
+    const toolbar = screen.getByRole('toolbar', { name: 'Issue actions' });
+    expect(within(toolbar).getByRole('button', { name: 'Edit issue' })).toBeTruthy();
+    expect(within(toolbar).queryByRole('button', { name: 'Log work' })).toBeNull();
   });
 
   it('Clone calls onClone with the built clone values', async () => {
@@ -191,16 +197,6 @@ describe('IssueDetailHeader', () => {
       },
     );
     expect(screen.getByRole('button', { name: 'Close preview' })).toBeTruthy();
-  });
-
-  it('only mounts the compact title when compact, with the full summary as tooltip', () => {
-    const { rerender } = render(<IssueDetailHeader {...base} compact={false} />, { wrapper });
-    expect(screen.queryByText('A subtask issue title')).toBeNull();
-    rerender(<IssueDetailHeader {...base} compact />);
-    expect(screen.getByText('A subtask issue title')).toHaveAttribute(
-      'title',
-      'A subtask issue title',
-    );
   });
 
   it('peek shows the parent link and calls onOpenIssue', async () => {
