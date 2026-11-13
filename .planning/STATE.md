@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-08-13)
 Phase: 95
 Plan: Not started
 Status: Milestone complete
-Last activity: 2026-11-13 - Completed quick task 261113-cth: Issue detail redesign (sticky title header with actions, sticky section headers)
+Last activity: 2026-11-13 - Completed quick task 261113-i4u: Unify epic Progress section header and buttons
 
 ## Performance Metrics
 
@@ -132,6 +132,7 @@ None yet.
 
 | # | Description | Date | Commit | Status | Directory |
 |---|-------------|------|--------|--------|-----------|
+| 261113-i4u | Unify epic Progress section header: plain section (no border band), default sticky SectionHeader; Count/SP/Time toggle and chart zoom presets share new quiet SectionSegmented control (SectionHeader.tsx) | 2026-11-13 | e1538a45, 07b83296 | Needs Review | [261113-i4u-unify-epic-progress-section-header-and-b](./quick/261113-i4u-unify-epic-progress-section-header-and-b/) |
 | 261112-spn | Redesign update display: concise release notes (headline + short titled bullets, lint in release.sh/bump-version with --allow-wordy-notes, docs/RELEASE-NOTES.md); shared titles-first notes parser for all historical formats; redesigned Update available (version jump, skipped-release roll-up, in-place progress) and What's new (Updated to X from Y, See all updates) modals; Settings → Updates loads all releases grouped by minor with search + type chips + Installed badge, ?section= deep link | 2026-11-12 | f4f17c43, 0a737fa5, 76af80f9, 740688cd, 2614532f, 1ec6f92e, 1874f875, b11b166f, 84a8fc35 (+ UAT polish, see SUMMARY) | Approved | [261112-spn-redesign-update-display-concise-changelo](./quick/261112-spn-redesign-update-display-concise-changelo/) |
 | 261113-cth | Issue detail redesign: sticky IssueDetailHeader shared by page + peek. Meta row = back + trail / parent (icon·key·title, one link) / type icon + key, quiet toolbar (Refresh, Pin, Edit, Clone, Log work) + filled Open in Jira·Copy accent; title text-xl/text-lg font-medium 2-line clamp, condenses smoothly into one 41px row on scroll; ⋯-only (+ Open full page, Close) below 720px; separate breadcrumb bar removed; sticky SectionHeaders (z-20, opaque). 12 UAT rounds incl. two rendered WebKit design studies | 2026-11-13 | f03a271c, 6e5e2507, 7854ef81, a08f63b5, 8e530eec, fae8e101, b6159a8f (+ UAT polish, see SUMMARY) | Approved | [261113-cth-issue-detail-redesign-sticky-title-heade](./quick/261113-cth-issue-detail-redesign-sticky-title-heade/) |
 | 261105-low | Shared responsive PageHeader (components/ui/page-header.tsx): one-line header at every width via @container stages — secondary status text hides <52rem, Refresh label icon-only <50rem, other button labels icon-only <44rem, Standup picker drops "Showing:" <30rem, actions wrap under title only as last resort. Standup, Releases, My Tasks, Epics, Worklogs, Test cycles, Backlog migrated (std px-6 py-4 border-border); MR list + Sprint Board left bespoke | 2026-11-05 | 1e1d1d32, 087929dc, 77a7be1e, b6e34371, c8761724 | Approved | [261105-low-standup-notes-page-header-responsive-at-](./quick/261105-low-standup-notes-page-header-responsive-at-/) |
