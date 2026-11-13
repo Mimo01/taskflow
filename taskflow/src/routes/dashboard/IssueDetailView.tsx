@@ -46,7 +46,7 @@ import { IssueDetailSidebar } from './IssueDetailSidebar';
 import { ActivityTimeline } from './issue-detail/ActivityTimeline';
 import { AioTestRunsSection } from './issue-detail/AioTestRunsSection';
 import { CommentsSkeleton } from './issue-detail/CommentsSkeleton';
-import { IssueDetailHeader } from './issue-detail/IssueDetailHeader';
+import { type HeaderNav, IssueDetailHeader } from './issue-detail/IssueDetailHeader';
 import { IssueUnavailable } from './issue-detail/IssueUnavailable';
 import { LinkedIssuesSection } from './issue-detail/LinkedIssuesSection';
 import { MergeRequestsSection } from './issue-detail/MergeRequestsSection';
@@ -67,6 +67,8 @@ export interface IssueDetailViewProps {
   onTogglePin?: (key: string) => void;
   /** Extra trailing header controls (peek: Open full page + Close). Shown even while loading. */
   headerTrailing?: ReactNode;
+  /** Full page: navigation trail + back button, shown at the start of the header's meta row. */
+  headerNav?: HeaderNav;
 }
 
 export function IssueDetailView({
@@ -80,6 +82,7 @@ export function IssueDetailView({
   isPinned: isPinnedProp,
   onTogglePin: onTogglePinProp,
   headerTrailing,
+  headerNav,
 }: IssueDetailViewProps) {
   // Perf instrumentation — record start time on mount
   useEffect(() => {
@@ -702,6 +705,7 @@ export function IssueDetailView({
             }
           : undefined
       }
+      nav={headerNav}
       onOpenIssue={onOpenIssue}
       onRefresh={handleRefresh}
       refreshing={refreshing}

@@ -231,6 +231,91 @@ describe('IssueDetailHeader', () => {
     expect(onOpenIssue).toHaveBeenCalledWith('PROJ-0');
   });
 
+  it("shows the parent's title next to its key; both open the parent", async () => {
+    const onOpenIssue = vi.fn();
+    render(
+      <IssueDetailHeader
+        {...base}
+        parent={{ key: 'PROJ-0', summary: 'Parent story title', typeName: 'Story' }}
+        onOpenIssue={onOpenIssue}
+      />,
+      { wrapper },
+    );
+    const title = screen.getByText('Parent story title');
+    // Decorative duplicate of the key button's target: hidden from AT, not a tab stop.
+    expect(title).toHaveAttribute('aria-hidden', 'true');
+    expect(title).toHaveAttribute('tabindex', '-1');
+    expect(title).toHaveClass('truncate');
+    await userEvent.click(title);
+    expect(onOpenIssue).toHaveBeenCalledWith('PROJ-0');
+  });
+
+  it('the title tucks right under the key row (no extra gap) and the row stays clickable', () => {
+    render(<IssueDetailHeader {...base} />, { wrapper });
+    const h = screen.getByRole('heading', { level: 2, name: 'A subtask issue title' });
+    expect(h.parentElement?.parentElement).toHaveClass('-mt-1');
+    const row = screen.getByRole('toolbar', { name: 'Issue actions' }).parentElement?.parentElement;
+    expect(row).toHaveClass('relative', 'z-10', 'h-7');
+  });
+
+  describe('nav trail (full page)', () => {
+    const trail = [
+      { path: '/backlog', label: 'Backlog' },
+      { path: '/issue/PROJ-1', label: 'PROJ-1' },
+    ];
+
+    it('renders Go back and the trail before the key; entries navigate by index', async () => {
+      const onBack = vi.fn();
+      const onNavigate = vi.fn();
+      render(<IssueDetailHeader {...base} nav={{ trail, onBack, onNavigate }} />, { wrapper });
+      const back = screen.getByRole('button', { name: 'Go back' });
+      expect(
+        back.compareDocumentPosition(screen.getByText('PROJ-10')) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+      await userEvent.click(back);
+      expect(onBack).toHaveBeenCalledTimes(1);
+      await userEvent.click(screen.getByRole('button', { name: 'PROJ-1' }));
+      expect(onNavigate).toHaveBeenCalledWith(1);
+    });
+
+    it('collapses a longer trail into an "earlier pages" menu below 1200px', async () => {
+      const onNavigate = vi.fn();
+      render(<IssueDetailHeader {...base} nav={{ trail, onBack: vi.fn(), onNavigate }} />, {
+        wrapper,
+      });
+      const more = screen.getByRole('button', { name: 'Show earlier pages' });
+      expect(more.parentElement).toHaveClass('@[1200px]:hidden');
+      await userEvent.click(more);
+      await userEvent.click(await screen.findByRole('menuitem', { name: 'Backlog' }));
+      expect(onNavigate).toHaveBeenCalledWith(0);
+    });
+
+    it('shows a trail ending at the parent once, as the parent crumb (walks the trail back)', async () => {
+      const onNavigate = vi.fn();
+      const onOpenIssue = vi.fn();
+      render(
+        <IssueDetailHeader
+          {...base}
+          parent={{ key: 'PROJ-1', summary: 'Parent', typeName: 'Story' }}
+          onOpenIssue={onOpenIssue}
+          nav={{ trail, onBack: vi.fn(), onNavigate }}
+        />,
+        { wrapper },
+      );
+      expect(screen.queryByRole('button', { name: 'PROJ-1' })).toBeNull();
+      expect(screen.queryByRole('button', { name: 'Show earlier pages' })).toBeNull();
+      await userEvent.click(screen.getByRole('button', { name: 'Open parent issue PROJ-1' }));
+      expect(onNavigate).toHaveBeenCalledWith(1);
+      expect(onOpenIssue).not.toHaveBeenCalled();
+    });
+
+    it('has no Go back without a nav', () => {
+      render(<IssueDetailHeader {...base} />, { wrapper });
+      expect(screen.queryByRole('button', { name: 'Go back' })).toBeNull();
+    });
+  });
+
   it('without an issue shows only the key and headerTrailing (no issue actions)', () => {
     render(
       <IssueDetailHeader

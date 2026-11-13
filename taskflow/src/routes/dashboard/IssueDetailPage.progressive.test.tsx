@@ -185,7 +185,7 @@ import type React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useNavigate } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
@@ -643,5 +643,57 @@ describe('invalidation fan-out (PERF-DETAIL-03)', () => {
 
     // Suppress unused import warning
     void React2;
+  });
+});
+
+describe('IssueDetailPage — breadcrumb trail in the header', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockUseDelayedLoading.mockReturnValue(false);
+    setupDefaultStores();
+    mockFetchIssueDetail.mockResolvedValue(BASE_ISSUE as never);
+    mockFetchComments.mockReturnValue(new Promise(() => {}));
+    mockFetchIssueChangelog.mockReturnValue(new Promise(() => {}));
+    mockFetchEnrichedSubtasks.mockReturnValue(new Promise(() => {}));
+  });
+
+  it('merges Go back + the trail into the header meta row (no separate bar)', async () => {
+    const navigate = vi.fn();
+    vi.mocked(useNavigate).mockReturnValue(navigate);
+    const pop = vi.fn();
+    const setState = vi.fn();
+    const trail = [{ path: '/backlog', label: 'Backlog' }];
+    mockUseBreadcrumbStore.mockImplementation((selector?: unknown) => {
+      const store = { trail, pop };
+      if (typeof selector === 'function') return selector(store);
+      return store;
+    });
+    Object.assign(mockUseBreadcrumbStore, { setState });
+
+    renderPage();
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { level: 2, name: 'Test issue title' })).toBeTruthy();
+    });
+
+    const back = screen.getByRole('button', { name: 'Go back' });
+    // Same row as the issue key: the header's meta row, not a bar above it.
+    expect(back.parentElement).toContainElement(screen.getByText(ISSUE_KEY));
+
+    await userEvent.click(back);
+    expect(pop).toHaveBeenCalledTimes(1);
+    expect(navigate).toHaveBeenCalledWith('/backlog', { replace: true });
+
+    // Wide + narrow renderings both exist in jsdom (container queries pick one in the app).
+    await userEvent.click(screen.getAllByRole('button', { name: 'Backlog' })[0]);
+    expect(setState).toHaveBeenCalledWith({ trail: [] });
+    expect(navigate).toHaveBeenLastCalledWith('/backlog', { replace: true });
+  });
+
+  it('shows no Go back button without a trail', async () => {
+    renderPage();
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { level: 2, name: 'Test issue title' })).toBeTruthy();
+    });
+    expect(screen.queryByRole('button', { name: 'Go back' })).toBeNull();
   });
 });

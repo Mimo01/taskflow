@@ -1,5 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query';
 import {
+  ArrowLeft,
   Check,
   ClipboardCopy,
   Copy,
@@ -9,7 +10,7 @@ import {
   Pin,
   RefreshCw,
 } from 'lucide-react';
-import { type ReactNode, useEffect, useRef, useState } from 'react';
+import { Fragment, type ReactNode, useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -44,6 +45,35 @@ const LABEL_CLASS = 'sr-only @[860px]:not-sr-only @[860px]:whitespace-nowrap';
 /** Secondary tool: inline only at 860px+, otherwise it lives in the ⋯ menu. */
 const SECONDARY_TOOL_CLASS = cn(TOOL_CLASS, 'hidden @[860px]:inline-flex');
 const MENU_ITEM_CLASS = 'cursor-pointer text-xs';
+/** Quiet nav crumb (trail entry / parent) in the meta row. */
+const CRUMB_CLASS =
+  'cursor-pointer text-xs text-muted-foreground hover:text-foreground hover:underline';
+const ISSUE_KEY_RE = /^[A-Z][A-Z0-9]+-\d+$/;
+
+/** One entry of the full page's navigation trail (where the user came from). */
+export interface HeaderNavEntry {
+  path: string;
+  label: string;
+}
+
+/**
+ * Full page only: the navigation trail merged into the header's meta row
+ * (`← Backlog / PROJ-1 / [parent] / KEY`), replacing a separate breadcrumb bar.
+ */
+export interface HeaderNav {
+  trail: HeaderNavEntry[];
+  onBack: () => void;
+  /** Navigate to trail entry `index` (the host trims the trail to before it). */
+  onNavigate: (index: number) => void;
+}
+
+function CrumbSeparator() {
+  return (
+    <span aria-hidden="true" className="shrink-0 text-xs text-muted-foreground/50">
+      /
+    </span>
+  );
+}
 
 export interface IssueDetailHeaderProps {
   issueKey: string;
@@ -52,8 +82,10 @@ export interface IssueDetailHeaderProps {
   layout: 'page' | 'peek';
   /** Content is scrolled: same header, condensed (one-line smaller title, tighter padding). */
   compact?: boolean;
-  /** Peek only: parent of a subtask, shown as a breadcrumb link. */
+  /** Parent of a subtask: a crumb before the key (key always, title where the row has room). */
   parent?: { key: string; summary: string; typeName?: string };
+  /** Full page: back button + navigation trail at the start of the meta row. */
+  nav?: HeaderNav;
   onOpenIssue?: (key: string) => void;
   onRefresh?: () => void;
   refreshing?: boolean;
@@ -79,6 +111,7 @@ export function IssueDetailHeader({
   layout,
   compact = false,
   parent,
+  nav,
   onOpenIssue,
   onRefresh,
   refreshing,
@@ -94,6 +127,18 @@ export function IssueDetailHeader({
   const jiraBaseUrlFromStore = useAuthStore((s) => s.jiraBaseUrl);
   const peek = layout === 'peek';
   const jiraUrl = `${jiraBaseUrl.replace(/\/$/, '')}/browse/${issueKey}`;
+
+  // ─ Nav trail ────────────────────────────────────────────────────────────
+  // A trail ending at the parent is shown once, as the parent crumb (which then walks the
+  // trail back instead of pushing a new entry).
+  const trail = nav?.trail ?? [];
+  const parentInTrail = !!parent && trail[trail.length - 1]?.label === parent.key;
+  const crumbs = parentInTrail ? trail.slice(0, -1) : trail;
+  function openParent() {
+    if (!parent) return;
+    if (parentInTrail && nav) nav.onNavigate(trail.length - 1);
+    else onOpenIssue?.(parent.key);
+  }
 
   // ─ Copy Jira link ───────────────────────────────────────────────────────
   const [copiedLink, setCopiedLink] = useState(false);
@@ -140,25 +185,125 @@ export function IssueDetailHeader({
         compact ? 'py-1.5' : peek ? 'py-2.5' : 'py-3',
       )}
     >
-      <div className="flex h-7 items-center gap-3">
-        {/* Left: parent link (subtasks) › type icon + key (+ the title, inline, when compact) */}
-        <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
+      {/* z-10: the title below tucks 4px under this row (-mt-1) and must not take its clicks. */}
+      <div className="relative z-10 flex h-7 items-center gap-3">
+        {/* Left: ← trail / parent / type icon + key (+ the title, inline, when compact).
+            Wide (1200px+): every trail entry; narrower: a single entry, or a … menu for longer
+            trails. The parent's title shows from 760px and shrinks first; its key shrinks only below
+            760px (down to its icon), and the current key never shrinks. */}
+        <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-hidden">
+          {nav && trail.length > 0 && (
+            <button
+              type="button"
+              onClick={nav.onBack}
+              aria-label="Go back"
+              title="Go back"
+              className="-ml-1.5 inline-flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+            >
+              <ArrowLeft className="size-4" />
+            </button>
+          )}
+          {nav && crumbs.length > 0 && (
+            <>
+              <span className="hidden @[1200px]:contents">
+                {crumbs.map((entry, i) => (
+                  <Fragment key={entry.path}>
+                    {i > 0 && <CrumbSeparator />}
+                    <button
+                      type="button"
+                      onClick={() => nav.onNavigate(i)}
+                      className={cn(
+                        CRUMB_CLASS,
+                        'shrink-0 whitespace-nowrap',
+                        ISSUE_KEY_RE.test(entry.label) && 'font-mono',
+                      )}
+                    >
+                      {entry.label}
+                    </button>
+                  </Fragment>
+                ))}
+              </span>
+              <span className="contents @[1200px]:hidden">
+                {crumbs.length === 1 ? (
+                  <button
+                    type="button"
+                    onClick={() => nav.onNavigate(0)}
+                    className={cn(
+                      CRUMB_CLASS,
+                      'min-w-[2ch] truncate',
+                      ISSUE_KEY_RE.test(crumbs[0].label) && 'font-mono',
+                    )}
+                  >
+                    {crumbs[0].label}
+                  </button>
+                ) : (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger
+                      render={
+                        <button
+                          type="button"
+                          aria-label="Show earlier pages"
+                          title="Earlier pages"
+                          className="inline-flex h-5 shrink-0 cursor-pointer items-center rounded px-1 text-xs text-muted-foreground hover:bg-muted hover:text-foreground aria-expanded:bg-muted"
+                        />
+                      }
+                    >
+                      …
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start">
+                      {crumbs.map((entry, i) => (
+                        <DropdownMenuItem
+                          key={entry.path}
+                          className={cn(
+                            MENU_ITEM_CLASS,
+                            ISSUE_KEY_RE.test(entry.label) && 'font-mono',
+                          )}
+                          onClick={() => nav.onNavigate(i)}
+                        >
+                          {entry.label}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+              </span>
+            </>
+          )}
           {parent && (
             <>
+              {crumbs.length > 0 && <CrumbSeparator />}
               <button
                 type="button"
-                onClick={() => onOpenIssue?.(parent.key)}
-                title={parent.summary}
+                onClick={openParent}
+                title={`${parent.key} ${parent.summary}`}
                 aria-label={`Open parent issue ${parent.key}`}
-                className="flex min-w-3.5 shrink cursor-pointer items-center gap-1 overflow-hidden font-mono text-xs text-muted-foreground hover:text-foreground hover:underline"
+                className={cn(
+                  CRUMB_CLASS,
+                  'flex min-w-3.5 shrink-[200] items-center gap-1.5 overflow-hidden font-mono @[760px]:shrink-0',
+                )}
               >
                 {parent.typeName && <IssueTypeIcon typeName={parent.typeName} />}
                 <span className="truncate">{parent.key}</span>
               </button>
+              {/* Same target as the key: one tab stop and accessible name is enough. */}
+              <button
+                type="button"
+                tabIndex={-1}
+                aria-hidden="true"
+                onClick={openParent}
+                title={parent.summary}
+                className={cn(
+                  CRUMB_CLASS,
+                  'hidden min-w-16 max-w-48 truncate pr-0.5 text-left @[760px]:block @[1200px]:max-w-80',
+                )}
+              >
+                {parent.summary}
+              </button>
             </>
           )}
+          {(crumbs.length > 0 || parent) && <CrumbSeparator />}
           {issue && <IssueTypeIcon typeName={issue.fields.issuetype.name} />}
-          <span className="shrink-0 font-mono text-xs text-muted-foreground">{issueKey}</span>
+          <span className="shrink-0 font-mono text-xs text-foreground/80">{issueKey}</span>
           {issue && (
             /* Inline (compact) title: always mounted so it can fade + slide in as the big title
                below collapses. Decorative copy — the big <h2> stays the one accessible heading.
@@ -166,11 +311,13 @@ export function IssueDetailHeader({
             <span
               aria-hidden="true"
               className={cn(
-                'min-w-0 flex-1 truncate pr-0.5 font-medium leading-tight',
+                'ml-0.5 min-w-0 flex-1 truncate pr-0.5 font-medium leading-tight',
                 peek ? 'text-sm' : 'text-base',
+                // Compact (680px+): claim at least 35% of the row so the parent title shrinks
+                // smoothly to make room, instead of the inline title getting squeezed out.
                 compact
-                  ? 'translate-y-0 opacity-100 [transition:opacity_150ms_linear_75ms,transform_250ms_cubic-bezier(0.4,0,0.2,1)]'
-                  : 'pointer-events-none translate-y-1 opacity-0 [transition:opacity_120ms_linear,transform_250ms_cubic-bezier(0.4,0,0.2,1)]',
+                  ? 'translate-y-0 opacity-100 @[680px]:min-w-[35%] [transition:opacity_150ms_linear_75ms,transform_250ms_cubic-bezier(0.4,0,0.2,1),min-width_250ms_cubic-bezier(0.4,0,0.2,1)]'
+                  : 'pointer-events-none translate-y-1 opacity-0 [transition:opacity_120ms_linear,transform_250ms_cubic-bezier(0.4,0,0.2,1),min-width_250ms_cubic-bezier(0.4,0,0.2,1)]',
               )}
               title={issue.fields.summary}
             >
@@ -353,7 +500,7 @@ export function IssueDetailHeader({
             'grid',
             compact
               ? 'mt-0 grid-rows-[0fr] opacity-0 [transition:grid-template-rows_250ms_cubic-bezier(0.4,0,0.2,1),margin_250ms_cubic-bezier(0.4,0,0.2,1),opacity_150ms_linear]'
-              : 'mt-1.5 grid-rows-[1fr] opacity-100 [transition:grid-template-rows_250ms_cubic-bezier(0.4,0,0.2,1),margin_250ms_cubic-bezier(0.4,0,0.2,1),opacity_180ms_linear_30ms]',
+              : '-mt-1 grid-rows-[1fr] opacity-100 [transition:grid-template-rows_250ms_cubic-bezier(0.4,0,0.2,1),margin_250ms_cubic-bezier(0.4,0,0.2,1),opacity_180ms_linear_30ms]',
           )}
         >
           <div className="min-h-0 overflow-hidden">

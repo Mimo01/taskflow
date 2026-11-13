@@ -16,11 +16,13 @@ vi.mock('@/routes/dashboard/IssueDetailView', () => ({
   IssueDetailView: ({
     issueKey,
     headerTrailing,
+    headerNav,
   }: {
     issueKey: string;
     headerTrailing?: React.ReactNode;
+    headerNav?: unknown;
   }) => (
-    <div data-testid="issue-detail-body" data-issue-key={issueKey}>
+    <div data-testid="issue-detail-body" data-issue-key={issueKey} data-has-nav={!!headerNav}>
       <span>{issueKey}</span>
       {headerTrailing}
     </div>
@@ -83,6 +85,15 @@ describe('PeekPanel', () => {
     btn.click();
     expect(onNavigateFull).toHaveBeenCalledOnce();
     expect(onNavigateFull).toHaveBeenCalledWith('PROJ-7');
+  });
+
+  // The page's back button + breadcrumb trail live in the header only on the full page.
+  it('passes no nav trail to the header and keeps the labelled "Open full page"', () => {
+    renderPanel();
+    expect(screen.getByTestId('issue-detail-body')).toHaveAttribute('data-has-nav', 'false');
+    expect(screen.getByRole('button', { name: 'Open full page' })).toHaveTextContent(
+      'Open full page',
+    );
   });
 
   // PEEK-07a: Escape keydown calls onClose (when paletteOpen=false)
