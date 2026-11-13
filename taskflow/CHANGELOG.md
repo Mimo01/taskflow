@@ -17,9 +17,6 @@ Release notes are now short, clear and easy to catch up on.
 - The installed release is marked next to its date
 - Buttons show a pointer cursor across the app
 
-### Fixed
-- Test builds no longer appear in the release history
-
 ## [1.14.20] — 2026-11-12
 
 Rebuilt notifications let you catch up and act in seconds.
