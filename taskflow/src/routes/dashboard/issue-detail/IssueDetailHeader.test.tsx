@@ -160,17 +160,19 @@ describe('IssueDetailHeader', () => {
 
   it('compact keeps the same content in one slim row: title inline next to the key', () => {
     const { rerender } = render(<IssueDetailHeader {...base} />, { wrapper });
-    const name = { level: 2, name: 'A subtask issue title' } as const;
-    expect(screen.getByRole('heading', name)).toHaveClass('line-clamp-2', 'text-xl');
+    const heading = () => screen.getByRole('heading', { level: 2, name: 'A subtask issue title' });
+    expect(heading()).toHaveClass('line-clamp-2', 'text-xl');
+    expect(heading().parentElement?.parentElement).toHaveClass('grid-rows-[1fr]');
     rerender(<IssueDetailHeader {...base} compact />);
-    const h = screen.getByRole('heading', name);
-    expect(h).toHaveClass('truncate', 'text-base');
-    // Inline: shares the key's row container.
-    expect(h.parentElement).toContainElement(screen.getByText('PROJ-10'));
-    expect(screen.getByText('PROJ-10')).toBeTruthy();
+    // Same single accessible heading; its row collapses while the inline copy (decorative) shows.
+    expect(heading().parentElement?.parentElement).toHaveClass('grid-rows-[0fr]', 'opacity-0');
+    const inline = screen
+      .getAllByText('A subtask issue title')
+      .find((el) => el.getAttribute('aria-hidden') === 'true');
+    expect(inline).toHaveClass('truncate', 'opacity-100');
+    expect(inline?.parentElement).toContainElement(screen.getByText('PROJ-10'));
     expect(screen.getByRole('toolbar', { name: 'Issue actions' })).toBeTruthy();
   });
-
   it('groups the tools (incl. Log work) in a toolbar; Open in Jira + Copy link is the accent outside it', () => {
     render(<IssueDetailHeader {...base} onEdit={vi.fn()} />, { wrapper });
     const toolbar = screen.getByRole('toolbar', { name: 'Issue actions' });

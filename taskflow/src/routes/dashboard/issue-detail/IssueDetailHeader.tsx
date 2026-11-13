@@ -136,7 +136,7 @@ export function IssueDetailHeader({
   return (
     <div
       className={cn(
-        '@container shrink-0 border-b bg-(--detail-surface,var(--background)) transition-[padding] duration-200',
+        '@container shrink-0 border-b bg-(--detail-surface,var(--background)) transition-[padding] duration-300 ease-out',
         peek ? 'px-4' : 'px-6',
         compact ? 'py-1.5' : peek ? 'pt-2 pb-2.5' : 'pt-2.5 pb-3',
       )}
@@ -161,17 +161,23 @@ export function IssueDetailHeader({
           )}
           {issue && <IssueTypeIcon typeName={issue.fields.issuetype.name} />}
           <span className="shrink-0 font-mono text-xs text-muted-foreground">{issueKey}</span>
-          {issue && compact && (
-            /* pr-0.5 guards the italic/overhang truncate-clip pitfall */
-            <h2
+          {issue && (
+            /* Inline (compact) title: always mounted so it can fade + slide in as the big title
+               below collapses. Decorative copy — the big <h2> stays the one accessible heading.
+               pr-0.5 guards the italic/overhang truncate-clip pitfall. */
+            <span
+              aria-hidden="true"
               className={cn(
-                'truncate pr-0.5 font-semibold leading-tight animate-in fade-in-0 slide-in-from-bottom-1 duration-200',
+                'truncate pr-0.5 font-semibold leading-tight transition-[opacity,transform] duration-300 ease-out',
                 peek ? 'text-sm' : 'text-base',
+                compact
+                  ? 'translate-y-0 opacity-100'
+                  : 'pointer-events-none translate-y-2 opacity-0',
               )}
               title={issue.fields.summary}
             >
               {issue.fields.summary}
-            </h2>
+            </span>
           )}
         </div>
 
@@ -338,18 +344,28 @@ export function IssueDetailHeader({
         </div>
       </div>
 
-      {/* Title: own line(s) at the top (two lines max); moves inline next to the key when the
-          content is scrolled, so the compact header is a single slim row. Full summary as tooltip. */}
-      {issue && !compact && (
-        <h2
+      {/* Big title: up to two lines below the key row at the top. On scroll it collapses smoothly
+          (grid row 1fr → 0fr + fade) while the inline copy above slides in, so the compact header
+          ends up a single slim row. Full summary as tooltip. */}
+      {issue && (
+        <div
           className={cn(
-            'mt-1 line-clamp-2 font-semibold leading-tight animate-in fade-in-0 duration-200',
-            peek ? 'text-lg' : 'text-xl',
+            'grid transition-[grid-template-rows,opacity,margin] duration-300 ease-out',
+            compact ? 'mt-0 grid-rows-[0fr] opacity-0' : 'mt-1 grid-rows-[1fr] opacity-100',
           )}
-          title={issue.fields.summary}
         >
-          {issue.fields.summary}
-        </h2>
+          <div className="min-h-0 overflow-hidden">
+            <h2
+              className={cn(
+                'line-clamp-2 font-semibold leading-tight',
+                peek ? 'text-lg' : 'text-xl',
+              )}
+              title={issue.fields.summary}
+            >
+              {issue.fields.summary}
+            </h2>
+          </div>
+        </div>
       )}
     </div>
   );

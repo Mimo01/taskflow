@@ -401,7 +401,7 @@ describe('IssueDetailPage — progressive rendering (Wave 0 RED gate)', () => {
     // Base issue resolves immediately; comments query is pending (never resolves mock above)
     renderPage();
     await waitFor(() => {
-      expect(screen.getByText('Test issue title')).toBeTruthy();
+      expect(screen.getByRole('heading', { level: 2, name: 'Test issue title' })).toBeTruthy();
     });
     // The page should show the header without waiting for comments
     expect(screen.getByText(ISSUE_KEY)).toBeTruthy();
@@ -416,7 +416,7 @@ describe('IssueDetailPage — progressive rendering (Wave 0 RED gate)', () => {
     renderPage();
     await waitFor(() => {
       // Base issue is loaded
-      expect(screen.getByText('Test issue title')).toBeTruthy();
+      expect(screen.getByRole('heading', { level: 2, name: 'Test issue title' })).toBeTruthy();
     });
 
     // comments-skeleton must be present (independent of base issue gate)
@@ -448,7 +448,7 @@ describe('IssueDetailPage — progressive rendering (Wave 0 RED gate)', () => {
 
     renderPage();
     await waitFor(() => {
-      expect(screen.getByText('Test issue title')).toBeTruthy();
+      expect(screen.getByRole('heading', { level: 2, name: 'Test issue title' })).toBeTruthy();
     });
 
     // subtasks-skeleton must be present while enrichment is pending
@@ -496,7 +496,9 @@ describe('invalidation fan-out (PERF-DETAIL-03)', () => {
     renderPage(qc);
 
     // Wait for the issue to load
-    await waitFor(() => expect(screen.getByText('Test issue title')).toBeTruthy());
+    await waitFor(() =>
+      expect(screen.getByRole('heading', { level: 2, name: 'Test issue title' })).toBeTruthy(),
+    );
 
     // The CommentCard 3-dot menu button (aria-label="Comment actions") is rendered
     // only for own comments (author.displayName === jiraUserDisplayName === 'Alice')
@@ -538,7 +540,9 @@ describe('invalidation fan-out (PERF-DETAIL-03)', () => {
     const { fireEvent } = await import('@testing-library/react');
 
     renderPage(qc);
-    await waitFor(() => expect(screen.getByText('Test issue title')).toBeTruthy());
+    await waitFor(() =>
+      expect(screen.getByRole('heading', { level: 2, name: 'Test issue title' })).toBeTruthy(),
+    );
 
     // Open the 3-dot comment actions menu, then click Edit inside it.
     // The dropdown is portaled to document.body (to escape the scrollable
