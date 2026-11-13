@@ -251,12 +251,37 @@ describe('AioTestRunDetailPage', () => {
     await waitFor(() => {
       expect(screen.getByTestId('aio-run-detail-breadcrumb')).toBeTruthy();
     });
-    expect(screen.getByRole('button', { name: 'QAT-1234' })).toBeTruthy();
+    // A one-entry trail renders a wide and a narrow crumb (container queries pick one).
+    expect(screen.getAllByRole('button', { name: 'QAT-1234' })[0]).toBeTruthy();
     await waitFor(() => {
-      expect(screen.getByTestId('aio-run-detail-breadcrumb-current').textContent).toBe(
-        'SHOP-TC-8477',
-      );
+      expect(screen.getByTestId('aio-run-detail-key').textContent).toBe('SHOP-TC-8477');
     });
+  });
+
+  it('renders a single header bar: the title lives in the same bar as the key and tools', async () => {
+    await setup();
+    renderAt(RUN_PATH);
+    const header = await screen.findByTestId('aio-run-detail-breadcrumb');
+    const title = await screen.findByTestId('aio-run-detail-title');
+    expect(header.contains(title)).toBe(true);
+    expect(header.contains(screen.getByTestId('aio-run-detail-key'))).toBe(true);
+    expect(header.contains(screen.getByTestId('aio-run-detail-position'))).toBe(true);
+    // The title is a heading of that bar, not a second stacked bar.
+    expect(title.closest('.border-b')).toBe(header);
+  });
+
+  it('Refresh reloads the run detail; no Pin tool on the run page', async () => {
+    await setup();
+    const { fetchAioTestRunDetail } = await import('@/services/aio');
+    renderAt(RUN_PATH);
+    const refresh = await screen.findByRole('button', { name: 'Refresh run' });
+    await waitFor(() => expect(screen.getByTestId('aio-run-detail-status-chip')).toBeTruthy());
+    const before = vi.mocked(fetchAioTestRunDetail).mock.calls.length;
+    await userEvent.click(refresh);
+    await waitFor(() =>
+      expect(vi.mocked(fetchAioTestRunDetail).mock.calls.length).toBeGreaterThan(before),
+    );
+    expect(screen.queryByRole('button', { name: /^Pin/ })).toBeNull();
   });
 
   it('renders cycle / test case breadcrumb when the trail is empty (direct URL access)', async () => {
@@ -276,7 +301,7 @@ describe('AioTestRunDetailPage', () => {
       trail: [{ label: 'Cycle', path: '/aio-cycle/SHOP/SHOP-CY-1011' }],
     });
     renderAt(RUN_PATH);
-    await screen.findByRole('button', { name: 'Cycle' });
+    await screen.findAllByRole('button', { name: 'Cycle' });
     expect(screen.queryByRole('link', { name: /Back to cycle/ })).toBeNull();
   });
 

@@ -50,6 +50,8 @@ const GUARDED = [
   'release-detail/ReleaseHeader.tsx',
   'aio-cycle/CycleHeader.tsx',
   'AioCycleDetailPage.tsx',
+  'MergeRequestDetailPage.tsx',
+  'AioTestRunDetailPage.tsx',
 ];
 
 describe('detail header files — React Compiler', () => {

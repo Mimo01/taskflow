@@ -1,11 +1,13 @@
 import { useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, ChevronLeft, ChevronRight, FileQuestion } from 'lucide-react';
+import { ChevronLeft, ChevronRight, FileQuestion, FlaskConical, RefreshCw } from 'lucide-react';
 import { type CSSProperties, useEffect, useRef, useState } from 'react';
 import { NavLink, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { DetailHeader, HeaderMenuItem, HeaderTool } from '@/components/ui/detail-header';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAioCredentials } from '@/hooks/useAioCredentials';
+import { useCompactOnScroll } from '@/hooks/useCompactOnScroll';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { useResizable } from '@/hooks/useResizable';
 import { PROGRESS_SEGMENT_CLASS } from '@/lib/aio-cycle-list';
@@ -81,6 +83,10 @@ export default function AioTestRunDetailPage() {
 
   const showSkeleton = useDelayedLoading(detailQuery.isLoading);
 
+  // Header condenses when the main column (wide) or the whole page (narrow, < 900px) scrolls.
+  // Prev/next navigates with `replace` on the same route element, so runId is the reset key.
+  const [headerCompact, handleScroll] = useCompactOnScroll(runId);
+
   const idx = navigableRuns.findIndex((r) => r.id === runId);
   const listRun = idx >= 0 ? navigableRuns[idx] : undefined;
   const prevRun = idx > 0 ? navigableRuns[idx - 1] : undefined;
@@ -97,6 +103,21 @@ export default function AioTestRunDetailPage() {
   const testCase = testCaseQuery.data ?? undefined;
 
   const cycleHref = `/aio-cycle/${projectKey}/${cycleKey}`;
+
+  const refreshing = detailQuery.isFetching || testCaseQuery.isFetching;
+  const handleRefresh = () => {
+    void queryClient.invalidateQueries({
+      queryKey: ['aio', jiraBaseUrl, 'run-detail', projectKey, cycleKey, runId],
+    });
+    if (tcKey) {
+      void queryClient.invalidateQueries({
+        queryKey: ['aio', jiraBaseUrl, 'testcase-detail', projectKey, tcKey],
+      });
+    }
+  };
+  const refreshTitle = detailQuery.dataUpdatedAt
+    ? `Refresh run · Refreshed ${new Date(detailQuery.dataUpdatedAt).toLocaleTimeString()}`
+    : 'Refresh run';
 
   const goToRun = (target: AioTestRun | undefined) => {
     if (!target) return;
@@ -176,114 +197,115 @@ export default function AioTestRunDetailPage() {
 
   return (
     <div className="flex h-full flex-col">
-      {/* Breadcrumb: the shared trail, then the owning cycle (unless the trail already
-          ends there), then the test case. Always rendered so the way back to the cycle
-          lives in one place, including on a direct link / pinned tab with no trail. */}
-      <div
-        className="px-6 py-3 border-b flex items-center gap-2 text-sm flex-shrink-0"
+      {/* One header bar: the shared trail, then the owning cycle (unless the trail already
+          ends there), then the test case. The cycle crumb is always present so the way back
+          to the cycle lives in one place, including on a direct link / pinned tab with no
+          trail. Prev/next are fixed tools: visible at every width, never in the ⋯ menu. */}
+      <DetailHeader
         data-testid="aio-run-detail-breadcrumb"
-      >
-        <button
-          type="button"
-          onClick={handleBack}
-          className="inline-flex items-center justify-center h-7 w-7 rounded hover:bg-muted"
-          aria-label="Back"
-        >
-          <ArrowLeft className="size-4" />
-        </button>
-        {trail.map((entry, i) => (
-          <span key={entry.path} className="flex items-center gap-2">
-            {i > 0 && <span className="text-muted-foreground">/</span>}
-            <button
-              type="button"
-              onClick={() => {
-                useBreadcrumbStore.setState({ trail: trail.slice(0, i) });
-                navigate(entry.path, { replace: true });
-              }}
-              className="text-muted-foreground hover:text-foreground"
-            >
-              {entry.label}
-            </button>
-          </span>
-        ))}
-        {trail[trail.length - 1]?.path !== cycleHref && (
-          <span className="flex items-center gap-2">
-            {trail.length > 0 && <span className="text-muted-foreground">/</span>}
+        compact={headerCompact}
+        nav={
+          trail.length > 0
+            ? {
+                trail,
+                onBack: handleBack,
+                onNavigate: (i) => {
+                  useBreadcrumbStore.setState({ trail: trail.slice(0, i) });
+                  navigate(trail[i].path, { replace: true });
+                },
+              }
+            : undefined
+        }
+        crumbTail={
+          trail[trail.length - 1]?.path !== cycleHref ? (
             <NavLink
               to={cycleHref}
               replace
               aria-label={`Back to cycle ${cycleKey}`}
-              className="font-mono text-muted-foreground hover:text-foreground"
+              className="shrink-0 font-mono text-xs text-muted-foreground hover:text-foreground hover:underline"
             >
               {cycleKey}
             </NavLink>
-          </span>
-        )}
-        <span className="text-muted-foreground">/</span>
-        <span className="font-medium" data-testid="aio-run-detail-breadcrumb-current">
-          {headerKey ?? `Run ${runId}`}
-        </span>
-      </div>
-      <div className="flex min-w-0 flex-shrink-0 items-center gap-3 border-b border-border px-6 py-3">
-        <div className="flex min-w-0 flex-1 items-center gap-3">
-          <h1
-            className="min-w-0 truncate text-2xl font-semibold"
-            data-testid="aio-run-detail-title"
-          >
-            {title ||
-              headerKey ||
-              (runsPending ? <Skeleton className="h-5 w-64" /> : `Run ${runId}`)}
-          </h1>
-          {headerKey && title && (
+          ) : undefined
+        }
+        identity={
+          <>
+            <FlaskConical className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
             <span
-              className="flex-none font-mono text-xs text-muted-foreground"
+              className="shrink-0 font-mono text-xs text-foreground/80"
               data-testid="aio-run-detail-key"
             >
-              {headerKey}
+              {headerKey ?? `Run ${runId}`}
             </span>
-          )}
-          {detailQuery.data && (
-            <div className="flex flex-none">
-              <span
-                data-testid="aio-run-detail-status-chip"
-                className={aioRunStatusPillClass(detailQuery.data.run.status)}
-              >
-                {normalizeStatusLabel(detailQuery.data.run.status)}
-              </span>
-            </div>
-          )}
-        </div>
-        {idx >= 0 && (
-          <div className="flex flex-none items-center gap-1">
-            <button
-              type="button"
-              aria-label="Previous run"
-              disabled={!prevRun}
-              onClick={() => goToRun(prevRun)}
-              className="inline-flex size-7 items-center justify-center rounded hover:bg-muted disabled:pointer-events-none disabled:opacity-40"
-            >
-              <ChevronLeft className="size-4" />
-            </button>
-            <span
-              className="min-w-10 text-center text-xs tabular-nums text-muted-foreground"
-              data-testid="aio-run-detail-position"
-            >
-              {idx + 1}/{navigableRuns.length}
-            </span>
-            <button
-              type="button"
-              aria-label="Next run"
-              disabled={!nextRun}
-              onClick={() => goToRun(nextRun)}
-              className="inline-flex size-7 items-center justify-center rounded hover:bg-muted disabled:pointer-events-none disabled:opacity-40"
-            >
-              <ChevronRight className="size-4" />
-            </button>
-          </div>
-        )}
-      </div>
+            {detailQuery.data && (
+              <div className="flex flex-none">
+                <span
+                  data-testid="aio-run-detail-status-chip"
+                  className={aioRunStatusPillClass(detailQuery.data.run.status)}
+                >
+                  {normalizeStatusLabel(detailQuery.data.run.status)}
+                </span>
+              </div>
+            )}
+          </>
+        }
+        title={title || headerKey || (runsPending ? undefined : `Run ${runId}`)}
+        titleAs="h1"
+        titleTestId="aio-run-detail-title"
+        titlePlaceholder={runsPending ? <Skeleton className="h-5 w-64" /> : undefined}
+        toolbarLabel="Run actions"
+        tools={
+          <>
+            {idx >= 0 && (
+              <>
+                <HeaderTool
+                  tier="fixed"
+                  icon={ChevronLeft}
+                  aria-label="Previous run"
+                  title="Previous run"
+                  disabled={!prevRun}
+                  onClick={() => goToRun(prevRun)}
+                />
+                <span
+                  className="min-w-10 text-center text-xs tabular-nums text-muted-foreground"
+                  data-testid="aio-run-detail-position"
+                >
+                  {idx + 1}/{navigableRuns.length}
+                </span>
+                <HeaderTool
+                  tier="fixed"
+                  icon={ChevronRight}
+                  aria-label="Next run"
+                  title="Next run"
+                  disabled={!nextRun}
+                  onClick={() => goToRun(nextRun)}
+                />
+              </>
+            )}
+            <HeaderTool
+              tier="secondary"
+              icon={RefreshCw}
+              spin={refreshing}
+              label="Refresh"
+              aria-label="Refresh run"
+              title={refreshTitle}
+              onClick={handleRefresh}
+              disabled={refreshing}
+            />
+          </>
+        }
+        menu={
+          <HeaderMenuItem
+            icon={RefreshCw}
+            spin={refreshing}
+            label="Refresh"
+            disabled={refreshing}
+            onClick={handleRefresh}
+          />
+        }
+      />
 
-      <div className="min-h-0 flex-1 overflow-auto">
+      <div className="relative min-h-0 flex-1 overflow-auto" onScroll={handleScroll}>
         {detailQuery.isError && !detailQuery.data && (
           <div className="p-4">
             <ErrorState
@@ -317,8 +339,9 @@ export default function AioTestRunDetailPage() {
               style={{ '--run-sidebar-w': `${sidebarWidth}px` } as CSSProperties}
             >
               <div
-                className="min-w-0 flex-1 space-y-10 p-6 density-compact:space-y-6 density-comfortable:space-y-12 @[900px]:overflow-y-auto"
+                className="relative min-w-0 flex-1 space-y-10 p-6 density-compact:space-y-6 density-comfortable:space-y-12 @[900px]:overflow-y-auto"
                 data-testid="aio-run-main-scroll"
+                onScroll={handleScroll}
               >
                 {description && (
                   <RunSection title="Description">

@@ -8,30 +8,29 @@
  * Read-only with "Open in GitLab" for actions.
  */
 
-import { useQuery } from '@tanstack/react-query';
+import { useIsFetching, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   AlertTriangle,
-  ArrowLeft,
   Ban,
   CheckCircle2,
   CircleDot,
   Clock,
-  ExternalLink,
   Flag,
   GitBranch,
   GitCommitHorizontal,
+  GitMerge,
   Loader2,
+  RefreshCw,
   XCircle,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useOutletContext, useParams } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
-import { LinkContextMenu } from '@/components/ui/link-context-menu';
+import { DetailHeader, HeaderMenuItem, HeaderTool } from '@/components/ui/detail-header';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useCompactOnScroll } from '@/hooks/useCompactOnScroll';
 import { useResizable } from '@/hooks/useResizable';
-import { openExternal } from '@/lib/openExternal';
 import type { Discussion, GitLabMRDetail, MRCommit, MRDiffFile } from '@/services/gitlab';
 import {
   fetchMRApprovals,
@@ -50,6 +49,15 @@ import { DiscussionThreads } from './DiscussionThreads';
 import { WikiRenderer } from './WikiRenderer';
 
 const COMMIT_PREVIEW_COUNT = 5;
+
+/** Query-key roots of every MR query this page runs (all keyed `[root, projectId, iid]`). */
+const MR_QUERY_ROOTS = [
+  'gitlab-mr-detail',
+  'gitlab-mr-commits',
+  'gitlab-mr-approvals',
+  'gitlab-mr-discussions',
+  'gitlab-mr-changes',
+];
 
 export default function MergeRequestDetailPage() {
   const { projectId, iid } = useParams<{ projectId: string; iid: string }>();
@@ -71,6 +79,9 @@ export default function MergeRequestDetailPage() {
   const numericIid = iid ? Number(iid) : 0;
 
   const [showAllCommits, setShowAllCommits] = useState(false);
+  const queryClient = useQueryClient();
+  // Header condenses when the left column scrolls (the sidebar does not condense it).
+  const [headerCompact, handleScroll] = useCompactOnScroll(`${projectId}/${iid}`);
 
   // Drag-to-resize for right panel
   const containerRef = useRef<HTMLDivElement>(null);
@@ -84,7 +95,11 @@ export default function MergeRequestDetailPage() {
   const [handleHovered, setHandleHovered] = useState(false);
 
   // Fetch MR detail
-  const { data: mr, isLoading } = useQuery({
+  const {
+    data: mr,
+    isLoading,
+    dataUpdatedAt,
+  } = useQuery({
     queryKey: ['gitlab-mr-detail', projectId, iid],
     queryFn: async () => {
       const token = await readSecret('gitlab-pat').catch(() => null);
@@ -165,71 +180,92 @@ export default function MergeRequestDetailPage() {
     }
   };
 
+  const isMrQuery = (key: readonly unknown[]) =>
+    MR_QUERY_ROOTS.includes(String(key[0])) && key[1] === projectId && key[2] === iid;
+  const refreshing = useIsFetching({ predicate: (q) => isMrQuery(q.queryKey) }) > 0;
+  const handleRefresh = () => {
+    void queryClient.invalidateQueries({ predicate: (q) => isMrQuery(q.queryKey) });
+  };
+  const refreshTitle = dataUpdatedAt
+    ? `Refresh merge request · Refreshed ${new Date(dataUpdatedAt).toLocaleTimeString()}`
+    : 'Refresh merge request';
+
   if (!projectId || !iid) return null;
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      {/* Back + breadcrumb header */}
-      {trail.length > 0 && (
-        <div className="px-6 py-3 border-b flex items-center gap-2 text-sm flex-shrink-0">
-          <button
-            type="button"
-            onClick={handleBack}
-            className="inline-flex items-center justify-center h-7 w-7 rounded hover:bg-muted"
-            aria-label="Go back"
-          >
-            <ArrowLeft className="size-4" />
-          </button>
-          {trail.map((entry, i) => (
-            <span key={entry.path} className="flex items-center gap-2">
-              {i > 0 && <span className="text-muted-foreground">/</span>}
-              <button
-                type="button"
-                onClick={() => {
+      {/* One header bar spanning the content column and the sidebar. */}
+      <DetailHeader
+        compact={headerCompact}
+        nav={
+          trail.length > 0
+            ? {
+                trail,
+                onBack: handleBack,
+                onNavigate: (i) => {
                   useBreadcrumbStore.setState({ trail: trail.slice(0, i) });
-                  navigate(entry.path, { replace: true });
-                }}
-                className="text-muted-foreground hover:text-foreground"
-              >
-                {entry.label}
-              </button>
-            </span>
-          ))}
-          <span className="text-muted-foreground">/</span>
-          <span className="font-medium">!{iid}</span>
-        </div>
-      )}
+                  navigate(trail[i].path, { replace: true });
+                },
+              }
+            : undefined
+        }
+        identity={
+          <>
+            <GitMerge className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+            <span className="shrink-0 font-mono text-xs text-foreground/80">!{iid}</span>
+            {mr && <MRStateBadge state={mr.state} draft={mr.draft} />}
+          </>
+        }
+        ready={!!mr}
+        title={mr?.title}
+        titleAs="h1"
+        toolbarLabel="Merge request actions"
+        tools={
+          <HeaderTool
+            tier="secondary"
+            icon={RefreshCw}
+            spin={refreshing}
+            label="Refresh"
+            aria-label="Refresh merge request"
+            title={refreshTitle}
+            onClick={handleRefresh}
+            disabled={refreshing}
+          />
+        }
+        menu={
+          <HeaderMenuItem
+            icon={RefreshCw}
+            spin={refreshing}
+            label="Refresh"
+            disabled={refreshing}
+            onClick={handleRefresh}
+          />
+        }
+        primary={
+          mr
+            ? {
+                href: mr.web_url,
+                openLabel: 'Open in GitLab',
+                copyLabel: 'Copy GitLab link',
+                copiedLabel: 'Copied GitLab link',
+              }
+            : undefined
+        }
+      />
 
       {/* MR detail body */}
       {isLoading || !mr ? (
         <MRDetailSkeleton />
       ) : (
-        <div ref={containerRef} className="flex flex-1 overflow-hidden">
-          {/* Left column */}
-          <div className="flex-1 overflow-auto">
+        <div ref={containerRef} className="flex min-h-0 flex-1 overflow-hidden">
+          {/* Left column. `relative`: containing block for sr-only spans so they can't
+              escape the scroller. */}
+          <div
+            data-testid="mr-detail-scroll"
+            onScroll={handleScroll}
+            className="relative min-h-0 flex-1 overflow-auto"
+          >
             <div className="p-6 density-compact:p-4 density-comfortable:p-8 space-y-5 density-compact:space-y-3 density-comfortable:space-y-6">
-              {/* Header — inline state badge + Open in GitLab button */}
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <p className="text-xs font-mono text-muted-foreground">!{mr.iid}</p>
-                  <MRStateBadge state={mr.state} draft={mr.draft} />
-                </div>
-                <div className="flex items-center gap-3">
-                  <h2 className="text-2xl font-semibold leading-snug flex-1">{mr.title}</h2>
-                  <LinkContextMenu href={mr.web_url}>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="gap-1.5 text-xs shrink-0"
-                      onClick={() => openExternal(mr.web_url)}
-                    >
-                      <ExternalLink className="size-3.5" />
-                      Open in GitLab
-                    </Button>
-                  </LinkContextMenu>
-                </div>
-              </div>
-
               {/* Description */}
               <div>
                 {mr.description ? (
@@ -556,10 +592,8 @@ function CommitRow({ commit }: { commit: MRCommit }) {
 
 function MRDetailSkeleton() {
   return (
-    <div data-testid="mr-detail-skeleton" className="flex h-full p-6 gap-6">
+    <div data-testid="mr-detail-skeleton" className="flex min-h-0 flex-1 p-6 gap-6">
       <div className="flex-1 space-y-4">
-        <Skeleton className="h-4 w-16" />
-        <Skeleton className="h-8 w-3/4" />
         <Skeleton className="h-4 w-full" />
         <Skeleton className="h-4 w-5/6" />
         <Skeleton className="h-32 w-full" />
