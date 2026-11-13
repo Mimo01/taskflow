@@ -1,125 +1,69 @@
-import {
-  ArrowLeft,
-  CalendarDays,
-  ExternalLink,
-  Package,
-  Pencil,
-  Pin,
-  RefreshCw,
-} from 'lucide-react';
+import { CalendarDays, Package, Pencil, Pin, RefreshCw, Rocket } from 'lucide-react';
 import { ReleaseIssueGraph } from '@/components/release/ReleaseIssueGraph';
 import { ReleasePackageCell } from '@/components/release/ReleasePackageCell';
 import { ReleaseStatusPill } from '@/components/release/ReleaseStatusPill';
-import { Button } from '@/components/ui/button';
-import { LinkContextMenu } from '@/components/ui/link-context-menu';
+import {
+  DetailHeader,
+  HeaderMenuItem,
+  type HeaderNav,
+  HeaderTool,
+} from '@/components/ui/detail-header';
 import { dateStamp } from '@/lib/release-agenda';
 import type { DerivedPackage, ReleasePill, StatusBreakdown } from '@/lib/release-list';
 import { cn } from '@/lib/utils';
-import type { TrailEntry } from '@/stores/breadcrumb.store';
 import { ReleaseDescription } from './ReleaseDescription';
 import { type MetaItem, MetaLine, PropertyStrip } from './ReleaseFacts';
 
-interface ReleaseBreadcrumbHeaderProps {
-  trail: TrailEntry[];
-  versionName: string | undefined;
-  onBack: () => void;
-  onBreadcrumbClick: (index: number, path: string) => void;
-}
-
-export function ReleaseBreadcrumbHeader({
-  trail,
-  versionName,
-  onBack,
-  onBreadcrumbClick,
-}: ReleaseBreadcrumbHeaderProps) {
-  if (trail.length === 0) return null;
-  return (
-    <div className="px-6 py-3 border-b flex min-w-0 items-center gap-2 text-sm flex-shrink-0">
-      <button
-        type="button"
-        onClick={onBack}
-        className="inline-flex shrink-0 items-center justify-center h-7 w-7 rounded hover:bg-muted"
-        aria-label="Go back"
-      >
-        <ArrowLeft className="size-4" />
-      </button>
-      {trail.map((entry, i) => (
-        <span key={entry.path} className="flex min-w-0 items-center gap-2">
-          {i > 0 && <span className="shrink-0 text-muted-foreground">/</span>}
-          <button
-            type="button"
-            onClick={() => onBreadcrumbClick(i, entry.path)}
-            className="min-w-0 truncate text-muted-foreground hover:text-foreground"
-          >
-            {entry.label}
-          </button>
-        </span>
-      ))}
-      <span className="shrink-0 text-muted-foreground">/</span>
-      <span className="min-w-0 truncate font-medium" title={versionName ?? undefined}>
-        {versionName ?? 'Release'}
-      </span>
-    </div>
-  );
-}
-
 interface ReleaseDetailHeaderProps {
-  name: string;
-  pill: ReleasePill;
+  /** Back button + trail (where the user came from); the release itself is the identity. */
+  nav?: HeaderNav;
+  /** Page content is scrolled: condensed one-row header. */
+  compact?: boolean;
+  /** Undefined while the release is loading: the header shows only the nav + identity icon. */
+  name?: string;
+  pill?: ReleasePill;
   releaseDate?: string;
-  showPackage: boolean;
-  pkg: DerivedPackage | null;
-  pkgLoading: boolean;
+  showPackage?: boolean;
+  pkg?: DerivedPackage | null;
+  pkgLoading?: boolean;
   pkgError?: boolean;
-  factItems: MetaItem[];
+  factItems?: MetaItem[];
   jiraDescription?: string | null;
   milestoneDescription?: string | null;
-  pinned: boolean;
-  onTogglePin: () => void;
-  onEdit: () => void;
-  jiraVersionUrl: string | null;
-  onOpenInJira: () => void;
-  lastRefreshed: string | null;
-  refreshing: boolean;
-  onRefresh: () => void;
+  pinned?: boolean;
+  onTogglePin?: () => void;
+  onEdit?: () => void;
+  /** Omit when the Jira base URL / project are unknown: no Open in Jira pair. */
+  jiraVersionUrl?: string | null;
+  /** Time string of the last issues refresh; shown in the Refresh tool's tooltip only. */
+  lastRefreshed?: string | null;
+  refreshing?: boolean;
+  onRefresh?: () => void;
 }
 
-// Staged collapse so the title keeps room: the Refreshed timestamp goes first
-// (≤1024px), then the action buttons drop to icon-only (≤896px).
-const LABEL = '@max-[896px]/page:sr-only';
-
-/** CycleHeader-style release header: title + pill + actions, meta line, description. */
+/** Release header: shared DetailHeader with meta line, description and property strip as `extra`. */
 export function ReleaseDetailHeader({
+  nav,
+  compact,
   name,
   pill,
   releaseDate,
-  showPackage,
-  pkg,
-  pkgLoading,
+  showPackage = false,
+  pkg = null,
+  pkgLoading = false,
   pkgError = false,
-  factItems,
+  factItems = [],
   jiraDescription,
   milestoneDescription,
-  pinned,
+  pinned = false,
   onTogglePin,
   onEdit,
   jiraVersionUrl,
-  onOpenInJira,
   lastRefreshed,
-  refreshing,
+  refreshing = false,
   onRefresh,
 }: ReleaseDetailHeaderProps) {
-  const openInJira = (
-    <Button
-      variant="outline"
-      size="sm"
-      className="flex-none gap-1.5 text-xs"
-      onClick={onOpenInJira}
-    >
-      <ExternalLink className="size-3.5" />
-      <span className={LABEL}>Open in Jira</span>
-    </Button>
-  );
+  const ready = name !== undefined && pill !== undefined;
   const items: MetaItem[] = [
     {
       id: 'date',
@@ -128,7 +72,7 @@ export function ReleaseDetailHeader({
           data-testid="release-header-date"
           className={cn(
             'flex items-center gap-1 tabular-nums',
-            pill.tone === 'red' && 'text-red-600 dark:text-red-400',
+            pill?.tone === 'red' && 'text-red-600 dark:text-red-400',
           )}
         >
           <CalendarDays className="size-3.5 flex-none" aria-hidden />
@@ -160,70 +104,103 @@ export function ReleaseDetailHeader({
     });
   }
   const pinLabel = pinned ? 'Unpin release' : 'Pin release';
+  const refreshTitle = lastRefreshed
+    ? `Refresh release · Refreshed ${lastRefreshed}`
+    : 'Refresh release';
   return (
-    <div
+    <DetailHeader
       data-testid="release-detail-header"
-      className="flex flex-none flex-col gap-1 px-6 pt-3 pb-2"
-    >
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-3">
-          <h1 className="min-w-0 truncate text-2xl font-semibold" title={name}>
-            {name}
-          </h1>
-          <div className="flex flex-none">
-            <ReleaseStatusPill pill={pill} />
-          </div>
-        </div>
-        <div className="flex flex-none items-center gap-2">
-          {lastRefreshed && (
-            <span className="text-xs text-muted-foreground @max-[1024px]/page:hidden">
-              Refreshed: {lastRefreshed}
-            </span>
+      compact={compact}
+      nav={nav}
+      ready={ready}
+      identity={
+        <>
+          <Rocket className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+          {pill && (
+            <div className="flex flex-none">
+              <ReleaseStatusPill pill={pill} />
+            </div>
           )}
-          <button
-            type="button"
+        </>
+      }
+      title={name}
+      titleAs="h1"
+      toolbarLabel="Release actions"
+      tools={
+        <>
+          <HeaderTool
+            tier="secondary"
+            icon={RefreshCw}
+            spin={refreshing}
+            label="Refresh"
+            aria-label="Refresh release"
+            title={refreshTitle}
             onClick={onRefresh}
             disabled={refreshing}
-            className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
-            aria-label="Refresh release"
-            title="Refresh release"
-          >
-            <RefreshCw className={refreshing ? 'size-3 animate-spin' : 'size-3'} />
-          </button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="flex-none gap-1.5 text-xs"
+          />
+          <HeaderTool
+            tier="secondary"
+            icon={Pin}
+            iconClassName={pinned ? 'fill-current text-primary' : undefined}
+            label={pinned ? 'Unpin' : 'Pin'}
             aria-label={pinLabel}
             title={pinLabel}
             onClick={onTogglePin}
-          >
-            <Pin className={cn('size-3.5', pinned && 'fill-current text-primary')} />
-            <span className={LABEL}>{pinLabel}</span>
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="flex-none gap-1.5 text-xs"
+          />
+          <HeaderTool
+            tier="primary"
+            icon={Pencil}
+            label="Edit"
+            aria-label="Edit release"
+            title="Edit release"
             onClick={onEdit}
-          >
-            <Pencil className="size-3.5" />
-            <span className={LABEL}>Edit release</span>
-          </Button>
-          {jiraVersionUrl ? (
-            <LinkContextMenu href={jiraVersionUrl}>{openInJira}</LinkContextMenu>
-          ) : (
-            openInJira
-          )}
-        </div>
-      </div>
-      <MetaLine items={items} />
-      <ReleaseDescription
-        jiraDescription={jiraDescription}
-        milestoneDescription={milestoneDescription}
-      />
-      <PropertyStrip items={factItems} className="mt-1" />
-    </div>
+          />
+        </>
+      }
+      menu={({ tiny }) => (
+        <>
+          <HeaderMenuItem
+            icon={RefreshCw}
+            spin={refreshing}
+            label="Refresh"
+            disabled={refreshing}
+            onClick={onRefresh}
+          />
+          <HeaderMenuItem
+            icon={Pin}
+            iconClassName={pinned ? 'fill-current text-primary' : undefined}
+            label={pinned ? 'Unpin' : 'Pin'}
+            onClick={onTogglePin}
+          />
+          {tiny && <HeaderMenuItem icon={Pencil} label="Edit" onClick={onEdit} />}
+        </>
+      )}
+      primary={
+        jiraVersionUrl
+          ? {
+              href: jiraVersionUrl,
+              openLabel: 'Open in Jira',
+              copyLabel: 'Copy Jira link',
+              copiedLabel: 'Copied Jira link',
+            }
+          : undefined
+      }
+      extra={
+        ready ? (
+          <div className="mt-1 flex flex-col gap-1">
+            <MetaLine items={items} />
+            {/* Capped: an expanded description must not push the page scroller to zero height. */}
+            <div className="max-h-[40vh] overflow-y-auto">
+              <ReleaseDescription
+                jiraDescription={jiraDescription}
+                milestoneDescription={milestoneDescription}
+              />
+            </div>
+            <PropertyStrip items={factItems} className="mt-1" />
+          </div>
+        ) : undefined
+      }
+    />
   );
 }
 

@@ -45,12 +45,8 @@ const DIVIDER = 'border-l pl-4';
 export function ReleaseDetailSkeleton() {
   return (
     <div data-testid="release-detail-skeleton" className="@container/page flex-1 overflow-hidden">
-      {/* Header: title + pill, meta line, property strip */}
+      {/* Header extras: meta line, property strip (the title bar is the real DetailHeader) */}
       <div className="flex flex-col gap-1 px-6 pt-3 pb-2">
-        <div className="flex items-center gap-2">
-          <Skeleton className="h-6 w-56" />
-          <Skeleton className="h-5 w-16 rounded-full" />
-        </div>
         <Skeleton className="h-4 w-96 max-w-full" />
         <Skeleton data-testid="skeleton-property-strip" className="mt-1 h-5 w-[28rem] max-w-full" />
       </div>

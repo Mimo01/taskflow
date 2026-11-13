@@ -1,9 +1,9 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useLocation, useNavigate, useOutletContext, useParams } from 'react-router-dom';
 import { ErrorState } from '@/components/ui/error-state';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useCompactOnScroll } from '@/hooks/useCompactOnScroll';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { refreshAioCycleDetail } from '@/lib/aio-refresh';
 import { toLocalDateString } from '@/lib/local-date';
@@ -80,18 +80,22 @@ export default function AioCycleDetailPage() {
   };
 
   const [refreshing, setRefreshing] = useState(false);
-  const handleRefresh = async () => {
+  // `.finally()` on the promise, not a try/finally statement: React Compiler cannot lower a
+  // TryStatement without a catch and silently skips memoising the whole page.
+  const handleRefresh = () => {
     if (!projectKey || !cycleKey) return;
     setRefreshing(true);
-    try {
-      await refreshAioCycleDetail(queryClient, { jiraBaseUrl, projectKey, cycleKey });
-    } finally {
-      setRefreshing(false);
-    }
+    void refreshAioCycleDetail(queryClient, { jiraBaseUrl, projectKey, cycleKey }).finally(() =>
+      setRefreshing(false),
+    );
   };
   const lastRefreshed = runsQuery.dataUpdatedAt
-    ? `Refreshed: ${new Date(runsQuery.dataUpdatedAt).toLocaleTimeString()}`
+    ? new Date(runsQuery.dataUpdatedAt).toLocaleTimeString()
     : '';
+
+  // Header condenses when the page scroller scrolls; its meta line is tall, so require real
+  // overflow before condensing (no expand/condense loop on short content).
+  const [headerCompact, handleScroll] = useCompactOnScroll(cycleKey, { minOverflow: 120 });
 
   const openRun = (run: AioTestRun) => {
     if (!run.id) return; // a case without a run has nothing to open
@@ -133,65 +137,42 @@ export default function AioCycleDetailPage() {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Shared breadcrumb header — uses useBreadcrumbStore trail. Final segment is the
-          current cycle. Source pages push their entry to the trail before navigating here. */}
-      {trail.length > 0 && (
-        <div
-          className="px-6 py-3 border-b flex items-center gap-2 text-sm flex-shrink-0"
-          data-testid="aio-cycle-detail-breadcrumb"
-        >
-          <button
-            type="button"
-            onClick={handleBack}
-            className="inline-flex items-center justify-center h-7 w-7 rounded hover:bg-muted"
-            aria-label="Back"
-          >
-            <ArrowLeft className="size-4" />
-          </button>
-          {trail.map((entry, i) => (
-            <span key={entry.path} className="flex items-center gap-2">
-              {i > 0 && <span className="text-muted-foreground">/</span>}
-              <button
-                type="button"
-                onClick={() => {
+      {/* One header bar above the scroller: back + trail (pushed by the source page), cycle
+          identity, title, actions. The current cycle is the identity, not a crumb. */}
+      <CycleHeader
+        compact={headerCompact}
+        nav={
+          trail.length > 0
+            ? {
+                trail,
+                onBack: handleBack,
+                onNavigate: (i) => {
                   useBreadcrumbStore.setState({ trail: trail.slice(0, i) });
-                  navigate(entry.path, { replace: true });
-                }}
-                className="text-muted-foreground hover:text-foreground"
-              >
-                {entry.label}
-              </button>
-            </span>
-          ))}
-          <span className="text-muted-foreground">/</span>
-          <span className="font-medium" data-testid="aio-cycle-detail-breadcrumb-current">
-            {cycleKey}
-          </span>
-        </div>
-      )}
+                  navigate(trail[i].path, { replace: true });
+                },
+              }
+            : undefined
+        }
+        cycle={cycleQuery.data}
+        cycleKey={cycleKey ?? ''}
+        ownerID={ownerID}
+        lastExecuted={lastExecuted}
+        pinned={pinned}
+        onTogglePin={onTogglePin}
+        onRefresh={handleRefresh}
+        refreshing={refreshing}
+        lastRefreshed={lastRefreshed}
+        jiraBaseUrl={jiraBaseUrl}
+        token={token}
+      />
 
-      {/* Single page scroll: header + KPI tiles scroll away; the tab bar and the
+      {/* Single page scroll: KPI tiles scroll away; the tab bar and the
           list column headers stick (offset via --aio-sticky-top = tab bar height). */}
       <div
         className="relative min-h-0 flex-1 overflow-auto [--aio-sticky-top:2.75rem]"
         data-testid="aio-cycle-scroll"
+        onScroll={handleScroll}
       >
-        <CycleHeader
-          cycle={cycleQuery.data}
-          cycleKey={cycleKey ?? ''}
-          ownerID={ownerID}
-          lastExecuted={lastExecuted}
-          pinned={pinned}
-          onTogglePin={onTogglePin}
-          onRefresh={() => {
-            void handleRefresh();
-          }}
-          refreshing={refreshing}
-          lastRefreshed={lastRefreshed}
-          jiraBaseUrl={jiraBaseUrl}
-          token={token}
-        />
-
         {hasError && !cycleQuery.data && !runsQuery.data && (
           <div>
             <div className="p-4">

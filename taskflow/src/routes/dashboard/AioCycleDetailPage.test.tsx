@@ -202,8 +202,20 @@ describe('AioCycleDetailPage', () => {
     await setupDefaultMocks();
     renderPage();
     await waitFor(() => {
-      expect(screen.getByText('Sprint 2')).toBeDefined();
+      expect(screen.getByRole('heading', { name: 'Sprint 2' })).toBeDefined();
     });
+  });
+
+  it('renders one header bar above the scroller (no separate breadcrumb bar)', async () => {
+    await setupDefaultMocks();
+    renderPage();
+    const h1 = await screen.findByRole('heading', { name: 'Sprint 2' });
+    const scroller = screen.getByTestId('aio-cycle-scroll');
+    expect(scroller.contains(h1)).toBe(false);
+    expect(screen.queryByTestId('aio-cycle-detail-breadcrumb')).toBeNull();
+    // Key sits in the meta row, before the title.
+    const key = screen.getAllByText('PROJ-CY-2')[0];
+    expect(key.compareDocumentPosition(h1) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   describe('progress bar', () => {
@@ -501,7 +513,7 @@ describe('AioCycleDetailPage', () => {
 
       // Wait for cycleQuery to resolve (cycle name renders in header)
       await waitFor(() => {
-        expect(screen.getByText('Sprint 2')).toBeDefined();
+        expect(screen.getByRole('heading', { name: 'Sprint 2' })).toBeDefined();
       });
 
       // Progress bar section: should NOT show "No runs recorded" while gate is closed

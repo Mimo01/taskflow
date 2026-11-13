@@ -1,6 +1,11 @@
-import { CalendarDays, Folder, Pin, RefreshCw } from 'lucide-react';
+import { CalendarDays, FlaskConical, Folder, Pin, RefreshCw } from 'lucide-react';
 import { Fragment, type ReactNode } from 'react';
-import { Button } from '@/components/ui/button';
+import {
+  DetailHeader,
+  HeaderMenuItem,
+  type HeaderNav,
+  HeaderTool,
+} from '@/components/ui/detail-header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatCycleDates, isOverdue, toDateKey } from '@/lib/aio-cycle-list';
 import { formatDateKey } from '@/lib/epic-progress';
@@ -18,10 +23,13 @@ function toIso(raw: unknown): string | null {
 }
 
 /**
- * Cycle title row (name, key, status pill, Pin) plus a metadata line. Every metadata
- * item is conditional: an absent field renders no element and no separator.
+ * Cycle header on the shared DetailHeader: identity (flask, key, status pill) in the meta row,
+ * name as the title, and a metadata line as the collapsing `extra`. Every metadata item is
+ * conditional: an absent field renders no element and no separator.
  */
 export function CycleHeader({
+  nav,
+  compact,
   cycle,
   cycleKey,
   ownerID,
@@ -34,6 +42,8 @@ export function CycleHeader({
   jiraBaseUrl,
   token,
 }: {
+  nav?: HeaderNav;
+  compact?: boolean;
   cycle: AioCycle | undefined;
   cycleKey: string;
   ownerID: string | undefined;
@@ -43,6 +53,7 @@ export function CycleHeader({
   onTogglePin: () => void;
   onRefresh: () => void;
   refreshing: boolean;
+  /** Time string of the last runs refresh (tooltip only); empty when unknown. */
   lastRefreshed: string;
   jiraBaseUrl: string | null | undefined;
   token: string | null | undefined;
@@ -122,61 +133,94 @@ export function CycleHeader({
     });
   }
 
+  const pinLabel = pinned ? `Unpin cycle ${cycleKey}` : `Pin cycle ${cycleKey}`;
+  const pinTitle = pinned ? 'Unpin from tabs' : 'Pin to tabs';
+  const refreshTitle = lastRefreshed
+    ? `Refresh cycle · Refreshed ${lastRefreshed}`
+    : 'Refresh cycle';
+
   return (
-    <div className="flex flex-none flex-col gap-1 px-6 pt-3 pb-2">
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-3">
-          <h1 className="min-w-0 truncate text-2xl font-semibold">{name}</h1>
-          <span className="flex-none font-mono text-xs text-muted-foreground">{cycleKey}</span>
+    <DetailHeader
+      compact={compact}
+      nav={nav}
+      identity={
+        <>
+          <FlaskConical className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+          <span className="shrink-0 font-mono text-xs text-foreground/80">{cycleKey}</span>
           {cycle && (
             <div className="flex flex-none">
               <span className={aioCycleStatusPillClass(cycle.status)}>{cycle.status}</span>
             </div>
           )}
-        </div>
-        <div className="flex flex-none items-center gap-2">
-          <span className="text-xs text-muted-foreground hidden sm:inline">{lastRefreshed}</span>
-          <button
-            type="button"
+        </>
+      }
+      title={name}
+      titleAs="h1"
+      toolbarLabel="Cycle actions"
+      tools={
+        <>
+          <HeaderTool
+            tier="secondary"
+            icon={RefreshCw}
+            spin={refreshing}
+            label="Refresh"
+            aria-label="Refresh cycle"
+            title={refreshTitle}
             onClick={onRefresh}
             disabled={refreshing}
-            className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-            aria-label="Refresh cycle"
-            title="Refresh cycle"
-          >
-            <RefreshCw className={refreshing ? 'size-3 animate-spin' : 'size-3'} />
-          </button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="flex-none gap-1.5 text-xs"
-            aria-label={pinned ? `Unpin cycle ${cycleKey}` : `Pin cycle ${cycleKey}`}
-            title={pinned ? 'Unpin from tabs' : 'Pin to tabs'}
+          />
+          <HeaderTool
+            tier="secondary"
+            icon={Pin}
+            iconClassName={pinned ? 'fill-current text-primary' : undefined}
+            label={pinned ? 'Unpin' : 'Pin'}
+            aria-label={pinLabel}
+            title={pinTitle}
             onClick={onTogglePin}
-          >
-            <Pin className={`size-3.5 ${pinned ? 'fill-current text-primary' : ''}`} />
-            {pinned ? 'Unpin' : 'Pin'}
-          </Button>
-        </div>
-      </div>
-      {!cycle && <Skeleton className="h-4 w-72" />}
-      {items.length > 0 && (
-        <div
-          data-testid="cycle-meta"
-          className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground"
-        >
-          {items.map((it, i) => (
-            <Fragment key={it.id}>
-              {i > 0 && (
-                <span aria-hidden className="text-border">
-                  ·
-                </span>
-              )}
-              {it.node}
-            </Fragment>
-          ))}
-        </div>
-      )}
-    </div>
+          />
+        </>
+      }
+      menu={
+        <>
+          <HeaderMenuItem
+            icon={RefreshCw}
+            spin={refreshing}
+            label="Refresh"
+            disabled={refreshing}
+            onClick={onRefresh}
+          />
+          <HeaderMenuItem
+            icon={Pin}
+            iconClassName={pinned ? 'fill-current text-primary' : undefined}
+            label={pinTitle}
+            onClick={onTogglePin}
+          />
+        </>
+      }
+      extra={
+        !cycle || items.length > 0 ? (
+          <div className="mt-1 flex flex-col gap-1">
+            {!cycle && <Skeleton className="h-4 w-72" />}
+            {items.length > 0 && (
+              <div
+                data-testid="cycle-meta"
+                className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground"
+              >
+                {items.map((it, i) => (
+                  <Fragment key={it.id}>
+                    {i > 0 && (
+                      <span aria-hidden className="text-border">
+                        ·
+                      </span>
+                    )}
+                    {it.node}
+                  </Fragment>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : undefined
+      }
+    />
   );
 }

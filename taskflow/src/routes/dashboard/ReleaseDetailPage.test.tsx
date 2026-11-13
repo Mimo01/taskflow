@@ -626,11 +626,23 @@ describe('ReleaseDetailPage', () => {
       expect(cls).not.toContain('@max-[');
     });
 
-    it('header: labels collapse under 896, title row never wraps', () => {
-      renderPage();
-      expect(screen.getByText('Edit release').className).toContain('@max-[896px]/page:sr-only');
-      const row = screen.getByRole('heading', { level: 1 }).parentElement?.parentElement;
-      expect(row?.className).not.toContain('flex-wrap');
+    it('header: one bar above the scroller; Edit label shows from 860 (header container)', () => {
+      const RealRO = global.ResizeObserver;
+      try {
+        global.ResizeObserver = withWidth(1100);
+        renderPage();
+        expect(screen.getByText('Edit').className).toContain('@[860px]:not-sr-only');
+        const header = screen.getByTestId('release-detail-header');
+        // Outside (a sibling before) the scroller, so it stays put while the page scrolls.
+        expect(screen.getByTestId('release-detail-scroll').contains(header)).toBe(false);
+        expect(header.compareDocumentPosition(screen.getByTestId('release-detail-scroll'))).toBe(
+          Node.DOCUMENT_POSITION_FOLLOWING,
+        );
+        // No separate breadcrumb bar: exactly one bottom-bordered header bar.
+        expect(screen.getByRole('heading', { level: 1 }).closest('.border-b')).toBe(header);
+      } finally {
+        global.ResizeObserver = RealRO;
+      }
     });
 
     it('2x2 grid regroups at 640 and collapses to one column at 440; the band applies from the band width', () => {
@@ -664,9 +676,26 @@ describe('ReleaseDetailPage', () => {
   });
 
   it('opens the edit modal from Edit release', async () => {
-    renderPage();
-    fireEvent.click(screen.getByText('Edit release'));
-    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+    // Edit is a primary tool: rendered only from the header's 720px width up.
+    const RealRO = global.ResizeObserver;
+    global.ResizeObserver = class {
+      constructor(private cb: ResizeObserverCallback) {}
+      observe(target: Element) {
+        this.cb(
+          [{ target, contentRect: { width: 1100, height: 400 } } as ResizeObserverEntry],
+          this as never,
+        );
+      }
+      unobserve() {}
+      disconnect() {}
+    } as unknown as typeof ResizeObserver;
+    try {
+      renderPage();
+      fireEvent.click(screen.getByRole('button', { name: 'Edit release' }));
+      expect(await screen.findByRole('dialog')).toBeInTheDocument();
+    } finally {
+      global.ResizeObserver = RealRO;
+    }
   });
 
   it('refresh calls refreshReleaseDetail and disables the button while running', async () => {
@@ -685,9 +714,14 @@ describe('ReleaseDetailPage', () => {
     await waitFor(() => expect(btn).not.toBeDisabled());
   });
 
-  it('shows Refreshed time from issuesUpdatedAt', () => {
+  it('puts the Refreshed time from issuesUpdatedAt in the Refresh tooltip, not the row', () => {
     renderPage();
-    expect(screen.getByText(/^Refreshed: /)).toBeInTheDocument();
+    const time = new Date(1_700_000_000_000).toLocaleTimeString();
+    expect(screen.getByLabelText('Refresh release')).toHaveAttribute(
+      'title',
+      `Refresh release · Refreshed ${time}`,
+    );
+    expect(screen.queryByText(/Refreshed:/)).toBeNull();
   });
 
   it('renders the skeleton while loading or without a version', () => {

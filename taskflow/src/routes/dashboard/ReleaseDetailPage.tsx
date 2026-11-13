@@ -1,7 +1,7 @@
 /**
  * ReleaseDetailPage -- Full-page route-based release detail view at /release/:versionId.
  *
- * Full-width, single-scroll layout (D-07, D-13): fixed breadcrumb bar, then one
+ * Full-width, single-scroll layout (D-07, D-13): a sticky DetailHeader, then one
  * scroll wrapper holding header, done bar, graph grid (quad + side column) and
  * the unified task table.
  */
@@ -10,7 +10,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { PackageOpen } from 'lucide-react';
 import { useLayoutEffect, useState } from 'react';
 import { useNavigate, useOutletContext, useParams } from 'react-router-dom';
-import { openExternal } from '@/lib/openExternal';
+import { useCompactOnScroll } from '@/hooks/useCompactOnScroll';
 import { dateStamp, releaseHeaderPill } from '@/lib/release-agenda';
 import { refreshReleaseDetail } from '@/lib/release-refresh';
 import { useBreadcrumbStore } from '@/stores/breadcrumb.store';
@@ -28,11 +28,7 @@ import { ReleaseStatusRows } from './release-detail/graphs/ReleaseStatusRows';
 import { ReleaseTypeWaffle } from './release-detail/graphs/ReleaseTypeWaffle';
 import { ReleaseDetailSkeleton } from './release-detail/ReleaseDetailSkeleton';
 import { releaseFactItems } from './release-detail/ReleaseFacts';
-import {
-  ReleaseBreadcrumbHeader,
-  ReleaseDetailHeader,
-  ReleaseDoneBar,
-} from './release-detail/ReleaseHeader';
+import { ReleaseDetailHeader, ReleaseDoneBar } from './release-detail/ReleaseHeader';
 import { deriveReleaseStatusRows } from './release-detail/releaseBuckets';
 import { UnifiedTaskTable } from './release-detail/UnifiedTaskTable';
 import { useEditRelease } from './release-detail/useEditRelease';
@@ -47,6 +43,10 @@ const BAND_MIN_WIDTH = 1180;
 export default function ReleaseDetailPage() {
   const { versionId } = useParams<{ versionId: string }>();
   const navigate = useNavigate();
+  // Header condenses when the page scroller scrolls. The header carries the description and
+  // property strip, so require real overflow before condensing (no expand/condense loop on
+  // short content).
+  const [headerCompact, handleScroll] = useCompactOnScroll(versionId, { minOverflow: 240 });
 
   const { onOpenIssue } =
     useOutletContext<{ onOpenIssue?: (key: string) => void; [key: string]: unknown }>() ?? {};
@@ -236,12 +236,6 @@ export default function ReleaseDetailPage() {
       ? `${jiraBaseUrl.replace(/\/$/, '')}/projects/${activeJiraProject}/versions/${versionId}`
       : null;
 
-  const handleOpenInJira = () => {
-    if (jiraVersionUrl) {
-      openExternal(jiraVersionUrl);
-    }
-  };
-
   const [refreshing, setRefreshing] = useState(false);
   // 94-REVIEW WR-03: `.finally()` on the promise, not a try/finally statement —
   // React Compiler cannot lower a TryStatement without a catch (or with a
@@ -381,12 +375,82 @@ export default function ReleaseDetailPage() {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Back + breadcrumb header */}
-      <ReleaseBreadcrumbHeader
-        trail={displayTrail}
-        versionName={version?.name}
-        onBack={handleBack}
-        onBreadcrumbClick={handleBreadcrumbClick}
+      {/* Header: back + trail, identity, title and the page actions. Sits above the scroller
+          (stays put) and condenses to one row when the page scrolls. */}
+      <ReleaseDetailHeader
+        compact={headerCompact}
+        nav={
+          displayTrail.length > 0
+            ? {
+                trail: displayTrail,
+                onBack: handleBack,
+                onNavigate: (i) => handleBreadcrumbClick(i, displayTrail[i].path),
+              }
+            : undefined
+        }
+        name={version?.name}
+        pill={version ? releaseHeaderPill(version, today) : undefined}
+        releaseDate={version?.releaseDate}
+        showPackage={rmEnabled}
+        pkg={releasePackage}
+        pkgLoading={rmLoading}
+        pkgError={rmError}
+        factItems={
+          version
+            ? releaseFactItems({
+                version,
+                gitlabConfigured,
+                gitlabMatch,
+                matchedMilestone,
+                branchState,
+                mergeBackVerdict,
+                defaultBranch,
+                onCreateBranch: () => {
+                  createBranchMutation.reset();
+                  setCreateBranchOpen(true);
+                },
+                onRetryBranchCheck: refetchBranchCheck,
+                onCreateMilestone: () => {
+                  createMilestoneMutation.reset();
+                  setCreateMilestoneOpen(true);
+                },
+                // CR-06: with the milestone list unfetched, CreateMilestoneDialog's
+                // duplicate guard runs over an empty array and passes for every
+                // title — offer the action only once we know what exists.
+                // 94-REVIEW CR-02: "know what exists" = the lookup resolved (not
+                // merely "did not fail": pending and token-less lookups too).
+                canCreateMilestone:
+                  !!version.releaseDate && !milestonesFailed && milestoneLookup === 'resolved',
+                milestoneLookup,
+                hasStoryPoints,
+                storyPoints,
+              })
+            : []
+        }
+        jiraDescription={version?.description}
+        milestoneDescription={
+          gitlabMatch.type !== 'none' ? (matchedMilestone?.description ?? null) : null
+        }
+        lastRefreshed={lastRefreshed}
+        refreshing={refreshing}
+        onRefresh={handleRefresh}
+        pinned={pinned}
+        onTogglePin={() => {
+          if (!version) return;
+          if (pinned) {
+            removePin(releaseKey);
+            clearReleaseMeta(releaseKey);
+          } else {
+            togglePin(releaseKey);
+            setPinnedReleaseMeta(releaseKey, {
+              name: version.name,
+              versionId: versionId ?? '',
+              projectKey: activeJiraProject ?? '',
+            });
+          }
+        }}
+        onEdit={startEditing}
+        jiraVersionUrl={jiraVersionUrl}
       />
 
       {/* Detail body. The scroller below is `relative` on purpose: it makes it the
@@ -400,70 +464,9 @@ export default function ReleaseDetailPage() {
         <div
           ref={setPageEl}
           data-testid="release-detail-scroll"
+          onScroll={handleScroll}
           className="@container/page relative min-h-0 flex-1 overflow-auto [--release-sticky-top:0px] [&_[role=button]]:cursor-pointer [&_a[href]]:cursor-pointer [&_button:not(:disabled)]:cursor-pointer"
         >
-          {/* Header: owns the done figure (D-14) and the page actions */}
-          <ReleaseDetailHeader
-            name={version.name}
-            pill={releaseHeaderPill(version, today)}
-            releaseDate={version.releaseDate}
-            showPackage={rmEnabled}
-            pkg={releasePackage}
-            pkgLoading={rmLoading}
-            pkgError={rmError}
-            factItems={releaseFactItems({
-              version,
-              gitlabConfigured,
-              gitlabMatch,
-              matchedMilestone,
-              branchState,
-              mergeBackVerdict,
-              defaultBranch,
-              onCreateBranch: () => {
-                createBranchMutation.reset();
-                setCreateBranchOpen(true);
-              },
-              onRetryBranchCheck: refetchBranchCheck,
-              onCreateMilestone: () => {
-                createMilestoneMutation.reset();
-                setCreateMilestoneOpen(true);
-              },
-              // CR-06: with the milestone list unfetched, CreateMilestoneDialog's
-              // duplicate guard runs over an empty array and passes for every
-              // title — offer the action only once we know what exists.
-              // 94-REVIEW CR-02: "know what exists" = the lookup resolved (not
-              // merely "did not fail": pending and token-less lookups too).
-              canCreateMilestone:
-                !!version.releaseDate && !milestonesFailed && milestoneLookup === 'resolved',
-              milestoneLookup,
-              hasStoryPoints,
-              storyPoints,
-            })}
-            jiraDescription={version.description}
-            milestoneDescription={
-              gitlabMatch.type !== 'none' ? (matchedMilestone?.description ?? null) : null
-            }
-            lastRefreshed={lastRefreshed}
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            pinned={pinned}
-            onTogglePin={() => {
-              if (pinned) {
-                removePin(releaseKey);
-                clearReleaseMeta(releaseKey);
-              } else {
-                togglePin(releaseKey);
-                setPinnedReleaseMeta(releaseKey, {
-                  name: version.name,
-                  versionId: versionId ?? '',
-                  projectKey: activeJiraProject ?? '',
-                });
-              }
-            }}
-            onEdit={startEditing}
-            jiraVersionUrl={jiraVersionUrl}
-            onOpenInJira={handleOpenInJira}
-          />
           {showNoIssuesNotice ? (
             <div
               data-testid="release-no-issues"

@@ -47,6 +47,9 @@ const GUARDED = [
   '../../components/ui/detail-header.tsx',
   '../../hooks/useCompactOnScroll.ts',
   'issue-detail/IssueDetailHeader.tsx',
+  'release-detail/ReleaseHeader.tsx',
+  'aio-cycle/CycleHeader.tsx',
+  'AioCycleDetailPage.tsx',
 ];
 
 describe('detail header files — React Compiler', () => {

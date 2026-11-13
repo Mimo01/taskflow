@@ -1,59 +1,32 @@
-// UAT test 2 regression (Phase 91.1): opening the peek panel seeds this
-// release's own breadcrumb entry, but the peek never changes the pathname — so
-// the seeded entry is self-referential while the user is still on the release
-// page. ReleaseDetailPage filters it out before rendering; these tests pin the
-// header's contract that the trail it receives is rendered verbatim ahead of
-// the static trailing release name, so a self-entry would visibly duplicate.
+// Release header on the shared DetailHeader: identity (rocket + pill), 2-line h1 title, the
+// meta/description/property strip in the collapsing extra slot, and the toolbar tools.
 
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ReleasePill } from '@/lib/release-list';
-import { ReleaseBreadcrumbHeader, ReleaseDetailHeader, ReleaseDoneBar } from './ReleaseHeader';
+import { ReleaseDetailHeader, ReleaseDoneBar } from './ReleaseHeader';
 
 vi.mock('@/lib/useDetectedBrowsers', () => ({ useDetectedBrowsers: () => [] }));
 
-describe('ReleaseBreadcrumbHeader', () => {
-  it('renders nothing when the trail is empty', () => {
-    const { container } = render(
-      <ReleaseBreadcrumbHeader
-        trail={[]}
-        versionName="33.5.0"
-        onBack={vi.fn()}
-        onBreadcrumbClick={vi.fn()}
-      />,
-    );
-    expect(container).toBeEmptyDOMElement();
-  });
-
-  it('names the release exactly once when the trail carries a real source page', () => {
-    render(
-      <ReleaseBreadcrumbHeader
-        trail={[{ path: '/releases', label: 'Releases' }]}
-        versionName="33.5.0"
-        onBack={vi.fn()}
-        onBreadcrumbClick={vi.fn()}
-      />,
-    );
-    expect(screen.getByText('Releases')).toBeInTheDocument();
-    expect(screen.getAllByText('33.5.0')).toHaveLength(1);
-  });
-
-  it('would print the release twice if a self-referential entry reached it — hence the caller filters', () => {
-    // Documents the failure mode the ReleaseDetailPage-side fix prevents.
-    render(
-      <ReleaseBreadcrumbHeader
-        trail={[{ path: '/release/10001', label: '33.5.0' }]}
-        versionName="33.5.0"
-        onBack={vi.fn()}
-        onBreadcrumbClick={vi.fn()}
-      />,
-    );
-    expect(screen.getAllByText('33.5.0')).toHaveLength(2);
-  });
-});
+// The shared test setup's ResizeObserver mock reports 600px; the shared DetailHeader switches
+// to its ⋯-only layout below 720px, so the suite pins a wide header.
+function stubWidth(width: number) {
+  class RO {
+    constructor(private cb: ResizeObserverCallback) {}
+    observe() {
+      this.cb([{ contentRect: { width } } as ResizeObserverEntry], this as never);
+    }
+    disconnect() {}
+    unobserve() {}
+  }
+  vi.stubGlobal('ResizeObserver', RO);
+}
 
 describe('ReleaseDetailHeader', () => {
+  beforeEach(() => stubWidth(1100));
+  afterEach(() => vi.unstubAllGlobals());
+
   const base = {
     name: '33.5.0',
     pill: { tone: 'muted', label: 'In 3 days' } as ReleasePill,
@@ -68,7 +41,6 @@ describe('ReleaseDetailHeader', () => {
     onTogglePin: vi.fn(),
     onEdit: vi.fn(),
     jiraVersionUrl: null as string | null,
-    onOpenInJira: vi.fn(),
     lastRefreshed: null as string | null,
     refreshing: false,
     onRefresh: vi.fn(),
@@ -76,30 +48,35 @@ describe('ReleaseDetailHeader', () => {
   const renderHeader = (over: Partial<typeof base> = {}) =>
     render(<ReleaseDetailHeader {...base} {...over} />);
 
-  it('renders the name h1, one pill and the date', () => {
+  it('renders the name h1 (2-line clamp), one pill after the rocket, and the date', () => {
     renderHeader();
     const h = screen.getByRole('heading', { level: 1, name: '33.5.0' });
-    expect(h).toHaveClass('text-2xl', 'font-semibold');
+    expect(h).toHaveClass('text-xl', 'font-medium', 'line-clamp-2');
     expect(h).toHaveAttribute('title', '33.5.0');
     expect(screen.getAllByTestId('release-status-pill')).toHaveLength(1);
     expect(screen.getByText('In 3 days')).toBeInTheDocument();
     expect(screen.getByText('Mon 02 Nov')).toBeInTheDocument();
-    expect(screen.getByTestId('release-detail-header')).not.toHaveClass('border-b');
+    // One bar: the shared header owns the border.
+    expect(screen.getByTestId('release-detail-header')).toHaveClass('border-b');
+    // Identity (rocket + pill) sits in the meta row, above the title.
+    const rocket = document.querySelector('.lucide-rocket') as Element;
+    const pill = screen.getByTestId('release-status-pill');
+    expect(rocket.compareDocumentPosition(pill) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(pill.compareDocumentPosition(h) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
-  it('matches the CycleHeader geometry: pb-2, non-wrapping title row, flex-none actions', () => {
-    renderHeader({ lastRefreshed: '10:00' });
-    expect(screen.getByTestId('release-detail-header')).toHaveClass('pt-3', 'pb-2');
-    const row = screen.getByRole('heading', { level: 1 }).parentElement?.parentElement;
-    expect(row).toHaveClass('justify-between', 'gap-3');
-    expect(row).not.toHaveClass('flex-wrap');
-    expect(screen.getByRole('heading', { level: 1 }).parentElement).toHaveClass('gap-3');
-    for (const name of ['Pin release', 'Edit release', 'Open in Jira']) {
-      expect(screen.getByRole('button', { name })).toHaveClass('flex-none');
-    }
-    const refreshed = screen.getByText(/Refreshed:/);
-    expect(refreshed.className).toContain('@max-[1024px]/page:hidden');
-    expect(refreshed.className).not.toContain('sm:');
+  it('shows only the identity icon while the release is loading', () => {
+    render(<ReleaseDetailHeader />);
+    expect(screen.queryByRole('heading')).toBeNull();
+    expect(screen.queryByRole('toolbar')).toBeNull();
+    expect(document.querySelector('.lucide-rocket')).not.toBeNull();
+  });
+
+  it('puts the meta in the collapsing extra slot with the title', () => {
+    renderHeader({ jiraDescription: 'Spring hardening release' });
+    const grid = screen.getByRole('heading', { level: 1 }).parentElement?.parentElement;
+    expect(grid).toContainElement(screen.getByTestId('release-header-date'));
+    expect(grid).toContainElement(screen.getByText('Spring hardening release'));
   });
 
   it('overdue date is red', () => {
@@ -146,11 +123,21 @@ describe('ReleaseDetailHeader', () => {
     expect(screen.queryByTestId('release-property-strip')).toBeNull();
   });
 
-  it('shows Refreshed text; refresh button fires and is disabled+spinning while refreshing', () => {
+  it('caps the description so an expanded one cannot swallow the page', () => {
+    renderHeader({ jiraDescription: 'Spring hardening release' });
+    expect(
+      screen.getByText('Spring hardening release').closest('.max-h-\\[40vh\\]'),
+    ).not.toBeNull();
+  });
+
+  it('Refresh is a secondary tool: the refreshed time lives in its tooltip, not in the row', () => {
     const onRefresh = vi.fn();
     const { unmount } = renderHeader({ lastRefreshed: '10:11:12', onRefresh });
-    expect(screen.getByText('Refreshed: 10:11:12')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Refresh release' }));
+    const refresh = screen.getByRole('button', { name: 'Refresh release' });
+    expect(refresh).toHaveAttribute('title', 'Refresh release · Refreshed 10:11:12');
+    expect(refresh).toHaveClass('hidden', '@[860px]:inline-flex');
+    expect(screen.queryByText(/Refreshed:/)).toBeNull();
+    fireEvent.click(refresh);
     expect(onRefresh).toHaveBeenCalledTimes(1);
     unmount();
     const { container } = renderHeader({ refreshing: true });
@@ -158,41 +145,58 @@ describe('ReleaseDetailHeader', () => {
     expect(container.querySelector('.animate-spin')).not.toBeNull();
   });
 
-  it('pin button reflects state and fires onTogglePin', () => {
+  it('pin tool reflects state, reads Pin / Unpin and fires onTogglePin', () => {
     const onTogglePin = vi.fn();
     const { unmount } = renderHeader({ onTogglePin });
     const pin = screen.getByRole('button', { name: 'Pin release' });
-    expect(pin).toHaveTextContent('Pin release');
+    expect(pin).toHaveTextContent('Pin');
+    expect(pin).not.toHaveTextContent('Pin release');
     fireEvent.click(pin);
     expect(onTogglePin).toHaveBeenCalledTimes(1);
     unmount();
     renderHeader({ pinned: true });
-    expect(screen.getByRole('button', { name: 'Unpin release' })).toHaveTextContent(
-      'Unpin release',
-    );
+    expect(screen.getByRole('button', { name: 'Unpin release' })).toHaveTextContent('Unpin');
   });
 
-  it('Edit release and Open in Jira fire their callbacks; labels collapse when narrow', () => {
+  it('Edit is a primary tool (label from 860px) and fires onEdit', () => {
     const onEdit = vi.fn();
-    const onOpenInJira = vi.fn();
-    renderHeader({ onEdit, onOpenInJira, jiraVersionUrl: 'https://jira.example.com/v/1' });
+    renderHeader({ onEdit });
     fireEvent.click(screen.getByRole('button', { name: 'Edit release' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Open in Jira' }));
     expect(onEdit).toHaveBeenCalledTimes(1);
-    expect(onOpenInJira).toHaveBeenCalledTimes(1);
-    expect(screen.getByText('Edit release').className).toContain('@max-[896px]/page:sr-only');
+    expect(screen.getByText('Edit').className).toContain('@[860px]:not-sr-only');
   });
 
-  it('renders the description under the meta line', () => {
-    renderHeader({ jiraDescription: 'Spring hardening release' });
-    expect(screen.getByText('Spring hardening release')).toBeInTheDocument();
+  it('Open in Jira + Copy link appear only with a Jira version URL', () => {
+    const { unmount } = renderHeader({ jiraVersionUrl: null });
+    expect(screen.queryByRole('button', { name: 'Open in Jira' })).toBeNull();
+    unmount();
+    renderHeader({ jiraVersionUrl: 'https://jira.example.com/v/1' });
+    expect(screen.getByRole('button', { name: 'Open in Jira' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Copy Jira link' })).toBeInTheDocument();
   });
 
-  it('renders no v{id} line, no rocket icon and no countdown/done figure', () => {
-    const { container } = renderHeader();
+  it('renders no v{id} line and no countdown/done figure', () => {
+    renderHeader();
     expect(screen.queryByText(/^v\d+$/)).not.toBeInTheDocument();
-    expect(container.querySelector('.lucide-rocket')).toBeNull();
     expect(screen.queryByText(/ done$/)).not.toBeInTheDocument();
+  });
+
+  // UAT test 2 regression (Phase 91.1): the trail it receives is rendered verbatim, so the
+  // caller must filter the seeded self-entry. The release itself is the identity, never a crumb.
+  it('renders the trail as crumbs and names the release once', () => {
+    render(
+      <ReleaseDetailHeader
+        {...base}
+        nav={{
+          trail: [{ path: '/releases', label: 'Releases' }],
+          onBack: vi.fn(),
+          onNavigate: vi.fn(),
+        }}
+      />,
+    );
+    expect(screen.getAllByRole('button', { name: 'Releases' }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole('heading', { name: '33.5.0' })).toHaveLength(1);
+    expect(screen.queryByRole('button', { name: '33.5.0' })).toBeNull();
   });
 });
 
