@@ -102,3 +102,9 @@ Known and intentional: Linked issues / Merge requests labels in peek do not stic
   - Open in Jira + Copy link is now the filled accent pair. Log work is a ghost tool in the toolbar.
   - The title is back to text-2xl on the page and text-xl in the peek.
   - Spacing: h-7 meta row, mt-1.5 title, pt-3/pb-4 on the page, pt-2.5/pb-3 in the peek.
+
+## UAT round 5 (2026-11-13)
+
+- Feedback: the header is too large. It may shrink on scroll.
+- Fix `9f7a909d`: the title is now text-xl on the page and text-lg in the peek, with less padding.
+- Fix (this commit): the header condenses on scroll but keeps the same content. The title drops to one line at text-base on the page and text-sm in the peek, and the padding tightens. Hysteresis: it condenses past 16px of scroll and expands again at 4px or less. It resets when the peek swaps issues.
