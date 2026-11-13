@@ -1,7 +1,9 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetch } from '@tauri-apps/plugin-http';
-import { useState } from 'react';
+import { Paperclip } from 'lucide-react';
+import { useRef, useState } from 'react';
 import { assertOk, openSavedFile, saveBytes } from '@/lib/save-attachment';
+import { cn } from '@/lib/utils';
 import type { JiraAttachment } from '@/services/jira';
 import { uploadAttachment } from '@/services/jira/attachments';
 import { readSecret } from '@/services/stronghold';
@@ -27,8 +29,9 @@ export function AttachmentsSection({
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewIndex, setPreviewIndex] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
-  const [dropUploadName, setDropUploadName] = useState<string | null>(null);
-  const [dropUploadError, setDropUploadError] = useState<string | null>(null);
+  const [uploadName, setUploadName] = useState<string | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
 
   const previewKinds = new Map(attachments.map((a) => [a.id, resolvePreviewKind(a)]));
@@ -37,22 +40,22 @@ export function AttachmentsSection({
   );
   const previewable = attachments.filter((a) => unavailable.get(a.id) == null);
 
-  // Mutation for drag-drop uploads
-  const dropMutation = useMutation({
+  // Single upload mutation shared by drag-drop and the browse strip
+  const uploadMutation = useMutation({
     mutationFn: async (file: File) => {
       const token = await readSecret('jira-pat').catch(() => null);
       if (!token) throw new Error('No Jira credentials');
       return uploadAttachment(jiraBaseUrl, token, issueKey, file);
     },
     onSuccess: () => {
-      setDropUploadName(null);
-      setDropUploadError(null);
+      setUploadName(null);
+      setUploadError(null);
       queryClient.invalidateQueries({ queryKey: ['jira-issue-detail', issueKey, jiraBaseUrl] });
     },
     onError: () => {
-      const fname = dropUploadName ?? 'file';
-      setDropUploadError(`Failed to upload ${fname}. Check file size and try again.`);
-      setDropUploadName(null);
+      const fname = uploadName ?? 'file';
+      setUploadError(`Failed to upload ${fname}. Check file size and try again.`);
+      setUploadName(null);
     },
   });
 
@@ -114,7 +117,21 @@ export function AttachmentsSection({
   function handleDragLeave(e: React.DragEvent) {
     e.preventDefault();
     e.stopPropagation();
+    // The strip lives inside the section: ignore leaves into child elements.
+    if (e.relatedTarget instanceof Node && e.currentTarget.contains(e.relatedTarget)) return;
     setIsDragging(false);
+  }
+
+  function startUpload(file: File) {
+    setUploadError(null);
+    setUploadName(file.name);
+    uploadMutation.mutate(file);
+  }
+
+  function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (file) startUpload(file);
+    e.target.value = '';
   }
 
   function handleDrop(e: React.DragEvent) {
@@ -122,11 +139,7 @@ export function AttachmentsSection({
     e.stopPropagation();
     setIsDragging(false);
     const file = e.dataTransfer.files?.[0];
-    if (file) {
-      setDropUploadError(null);
-      setDropUploadName(file.name);
-      dropMutation.mutate(file);
-    }
+    if (file) startUpload(file);
   }
 
   return (
@@ -143,17 +156,10 @@ export function AttachmentsSection({
         actions={<AttachmentUpload issueKey={issueKey} jiraBaseUrl={jiraBaseUrl} />}
       />
 
-      {/* Drag overlay */}
-      {isDragging && (
-        <div className="border-2 border-dashed border-primary/50 rounded-lg p-6 text-center text-sm text-muted-foreground bg-primary/5 mb-2">
-          Drop file here to attach
-        </div>
-      )}
-
       {/* Drop upload progress */}
-      {dropUploadName && dropMutation.isPending && (
+      {uploadName && uploadMutation.isPending && (
         <div className="mb-2">
-          <p className="text-xs text-muted-foreground">{dropUploadName} uploading...</p>
+          <p className="text-xs text-muted-foreground">{uploadName} uploading...</p>
           <div className="h-1 w-full bg-muted rounded-full overflow-hidden mt-1">
             <div
               className="h-full bg-primary rounded-full animate-pulse"
@@ -164,13 +170,11 @@ export function AttachmentsSection({
       )}
 
       {/* Drop upload error */}
-      {dropUploadError && <p className="text-xs text-destructive mb-2">{dropUploadError}</p>}
+      {uploadError && <p className="text-xs text-destructive mb-2">{uploadError}</p>}
 
       {/* Always open: a collapse toggle here only added visual noise (UAT 261112-f4u). */}
       <div className="space-y-3 density-compact:space-y-2 density-comfortable:space-y-4">
-        {attachments.length === 0 ? (
-          <p className="text-sm text-muted-foreground italic">No attachments</p>
-        ) : (
+        {attachments.length > 0 && (
           <div className="grid grid-cols-[repeat(auto-fill,minmax(112px,1fr))] gap-x-3 gap-y-3 density-compact:gap-y-2 density-comfortable:gap-y-4">
             {attachments.map((att) => (
               <AttachmentTile
@@ -185,6 +189,37 @@ export function AttachmentsSection({
             ))}
           </div>
         )}
+        <input
+          ref={fileInputRef}
+          type="file"
+          className="hidden"
+          tabIndex={-1}
+          data-testid="attachment-file-input"
+          onChange={handleFileSelect}
+        />
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={uploadMutation.isPending}
+          className={cn(
+            'flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-border px-3 py-2.5 density-compact:py-2 density-comfortable:py-3 text-xs text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:opacity-60',
+            isDragging && 'border-primary/50 bg-primary/5 text-foreground',
+          )}
+        >
+          <Paperclip className="size-3.5 shrink-0" aria-hidden="true" />
+          {isDragging ? (
+            <span className="min-w-0">Drop file to attach</span>
+          ) : (
+            <>
+              {attachments.length === 0 && (
+                <span className="font-medium text-foreground/80">No attachments</span>
+              )}
+              <span className="min-w-0">
+                Drop files here or <span className="underline underline-offset-2">browse</span>
+              </span>
+            </>
+          )}
+        </button>
       </div>
 
       {/* Preview modal */}
