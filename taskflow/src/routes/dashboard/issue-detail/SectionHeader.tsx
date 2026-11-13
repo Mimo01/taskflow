@@ -11,6 +11,55 @@ const LABEL_CLASS = 'text-sm font-medium text-muted-foreground';
 export const SECTION_ACTION_BUTTON_CLASS = 'gap-1 text-muted-foreground hover:text-foreground';
 export const SECTION_ACTION_ICON_CLASS = 'size-3';
 
+const SEGMENTED_TRACK_CLASS =
+  'inline-flex h-6 flex-none items-center gap-0.5 rounded-md bg-muted/60 p-0.5';
+const SEGMENTED_ITEM_CLASS =
+  'h-5 cursor-pointer rounded-[5px] px-2 text-xs text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring';
+const SEGMENTED_ACTIVE_CLASS = 'bg-background text-foreground shadow-xs';
+
+/**
+ * Quiet segmented toggle for section headers (metric switch, chart range, ...). Header
+ * segmented toggles use this so they never drift. h-6 track fits the h-7 header row.
+ * `value: null` means no option is active (e.g. a custom dragged range).
+ */
+export function SectionSegmented<T extends string>({
+  label,
+  options,
+  value,
+  onChange,
+  className,
+  'data-testid': testId,
+}: {
+  label: string;
+  options: readonly { value: T; label: string }[];
+  value: T | null;
+  onChange: (v: T) => void;
+  className?: string;
+  'data-testid'?: string;
+}) {
+  return (
+    // biome-ignore lint/a11y/useSemanticElements: button toggle group; <fieldset> would add unwanted chrome
+    <div
+      role="group"
+      aria-label={label}
+      data-testid={testId}
+      className={cn(SEGMENTED_TRACK_CLASS, className)}
+    >
+      {options.map((o) => (
+        <button
+          key={o.value}
+          type="button"
+          aria-pressed={o.value === value}
+          onClick={() => onChange(o.value)}
+          className={cn(SEGMENTED_ITEM_CLASS, o.value === value && SEGMENTED_ACTIVE_CLASS)}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 /**
  * Shared heading row for every issue-detail section (Description, Attachments, Subtasks,
  * Stories, Parent, Progress, Activity). One look everywhere: quiet muted label, optional

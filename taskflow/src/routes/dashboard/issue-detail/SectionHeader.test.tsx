@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import { SectionHeader } from './SectionHeader';
+import { SectionHeader, SectionSegmented } from './SectionHeader';
 
 describe('SectionHeader', () => {
   it('renders title as an h3 with a muted count', () => {
@@ -39,5 +39,51 @@ describe('SectionHeader', () => {
     const off = (container.firstElementChild as HTMLElement).className;
     expect(off).not.toContain('sticky');
     expect(off).not.toContain('z-20');
+  });
+});
+
+describe('SectionSegmented', () => {
+  const options = [
+    { value: 'a', label: 'Alpha' },
+    { value: 'b', label: 'Beta' },
+  ] as const;
+
+  it('renders a labelled group with aria-pressed on the active option', () => {
+    render(<SectionSegmented label="Pick" options={options} value="b" onChange={() => {}} />);
+    expect(screen.getByRole('group', { name: 'Pick' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Alpha' }).getAttribute('aria-pressed')).toBe(
+      'false',
+    );
+    expect(screen.getByRole('button', { name: 'Beta' }).getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('has nothing pressed when value is null', () => {
+    render(<SectionSegmented label="Pick" options={options} value={null} onChange={() => {}} />);
+    for (const b of screen.getAllByRole('button')) {
+      expect(b.getAttribute('aria-pressed')).toBe('false');
+    }
+  });
+
+  it('calls onChange with the clicked value', () => {
+    const onChange = vi.fn();
+    render(<SectionSegmented label="Pick" options={options} value="a" onChange={onChange} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Beta' }));
+    expect(onChange).toHaveBeenCalledWith('b');
+  });
+
+  it('puts data-testid and className on the track', () => {
+    render(
+      <SectionSegmented
+        label="Pick"
+        options={options}
+        value="a"
+        onChange={() => {}}
+        className="extra"
+        data-testid="seg"
+      />,
+    );
+    const track = screen.getByTestId('seg');
+    expect(track.getAttribute('role')).toBe('group');
+    expect(track.className).toContain('extra');
   });
 });
