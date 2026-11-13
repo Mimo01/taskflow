@@ -134,7 +134,7 @@ export function IssueDetailHeader({
     <div
       className={cn(
         '@container shrink-0 border-b bg-(--detail-surface,var(--background))',
-        peek ? 'px-4 pt-2.5 pb-3' : 'px-6 pt-3 pb-4',
+        peek ? 'px-4 pt-2 pb-2.5' : 'px-6 pt-2.5 pb-3',
       )}
     >
       <div className="flex h-7 items-center gap-3">
@@ -326,8 +326,8 @@ export function IssueDetailHeader({
       {issue && (
         <h2
           className={cn(
-            'mt-1.5 line-clamp-2 font-semibold leading-tight',
-            peek ? 'text-xl' : 'text-2xl',
+            'mt-1 line-clamp-2 font-semibold leading-tight',
+            peek ? 'text-lg' : 'text-xl',
           )}
           title={issue.fields.summary}
         >
