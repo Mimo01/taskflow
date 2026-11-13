@@ -94,3 +94,11 @@ Known and intentional: Linked issues / Merge requests labels in peek do not stic
   - The big in-content title is removed from the page and the peek, and `useScrolledPast` is deleted. IssueTitleBlock stays for the header-less IssueDetailSheet.
   - Toolbar: Refresh, Pin, Edit, Clone | Open in Jira + Copy link are ghost buttons in one rounded `bg-muted/60` group. Log work is the single filled accent. Below 860px: Edit, Jira and Copy show as icons, Refresh, Pin and Clone move into ⋯, and Log work becomes an icon.
   - LogWorkPopover gains a `triggerVariant` prop.
+
+## UAT round 4 (2026-11-13)
+
+- Feedback: make Open in Jira + Copy link the primary action instead of Log work. Make the title larger, as it was before. Tighten the spacing.
+- Fix:
+  - Open in Jira + Copy link is now the filled accent pair. Log work is a ghost tool in the toolbar.
+  - The title is back to text-2xl on the page and text-xl in the peek.
+  - Spacing: h-7 meta row, mt-1.5 title, pt-3/pb-4 on the page, pt-2.5/pb-3 in the peek.
