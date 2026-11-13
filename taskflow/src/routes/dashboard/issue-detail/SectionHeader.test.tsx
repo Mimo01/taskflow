@@ -28,4 +28,16 @@ describe('SectionHeader', () => {
     );
     expect(screen.getByRole('button', { name: 'Attach file' })).toBeTruthy();
   });
+
+  it('is sticky by default and opts out with sticky={false}', () => {
+    const { container, rerender } = render(<SectionHeader title="Description" />);
+    const cls = (container.firstElementChild as HTMLElement).className;
+    expect(cls).toContain('sticky top-0 z-20');
+    expect(cls).toContain('bg-(--detail-surface,var(--background))');
+    expect(cls).toContain('mx-[calc(var(--detail-px,0px)*-1)]');
+    rerender(<SectionHeader title="Description" sticky={false} />);
+    const off = (container.firstElementChild as HTMLElement).className;
+    expect(off).not.toContain('sticky');
+    expect(off).not.toContain('z-20');
+  });
 });
