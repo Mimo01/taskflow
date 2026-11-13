@@ -10,7 +10,7 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { MoreVertical } from 'lucide-react';
-import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
+import { type ReactNode, type UIEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/button';
 import { ErrorState } from '@/components/ui/error-state';
@@ -87,6 +87,18 @@ export function IssueDetailView({
   }, []);
 
   const [timelineFilter, setTimelineFilter] = useState<TimelineFilter>('comment');
+
+  // Header condenses once the content is scrolled. Hysteresis (shrink past 16px, expand only back
+  // near the top) so the header's own height change can never flip it back and forth.
+  const [headerCompact, setHeaderCompact] = useState(false);
+  const handleContentScroll = (e: UIEvent<HTMLElement>) => {
+    const top = e.currentTarget.scrollTop;
+    setHeaderCompact((c) => (c ? top > 4 : top > 16));
+  };
+  // biome-ignore lint/correctness/useExhaustiveDependencies: issueKey intentionally resets on issue swap (peek)
+  useEffect(() => {
+    setHeaderCompact(false);
+  }, [issueKey]);
 
   // Auth + settings
   const { jiraBaseUrl, jiraConnected } = useAuthStore();
@@ -680,6 +692,7 @@ export function IssueDetailView({
       issue={issue}
       jiraBaseUrl={jiraBaseUrl ?? ''}
       layout={layout === 'two-column' ? 'page' : 'peek'}
+      compact={headerCompact}
       parent={
         parentRef
           ? {
@@ -738,7 +751,10 @@ export function IssueDetailView({
         {headerNode}
         <div ref={containerRef} className="flex min-h-0 flex-1 overflow-hidden">
           {/* Left column: scrollable content */}
-          <div className="relative min-w-0 flex-1 overflow-auto [--detail-px:1.5rem]">
+          <div
+            onScroll={handleContentScroll}
+            className="relative min-w-0 flex-1 overflow-auto [--detail-px:1.5rem]"
+          >
             <div className="p-6">{issueDetailContentNode}</div>
             {activitySectionNode}
           </div>
@@ -769,7 +785,10 @@ export function IssueDetailView({
   return (
     <div className={`flex h-full flex-col ${surfaceClass}`}>
       {headerNode}
-      <div className="relative min-h-0 flex-1 overflow-auto [--detail-px:1rem]">
+      <div
+        onScroll={handleContentScroll}
+        className="relative min-h-0 flex-1 overflow-auto [--detail-px:1rem]"
+      >
         {/* Sidebar fields block */}
         <div className="px-4 py-4 border-b">{sidebarNode}</div>
 

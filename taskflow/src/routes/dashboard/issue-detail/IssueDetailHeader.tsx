@@ -51,6 +51,8 @@ export interface IssueDetailHeaderProps {
   issue?: JiraIssueDetail;
   jiraBaseUrl: string;
   layout: 'page' | 'peek';
+  /** Content is scrolled: same header, condensed (one-line smaller title, tighter padding). */
+  compact?: boolean;
   /** Peek only: parent of a subtask, shown as a breadcrumb link. */
   parent?: { key: string; summary: string; typeName?: string };
   onOpenIssue?: (key: string) => void;
@@ -76,6 +78,7 @@ export function IssueDetailHeader({
   issue,
   jiraBaseUrl,
   layout,
+  compact = false,
   parent,
   onOpenIssue,
   onRefresh,
@@ -133,8 +136,9 @@ export function IssueDetailHeader({
   return (
     <div
       className={cn(
-        '@container shrink-0 border-b bg-(--detail-surface,var(--background))',
-        peek ? 'px-4 pt-2 pb-2.5' : 'px-6 pt-2.5 pb-3',
+        '@container shrink-0 border-b bg-(--detail-surface,var(--background)) transition-[padding] duration-200',
+        peek ? 'px-4' : 'px-6',
+        compact ? 'pt-1.5 pb-2' : peek ? 'pt-2 pb-2.5' : 'pt-2.5 pb-3',
       )}
     >
       <div className="flex h-7 items-center gap-3">
@@ -326,8 +330,9 @@ export function IssueDetailHeader({
       {issue && (
         <h2
           className={cn(
-            'mt-1 line-clamp-2 font-semibold leading-tight',
-            peek ? 'text-lg' : 'text-xl',
+            'font-semibold leading-tight transition-[font-size,margin] duration-200',
+            compact ? 'mt-0.5 line-clamp-1' : 'mt-1 line-clamp-2',
+            compact ? (peek ? 'text-sm' : 'text-base') : peek ? 'text-lg' : 'text-xl',
           )}
           title={issue.fields.summary}
         >

@@ -158,6 +158,16 @@ describe('IssueDetailHeader', () => {
     expect(h).toHaveAttribute('title', 'A subtask issue title');
   });
 
+  it('compact keeps the same content, condensing the title to one smaller line', () => {
+    const { rerender } = render(<IssueDetailHeader {...base} />, { wrapper });
+    const name = { level: 2, name: 'A subtask issue title' } as const;
+    expect(screen.getByRole('heading', name)).toHaveClass('line-clamp-2', 'text-xl');
+    rerender(<IssueDetailHeader {...base} compact />);
+    expect(screen.getByRole('heading', name)).toHaveClass('line-clamp-1', 'text-base');
+    expect(screen.getByText('PROJ-10')).toBeTruthy();
+    expect(screen.getByRole('toolbar', { name: 'Issue actions' })).toBeTruthy();
+  });
+
   it('groups the tools (incl. Log work) in a toolbar; Open in Jira + Copy link is the accent outside it', () => {
     render(<IssueDetailHeader {...base} onEdit={vi.fn()} />, { wrapper });
     const toolbar = screen.getByRole('toolbar', { name: 'Issue actions' });
