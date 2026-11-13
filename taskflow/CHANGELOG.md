@@ -2,6 +2,24 @@
 
 All notable changes to Taskflow are documented here.
 
+## [1.14.21] — 2026-11-13
+
+Release notes are now short, clear and easy to catch up on.
+
+### New
+- Update dialogs show the app icon and what changed
+- What's new rolls up every release you skipped
+- Settings → Updates lists your 15 most recent releases
+
+### Improved
+- Release notes in the app are short and easy to scan
+- Release summaries always show in full
+- The installed release is marked next to its date
+- Buttons show a pointer cursor across the app
+
+### Fixed
+- Test builds no longer appear in the release history
+
 ## [1.14.20] — 2026-11-12
 
 Rebuilt notifications let you catch up and act in seconds.
