@@ -353,7 +353,7 @@ export function IssueDetailHeader({
             'grid',
             compact
               ? 'mt-0 grid-rows-[0fr] opacity-0 [transition:grid-template-rows_250ms_cubic-bezier(0.4,0,0.2,1),margin_250ms_cubic-bezier(0.4,0,0.2,1),opacity_150ms_linear]'
-              : 'mt-1.5 grid-rows-[1fr] opacity-100 [transition:grid-template-rows_250ms_cubic-bezier(0.4,0,0.2,1),margin_250ms_cubic-bezier(0.4,0,0.2,1),opacity_180ms_linear_60ms]',
+              : 'mt-1.5 grid-rows-[1fr] opacity-100 [transition:grid-template-rows_250ms_cubic-bezier(0.4,0,0.2,1),margin_250ms_cubic-bezier(0.4,0,0.2,1),opacity_180ms_linear_30ms]',
           )}
         >
           <div className="min-h-0 overflow-hidden">
