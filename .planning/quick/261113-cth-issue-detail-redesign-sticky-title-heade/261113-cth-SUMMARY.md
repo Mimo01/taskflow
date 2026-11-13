@@ -117,4 +117,4 @@ Known and intentional: Linked issues / Merge requests labels in peek do not stic
 ## UAT round 7 (2026-11-13)
 
 - Feedback: the compaction jumps; it should animate nicely.
-- Fix: both title copies stay mounted. The big title collapses (grid rows 1fr → 0fr plus a fade) while the inline title fades and slides up into the key row, and the padding eases in step (300ms ease-out). The inactive copy is aria-hidden. IssueDetailPage.progressive tests now query the title by heading role.
+- Fix: both title copies stay mounted. The big title collapses (grid rows 1fr → 0fr plus a fade) while the inline title fades and slides up into the key row, and the padding eases in step (300ms ease-out). The big <h2> stays the only accessible heading, and the inline copy is a decorative aria-hidden span (commit `32c253a9`). IssueDetailPage.progressive tests now query the title by heading role.
