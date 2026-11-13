@@ -56,3 +56,7 @@ None.
 
 ## Self-Check: PASSED
 Commits 448e6b40, 40df5e06, 6cb327b2 present; created files exist.
+
+## UAT (2026-11-13)
+
+Approved by the user. Review warnings WR-01..04 left open (advisory, see REVIEW.md).
