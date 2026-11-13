@@ -108,3 +108,8 @@ Known and intentional: Linked issues / Merge requests labels in peek do not stic
 - Feedback: the header is too large. It may shrink on scroll.
 - Fix `9f7a909d`: the title is now text-xl on the page and text-lg in the peek, with less padding.
 - Fix (this commit): the header condenses on scroll but keeps the same content. The title drops to one line at text-base on the page and text-sm in the peek, and the padding tightens. Hysteresis: it condenses past 16px of scroll and expands again at 4px or less. It resets when the peek swaps issues.
+
+## UAT round 6 (2026-11-13)
+
+- Feedback: polish more, and compact further on scroll.
+- Fix: when scrolled, the title moves inline next to the key (truncated, text-base on the page and text-sm in the peek, with a fade and slide-in). The header becomes a single py-1.5 row of about 40px. At the top, the title still sits below the key row on up to 2 lines.
