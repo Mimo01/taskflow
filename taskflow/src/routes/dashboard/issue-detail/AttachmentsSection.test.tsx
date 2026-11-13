@@ -95,25 +95,26 @@ describe('AttachmentsSection', () => {
     );
   }
 
-  it('empty: shows a single drop strip with the empty copy', () => {
+  const fileDrag = { dataTransfer: { types: ['Files'] } };
+
+  it('empty: shows the empty state with a browse link', () => {
     renderSection([]);
-    const strip = screen.getByRole('button', { name: /No attachments/ });
-    expect(strip.textContent).toContain('Drop files here or browse');
-    expect(screen.getAllByText('No attachments')).toHaveLength(1);
+    expect(screen.getByText('No attachments')).toBeTruthy();
+    expect(screen.getByText(/Drop files here or/)).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'browse' })).toBeTruthy();
   });
 
-  it('populated: strip sits outside the grid without the empty copy', () => {
+  it('populated: no drop box or empty copy, just the tiles', () => {
     renderSection([att('1', 'a.pdf', 'application/pdf'), att('2', 'b.png', 'image/png')]);
-    const strip = screen.getByRole('button', { name: /Drop files here or browse/ });
-    expect(strip.textContent).not.toContain('No attachments');
-    const grid = screen.getAllByTestId('attachment-tile')[0].parentElement;
-    expect(grid?.contains(strip)).toBe(false);
+    expect(screen.queryByText('No attachments')).toBeNull();
+    expect(screen.queryByText(/Drop files here/)).toBeNull();
+    expect(screen.queryByRole('button', { name: 'browse' })).toBeNull();
   });
 
-  it('clicking the strip opens the file picker', () => {
+  it('clicking browse opens the file picker', () => {
     renderSection([]);
     const spy = vi.spyOn(HTMLInputElement.prototype, 'click').mockImplementation(() => {});
-    fireEvent.click(screen.getByRole('button', { name: /Drop files here or browse/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'browse' }));
     expect(spy).toHaveBeenCalledTimes(1);
     spy.mockRestore();
   });
@@ -129,22 +130,36 @@ describe('AttachmentsSection', () => {
     );
   });
 
-  it('a dropped file uploads', async () => {
+  it('a file dropped anywhere on the populated section uploads', async () => {
     vi.mocked(readSecret).mockResolvedValue('tok');
     vi.mocked(uploadAttachment).mockResolvedValue(undefined as never);
-    const { container } = renderSection([]);
+    renderSection([att('1', 'a.pdf', 'application/pdf')]);
     const file = new File(['y'], 'y.txt', { type: 'text/plain' });
-    const section = container.querySelector('section') as HTMLElement;
-    fireEvent.drop(section, { dataTransfer: { files: [file] } });
+    fireEvent.drop(screen.getAllByTestId('attachment-tile')[0], {
+      dataTransfer: { files: [file], types: ['Files'] },
+    });
     await waitFor(() =>
       expect(uploadAttachment).toHaveBeenCalledWith('https://example.com', 'tok', 'ABC-1', file),
     );
   });
 
-  it('drag-over highlights the strip itself, no separate overlay', () => {
+  it('file drag-over shows the section overlay; leaving removes it', () => {
+    const { container } = renderSection([att('1', 'a.pdf', 'application/pdf')]);
+    const section = container.querySelector('section') as HTMLElement;
+    expect(screen.queryByTestId('attachment-drop-overlay')).toBeNull();
+    fireEvent.dragOver(section, fileDrag);
+    expect(screen.getByTestId('attachment-drop-overlay').textContent).toContain(
+      'Drop to attach to ABC-1',
+    );
+    fireEvent.dragLeave(section, { relatedTarget: document.body });
+    expect(screen.queryByTestId('attachment-drop-overlay')).toBeNull();
+  });
+
+  it('non-file drags (text, links) do not show the overlay', () => {
     const { container } = renderSection([]);
-    fireEvent.dragOver(container.querySelector('section') as HTMLElement);
-    expect(screen.getByRole('button', { name: /Drop file to attach/ })).toBeTruthy();
-    expect(screen.queryByText('Drop file here to attach')).toBeNull();
+    fireEvent.dragOver(container.querySelector('section') as HTMLElement, {
+      dataTransfer: { types: ['text/plain'] },
+    });
+    expect(screen.queryByTestId('attachment-drop-overlay')).toBeNull();
   });
 });

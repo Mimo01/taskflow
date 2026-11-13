@@ -3,7 +3,6 @@ import { fetch } from '@tauri-apps/plugin-http';
 import { Paperclip } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { assertOk, openSavedFile, saveBytes } from '@/lib/save-attachment';
-import { cn } from '@/lib/utils';
 import type { JiraAttachment } from '@/services/jira';
 import { uploadAttachment } from '@/services/jira/attachments';
 import { readSecret } from '@/services/stronghold';
@@ -108,7 +107,13 @@ export function AttachmentsSection({
     setPreviewOpen(true);
   }
 
+  // Only OS file drags light up the section, not in-app drags of text/links.
+  function isFileDrag(e: React.DragEvent) {
+    return Array.from(e.dataTransfer?.types ?? []).includes('Files');
+  }
+
   function handleDragOver(e: React.DragEvent) {
+    if (!isFileDrag(e)) return;
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(true);
@@ -117,7 +122,7 @@ export function AttachmentsSection({
   function handleDragLeave(e: React.DragEvent) {
     e.preventDefault();
     e.stopPropagation();
-    // The strip lives inside the section: ignore leaves into child elements.
+    // Moving between tiles fires leave on the section: ignore leaves into its own children.
     if (e.relatedTarget instanceof Node && e.currentTarget.contains(e.relatedTarget)) return;
     setIsDragging(false);
   }
@@ -144,11 +149,26 @@ export function AttachmentsSection({
 
   return (
     <section
+      className="relative"
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
       aria-label="Drag and drop files to attach"
     >
+      {/* Whole section is the drop target; the affordance shows only while a file is dragged
+          over it, like Jira/Linear/Trello (261113-ifs). */}
+      {isDragging && (
+        <div
+          data-testid="attachment-drop-overlay"
+          className="pointer-events-none absolute -inset-2 z-20 flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-primary/60 bg-background/85 text-center backdrop-blur-[1px]"
+        >
+          <span className="flex size-9 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <Paperclip className="size-4" aria-hidden="true" />
+          </span>
+          <span className="text-sm font-medium text-foreground">Drop to attach to {issueKey}</span>
+        </div>
+      )}
+
       {/* Section header */}
       <SectionHeader
         title="Attachments"
@@ -173,54 +193,49 @@ export function AttachmentsSection({
       {uploadError && <p className="text-xs text-destructive mb-2">{uploadError}</p>}
 
       {/* Always open: a collapse toggle here only added visual noise (UAT 261112-f4u). */}
-      <div className="space-y-3 density-compact:space-y-2 density-comfortable:space-y-4">
-        {attachments.length > 0 && (
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(112px,1fr))] gap-x-3 gap-y-3 density-compact:gap-y-2 density-comfortable:gap-y-4">
-            {attachments.map((att) => (
-              <AttachmentTile
-                key={att.id}
-                attachment={att}
-                isImage={previewKinds.get(att.id) === 'image'}
-                onDownload={handleTileDownload}
-                onDelete={onDelete}
-                previewUnavailable={unavailable.get(att.id) ?? undefined}
-                onPreview={unavailable.get(att.id) == null ? openPreview : undefined}
-              />
-            ))}
+      {attachments.length > 0 ? (
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(112px,1fr))] gap-x-3 gap-y-3 density-compact:gap-y-2 density-comfortable:gap-y-4">
+          {attachments.map((att) => (
+            <AttachmentTile
+              key={att.id}
+              attachment={att}
+              isImage={previewKinds.get(att.id) === 'image'}
+              onDownload={handleTileDownload}
+              onDelete={onDelete}
+              previewUnavailable={unavailable.get(att.id) ?? undefined}
+              onPreview={unavailable.get(att.id) == null ? openPreview : undefined}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="flex flex-col items-center justify-center gap-2 py-6 text-center density-compact:py-4 density-comfortable:py-8">
+          <span className="flex size-9 items-center justify-center rounded-full bg-muted text-muted-foreground">
+            <Paperclip className="size-4" aria-hidden="true" />
+          </span>
+          <div className="space-y-0.5">
+            <p className="text-sm font-medium text-foreground">No attachments</p>
+            <p className="text-xs text-muted-foreground">
+              Drop files here or{' '}
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadMutation.isPending}
+                className="rounded-sm text-foreground underline underline-offset-2 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60"
+              >
+                browse
+              </button>
+            </p>
           </div>
-        )}
-        <input
-          ref={fileInputRef}
-          type="file"
-          className="hidden"
-          tabIndex={-1}
-          data-testid="attachment-file-input"
-          onChange={handleFileSelect}
-        />
-        <button
-          type="button"
-          onClick={() => fileInputRef.current?.click()}
-          disabled={uploadMutation.isPending}
-          className={cn(
-            'flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-border px-3 py-2.5 density-compact:py-2 density-comfortable:py-3 text-xs text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:opacity-60',
-            isDragging && 'border-primary/50 bg-primary/5 text-foreground',
-          )}
-        >
-          <Paperclip className="size-3.5 shrink-0" aria-hidden="true" />
-          {isDragging ? (
-            <span className="min-w-0">Drop file to attach</span>
-          ) : (
-            <>
-              {attachments.length === 0 && (
-                <span className="font-medium text-foreground/80">No attachments</span>
-              )}
-              <span className="min-w-0">
-                Drop files here or <span className="underline underline-offset-2">browse</span>
-              </span>
-            </>
-          )}
-        </button>
-      </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            className="hidden"
+            tabIndex={-1}
+            data-testid="attachment-file-input"
+            onChange={handleFileSelect}
+          />
+        </div>
+      )}
 
       {/* Preview modal */}
       <AttachmentPreviewModal
