@@ -19,7 +19,7 @@ Full vitest suite (5237 passed, via the pre-commit hook), biome on touched files
 - The worktree HEAD was not at the expected base, so I reset it to e68e5e2c per the branch check. I symlinked taskflow/node_modules from the main checkout (ignored by git).
 - Biome reformatted two files (--write on touched files only). Nothing else deviated.
 
-## Task 3: human check (not done)
+## Task 3: human check — approved 2026-11-13
 Run the app (npm run tauri dev in taskflow/) and open an epic detail:
 1. Progress header matches Description and Stories: same label style and row height, no top/bottom border lines, similar spacing above and below.
 2. Count / SP / Time: the active item shows a subtle raised pill, no width shift, no primary colour.
