@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-08-13)
 Phase: 95
 Plan: Not started
 Status: Milestone complete
-Last activity: 2026-11-13 - Completed quick task 261113-ifs: Attachments always-present drop strip / empty state
+Last activity: 2026-11-13 - Completed quick task 261113-jpg: Shared detail header across release, MR, AIO cycle and AIO run detail
 
 ## Performance Metrics
 
@@ -132,6 +132,7 @@ None yet.
 
 | # | Description | Date | Commit | Status | Directory |
 |---|-------------|------|--------|--------|-----------|
+| 261113-jpg | Shared DetailHeader primitive (components/ui/detail-header.tsx + useCompactOnScroll) extracted from IssueDetailHeader (no behaviour change); Release, MR, AIO cycle and AIO test run detail now use it: one sticky bar with back + trail in the meta row, key/identity + status, quiet toolbar group, filled Open in Jira/GitLab + Copy pair, 2-line text-xl title, condense on scroll; separate breadcrumb bars removed | 2026-11-13 | 448e6b40, 40df5e06, 6cb327b2 | Needs Review | [261113-jpg-header-consistency-audit-across-detail-p](./quick/261113-jpg-header-consistency-audit-across-detail-p/) |
 | 261113-ifs | Attachments section: whole section is the file drop target with a drag-only dashed overlay; calm centred empty state (paperclip, "No attachments", drop or browse); no box when populated | 2026-11-13 | b04e9808, 6e33c4f7 | Approved | [261113-ifs-in-issue-detail-when-there-are-no-attach](./quick/261113-ifs-in-issue-detail-when-there-are-no-attach/) |
 | 261113-i4u | Unify epic Progress section header: plain section (no border band), default sticky SectionHeader; Count/SP/Time toggle and chart zoom presets share new quiet SectionSegmented control (SectionHeader.tsx) | 2026-11-13 | e1538a45, 07b83296 | Approved | [261113-i4u-unify-epic-progress-section-header-and-b](./quick/261113-i4u-unify-epic-progress-section-header-and-b/) |
 | 261112-spn | Redesign update display: concise release notes (headline + short titled bullets, lint in release.sh/bump-version with --allow-wordy-notes, docs/RELEASE-NOTES.md); shared titles-first notes parser for all historical formats; redesigned Update available (version jump, skipped-release roll-up, in-place progress) and What's new (Updated to X from Y, See all updates) modals; Settings → Updates loads all releases grouped by minor with search + type chips + Installed badge, ?section= deep link | 2026-11-12 | f4f17c43, 0a737fa5, 76af80f9, 740688cd, 2614532f, 1ec6f92e, 1874f875, b11b166f, 84a8fc35 (+ UAT polish, see SUMMARY) | Approved | [261112-spn-redesign-update-display-concise-changelo](./quick/261112-spn-redesign-update-display-concise-changelo/) |
