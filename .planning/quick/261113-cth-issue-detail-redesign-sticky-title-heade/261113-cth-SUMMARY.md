@@ -76,3 +76,11 @@ Known and intentional: Linked issues / Merge requests labels in peek do not stic
 
 - Feedback: on smaller screens every button should collapse to an icon; Open in Jira keeps Copy link beside it; remove the ⋯ menu and list every button.
 - Fix `fdb80566`: Refresh, Pin, Edit, Log work, Clone and Open in Jira are labelled outline buttons. Below an 860px header they collapse to square icons, with an sr-only label and a tooltip. Copy Jira link is joined to Open in Jira as a segmented control. The overflow menu is removed. Peek's Open full page uses the same 860px breakpoint.
+
+## UAT round 2 (2026-11-13)
+
+- Feedback: on smaller screens, move the less useful buttons into a ⋯ menu. The peek's Open full page should always show its text. The header shouldn't be empty before scrolling.
+- Fix `4ceaf66c`:
+  - The header always shows the type icon and the key. Subtasks get a parent breadcrumb on both the page and the peek. The title joins the key once you scroll past it. The key moved out of IssueTitleBlock, which keeps an optional `issueKey` for the header-less IssueDetailSheet.
+  - Below an 860px header, Refresh, Pin and Clone move into a ⋯ menu. Edit, Log work and Open in Jira + Copy link stay as icon buttons. Above 860px, every action is inline and labelled.
+  - The peek's Open full page button always shows its label.
