@@ -10,12 +10,13 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { MoreVertical } from 'lucide-react';
-import { type ReactNode, type UIEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/button';
 import { ErrorState } from '@/components/ui/error-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
+import { useCompactOnScroll } from '@/hooks/useCompactOnScroll';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { useMentionUserMap } from '@/hooks/useMentionUserMap';
 import { useResizable } from '@/hooks/useResizable';
@@ -94,17 +95,9 @@ export function IssueDetailView({
 
   const [timelineFilter, setTimelineFilter] = useState<TimelineFilter>('comment');
 
-  // Header condenses once the content is scrolled. Hysteresis (shrink past 16px, expand only back
-  // near the top) so the header's own height change can never flip it back and forth.
-  const [headerCompact, setHeaderCompact] = useState(false);
-  const handleContentScroll = (e: UIEvent<HTMLElement>) => {
-    const top = e.currentTarget.scrollTop;
-    setHeaderCompact((c) => (c ? top > 4 : top > 16));
-  };
-  // biome-ignore lint/correctness/useExhaustiveDependencies: issueKey intentionally resets on issue swap (peek)
-  useEffect(() => {
-    setHeaderCompact(false);
-  }, [issueKey]);
+  // Header condenses once the content is scrolled (hysteresis lives in the hook); issueKey
+  // intentionally resets it on issue swap (peek).
+  const [headerCompact, handleContentScroll] = useCompactOnScroll(issueKey);
 
   // Auth + settings
   const { jiraBaseUrl, jiraConnected } = useAuthStore();

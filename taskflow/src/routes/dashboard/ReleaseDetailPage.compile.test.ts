@@ -41,9 +41,17 @@ function compile(file: string): { code: string; events: CompilerEvent[] } {
   return { code: out?.code ?? '', events };
 }
 
-describe('ReleaseDetailPage — React Compiler', () => {
-  it('compiles without a bailout', () => {
-    const { code, events } = compile(path.resolve(__dirname, 'ReleaseDetailPage.tsx'));
+// Paths relative to src/routes/dashboard/.
+const GUARDED = [
+  'ReleaseDetailPage.tsx',
+  '../../components/ui/detail-header.tsx',
+  '../../hooks/useCompactOnScroll.ts',
+  'issue-detail/IssueDetailHeader.tsx',
+];
+
+describe('detail header files — React Compiler', () => {
+  it.each(GUARDED)('%s compiles without a bailout', (rel) => {
+    const { code, events } = compile(path.resolve(__dirname, rel));
     const errors = events
       .filter((e) => e.kind !== 'CompileSuccess' && e.kind !== 'CompileSkip')
       .map((e) => `${e.kind}: ${JSON.stringify(e.detail)}`);
