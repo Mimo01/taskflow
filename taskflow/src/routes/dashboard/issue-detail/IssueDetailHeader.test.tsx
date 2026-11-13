@@ -29,7 +29,7 @@ vi.mock('@tauri-apps/plugin-opener', () => ({
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { IssueDetailHeader, type IssueDetailHeaderProps } from './IssueDetailHeader';
 import { IssueTitleBlock } from './IssueTitleBlock';
 
@@ -61,7 +61,25 @@ const base: IssueDetailHeaderProps = {
   epicLinkFieldKey: 'epic_link',
 };
 
+// The shared test setup's ResizeObserver mock reports 600px (for Recharts); the header
+// switches to its ⋯-only layout below 720px, so each suite pins the width it is testing.
+function stubWidth(width: number) {
+  class RO {
+    constructor(private cb: ResizeObserverCallback) {}
+    observe() {
+      this.cb([{ contentRect: { width } } as ResizeObserverEntry], this as never);
+    }
+    disconnect() {}
+    unobserve() {}
+  }
+  vi.stubGlobal('ResizeObserver', RO);
+}
+
 describe('IssueDetailHeader', () => {
+  // Default suite: a wide (page-width) header with every tool inline.
+  beforeEach(() => stubWidth(1100));
+  afterEach(() => vi.unstubAllGlobals());
+
   it('Refresh renders before Pin and calls onRefresh', async () => {
     const onRefresh = vi.fn();
     render(<IssueDetailHeader {...base} onRefresh={onRefresh} onTogglePin={vi.fn()} />, {
@@ -348,18 +366,6 @@ describe('IssueDetailHeader', () => {
 });
 
 describe('IssueDetailHeader — smallest width (only ⋯ + Close)', () => {
-  // jsdom has no ResizeObserver: stub one that reports a given content width.
-  function stubWidth(width: number) {
-    class RO {
-      constructor(private cb: ResizeObserverCallback) {}
-      observe() {
-        this.cb([{ contentRect: { width } } as ResizeObserverEntry], this as never);
-      }
-      disconnect() {}
-      unobserve() {}
-    }
-    vi.stubGlobal('ResizeObserver', RO);
-  }
   afterEach(() => vi.unstubAllGlobals());
 
   it('wide: Open full page is a labelled button and the actions stay inline', () => {
@@ -408,6 +414,19 @@ describe('IssueDetailHeader — smallest width (only ⋯ + Close)', () => {
     expect(screen.queryByRole('menuitem', { name: /Open full page/ })).toBeNull();
     fireEvent.click(await screen.findByRole('menuitem', { name: /Log work/ }));
     expect(screen.getByTestId('log-work-form')).toBeTruthy();
+  });
+
+  it('typical peek widths (e.g. 640px) already use the ⋯-only layout so the title has room', () => {
+    stubWidth(640);
+    render(
+      <IssueDetailHeader {...base} layout="peek" onEdit={vi.fn()} onOpenFullPage={vi.fn()} />,
+      {
+        wrapper,
+      },
+    );
+    expect(screen.queryByRole('button', { name: 'Edit issue' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Open in Jira' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Open full page' })).toBeTruthy();
   });
 
   it('tiny while loading: Open full page stays a button (no menu without an issue)', () => {

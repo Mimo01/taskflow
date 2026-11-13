@@ -49,11 +49,13 @@ const LABEL_CLASS = 'sr-only @[860px]:not-sr-only @[860px]:whitespace-nowrap';
 const SECONDARY_TOOL_CLASS = cn(TOOL_CLASS, 'hidden @[860px]:inline-flex');
 const MENU_ITEM_CLASS = 'cursor-pointer text-xs';
 /**
- * Below this header content width (≈ the narrowest peeks) every issue action moves into
- * the ⋯ menu so the key and title get the row. Measured with a ResizeObserver: the menu is
- * portaled, so container queries can't decide which items it lists.
+ * Below this header content width every issue action moves into the ⋯ menu so the key and
+ * title get the row (only ⋯, Open full page and Close stay). 720: the in-between layout
+ * (icon tools + labelled Open in Jira + Open full page ≈ 400px of buttons) left the title
+ * only a few characters in typical peeks; ⋯-only needs ≈ 200px. Measured with a
+ * ResizeObserver: the menu is portaled, so container queries can't decide its items.
  */
-const TINY_WIDTH = 560;
+const TINY_WIDTH = 720;
 /** Quiet nav crumb (trail entry / parent) in the meta row. */
 const CRUMB_CLASS =
   'cursor-pointer text-xs text-muted-foreground hover:text-foreground hover:underline';
