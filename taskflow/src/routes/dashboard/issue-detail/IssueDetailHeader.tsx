@@ -1,7 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query';
 import {
   Check,
-  ChevronRight,
   ClipboardCopy,
   Copy,
   ExternalLink,
@@ -37,9 +36,9 @@ import { LogWorkPopover } from './LogWorkPopover';
  */
 /** Ghost button inside the toolbar group. */
 const TOOL_CLASS =
-  'h-7 gap-1.5 rounded-md px-2 text-xs font-normal text-muted-foreground hover:bg-background hover:text-foreground aria-expanded:bg-background aria-expanded:text-foreground dark:hover:bg-background/60';
+  'h-6 gap-1.5 rounded-md px-2 text-xs font-normal text-muted-foreground hover:bg-background hover:text-foreground aria-expanded:bg-background aria-expanded:text-foreground dark:hover:bg-background/60';
 /** Primary tool: square icon below 860px, labelled above. */
-const PRIMARY_TOOL_CLASS = cn(TOOL_CLASS, 'w-7 px-0 @[860px]:w-auto @[860px]:px-2');
+const PRIMARY_TOOL_CLASS = cn(TOOL_CLASS, 'w-6 px-0 @[860px]:w-auto @[860px]:px-2');
 /** `not-sr-only` resets white-space, so re-apply nowrap or labels wrap. */
 const LABEL_CLASS = 'sr-only @[860px]:not-sr-only @[860px]:whitespace-nowrap';
 /** Secondary tool: inline only at 860px+, otherwise it lives in the ⋯ menu. */
@@ -136,9 +135,9 @@ export function IssueDetailHeader({
   return (
     <div
       className={cn(
-        '@container shrink-0 border-b bg-(--detail-surface,var(--background)) transition-[padding] duration-300 ease-out',
+        '@container shrink-0 border-b bg-(--detail-surface,var(--background)) transition-[padding] duration-250 ease-in-out',
         peek ? 'px-4' : 'px-6',
-        compact ? 'py-1.5' : peek ? 'pt-2 pb-2.5' : 'pt-2.5 pb-3',
+        compact ? 'py-1.5' : peek ? 'py-2.5' : 'py-3',
       )}
     >
       <div className="flex h-7 items-center gap-3">
@@ -151,12 +150,11 @@ export function IssueDetailHeader({
                 onClick={() => onOpenIssue?.(parent.key)}
                 title={parent.summary}
                 aria-label={`Open parent issue ${parent.key}`}
-                className="flex shrink-0 cursor-pointer items-center gap-1 font-mono text-xs text-muted-foreground hover:text-foreground hover:underline"
+                className="flex min-w-3.5 shrink cursor-pointer items-center gap-1 overflow-hidden font-mono text-xs text-muted-foreground hover:text-foreground hover:underline"
               >
                 {parent.typeName && <IssueTypeIcon typeName={parent.typeName} />}
-                {parent.key}
+                <span className="truncate">{parent.key}</span>
               </button>
-              <ChevronRight className="size-3.5 shrink-0 text-muted-foreground" />
             </>
           )}
           {issue && <IssueTypeIcon typeName={issue.fields.issuetype.name} />}
@@ -168,11 +166,11 @@ export function IssueDetailHeader({
             <span
               aria-hidden="true"
               className={cn(
-                'truncate pr-0.5 font-semibold leading-tight transition-[opacity,transform] duration-300 ease-out',
+                'min-w-0 flex-1 truncate pr-0.5 font-medium leading-tight',
                 peek ? 'text-sm' : 'text-base',
                 compact
-                  ? 'translate-y-0 opacity-100'
-                  : 'pointer-events-none translate-y-2 opacity-0',
+                  ? 'translate-y-0 opacity-100 [transition:opacity_150ms_linear_75ms,transform_250ms_cubic-bezier(0.4,0,0.2,1)]'
+                  : 'pointer-events-none translate-y-1 opacity-0 [transition:opacity_120ms_linear,transform_250ms_cubic-bezier(0.4,0,0.2,1)]',
               )}
               title={issue.fields.summary}
             >
@@ -264,7 +262,7 @@ export function IssueDetailHeader({
                         size="icon-sm"
                         aria-label="More actions"
                         title="More actions"
-                        className={cn(TOOL_CLASS, 'w-7 px-0 @[860px]:hidden')}
+                        className={cn(TOOL_CLASS, 'w-6 px-0 @[860px]:hidden')}
                       />
                     }
                   >
@@ -350,16 +348,17 @@ export function IssueDetailHeader({
       {issue && (
         <div
           className={cn(
-            'grid transition-[grid-template-rows,opacity,margin] duration-300 ease-out',
-            compact ? 'mt-0 grid-rows-[0fr] opacity-0' : 'mt-1 grid-rows-[1fr] opacity-100',
+            // Staged crossfade: the big title fades out fast while its row collapses; on the way
+            // back it fades in after a short delay. Overlap is kept small so no frame is title-less.
+            'grid',
+            compact
+              ? 'mt-0 grid-rows-[0fr] opacity-0 [transition:grid-template-rows_250ms_cubic-bezier(0.4,0,0.2,1),margin_250ms_cubic-bezier(0.4,0,0.2,1),opacity_150ms_linear]'
+              : 'mt-1.5 grid-rows-[1fr] opacity-100 [transition:grid-template-rows_250ms_cubic-bezier(0.4,0,0.2,1),margin_250ms_cubic-bezier(0.4,0,0.2,1),opacity_180ms_linear_60ms]',
           )}
         >
           <div className="min-h-0 overflow-hidden">
             <h2
-              className={cn(
-                'line-clamp-2 font-semibold leading-tight',
-                peek ? 'text-lg' : 'text-xl',
-              )}
+              className={cn('line-clamp-2 font-medium leading-tight', peek ? 'text-lg' : 'text-xl')}
               title={issue.fields.summary}
             >
               {issue.fields.summary}
