@@ -188,7 +188,7 @@ AIO cycle: turn CycleHeader into a composer: identity = `FlaskConical` + mono cy
 key); `titleAs="h1"`, `title={cycle?.name ?? cycleKey}`, `ready` true from the start; `extra` = the existing
 owner/folder/dates/updated/custom-fields/last-run meta line including its skeleton while `cycle` is undefined (keep
 `cycle-meta*` testids); tools Refresh (aria-label "Refresh cycle", spin class on its svg, title carries
-`Refreshed {time}` with the "Refreshed: " prefix stripped from the existing string) and Pin (visible Pin/Unpin,
+`Refreshed {time}`; change AioCycleDetailPage.tsx `lastRefreshed` (≈line 93) to produce the bare time string, no "Refreshed: " prefix, and build the tooltip text in CycleHeader) and Pin (visible Pin/Unpin,
 aria-label `Pin cycle ${cycleKey}` / `Unpin cycle ${cycleKey}`), both secondary; no primary pair. Delete the separate
 breadcrumb bar in AioCycleDetailPage, move the header above `aio-cycle-scroll`, wire
 `useCompactOnScroll(cycleKey, { minOverflow: 120 })` to it, and keep the tab bar sticky top-0 and `--aio-sticky-top:2.75rem`.
