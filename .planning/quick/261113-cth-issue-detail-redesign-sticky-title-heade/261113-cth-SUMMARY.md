@@ -167,3 +167,8 @@ Known and intentional: Linked issues / Merge requests labels in peek do not stic
   - The parent is one button with an underline across the key and title.
   - At 400–560px only ⋯ and Close show, and the Log work popover is anchored under ⋯.
   - Known cliff: just above the threshold (panel 600–640px), the compact subtask title gets only 41–81px.
+
+## UAT round 11 (2026-11-13)
+
+- Feedback: keep Open full page visible at the smallest peek widths. Open in Jira must never be icon-only, because the icon alone is too hard to read.
+- Fix: Open full page is a labelled button at every width and is no longer in ⋯. Open in Jira always shows its label; at the smallest width it lives in ⋯ as a text item.
