@@ -416,6 +416,37 @@ describe('IssueDetailHeader — smallest width (only ⋯ + Close)', () => {
     expect(screen.getByTestId('log-work-form')).toBeTruthy();
   });
 
+  it('tiny menu is grouped: Edit, Log work, Clone · Open in Jira, Copy link · Pin, Refresh', async () => {
+    stubWidth(400);
+    render(
+      <IssueDetailHeader
+        {...base}
+        layout="peek"
+        onEdit={vi.fn()}
+        onClone={vi.fn()}
+        onRefresh={vi.fn()}
+        onTogglePin={vi.fn()}
+      />,
+      { wrapper },
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'More actions' }));
+    const menu = await screen.findByRole('menu');
+    const order = Array.from(menu.querySelectorAll('[role="menuitem"], [role="separator"]')).map(
+      (el) => (el.getAttribute('role') === 'separator' ? '—' : el.textContent?.trim()),
+    );
+    expect(order).toEqual([
+      'Edit',
+      'Log work',
+      'Clone',
+      '—',
+      'Open in Jira',
+      'Copy Jira link',
+      '—',
+      'Pin to tabs',
+      'Refresh',
+    ]);
+  });
+
   it('typical peek widths (e.g. 640px) already use the ⋯-only layout so the title has room', () => {
     stubWidth(640);
     render(
