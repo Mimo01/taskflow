@@ -416,7 +416,7 @@ describe('IssueDetailHeader — smallest width (only ⋯ + Close)', () => {
     expect(screen.getByTestId('log-work-form')).toBeTruthy();
   });
 
-  it('tiny menu is grouped: Edit, Log work, Clone · Open in Jira, Copy link · Pin, Refresh', async () => {
+  it('tiny menu is grouped: Jira · Refresh, Pin, Log work · Edit, Clone', async () => {
     stubWidth(400);
     render(
       <IssueDetailHeader
@@ -435,15 +435,15 @@ describe('IssueDetailHeader — smallest width (only ⋯ + Close)', () => {
       (el) => (el.getAttribute('role') === 'separator' ? '—' : el.textContent?.trim()),
     );
     expect(order).toEqual([
-      'Edit',
-      'Log work',
-      'Clone',
-      '—',
       'Open in Jira',
       'Copy Jira link',
       '—',
-      'Pin to tabs',
       'Refresh',
+      'Pin to tabs',
+      'Log work',
+      '—',
+      'Edit',
+      'Clone',
     ]);
   });
 

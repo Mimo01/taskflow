@@ -444,48 +444,12 @@ export function IssueDetailHeader({
                   >
                     <MoreHorizontal className="size-3.5" />
                   </DropdownMenuTrigger>
-                  {/* Grouped by intent, most used first: work on this issue · Jira · app view.
+                  {/* Groups (user-chosen order): Jira · Refresh, Pin, Log work · Edit, Clone.
                       Below 720px (tiny) the menu holds every action; otherwise only the ones
-                      hidden inline below 860px (Clone · Pin, Refresh). */}
+                      hidden inline below 860px (Refresh, Pin · Clone). */}
                   <DropdownMenuContent align="end" className="min-w-44">
-                    {tiny && onEdit && (
-                      <DropdownMenuItem
-                        className={MENU_ITEM_CLASS}
-                        onClick={() =>
-                          onEdit(
-                            buildEditInitialValues(issue, storyPointsFieldKey, epicLinkFieldKey),
-                          )
-                        }
-                      >
-                        <Pencil className="size-3.5" />
-                        Edit
-                      </DropdownMenuItem>
-                    )}
-                    {tiny && (
-                      <DropdownMenuItem
-                        className={MENU_ITEM_CLASS}
-                        onClick={() => setLogWorkOpen(true)}
-                      >
-                        <Clock className="size-3.5" />
-                        Log work
-                      </DropdownMenuItem>
-                    )}
-                    {onClone && (
-                      <DropdownMenuItem
-                        className={MENU_ITEM_CLASS}
-                        onClick={() =>
-                          onClone(
-                            buildCloneInitialValues(issue, storyPointsFieldKey, epicLinkFieldKey),
-                          )
-                        }
-                      >
-                        <Copy className="size-3.5" />
-                        Clone
-                      </DropdownMenuItem>
-                    )}
                     {tiny && (
                       <>
-                        <DropdownMenuSeparator />
                         <DropdownMenuItem
                           className={MENU_ITEM_CLASS}
                           onClick={() => openExternal(jiraUrl)}
@@ -505,16 +469,9 @@ export function IssueDetailHeader({
                           )}
                           {copiedLink ? 'Copied' : 'Copy Jira link'}
                         </DropdownMenuItem>
+                        <DropdownMenuSeparator />
                       </>
                     )}
-                    {(tiny || onClone) && <DropdownMenuSeparator />}
-                    <DropdownMenuItem
-                      className={MENU_ITEM_CLASS}
-                      onClick={() => onTogglePin?.(issueKey)}
-                    >
-                      <Pin className={cn('size-3.5', isPinned && 'fill-current text-primary')} />
-                      {isPinned ? 'Unpin from tabs' : 'Pin to tabs'}
-                    </DropdownMenuItem>
                     {onRefresh && (
                       <DropdownMenuItem
                         className={MENU_ITEM_CLASS}
@@ -523,6 +480,49 @@ export function IssueDetailHeader({
                       >
                         <RefreshCw className={cn('size-3.5', refreshing && 'animate-spin')} />
                         Refresh
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuItem
+                      className={MENU_ITEM_CLASS}
+                      onClick={() => onTogglePin?.(issueKey)}
+                    >
+                      <Pin className={cn('size-3.5', isPinned && 'fill-current text-primary')} />
+                      {isPinned ? 'Unpin from tabs' : 'Pin to tabs'}
+                    </DropdownMenuItem>
+                    {tiny && (
+                      <DropdownMenuItem
+                        className={MENU_ITEM_CLASS}
+                        onClick={() => setLogWorkOpen(true)}
+                      >
+                        <Clock className="size-3.5" />
+                        Log work
+                      </DropdownMenuItem>
+                    )}
+                    {((tiny && onEdit) || onClone) && <DropdownMenuSeparator />}
+                    {tiny && onEdit && (
+                      <DropdownMenuItem
+                        className={MENU_ITEM_CLASS}
+                        onClick={() =>
+                          onEdit(
+                            buildEditInitialValues(issue, storyPointsFieldKey, epicLinkFieldKey),
+                          )
+                        }
+                      >
+                        <Pencil className="size-3.5" />
+                        Edit
+                      </DropdownMenuItem>
+                    )}
+                    {onClone && (
+                      <DropdownMenuItem
+                        className={MENU_ITEM_CLASS}
+                        onClick={() =>
+                          onClone(
+                            buildCloneInitialValues(issue, storyPointsFieldKey, epicLinkFieldKey),
+                          )
+                        }
+                      >
+                        <Copy className="size-3.5" />
+                        Clone
                       </DropdownMenuItem>
                     )}
                   </DropdownMenuContent>
