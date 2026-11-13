@@ -35,7 +35,7 @@ import { LogWorkPopover } from './LogWorkPopover';
  * Quiet toolbar (one @container breakpoint on the header, 860px):
  * - wide: Refresh, Pin, Edit, Clone, Log work as borderless ghost tools in one soft rounded group,
  *   plus Open in Jira + Copy link as the single filled accent (primary) pair;
- * - narrow: Edit, Log work and Open in Jira collapse to icons (label kept as sr-only text +
+ * - narrow: Edit and Log work collapse to icons (Open in Jira always keeps its label) (sr-only text +
  *   tooltip), Refresh / Pin / Clone move into a ⋯ menu.
  */
 /** Ghost button inside the toolbar group. */
@@ -49,7 +49,7 @@ const LABEL_CLASS = 'sr-only @[860px]:not-sr-only @[860px]:whitespace-nowrap';
 const SECONDARY_TOOL_CLASS = cn(TOOL_CLASS, 'hidden @[860px]:inline-flex');
 const MENU_ITEM_CLASS = 'cursor-pointer text-xs';
 /**
- * Below this header content width (≈ the narrowest peeks) every action except Close moves into
+ * Below this header content width (≈ the narrowest peeks) every issue action moves into
  * the ⋯ menu so the key and title get the row. Measured with a ResizeObserver: the menu is
  * portaled, so container queries can't decide which items it lists.
  */
@@ -104,7 +104,7 @@ export interface IssueDetailHeaderProps {
   onClone?: (initialValues: EditInitialValues) => void;
   storyPointsFieldKey: string;
   epicLinkFieldKey: string;
-  /** Peek: "Open full page". A labelled button, or a ⋯ menu item at the smallest width. */
+  /** Peek: "Open full page". Always a labelled button, at every width. */
   onOpenFullPage?: () => void;
   /** Extra trailing controls (peek: Close). Rendered even while loading; never collapsed. */
   headerTrailing?: ReactNode;
@@ -464,12 +464,6 @@ export function IssueDetailHeader({
                           )}
                           {copiedLink ? 'Copied' : 'Copy Jira link'}
                         </DropdownMenuItem>
-                        {onOpenFullPage && (
-                          <DropdownMenuItem className={MENU_ITEM_CLASS} onClick={onOpenFullPage}>
-                            <Maximize2 className="size-3.5" />
-                            Open full page
-                          </DropdownMenuItem>
-                        )}
                         <DropdownMenuSeparator />
                         {onEdit && (
                           <DropdownMenuItem
@@ -541,10 +535,10 @@ export function IssueDetailHeader({
                       onClick={() => openExternal(jiraUrl)}
                       aria-label="Open in Jira"
                       title="Open in Jira"
-                      className="w-7 gap-1.5 rounded-r-none px-0 text-xs @[860px]:w-auto @[860px]:px-2.5"
+                      className="gap-1.5 rounded-r-none px-2.5 text-xs"
                     >
                       <ExternalLink className="size-3.5" />
-                      <span className={LABEL_CLASS}>Open in Jira</span>
+                      Open in Jira
                     </Button>
                   </LinkContextMenu>
                   <Button
@@ -567,8 +561,8 @@ export function IssueDetailHeader({
           {(headerTrailing || onOpenFullPage) && (
             <>
               {issue && <div aria-hidden="true" className="h-4 w-px bg-border" />}
-              {/* Always labelled; only at the smallest width (with the menu available) it moves into ⋯. */}
-              {onOpenFullPage && !(tiny && issue) && (
+              {/* Always a labelled button, at every width (it never moves into ⋯). */}
+              {onOpenFullPage && (
                 <Button
                   variant="outline"
                   size="sm"

@@ -129,10 +129,11 @@ describe('IssueDetailHeader', () => {
       expect(screen.getByRole('button', { name })).toHaveClass('hidden', '@[860px]:inline-flex');
     }
     expect(screen.getByRole('button', { name: 'More actions' })).toHaveClass('@[860px]:hidden');
-    // Primary actions collapse to icons below 860px but keep their label.
-    for (const label of ['Edit', 'Open in Jira']) {
-      expect(screen.getByText(label).className).toContain('@[860px]:not-sr-only');
-    }
+    // Edit collapses to an icon below 860px but keeps its label for AT.
+    expect(screen.getByText('Edit').className).toContain('@[860px]:not-sr-only');
+    // Open in Jira is never icon-only: its label is always visible.
+    expect(screen.getByRole('button', { name: 'Open in Jira' })).toHaveTextContent('Open in Jira');
+    expect(screen.getByText('Open in Jira').className).not.toContain('sr-only');
   });
 
   it('narrow ⋯ menu offers Refresh, Pin and Clone', async () => {
@@ -376,7 +377,7 @@ describe('IssueDetailHeader — smallest width (only ⋯ + Close)', () => {
     expect(screen.getByRole('button', { name: 'Log work' })).toBeTruthy();
   });
 
-  it('tiny: only ⋯ (+ trailing Close) remain; the menu holds every action', async () => {
+  it('tiny: only ⋯, Open full page and Close remain; the menu holds the issue actions', async () => {
     stubWidth(400);
     const onEdit = vi.fn();
     const onOpenFullPage = vi.fn();
@@ -390,7 +391,10 @@ describe('IssueDetailHeader — smallest width (only ⋯ + Close)', () => {
       />,
       { wrapper },
     );
-    expect(screen.queryByRole('button', { name: 'Open full page' })).toBeNull();
+    // Open full page is never moved into ⋯.
+    expect(screen.getByRole('button', { name: 'Open full page' })).toHaveTextContent(
+      'Open full page',
+    );
     expect(screen.queryByRole('button', { name: 'Edit issue' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Log work' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Open in Jira' })).toBeNull();
@@ -398,13 +402,10 @@ describe('IssueDetailHeader — smallest width (only ⋯ + Close)', () => {
     expect(screen.getByRole('button', { name: 'Close preview' })).toBeTruthy();
 
     fireEvent.click(screen.getByRole('button', { name: 'More actions' }));
-    for (const name of [/Open in Jira/, /Copy Jira link/, /Open full page/, /Edit/, /Log work/]) {
+    for (const name of [/Open in Jira/, /Copy Jira link/, /Edit/, /Log work/]) {
       expect(await screen.findByRole('menuitem', { name })).toBeTruthy();
     }
-    fireEvent.click(screen.getByRole('menuitem', { name: /Open full page/ }));
-    expect(onOpenFullPage).toHaveBeenCalled();
-
-    fireEvent.click(screen.getByRole('button', { name: 'More actions' }));
+    expect(screen.queryByRole('menuitem', { name: /Open full page/ })).toBeNull();
     fireEvent.click(await screen.findByRole('menuitem', { name: /Log work/ }));
     expect(screen.getByTestId('log-work-form')).toBeTruthy();
   });
