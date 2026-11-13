@@ -38,6 +38,13 @@ interface LogWorkPopoverProps {
   triggerVariant?: 'outline' | 'default' | 'ghost';
   /** When set, the label is wrapped in a span with these classes (e.g. `sr-only @[600px]:not-sr-only`). */
   triggerLabelClassName?: string;
+  /** Controlled open state (e.g. opened from a menu item). Uncontrolled when omitted. */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  /** Element the form is positioned against when there is no visible trigger. */
+  anchor?: Element | null;
+  /** Render no trigger button (open via `open` + `anchor` instead). */
+  hideTrigger?: boolean;
 }
 
 function todayString(): string {
@@ -54,9 +61,18 @@ export function LogWorkPopover({
   triggerClassName,
   triggerLabelClassName,
   triggerVariant = 'outline',
+  open: openProp,
+  onOpenChange,
+  anchor,
+  hideTrigger = false,
 }: LogWorkPopoverProps) {
   const queryClient = useQueryClient();
-  const [open, setOpen] = useState(false);
+  const [openState, setOpenState] = useState(false);
+  const open = openProp ?? openState;
+  function setOpen(o: boolean) {
+    setOpenState(o);
+    onOpenChange?.(o);
+  }
   const [duration, setDuration] = useState('');
   const [durationError, setDurationError] = useState<string | null>(null);
   const [date, setDate] = useState(() => initialDate ?? todayString());
@@ -96,6 +112,13 @@ export function LogWorkPopover({
     setComment('');
     setSubmitError(null);
   }
+  // Opened from outside (controlled `open` rising edge): start from a clean form, the same as
+  // opening via the trigger (React's adjust-state-during-render pattern, no effect).
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) resetForm();
+  }
 
   function handleSubmit() {
     setSubmitError(null);
@@ -122,18 +145,24 @@ export function LogWorkPopover({
         if (o) resetForm();
       }}
     >
-      <PopoverTrigger
-        className={cn(buttonVariants({ variant: triggerVariant, size: 'sm' }), triggerClassName)}
-        title={triggerLabel}
+      {!hideTrigger && (
+        <PopoverTrigger
+          className={cn(buttonVariants({ variant: triggerVariant, size: 'sm' }), triggerClassName)}
+          title={triggerLabel}
+        >
+          <Clock className="size-3.5" />
+          {triggerLabelClassName ? (
+            <span className={triggerLabelClassName}>{triggerLabel}</span>
+          ) : (
+            triggerLabel
+          )}
+        </PopoverTrigger>
+      )}
+      <PopoverContent
+        className="w-72 p-4"
+        anchor={anchor ?? undefined}
+        align={anchor ? 'end' : undefined}
       >
-        <Clock className="size-3.5" />
-        {triggerLabelClassName ? (
-          <span className={triggerLabelClassName}>{triggerLabel}</span>
-        ) : (
-          triggerLabel
-        )}
-      </PopoverTrigger>
-      <PopoverContent className="w-72 p-4">
         <div className="space-y-3">
           <div>
             <Label className="text-xs mb-1">Time Spent</Label>

@@ -17,13 +17,20 @@ vi.mock('@/routes/dashboard/IssueDetailView', () => ({
     issueKey,
     headerTrailing,
     headerNav,
+    onOpenFullPage,
   }: {
     issueKey: string;
     headerTrailing?: React.ReactNode;
     headerNav?: unknown;
+    onOpenFullPage?: () => void;
   }) => (
     <div data-testid="issue-detail-body" data-issue-key={issueKey} data-has-nav={!!headerNav}>
       <span>{issueKey}</span>
+      {onOpenFullPage && (
+        <button type="button" onClick={onOpenFullPage}>
+          Open full page
+        </button>
+      )}
       {headerTrailing}
     </div>
   ),

@@ -6,8 +6,19 @@ vi.mock('@/stores/auth.store', () => ({
 }));
 
 vi.mock('./LogWorkPopover', () => ({
-  LogWorkPopover: ({ triggerLabel }: { triggerLabel?: string }) => (
-    <button type="button">{triggerLabel}</button>
+  LogWorkPopover: ({
+    triggerLabel,
+    hideTrigger,
+    open,
+  }: {
+    triggerLabel?: string;
+    hideTrigger?: boolean;
+    open?: boolean;
+  }) => (
+    <>
+      {!hideTrigger && <button type="button">{triggerLabel}</button>}
+      {open && <div data-testid="log-work-form" />}
+    </>
   ),
 }));
 
@@ -18,7 +29,7 @@ vi.mock('@tauri-apps/plugin-opener', () => ({
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { IssueDetailHeader, type IssueDetailHeaderProps } from './IssueDetailHeader';
 import { IssueTitleBlock } from './IssueTitleBlock';
 
@@ -241,10 +252,11 @@ describe('IssueDetailHeader', () => {
       />,
       { wrapper },
     );
+    // One link: icon + key + title share a single button (one tab stop, one hover).
+    const link = screen.getByRole('button', { name: 'Open parent issue PROJ-0' });
     const title = screen.getByText('Parent story title');
-    // Decorative duplicate of the key button's target: hidden from AT, not a tab stop.
-    expect(title).toHaveAttribute('aria-hidden', 'true');
-    expect(title).toHaveAttribute('tabindex', '-1');
+    expect(link).toContainElement(title);
+    expect(link).toContainElement(screen.getByText('PROJ-0'));
     expect(title).toHaveClass('truncate');
     await userEvent.click(title);
     expect(onOpenIssue).toHaveBeenCalledWith('PROJ-0');
@@ -331,6 +343,79 @@ describe('IssueDetailHeader', () => {
     expect(screen.queryByRole('button', { name: 'Refresh issue' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Copy Jira link' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'More actions' })).toBeNull();
+  });
+});
+
+describe('IssueDetailHeader — smallest width (only ⋯ + Close)', () => {
+  // jsdom has no ResizeObserver: stub one that reports a given content width.
+  function stubWidth(width: number) {
+    class RO {
+      constructor(private cb: ResizeObserverCallback) {}
+      observe() {
+        this.cb([{ contentRect: { width } } as ResizeObserverEntry], this as never);
+      }
+      disconnect() {}
+      unobserve() {}
+    }
+    vi.stubGlobal('ResizeObserver', RO);
+  }
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('wide: Open full page is a labelled button and the actions stay inline', () => {
+    stubWidth(900);
+    render(
+      <IssueDetailHeader {...base} layout="peek" onEdit={vi.fn()} onOpenFullPage={vi.fn()} />,
+      {
+        wrapper,
+      },
+    );
+    expect(screen.getByRole('button', { name: 'Open full page' })).toHaveTextContent(
+      'Open full page',
+    );
+    expect(screen.getByRole('button', { name: 'Edit issue' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Log work' })).toBeTruthy();
+  });
+
+  it('tiny: only ⋯ (+ trailing Close) remain; the menu holds every action', async () => {
+    stubWidth(400);
+    const onEdit = vi.fn();
+    const onOpenFullPage = vi.fn();
+    render(
+      <IssueDetailHeader
+        {...base}
+        layout="peek"
+        onEdit={onEdit}
+        onOpenFullPage={onOpenFullPage}
+        headerTrailing={<button type="button">Close preview</button>}
+      />,
+      { wrapper },
+    );
+    expect(screen.queryByRole('button', { name: 'Open full page' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Edit issue' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Log work' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Open in Jira' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Copy Jira link' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Close preview' })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: 'More actions' }));
+    for (const name of [/Open in Jira/, /Copy Jira link/, /Open full page/, /Edit/, /Log work/]) {
+      expect(await screen.findByRole('menuitem', { name })).toBeTruthy();
+    }
+    fireEvent.click(screen.getByRole('menuitem', { name: /Open full page/ }));
+    expect(onOpenFullPage).toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'More actions' }));
+    fireEvent.click(await screen.findByRole('menuitem', { name: /Log work/ }));
+    expect(screen.getByTestId('log-work-form')).toBeTruthy();
+  });
+
+  it('tiny while loading: Open full page stays a button (no menu without an issue)', () => {
+    stubWidth(400);
+    render(
+      <IssueDetailHeader {...base} issue={undefined} layout="peek" onOpenFullPage={vi.fn()} />,
+      { wrapper },
+    );
+    expect(screen.getByRole('button', { name: 'Open full page' })).toBeTruthy();
   });
 });
 

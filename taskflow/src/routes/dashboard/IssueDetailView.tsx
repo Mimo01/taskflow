@@ -69,6 +69,8 @@ export interface IssueDetailViewProps {
   headerTrailing?: ReactNode;
   /** Full page: navigation trail + back button, shown at the start of the header's meta row. */
   headerNav?: HeaderNav;
+  /** Peek: "Open full page" (labelled header button; a ⋯ item at the smallest width). */
+  onOpenFullPage?: () => void;
 }
 
 export function IssueDetailView({
@@ -83,6 +85,7 @@ export function IssueDetailView({
   onTogglePin: onTogglePinProp,
   headerTrailing,
   headerNav,
+  onOpenFullPage,
 }: IssueDetailViewProps) {
   // Perf instrumentation — record start time on mount
   useEffect(() => {
@@ -706,6 +709,7 @@ export function IssueDetailView({
           : undefined
       }
       nav={headerNav}
+      onOpenFullPage={onOpenFullPage}
       onOpenIssue={onOpenIssue}
       onRefresh={handleRefresh}
       refreshing={refreshing}

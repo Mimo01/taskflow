@@ -3,8 +3,10 @@ import {
   ArrowLeft,
   Check,
   ClipboardCopy,
+  Clock,
   Copy,
   ExternalLink,
+  Maximize2,
   MoreHorizontal,
   Pencil,
   Pin,
@@ -16,6 +18,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
@@ -45,6 +48,12 @@ const LABEL_CLASS = 'sr-only @[860px]:not-sr-only @[860px]:whitespace-nowrap';
 /** Secondary tool: inline only at 860px+, otherwise it lives in the ⋯ menu. */
 const SECONDARY_TOOL_CLASS = cn(TOOL_CLASS, 'hidden @[860px]:inline-flex');
 const MENU_ITEM_CLASS = 'cursor-pointer text-xs';
+/**
+ * Below this header content width (≈ the narrowest peeks) every action except Close moves into
+ * the ⋯ menu so the key and title get the row. Measured with a ResizeObserver: the menu is
+ * portaled, so container queries can't decide which items it lists.
+ */
+const TINY_WIDTH = 560;
 /** Quiet nav crumb (trail entry / parent) in the meta row. */
 const CRUMB_CLASS =
   'cursor-pointer text-xs text-muted-foreground hover:text-foreground hover:underline';
@@ -95,7 +104,9 @@ export interface IssueDetailHeaderProps {
   onClone?: (initialValues: EditInitialValues) => void;
   storyPointsFieldKey: string;
   epicLinkFieldKey: string;
-  /** Extra trailing controls (peek: Open full page + Close). Rendered even while loading. */
+  /** Peek: "Open full page". A labelled button, or a ⋯ menu item at the smallest width. */
+  onOpenFullPage?: () => void;
+  /** Extra trailing controls (peek: Close). Rendered even while loading; never collapsed. */
   headerTrailing?: ReactNode;
 }
 
@@ -121,12 +132,29 @@ export function IssueDetailHeader({
   onClone,
   storyPointsFieldKey,
   epicLinkFieldKey,
+  onOpenFullPage,
   headerTrailing,
 }: IssueDetailHeaderProps) {
   const queryClient = useQueryClient();
   const jiraBaseUrlFromStore = useAuthStore((s) => s.jiraBaseUrl);
   const peek = layout === 'peek';
   const jiraUrl = `${jiraBaseUrl.replace(/\/$/, '')}/browse/${issueKey}`;
+
+  // ─ Smallest width: only ⋯ (+ Close) ──────────────────────────────────────
+  const [rootEl, setRootEl] = useState<HTMLDivElement | null>(null);
+  const [tiny, setTiny] = useState(false);
+  useEffect(() => {
+    if (!rootEl || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver((entries) => {
+      const w = entries[entries.length - 1]?.contentRect.width;
+      if (w) setTiny(w < TINY_WIDTH);
+    });
+    ro.observe(rootEl);
+    return () => ro.disconnect();
+  }, [rootEl]);
+  // Log work opened from the ⋯ menu (tiny): positioned against the ⋯ trigger.
+  const [logWorkOpen, setLogWorkOpen] = useState(false);
+  const [moreTriggerEl, setMoreTriggerEl] = useState<HTMLButtonElement | null>(null);
 
   // ─ Nav trail ────────────────────────────────────────────────────────────
   // A trail ending at the parent is shown once, as the parent crumb (which then walks the
@@ -179,6 +207,7 @@ export function IssueDetailHeader({
 
   return (
     <div
+      ref={setRootEl}
       className={cn(
         '@container shrink-0 border-b bg-(--detail-surface,var(--background)) transition-[padding] duration-250 ease-in-out',
         peek ? 'px-4' : 'px-6',
@@ -191,7 +220,9 @@ export function IssueDetailHeader({
             Wide (1200px+): every trail entry; narrower: a single entry, or a … menu for longer
             trails. The parent's title shows from 760px and shrinks first; its key shrinks only below
             760px (down to its icon), and the current key never shrinks. */}
-        <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-hidden">
+        {/* -ml-1.5 pl-1.5: widens the clip box so the back button's -ml-1.5 hover background
+            (icon aligned to the gutter) is not cut in half by overflow-hidden. */}
+        <div className="-ml-1.5 flex min-w-0 flex-1 items-center gap-1.5 overflow-hidden pl-1.5">
           {nav && trail.length > 0 && (
             <button
               type="button"
@@ -272,6 +303,8 @@ export function IssueDetailHeader({
           {parent && (
             <>
               {crumbs.length > 0 && <CrumbSeparator />}
+              {/* One link for the parent: icon + key + title (title from 760px). The title shrinks
+                  first; below 760px the key may shrink down to the icon. */}
               <button
                 type="button"
                 onClick={openParent}
@@ -279,25 +312,14 @@ export function IssueDetailHeader({
                 aria-label={`Open parent issue ${parent.key}`}
                 className={cn(
                   CRUMB_CLASS,
-                  'flex min-w-3.5 shrink-[200] items-center gap-1.5 overflow-hidden font-mono @[760px]:shrink-0',
+                  'flex min-w-3.5 shrink-[200] items-center gap-1.5 overflow-hidden @[760px]:min-w-auto',
                 )}
               >
                 {parent.typeName && <IssueTypeIcon typeName={parent.typeName} />}
-                <span className="truncate">{parent.key}</span>
-              </button>
-              {/* Same target as the key: one tab stop and accessible name is enough. */}
-              <button
-                type="button"
-                tabIndex={-1}
-                aria-hidden="true"
-                onClick={openParent}
-                title={parent.summary}
-                className={cn(
-                  CRUMB_CLASS,
-                  'hidden min-w-16 max-w-48 truncate pr-0.5 text-left @[760px]:block @[1200px]:max-w-80',
-                )}
-              >
-                {parent.summary}
+                <span className="min-w-0 truncate font-mono @[760px]:shrink-0">{parent.key}</span>
+                <span className="hidden min-w-16 max-w-48 truncate pr-0.5 @[760px]:block @[1200px]:max-w-80">
+                  {parent.summary}
+                </span>
               </button>
             </>
           )}
@@ -360,7 +382,7 @@ export function IssueDetailHeader({
                   <Pin className={cn('size-3.5', isPinned && 'fill-current text-primary')} />
                   {isPinned ? 'Unpin' : 'Pin'}
                 </Button>
-                {onEdit && (
+                {onEdit && !tiny && (
                   <Button
                     variant="ghost"
                     size="sm"
@@ -398,12 +420,17 @@ export function IssueDetailHeader({
                   triggerVariant="ghost"
                   triggerClassName={PRIMARY_TOOL_CLASS}
                   triggerLabelClassName={LABEL_CLASS}
+                  open={logWorkOpen}
+                  onOpenChange={setLogWorkOpen}
+                  hideTrigger={tiny}
+                  anchor={tiny ? moreTriggerEl : undefined}
                 />
                 {/* Narrow only: the secondary tools hidden above. */}
                 <DropdownMenu>
                   <DropdownMenuTrigger
                     render={
                       <Button
+                        ref={setMoreTriggerEl}
                         type="button"
                         variant="ghost"
                         size="icon-sm"
@@ -416,6 +443,61 @@ export function IssueDetailHeader({
                     <MoreHorizontal className="size-3.5" />
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
+                    {tiny && (
+                      <>
+                        <DropdownMenuItem
+                          className={MENU_ITEM_CLASS}
+                          onClick={() => openExternal(jiraUrl)}
+                        >
+                          <ExternalLink className="size-3.5" />
+                          Open in Jira
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className={MENU_ITEM_CLASS}
+                          closeOnClick={false}
+                          onClick={handleCopyJiraLink}
+                        >
+                          {copiedLink ? (
+                            <Check className="size-3.5 text-primary" />
+                          ) : (
+                            <ClipboardCopy className="size-3.5" />
+                          )}
+                          {copiedLink ? 'Copied' : 'Copy Jira link'}
+                        </DropdownMenuItem>
+                        {onOpenFullPage && (
+                          <DropdownMenuItem className={MENU_ITEM_CLASS} onClick={onOpenFullPage}>
+                            <Maximize2 className="size-3.5" />
+                            Open full page
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuSeparator />
+                        {onEdit && (
+                          <DropdownMenuItem
+                            className={MENU_ITEM_CLASS}
+                            onClick={() =>
+                              onEdit(
+                                buildEditInitialValues(
+                                  issue,
+                                  storyPointsFieldKey,
+                                  epicLinkFieldKey,
+                                ),
+                              )
+                            }
+                          >
+                            <Pencil className="size-3.5" />
+                            Edit
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem
+                          className={MENU_ITEM_CLASS}
+                          onClick={() => setLogWorkOpen(true)}
+                        >
+                          <Clock className="size-3.5" />
+                          Log work
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                      </>
+                    )}
                     {onRefresh && (
                       <DropdownMenuItem
                         className={MENU_ITEM_CLASS}
@@ -451,38 +533,54 @@ export function IssueDetailHeader({
               </div>
               {/* Primary action: Open in Jira + Copy link, one filled accent segmented pair.
                   `LinkContextMenu`'s default trigger is `span.contents` (no box). */}
-              <div className="inline-flex items-stretch">
-                <LinkContextMenu href={jiraUrl}>
+              {!tiny && (
+                <div className="inline-flex items-stretch">
+                  <LinkContextMenu href={jiraUrl}>
+                    <Button
+                      size="sm"
+                      onClick={() => openExternal(jiraUrl)}
+                      aria-label="Open in Jira"
+                      title="Open in Jira"
+                      className="w-7 gap-1.5 rounded-r-none px-0 text-xs @[860px]:w-auto @[860px]:px-2.5"
+                    >
+                      <ExternalLink className="size-3.5" />
+                      <span className={LABEL_CLASS}>Open in Jira</span>
+                    </Button>
+                  </LinkContextMenu>
                   <Button
-                    size="sm"
-                    onClick={() => openExternal(jiraUrl)}
-                    aria-label="Open in Jira"
-                    title="Open in Jira"
-                    className="w-7 gap-1.5 rounded-r-none px-0 text-xs @[860px]:w-auto @[860px]:px-2.5"
+                    size="icon-sm"
+                    onClick={handleCopyJiraLink}
+                    aria-label={copiedLink ? 'Copied Jira link' : 'Copy Jira link'}
+                    title={copiedLink ? 'Copied!' : 'Copy Jira link'}
+                    className="rounded-l-none border-l border-l-primary-foreground/20"
                   >
-                    <ExternalLink className="size-3.5" />
-                    <span className={LABEL_CLASS}>Open in Jira</span>
+                    {copiedLink ? (
+                      <Check className="size-3.5" />
+                    ) : (
+                      <ClipboardCopy className="size-3.5" />
+                    )}
                   </Button>
-                </LinkContextMenu>
-                <Button
-                  size="icon-sm"
-                  onClick={handleCopyJiraLink}
-                  aria-label={copiedLink ? 'Copied Jira link' : 'Copy Jira link'}
-                  title={copiedLink ? 'Copied!' : 'Copy Jira link'}
-                  className="rounded-l-none border-l border-l-primary-foreground/20"
-                >
-                  {copiedLink ? (
-                    <Check className="size-3.5" />
-                  ) : (
-                    <ClipboardCopy className="size-3.5" />
-                  )}
-                </Button>
-              </div>
+                </div>
+              )}
             </>
           )}
-          {headerTrailing && (
+          {(headerTrailing || onOpenFullPage) && (
             <>
               {issue && <div aria-hidden="true" className="h-4 w-px bg-border" />}
+              {/* Always labelled; only at the smallest width (with the menu available) it moves into ⋯. */}
+              {onOpenFullPage && !(tiny && issue) && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  aria-label="Open full page"
+                  title="Open full page"
+                  onClick={onOpenFullPage}
+                  className="gap-1.5 whitespace-nowrap text-xs"
+                >
+                  <Maximize2 className="size-3.5" />
+                  Open full page
+                </Button>
+              )}
               {headerTrailing}
             </>
           )}

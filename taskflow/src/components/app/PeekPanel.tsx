@@ -3,7 +3,7 @@
  *
  * Renders as a flex-row sibling of <main> (NOT a Dialog/Sheet/portal).
  * Contains the full IssueDetailView in single-column layout (D-05/D-06), whose shared header
- * carries the issue actions; PeekPanel only supplies the trailing Open full page + Close
+ * carries the issue actions; PeekPanel supplies Open full page (onOpenFullPage) + the trailing Close
  * controls via `headerTrailing`. Width is persisted via the settings store and resizable
  * from the left edge (direction: 'left').
  *
@@ -15,7 +15,7 @@
  * which keeps Close reachable in every state.
  */
 
-import { ExternalLink, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { Button } from '@/components/ui/button';
 import { useResizable } from '@/hooks/useResizable';
@@ -89,23 +89,11 @@ export function PeekPanel({
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <IssueDetailView
           issueKey={issueKey}
+          onOpenFullPage={() => onNavigateFull(issueKey)}
           headerTrailing={
-            <>
-              <Button
-                variant="outline"
-                size="sm"
-                aria-label="Open full page"
-                title="Open full page"
-                onClick={() => onNavigateFull(issueKey)}
-                className="gap-1.5 whitespace-nowrap text-xs"
-              >
-                <ExternalLink className="size-3.5" />
-                Open full page
-              </Button>
-              <Button variant="ghost" size="icon-sm" aria-label="Close preview" onClick={onClose}>
-                <X className="size-4" />
-              </Button>
-            </>
+            <Button variant="ghost" size="icon-sm" aria-label="Close preview" onClick={onClose}>
+              <X className="size-4" />
+            </Button>
           }
           layout="single-column"
           onOpenIssue={onOpenIssue}
