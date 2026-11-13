@@ -118,3 +118,21 @@ Known and intentional: Linked issues / Merge requests labels in peek do not stic
 
 - Feedback: the compaction jumps; it should animate nicely.
 - Fix: both title copies stay mounted. The big title collapses (grid rows 1fr → 0fr plus a fade) while the inline title fades and slides up into the key row, and the padding eases in step (300ms ease-out). The big <h2> stays the only accessible heading, and the inline copy is a decorative aria-hidden span (commit `32c253a9`). IssueDetailPage.progressive tests now query the title by heading role.
+
+## UAT round 8 (2026-11-13): rendered design study
+
+- Feedback: the compact title is maybe too bold, and the full version looks a bit janky. Don't guess: try designs and evaluate them with a subagent.
+- Study: a subagent rendered the real component in Playwright WebKit (r2370, the closest to WKWebView) plus Chromium. It covered 6 expanded variants and 4 compact weights, page and peek widths, light and dark, and animation frames. The contact sheets are in the session scratchpad under header-study/.
+- Measured causes of the jank:
+  - The toolbar group was 32px while every other control was 28px.
+  - There was a 2px gap from the toolbar to the title.
+  - Top and bottom padding were unbalanced (8 vs 12px).
+  - The animation was front-loaded: 85% done by 100ms, with both titles visible at 50ms.
+  - Peek 480 subtask: the own key was fully clipped.
+- Applied V4 (`7854ef81`):
+  - h-6 tools, so the inset group is 28px.
+  - py-3 on the page and py-2.5 in the peek, with a 6px title gap.
+  - font-medium for the big and compact titles.
+  - A staged 250ms crossfade.
+  - The parent key can shrink, and the ↳ subtask icon replaces the chevron.
+- Open constraint conflict: at a 480px peek, the compact inline title has almost no room (about 17px) while "Open full page" keeps its text. It is fine from about 560px.
