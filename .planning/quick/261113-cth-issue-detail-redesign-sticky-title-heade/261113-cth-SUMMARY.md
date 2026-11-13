@@ -1,7 +1,7 @@
 ---
 phase: quick-261113-cth
 plan: 01
-status: checkpoint-pending
+status: complete
 tags: [issue-detail, sticky-header, peek]
 key-files:
   created:
@@ -178,3 +178,7 @@ Known and intentional: Linked issues / Merge requests labels in peek do not stic
 - Feedback: in a ~620px peek, the in-between layout squeezed the title to "Bloom…". The ⋯ menu also needed better organisation.
 - Fix `fae8e101`: the ⋯-only threshold rose from 560 to 720px of header content width, so typical peeks show only ⋯, Open full page and Close. Header tests now pin their width, because the shared ResizeObserver mock reports 600px.
 - Fix (menu): grouped in the order the user chose: Open in Jira, Copy Jira link · Refresh, Pin to tabs, Log work · Edit, Clone. At 720–860px the menu shows Refresh, Pin · Clone. A first attempt that grouped by intent was replaced by this order.
+
+## Status
+
+Approved by the user after UAT round 12 (2026-11-13).
