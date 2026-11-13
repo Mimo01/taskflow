@@ -137,3 +137,19 @@ Known and intentional: Linked issues / Merge requests labels in peek do not stic
   - The parent key can shrink, and the ↳ subtask icon replaces the chevron.
 - Open constraint conflict: at a 480px peek, the compact inline title has almost no room (about 17px) while "Open full page" keeps its text. It is fine from about 560px.
 - Verification render of the real component at `7854ef81`: 0 differing pixels against the V4 mockup across 24 shots. Controls are 28px with one shared centre, padding is 12/12 on the page and 10/10 in the peek, and the subtask's own key is visible at peek 480. Follow-up `a9410356` shortens the expand fade-in delay from 60ms to 30ms; the faintest expand frame was at an opacity sum of 0.39.
+
+## UAT round 9 (2026-11-13): spacing, breadcrumbs, subtask parent
+
+- Feedback: the full version's spacing is off, with a huge gap between the key and the title. Breadcrumbs add a lot of height. Subtasks show the parent key but not its title. Try alternatives and optimise for different screen sizes.
+- Study 2 (WebKit/Chromium renders; contact sheets in the session scratchpad under header-study-2/):
+  - Baseline: 21.5px between the key and the title. The separate trail bar was 53px, so with a trail the total was 168/140px.
+  - Variants tried: A float stack (title squeezed to 531px), B key prefix (the compact subtask title gets 0px), C merged nav, D = C + tucked title + width tiers (winner), E parent subline (it disappears when compact).
+- Applied D (`a08f63b5`):
+  - The breadcrumb trail and back button moved into the header's meta row, and IssueDetailPage's separate bar is gone. New `nav` prop (HeaderNav).
+  - Key → title gap is 11.5px, and the page header is 105/77px with a trail.
+  - Subtask parent: shows its key and its clickable title (from 760px, up to 192px wide, or 320px at 1200px+). If the trail ends at the parent, the parent appears once and clicking it walks the trail back.
+  - Trail: shown in full at 1200px+. Narrower, longer trails collapse to a "…" menu.
+- Open questions:
+  - Should "Open full page" go icon-only in a narrow, compact peek?
+  - Should the ⋯ breakpoint move to 1200px so the compact title at page 1100 gets more room?
+  - At peek ≤480, the parent shows as its icon only.
