@@ -136,3 +136,4 @@ Known and intentional: Linked issues / Merge requests labels in peek do not stic
   - A staged 250ms crossfade.
   - The parent key can shrink, and the ↳ subtask icon replaces the chevron.
 - Open constraint conflict: at a 480px peek, the compact inline title has almost no room (about 17px) while "Open full page" keeps its text. It is fine from about 560px.
+- Verification render of the real component at `7854ef81`: 0 differing pixels against the V4 mockup across 24 shots. Controls are 28px with one shared centre, padding is 12/12 on the page and 10/10 in the peek, and the subtask's own key is visible at peek 480. Follow-up `a9410356` shortens the expand fade-in delay from 60ms to 30ms; the faintest expand frame was at an opacity sum of 0.39.
