@@ -5,12 +5,19 @@ import {
   ClipboardCopy,
   Copy,
   ExternalLink,
+  MoreHorizontal,
   Pencil,
   Pin,
   RefreshCw,
 } from 'lucide-react';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
 import { LinkContextMenu } from '@/components/ui/link-context-menu';
 import { openExternal } from '@/lib/openExternal';
@@ -21,10 +28,20 @@ import type { EditInitialValues } from '../CreateEditIssueModal';
 import { buildCloneInitialValues, buildEditInitialValues } from './issue-actions';
 import { LogWorkPopover } from './LogWorkPopover';
 
-/** Below an 860px header every action collapses to a square icon button (label kept as sr-only text + tooltip). */
+/*
+ * Responsive actions (one @container breakpoint on the header, 860px):
+ * - wide: every action is an inline labelled outline button;
+ * - narrow: primary actions (Edit, Log work, Open in Jira + Copy link) collapse to square icons
+ *   (label kept as sr-only text + tooltip) and the secondary ones (Refresh, Pin, Clone) move
+ *   into a ⋯ menu.
+ */
+/** Primary action: square icon below 860px, labelled above. */
 const COLLAPSE_CLASS = 'gap-1.5 text-xs w-7 px-0 @[860px]:w-auto @[860px]:px-2.5';
 /** `not-sr-only` resets white-space, so re-apply nowrap or labels wrap. */
 const LABEL_CLASS = 'sr-only @[860px]:not-sr-only @[860px]:whitespace-nowrap';
+/** Secondary action: inline (labelled) only at 860px+, otherwise it lives in the ⋯ menu. */
+const SECONDARY_CLASS = 'hidden gap-1.5 text-xs @[860px]:inline-flex';
+const MENU_ITEM_CLASS = 'cursor-pointer text-xs';
 
 export interface IssueDetailHeaderProps {
   issueKey: string;
@@ -120,9 +137,9 @@ export function IssueDetailHeader({
         peek ? 'px-4' : 'px-6',
       )}
     >
-      {/* Left: parent link (peek), key while loading, compact "KEY title" once scrolled past */}
-      <div className="flex min-w-0 flex-1 items-center gap-2">
-        {peek && parent && (
+      {/* Left: parent link (subtasks) › type icon + key, always; compact title once scrolled past */}
+      <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
+        {parent && (
           <>
             <button
               type="button"
@@ -137,18 +154,16 @@ export function IssueDetailHeader({
             <ChevronRight className="size-3.5 shrink-0 text-muted-foreground" />
           </>
         )}
-        {!issue && (
-          <span className="shrink-0 font-mono text-xs text-muted-foreground">{issueKey}</span>
-        )}
+        {issue && <IssueTypeIcon typeName={issue.fields.issuetype.name} />}
+        <span className="shrink-0 font-mono text-xs text-muted-foreground">{issueKey}</span>
         {issue && compact && (
-          <div className="flex min-w-0 items-center gap-2 animate-in fade-in-0">
-            <IssueTypeIcon typeName={issue.fields.issuetype.name} />
-            <span className="shrink-0 font-mono text-xs text-muted-foreground">{issueKey}</span>
-            {/* pr-0.5 guards the italic/overhang truncate-clip pitfall */}
-            <span className="truncate pr-0.5 text-sm font-medium" title={issue.fields.summary}>
-              {issue.fields.summary}
-            </span>
-          </div>
+          /* pr-0.5 guards the italic/overhang truncate-clip pitfall */
+          <span
+            className="truncate pr-0.5 text-sm font-medium animate-in fade-in-0"
+            title={issue.fields.summary}
+          >
+            {issue.fields.summary}
+          </span>
         )}
       </div>
 
@@ -164,10 +179,10 @@ export function IssueDetailHeader({
                 disabled={refreshing}
                 aria-label="Refresh issue"
                 title="Refresh issue"
-                className={COLLAPSE_CLASS}
+                className={SECONDARY_CLASS}
               >
                 <RefreshCw className={cn('size-3.5', refreshing && 'animate-spin')} />
-                <span className={LABEL_CLASS}>Refresh</span>
+                Refresh
               </Button>
             )}
             <Button
@@ -176,10 +191,10 @@ export function IssueDetailHeader({
               onClick={() => onTogglePin?.(issueKey)}
               aria-label={isPinned ? `Unpin issue ${issueKey}` : `Pin issue ${issueKey}`}
               title={isPinned ? 'Unpin from tabs' : 'Pin to tabs'}
-              className={COLLAPSE_CLASS}
+              className={SECONDARY_CLASS}
             >
               <Pin className={cn('size-3.5', isPinned && 'fill-current text-primary')} />
-              <span className={LABEL_CLASS}>{isPinned ? 'Unpin' : 'Pin'}</span>
+              {isPinned ? 'Unpin' : 'Pin'}
             </Button>
             {onEdit && (
               <Button
@@ -213,10 +228,10 @@ export function IssueDetailHeader({
                 }
                 aria-label="Clone issue"
                 title="Clone issue"
-                className={COLLAPSE_CLASS}
+                className={SECONDARY_CLASS}
               >
                 <Copy className="size-3.5" />
-                <span className={LABEL_CLASS}>Clone</span>
+                Clone
               </Button>
             )}
             {/* Open in Jira + Copy link as one joined segmented control.
@@ -250,6 +265,53 @@ export function IssueDetailHeader({
                 )}
               </Button>
             </div>
+            {/* Narrow only: the secondary actions hidden above. */}
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                render={
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon-sm"
+                    aria-label="More actions"
+                    title="More actions"
+                    className="@[860px]:hidden"
+                  />
+                }
+              >
+                <MoreHorizontal className="size-3.5" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {onRefresh && (
+                  <DropdownMenuItem
+                    className={MENU_ITEM_CLASS}
+                    disabled={refreshing}
+                    onClick={onRefresh}
+                  >
+                    <RefreshCw className={cn('size-3.5', refreshing && 'animate-spin')} />
+                    Refresh
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem
+                  className={MENU_ITEM_CLASS}
+                  onClick={() => onTogglePin?.(issueKey)}
+                >
+                  <Pin className={cn('size-3.5', isPinned && 'fill-current text-primary')} />
+                  {isPinned ? 'Unpin from tabs' : 'Pin to tabs'}
+                </DropdownMenuItem>
+                {onClone && (
+                  <DropdownMenuItem
+                    className={MENU_ITEM_CLASS}
+                    onClick={() =>
+                      onClone(buildCloneInitialValues(issue, storyPointsFieldKey, epicLinkFieldKey))
+                    }
+                  >
+                    <Copy className="size-3.5" />
+                    Clone
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </>
         )}
         {headerTrailing && (

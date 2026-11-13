@@ -99,11 +99,10 @@ describe('IssueDetailHeader', () => {
     );
   });
 
-  it('lists every action inline (no overflow menu), in order, with Copy link joined to Open in Jira', () => {
+  it('lists every action inline (secondary ones also in a narrow-only ⋯ menu), Copy link joined to Open in Jira', () => {
     render(<IssueDetailHeader {...base} onRefresh={vi.fn()} onEdit={vi.fn()} onClone={vi.fn()} />, {
       wrapper,
     });
-    expect(screen.queryByRole('button', { name: 'More actions' })).toBeNull();
     const names = screen.getAllByRole('button').map((b) => b.getAttribute('aria-label'));
     expect(names).toEqual([
       'Refresh issue',
@@ -113,12 +112,51 @@ describe('IssueDetailHeader', () => {
       'Clone issue',
       'Open in Jira',
       'Copy Jira link',
+      'More actions',
     ]);
-    // Labels exist for every action (collapsed to sr-only below 860px of header width).
-    // Log work is mocked here; LogWorkPopover receives the same LABEL_CLASS via props.
-    for (const label of ['Refresh', 'Pin', 'Edit', 'Clone', 'Open in Jira']) {
+    // Secondary actions only show inline at 860px+; the ⋯ trigger only below it.
+    for (const name of ['Refresh issue', 'Pin issue PROJ-10', 'Clone issue']) {
+      expect(screen.getByRole('button', { name })).toHaveClass('hidden', '@[860px]:inline-flex');
+    }
+    expect(screen.getByRole('button', { name: 'More actions' })).toHaveClass('@[860px]:hidden');
+    // Primary actions collapse to icons below 860px but keep their label.
+    for (const label of ['Edit', 'Open in Jira']) {
       expect(screen.getByText(label).className).toContain('@[860px]:not-sr-only');
     }
+  });
+
+  it('narrow ⋯ menu offers Refresh, Pin and Clone', async () => {
+    const onRefresh = vi.fn();
+    const onTogglePin = vi.fn();
+    const onClone = vi.fn();
+    render(
+      <IssueDetailHeader
+        {...base}
+        onRefresh={onRefresh}
+        onTogglePin={onTogglePin}
+        onClone={onClone}
+      />,
+      { wrapper },
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'More actions' }));
+    fireEvent.click(await screen.findByRole('menuitem', { name: /Refresh/ }));
+    expect(onRefresh).toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'More actions' }));
+    fireEvent.click(await screen.findByRole('menuitem', { name: /Pin to tabs/ }));
+    expect(onTogglePin).toHaveBeenCalledWith('PROJ-10');
+    fireEvent.click(screen.getByRole('button', { name: 'More actions' }));
+    fireEvent.click(await screen.findByRole('menuitem', { name: /Clone/ }));
+    expect(onClone).toHaveBeenCalledWith(
+      expect.objectContaining({ issueKey: '', summary: 'Clone - A subtask issue title' }),
+    );
+  });
+
+  it('always shows the type icon + key; the title joins it only once compact', () => {
+    const { rerender } = render(<IssueDetailHeader {...base} compact={false} />, { wrapper });
+    expect(screen.getByText('PROJ-10')).toBeTruthy();
+    expect(screen.queryByText('A subtask issue title')).toBeNull();
+    rerender(<IssueDetailHeader {...base} compact />);
+    expect(screen.getByText('PROJ-10')).toBeTruthy();
   });
 
   it('Clone calls onClone with the built clone values', async () => {
@@ -194,18 +232,24 @@ describe('IssueDetailHeader', () => {
     expect(screen.getByRole('button', { name: 'Close preview' })).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Refresh issue' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Copy Jira link' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'More actions' })).toBeNull();
   });
 });
 
 describe('IssueTitleBlock', () => {
   it('uses text-xl for peek and text-2xl for page', () => {
-    const { unmount } = render(<IssueTitleBlock issueKey="PROJ-10" summary="Title" size="peek" />);
+    const { unmount } = render(<IssueTitleBlock summary="Title" size="peek" />);
     expect(screen.getByRole('heading', { level: 2, name: 'Title' })).toHaveClass('text-xl');
     unmount();
-    render(<IssueTitleBlock issueKey="PROJ-10" summary="Title" size="page" />);
+    render(<IssueTitleBlock summary="Title" size="page" />);
     const h = screen.getByRole('heading', { level: 2, name: 'Title' });
     expect(h).toHaveClass('text-2xl');
     expect(h).not.toHaveClass('text-xl');
+    expect(screen.queryByText('PROJ-10')).toBeNull(); // key lives in the sticky header
+  });
+
+  it('shows the key only when passed (header-less hosts)', () => {
+    render(<IssueTitleBlock issueKey="PROJ-10" summary="Title" size="page" />);
     expect(screen.getByText('PROJ-10')).toBeTruthy();
   });
 });

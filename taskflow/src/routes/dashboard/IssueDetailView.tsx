@@ -682,8 +682,7 @@ export function IssueDetailView({
 
   // ─── Header (shared by both layouts and every state) ──────────────────────────
 
-  const parentRef =
-    layout === 'single-column' && issue?.fields.issuetype.subtask ? issue.fields.parent : undefined;
+  const parentRef = issue?.fields.issuetype.subtask ? issue.fields.parent : undefined;
   const headerNode = (
     <IssueDetailHeader
       issueKey={issueKey}
@@ -754,12 +753,7 @@ export function IssueDetailView({
             className="relative min-w-0 flex-1 overflow-auto [--detail-px:1.5rem]"
           >
             <div className="p-6">
-              <IssueTitleBlock
-                issueKey={issueKey}
-                summary={issue.fields.summary}
-                size="page"
-                titleRef={setTitleEl}
-              />
+              <IssueTitleBlock summary={issue.fields.summary} size="page" titleRef={setTitleEl} />
               <div className="mt-6 density-compact:mt-4 density-comfortable:mt-8">
                 {issueDetailContentNode}
               </div>
@@ -796,12 +790,7 @@ export function IssueDetailView({
       <div ref={setScrollEl} className="relative min-h-0 flex-1 overflow-auto [--detail-px:1rem]">
         {/* Big key + title first, so shrink-on-scroll works in the peek too */}
         <div className="px-4 pt-4">
-          <IssueTitleBlock
-            issueKey={issueKey}
-            summary={issue.fields.summary}
-            size="peek"
-            titleRef={setTitleEl}
-          />
+          <IssueTitleBlock summary={issue.fields.summary} size="peek" titleRef={setTitleEl} />
         </div>
 
         {/* Sidebar fields block */}
