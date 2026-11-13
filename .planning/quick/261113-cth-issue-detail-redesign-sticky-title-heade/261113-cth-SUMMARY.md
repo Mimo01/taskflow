@@ -153,3 +153,17 @@ Known and intentional: Linked issues / Merge requests labels in peek do not stic
   - Should "Open full page" go icon-only in a narrow, compact peek?
   - Should the ⋯ breakpoint move to 1200px so the compact title at page 1100 gets more room?
   - At peek ≤480, the parent shows as its icon only.
+
+## UAT round 10 (2026-11-13): nits
+
+- Feedback: the back button's hover shows as a half circle. The parent key and title should be one link. At the smallest size, only ⋯ should remain so the title gets the room.
+- Fix `8e530eec`:
+  - The left area widens its clip box (-ml-1.5 pl-1.5).
+  - The parent is a single button: icon + key + title.
+  - Below a 560px header content width (measured with a ResizeObserver), only ⋯ and Close remain. The menu lists Open in Jira, Copy link, Open full page, Edit, Log work, Refresh, Pin and Clone, and Log work opens anchored to ⋯.
+  - Open full page became a header prop (`onOpenFullPage`). LogWorkPopover gained controlled open, anchor and hideTrigger.
+- Verified in WebKit renders:
+  - The back hover is fully visible (button flush with its clip box at x=18).
+  - The parent is one button with an underline across the key and title.
+  - At 400–560px only ⋯ and Close show, and the Log work popover is anchored under ⋯.
+  - Known cliff: just above the threshold (panel 600–640px), the compact subtask title gets only 41–81px.
