@@ -172,3 +172,9 @@ Known and intentional: Linked issues / Merge requests labels in peek do not stic
 
 - Feedback: keep Open full page visible at the smallest peek widths. Open in Jira must never be icon-only, because the icon alone is too hard to read.
 - Fix: Open full page is a labelled button at every width and is no longer in ⋯. Open in Jira always shows its label; at the smallest width it lives in ⋯ as a text item.
+
+## UAT round 12 (2026-11-13)
+
+- Feedback: in a ~620px peek, the in-between layout squeezed the title to "Bloom…". The ⋯ menu also needed better organisation.
+- Fix `fae8e101`: the ⋯-only threshold rose from 560 to 720px of header content width, so typical peeks show only ⋯, Open full page and Close. Header tests now pin their width, because the shared ResizeObserver mock reports 600px.
+- Fix (menu): the items are grouped by intent, most used first: Edit, Log work, Clone · Open in Jira, Copy Jira link · Pin to tabs, Refresh. At 720–860px the menu shows Clone · Pin, Refresh.
