@@ -71,3 +71,8 @@ Run `npm run tauri dev` from the taskflow app dir, then check:
 8. While an issue loads in the peek, Close still works.
 
 Known and intentional: Linked issues / Merge requests labels in peek do not stick.
+
+## UAT round 1 (2026-11-13)
+
+- Feedback: on smaller screens every button should collapse to an icon; Open in Jira keeps Copy link beside it; remove the ⋯ menu and list every button.
+- Fix `fdb80566`: Refresh, Pin, Edit, Log work, Clone and Open in Jira are labelled outline buttons. Below an 860px header they collapse to square icons, with an sr-only label and a tooltip. Copy Jira link is joined to Open in Jira as a segmented control. The overflow menu is removed. Peek's Open full page uses the same 860px breakpoint.
