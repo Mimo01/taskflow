@@ -84,3 +84,13 @@ Known and intentional: Linked issues / Merge requests labels in peek do not stic
   - The header always shows the type icon and the key. Subtasks get a parent breadcrumb on both the page and the peek. The title joins the key once you scroll past it. The key moved out of IssueTitleBlock, which keeps an optional `issueKey` for the header-less IssueDetailSheet.
   - Below an 860px header, Refresh, Pin and Clone move into a ⋯ menu. Edit, Log work and Open in Jira + Copy link stay as icon buttons. Above 860px, every action is inline and labelled.
   - The peek's Open full page button always shows its label.
+
+## UAT round 3 (2026-11-13)
+
+- Feedback: make the buttons nicer. The header shouldn't be empty before scrolling; it should look the same at every scroll position.
+- Decisions, picked from option previews: the title is clamped to 2 lines in the header, and the actions use a quiet toolbar.
+- Fix `0fdd73f5`:
+  - The header has a meta row (parent › type icon + key, then the actions) over the title (2-line clamp, with the full summary as tooltip). It looks the same at every scroll position.
+  - The big in-content title is removed from the page and the peek, and `useScrolledPast` is deleted. IssueTitleBlock stays for the header-less IssueDetailSheet.
+  - Toolbar: Refresh, Pin, Edit, Clone | Open in Jira + Copy link are ghost buttons in one rounded `bg-muted/60` group. Log work is the single filled accent. Below 860px: Edit, Jira and Copy show as icons, Refresh, Pin and Clone move into ⋯, and Log work becomes an icon.
+  - LogWorkPopover gains a `triggerVariant` prop.
