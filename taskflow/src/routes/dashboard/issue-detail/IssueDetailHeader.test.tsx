@@ -12,11 +12,11 @@ vi.mock('./LogWorkPopover', () => ({
 }));
 
 vi.mock('@tauri-apps/plugin-opener', () => ({
-  openUrl: vi.fn(),
+  openUrl: vi.fn().mockResolvedValue(undefined),
 }));
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { IssueDetailHeader, type IssueDetailHeaderProps } from './IssueDetailHeader';
@@ -114,6 +114,15 @@ describe('IssueDetailHeader', () => {
     render(<IssueDetailHeader {...base} />, { wrapper });
     expect(screen.getByRole('button', { name: 'Log work' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Open in Jira' })).toBeTruthy();
+  });
+
+  it('ISSUE-09: Open in Jira calls openUrl with {jiraBaseUrl}/browse/{issueKey}', async () => {
+    const { openUrl } = await import('@tauri-apps/plugin-opener');
+    render(<IssueDetailHeader {...base} />, { wrapper });
+    fireEvent.click(screen.getByRole('button', { name: 'Open in Jira' }));
+    await waitFor(() => {
+      expect(openUrl).toHaveBeenCalledWith('https://jira.example.com/browse/PROJ-10');
+    });
   });
 
   it('renders headerTrailing', () => {

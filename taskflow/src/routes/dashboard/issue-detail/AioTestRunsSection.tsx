@@ -28,6 +28,7 @@ import { AuthImage } from '../AuthImage';
 import { ImageLightbox } from '../ImageLightbox';
 import { WikiRenderer } from '../WikiRenderer';
 import { AioTestRunsSkeleton } from './AioTestRunsSkeleton';
+import { SectionHeader } from './SectionHeader';
 
 // Local composite type for a single test run with its resolved test case and steps
 interface AioIssueRunData {
@@ -713,10 +714,7 @@ export function AioTestRunsSection({
   // honesty branch.
   return (
     <section aria-label="AIO Test Runs" className="mt-6" data-testid="aio-test-runs-section">
-      <div className="flex items-center gap-1.5 text-sm font-semibold mb-2">
-        <FlaskConical className="size-3.5 text-muted-foreground" />
-        AIO Test Runs
-      </div>
+      <SectionHeader title="AIO test runs" />
       {hasInCycleRuns ? (
         // Plan 54-11 follow-up: render single-run case via CollapsibleRunBlock
         // too (user request 2026-05-14) so the UX is consistent — collapsible

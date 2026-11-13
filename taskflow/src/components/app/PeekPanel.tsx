@@ -2,34 +2,25 @@
  * PeekPanel — CSS squeeze/push layout panel mounted at AppLayout level.
  *
  * Renders as a flex-row sibling of <main> (NOT a Dialog/Sheet/portal).
- * Contains a header bar (issue type icon + key + title, Open full page, X close)
- * and the full IssueDetailView in single-column layout (D-05/D-06). Width is
- * persisted via the settings store and resizable from the left edge (direction: 'left').
+ * Contains the full IssueDetailView in single-column layout (D-05/D-06), whose shared header
+ * carries the issue actions; PeekPanel only supplies the trailing Open full page + Close
+ * controls via `headerTrailing`. Width is persisted via the settings store and resizable
+ * from the left edge (direction: 'left').
  *
  * D-01/D-08: No backdrop, no aria-hidden on underlying content, no role=dialog.
  * PEEK-06: Escape guarded against palette open state (Pitfall 6 / A3).
  * D-13: onOpenIssue is wired from the parent as setPeekIssueKey, enabling swap-in-peek.
  *
- * Header is owned by PeekPanel (not IssueDetailView) so that Close (X) and Open full page
- * remain visible and functional during the loading state. The issue detail is deduped from
- * IssueDetailView via the same TanStack Query key ['jira-issue-detail', issueKey, jiraBaseUrl].
- * While the issue is loading, the header shows key + controls only. After load, it also shows
- * the issue-type icon and title (truncated).
+ * The header lives inside IssueDetailView (so it also renders while loading / unavailable),
+ * which keeps Close reachable in every state.
  */
 
-import { useQuery } from '@tanstack/react-query';
-import { ChevronRight, ExternalLink, X } from 'lucide-react';
+import { ExternalLink, X } from 'lucide-react';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { Button } from '@/components/ui/button';
-import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
 import { useResizable } from '@/hooks/useResizable';
 import type { EditInitialValues } from '@/routes/dashboard/CreateEditIssueModal';
 import { IssueDetailView } from '@/routes/dashboard/IssueDetailView';
-import { getIssueUnavailableInfo } from '@/routes/dashboard/issue-detail/unavailable-info';
-import { fetchIssueDetail } from '@/services/jira';
-import { readSecret } from '@/services/stronghold';
-import { useAuthStore } from '@/stores/auth.store';
-import { useSettingsStore } from '@/stores/settings.store';
 
 export interface PeekPanelProps {
   issueKey: string;
@@ -70,38 +61,6 @@ export function PeekPanel({
     direction: 'left',
   });
 
-  // Auth + settings — needed to match the IssueDetailView query key exactly so TanStack
-  // Query dedupes this call against the one inside IssueDetailView (no duplicate fetch).
-  const { jiraBaseUrl, jiraConnected } = useAuthStore();
-  const {
-    epicLinkFieldKey,
-    epicNameFieldKey,
-    sprintFieldKey,
-    storyPointsFieldKey,
-    epicColorFieldKey,
-  } = useSettingsStore();
-
-  // Deduped issue read — same query key as IssueDetailView.tsx:103-118.
-  // The five field keys are NOT part of the key, matching IssueDetailView exactly.
-  // staleTime and enabled guard also match to ensure identical cache behavior.
-  const { data: issue } = useQuery({
-    queryKey: ['jira-issue-detail', issueKey, jiraBaseUrl],
-    queryFn: async () => {
-      const token = await readSecret('jira-pat').catch(() => null);
-      if (!token || !jiraBaseUrl) throw new Error('No credentials');
-      return fetchIssueDetail(jiraBaseUrl, token, issueKey ?? '', {
-        epicLinkFieldKey,
-        epicNameFieldKey,
-        sprintFieldKey,
-        storyPointsFieldKey,
-        epicColorFieldKey,
-      });
-    },
-    staleTime: 30_000,
-    retry: (count, err) => getIssueUnavailableInfo(err).kind === 'error' && count < 1,
-    enabled: !!issueKey && !!jiraBaseUrl && !!jiraConnected,
-  });
-
   // Escape dismisses peek — but NOT while the command palette is open (Pitfall 6 / A3) and
   // NOT while focus is inside a form element (input, textarea, select). Setting
   // enableOnFormTags: false ensures that Escape inside a comment composer or inline
@@ -111,11 +70,6 @@ export function PeekPanel({
     enableOnFormTags: false,
     enabled: !!issueKey && !paletteOpen,
   });
-
-  // Parent link in the header (subtasks only) — surfaces the parent in the peek
-  // instead of the body section the full page uses. Narrowed to a const so the
-  // onClick closure stays type-safe without a non-null assertion.
-  const peekParent = issue?.fields.issuetype.subtask ? issue.fields.parent : undefined;
 
   return (
     <div
@@ -130,62 +84,31 @@ export function PeekPanel({
         className="absolute left-0 top-0 bottom-0 w-1 cursor-col-resize z-10 hover:bg-border/60 active:bg-border"
       />
 
-      {/* Header bar — always visible, controls stay accessible during load.
-          Left side: while issue is defined, shows icon + key + truncated title.
-          While loading (issue undefined), shows key only.
-          min-w-0 flex-1 on the left container allows the title to shrink/truncate
-          without displacing the right-side controls (0-width flex pitfall guard). */}
-      <div className="flex items-center justify-between h-10 px-4 border-b border-border shrink-0">
-        {/* Left: parent breadcrumb (subtasks, after load) + icon + key + title (after load) */}
-        <div className="flex items-center gap-2 min-w-0 flex-1">
-          {peekParent && (
-            <>
-              <button
-                type="button"
-                onClick={() => onOpenIssue(peekParent.key)}
-                title={peekParent.fields.summary}
-                aria-label={`Open parent issue ${peekParent.key}`}
-                className="flex items-center gap-1 shrink-0 text-xs font-mono text-muted-foreground hover:text-foreground hover:underline cursor-pointer"
-              >
-                {peekParent.fields.issuetype?.name && (
-                  <IssueTypeIcon typeName={peekParent.fields.issuetype.name} />
-                )}
-                {peekParent.key}
-              </button>
-              <ChevronRight className="size-3.5 text-muted-foreground shrink-0" />
-            </>
-          )}
-          {issue && <IssueTypeIcon typeName={issue.fields.issuetype.name} />}
-          {/* Key must NOT shrink — badge stays mono and always visible */}
-          <span className="text-xs font-mono text-muted-foreground shrink-0">{issueKey}</span>
-          {issue && (
-            /* pr-0.5 guards the italic/overhang truncate-clip pitfall */
-            <span className="text-sm font-medium truncate pr-0.5">{issue.fields.summary}</span>
-          )}
-        </div>
-
-        {/* Right: Open full page + Close — shrink-0 so they're never squeezed off */}
-        <div className="flex items-center gap-1 shrink-0">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onNavigateFull(issueKey)}
-            className="gap-1"
-          >
-            <ExternalLink className="size-3.5" />
-            Open full page
-          </Button>
-          <Button variant="ghost" size="icon" aria-label="Close preview" onClick={onClose}>
-            <X className="size-4" />
-          </Button>
-        </div>
-      </div>
-
       {/* Body: full IssueDetailView in single-column mode (D-05/D-06) */}
       {/* onOpenIssue is setPeekIssueKey from main.tsx — clicks inside peek swap, not navigate (D-13) */}
-      <div className="flex-1 overflow-hidden">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <IssueDetailView
           issueKey={issueKey}
+          headerTrailing={
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                aria-label="Open full page"
+                title="Open full page"
+                onClick={() => onNavigateFull(issueKey)}
+                className="w-7 gap-1 px-0 @[520px]:w-auto @[520px]:px-2.5"
+              >
+                <ExternalLink className="size-3.5" />
+                <span className="sr-only @[520px]:not-sr-only @[520px]:whitespace-nowrap">
+                  Open full page
+                </span>
+              </Button>
+              <Button variant="ghost" size="icon-sm" aria-label="Close preview" onClick={onClose}>
+                <X className="size-4" />
+              </Button>
+            </>
+          }
           layout="single-column"
           onOpenIssue={onOpenIssue}
           onEdit={onEdit}

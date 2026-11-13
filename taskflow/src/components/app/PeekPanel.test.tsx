@@ -3,10 +3,8 @@
 // PEEK-01 (handler sets peekIssueKey in AppLayout) and PEEK-05 (TaskCard key split) are
 // covered in Plan 04 / TaskCard.test.tsx respectively.
 //
-// NOTE: The header (icon + key + title) is owned by PeekPanel, not IssueDetailView.
-// PeekPanel issues a deduped useQuery for the issue detail so it can show the title.
-// The query is mocked below to the loading state (data: undefined) so the tests exercise
-// the "key + controls only, no title" branch — which matches what PEEK-04/PEEK-06 assert.
+// NOTE: The header lives inside IssueDetailView; PeekPanel passes Open full page + Close
+// through `headerTrailing`, so the IssueDetailView mock below renders it.
 
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
@@ -15,9 +13,16 @@ import { PeekPanel } from './PeekPanel';
 // Mock IssueDetailView so PeekPanel renders without live network/QueryClient.
 // The mock renders a stable marker div that the tests assert against.
 vi.mock('@/routes/dashboard/IssueDetailView', () => ({
-  IssueDetailView: ({ issueKey }: { issueKey: string }) => (
+  IssueDetailView: ({
+    issueKey,
+    headerTrailing,
+  }: {
+    issueKey: string;
+    headerTrailing?: React.ReactNode;
+  }) => (
     <div data-testid="issue-detail-body" data-issue-key={issueKey}>
-      IssueDetailView mock for {issueKey}
+      <span>{issueKey}</span>
+      {headerTrailing}
     </div>
   ),
 }));
@@ -26,37 +31,6 @@ vi.mock('@/routes/dashboard/IssueDetailView', () => ({
 vi.mock('@/hooks/useResizable', () => ({
   useResizable: () => ({ width: 480, isDragging: false, handleMouseDown: vi.fn() }),
 }));
-
-// Mock useQuery — returns the loading state (data: undefined) so the header shows
-// key + controls only (no icon or title). This matches what PEEK-04/PEEK-06 assert.
-vi.mock('@tanstack/react-query', () => ({
-  useQuery: vi.fn(() => ({ data: undefined, isLoading: false })),
-}));
-
-// Mock auth + settings stores (needed for the deduped useQuery in PeekPanel)
-vi.mock('@/stores/auth.store', () => ({
-  useAuthStore: vi.fn((selector?: (s: unknown) => unknown) => {
-    const state = { jiraBaseUrl: 'https://jira.example', jiraConnected: true };
-    return selector ? selector(state) : state;
-  }),
-}));
-
-vi.mock('@/stores/settings.store', () => ({
-  useSettingsStore: vi.fn((selector?: (s: unknown) => unknown) => {
-    const state = {
-      epicLinkFieldKey: '',
-      epicNameFieldKey: '',
-      sprintFieldKey: '',
-      storyPointsFieldKey: '',
-      epicColorFieldKey: '',
-    };
-    return selector ? selector(state) : state;
-  }),
-}));
-
-// Mock stronghold + jira so imports resolve without native modules
-vi.mock('@/services/stronghold', () => ({ readSecret: vi.fn() }));
-vi.mock('@/services/jira', () => ({ fetchIssueDetail: vi.fn() }));
 
 const defaultProps = {
   issueKey: 'PROJ-1',

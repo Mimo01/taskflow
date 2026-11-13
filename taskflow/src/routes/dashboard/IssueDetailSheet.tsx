@@ -9,6 +9,7 @@ import { useSettingsStore } from '@/stores/settings.store';
 import type { EditInitialValues } from './CreateEditIssueModal';
 import { IssueDetailContent } from './IssueDetailContent';
 import { IssueDetailSidebar } from './IssueDetailSidebar';
+import { IssueTitleBlock } from './issue-detail/IssueTitleBlock';
 
 interface IssueDetailSheetProps {
   issueKey: string | null;
@@ -27,11 +28,8 @@ export function IssueDetailSheet({
   issueKey,
   onClose,
   onOpenIssue,
-  onEdit,
   onAddSubtask,
   onAddEpicStory,
-  isPinned,
-  onTogglePin,
 }: IssueDetailSheetProps) {
   return (
     <Sheet
@@ -50,11 +48,8 @@ export function IssueDetailSheet({
             data-testid="sheet-open"
             issueKey={issueKey}
             onOpenIssue={onOpenIssue}
-            onEdit={onEdit}
             onAddSubtask={onAddSubtask}
             onAddEpicStory={onAddEpicStory}
-            isPinned={isPinned}
-            onTogglePin={onTogglePin}
           />
         )}
       </SheetContent>
@@ -65,20 +60,14 @@ export function IssueDetailSheet({
 function IssueDetailBody({
   issueKey,
   onOpenIssue,
-  onEdit,
   onAddSubtask,
   onAddEpicStory,
-  isPinned,
-  onTogglePin,
 }: {
   'data-testid'?: string;
   issueKey: string;
   onOpenIssue?: (key: string) => void;
-  onEdit?: (initialValues: EditInitialValues) => void;
   onAddSubtask?: (parentKey: string) => void;
   onAddEpicStory?: (epicKey: string) => void;
-  isPinned?: boolean;
-  onTogglePin?: (key: string) => void;
 }) {
   const { jiraBaseUrl, jiraConnected } = useAuthStore();
   const {
@@ -127,20 +116,20 @@ function IssueDetailBody({
     <div data-testid="issue-detail-body" className="flex h-full overflow-hidden">
       {/* Left column: ~60% */}
       <div className="flex-1 overflow-auto p-6">
+        <div className="mb-6">
+          <IssueTitleBlock issueKey={issueKey} summary={issue.fields.summary} size="page" />
+        </div>
         <IssueDetailContent
           issue={issue}
           issueKey={issueKey}
           jiraBaseUrl={jiraBaseUrl ?? ''}
           onOpenIssue={onOpenIssue}
-          onEdit={onEdit}
           onAddSubtask={onAddSubtask}
           onAddEpicStory={onAddEpicStory}
           storyPointsFieldKey={storyPointsFieldKey}
           sprintFieldKey={sprintFieldKey}
           epicLinkFieldKey={epicLinkFieldKey}
           epicStories={epicStories}
-          isPinned={isPinned}
-          onTogglePin={onTogglePin}
         />
       </div>
       {/* Right sidebar: ~42% */}

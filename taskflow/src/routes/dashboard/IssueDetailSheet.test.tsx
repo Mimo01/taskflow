@@ -777,33 +777,4 @@ describe('IssueDetailSheet', () => {
       expect(screen.queryByTestId('story-points-clear')).toBeNull();
     });
   });
-
-  describe('ISSUE-09: open in Jira deep link', () => {
-    it(`calls openUrl with \${jiraBaseUrl}/browse/\${issueKey} when button clicked`, async () => {
-      const { openUrl } = await import('@tauri-apps/plugin-opener');
-      vi.mocked(openUrl).mockResolvedValue(undefined);
-
-      const { IssueDetailContent } = await import('./IssueDetailContent');
-      const issue = makeIssueDetail();
-      render(
-        <IssueDetailContent
-          issue={issue as never}
-          issueKey="PROJ-1"
-          jiraBaseUrl="https://jira.example.com"
-          onOpenIssue={vi.fn()}
-          storyPointsFieldKey="customfield_10016"
-          sprintFieldKey="customfield_10020"
-          epicLinkFieldKey="customfield_10014"
-        />,
-        { wrapper },
-      );
-
-      const openBtn = screen.getByRole('button', { name: /open in jira/i });
-      fireEvent.click(openBtn);
-
-      await waitFor(() => {
-        expect(openUrl).toHaveBeenCalledWith('https://jira.example.com/browse/PROJ-1');
-      });
-    });
-  });
 });
