@@ -97,10 +97,10 @@ export function PeekPanel({
                 aria-label="Open full page"
                 title="Open full page"
                 onClick={() => onNavigateFull(issueKey)}
-                className="w-7 gap-1 px-0 @[520px]:w-auto @[520px]:px-2.5"
+                className="w-7 gap-1.5 px-0 text-xs @[860px]:w-auto @[860px]:px-2.5"
               >
                 <ExternalLink className="size-3.5" />
-                <span className="sr-only @[520px]:not-sr-only @[520px]:whitespace-nowrap">
+                <span className="sr-only @[860px]:not-sr-only @[860px]:whitespace-nowrap">
                   Open full page
                 </span>
               </Button>

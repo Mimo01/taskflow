@@ -5,19 +5,12 @@ import {
   ClipboardCopy,
   Copy,
   ExternalLink,
-  MoreHorizontal,
   Pencil,
   Pin,
   RefreshCw,
 } from 'lucide-react';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
 import { LinkContextMenu } from '@/components/ui/link-context-menu';
 import { openExternal } from '@/lib/openExternal';
@@ -28,9 +21,10 @@ import type { EditInitialValues } from '../CreateEditIssueModal';
 import { buildCloneInitialValues, buildEditInitialValues } from './issue-actions';
 import { LogWorkPopover } from './LogWorkPopover';
 
-/** Peek only: below a 520px header the labelled actions collapse to square icon buttons. */
-const PEEK_COLLAPSE_CLASS = 'w-7 px-0 @[520px]:w-auto @[520px]:px-2.5';
-const PEEK_LABEL_CLASS = 'sr-only @[520px]:not-sr-only @[520px]:whitespace-nowrap';
+/** Below an 860px header every action collapses to a square icon button (label kept as sr-only text + tooltip). */
+const COLLAPSE_CLASS = 'gap-1.5 text-xs w-7 px-0 @[860px]:w-auto @[860px]:px-2.5';
+/** `not-sr-only` resets white-space, so re-apply nowrap or labels wrap. */
+const LABEL_CLASS = 'sr-only @[860px]:not-sr-only @[860px]:whitespace-nowrap';
 
 export interface IssueDetailHeaderProps {
   issueKey: string;
@@ -165,35 +159,41 @@ export function IssueDetailHeader({
             {onRefresh && (
               <Button
                 variant="outline"
-                size="icon-sm"
+                size="sm"
                 onClick={onRefresh}
                 disabled={refreshing}
                 aria-label="Refresh issue"
                 title="Refresh issue"
+                className={COLLAPSE_CLASS}
               >
                 <RefreshCw className={cn('size-3.5', refreshing && 'animate-spin')} />
+                <span className={LABEL_CLASS}>Refresh</span>
               </Button>
             )}
             <Button
               variant="outline"
-              size="icon-sm"
+              size="sm"
               onClick={() => onTogglePin?.(issueKey)}
               aria-label={isPinned ? `Unpin issue ${issueKey}` : `Pin issue ${issueKey}`}
               title={isPinned ? 'Unpin from tabs' : 'Pin to tabs'}
+              className={COLLAPSE_CLASS}
             >
               <Pin className={cn('size-3.5', isPinned && 'fill-current text-primary')} />
+              <span className={LABEL_CLASS}>{isPinned ? 'Unpin' : 'Pin'}</span>
             </Button>
             {onEdit && (
               <Button
                 variant="outline"
-                size="icon-sm"
+                size="sm"
                 onClick={() =>
                   onEdit(buildEditInitialValues(issue, storyPointsFieldKey, epicLinkFieldKey))
                 }
                 aria-label="Edit issue"
                 title="Edit issue"
+                className={COLLAPSE_CLASS}
               >
                 <Pencil className="size-3.5" />
+                <span className={LABEL_CLASS}>Edit</span>
               </Button>
             )}
             <LogWorkPopover
@@ -201,65 +201,55 @@ export function IssueDetailHeader({
               jiraBaseUrl={jiraBaseUrl}
               onSuccess={handleLogWorkSuccess}
               triggerLabel="Log work"
-              triggerClassName={peek ? PEEK_COLLAPSE_CLASS : undefined}
-              triggerLabelClassName={peek ? PEEK_LABEL_CLASS : undefined}
+              triggerClassName={COLLAPSE_CLASS}
+              triggerLabelClassName={LABEL_CLASS}
             />
-            {/* `LinkContextMenu`'s default trigger is `span.contents` (no box). */}
-            <LinkContextMenu href={jiraUrl}>
+            {onClone && (
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => openExternal(jiraUrl)}
-                aria-label="Open in Jira"
-                title="Open in Jira"
-                className={cn('gap-1.5 text-xs', peek && PEEK_COLLAPSE_CLASS)}
-              >
-                <ExternalLink className="size-3.5" />
-                <span className={peek ? PEEK_LABEL_CLASS : undefined}>Open in Jira</span>
-              </Button>
-            </LinkContextMenu>
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                render={
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon-sm"
-                    aria-label="More actions"
-                    title="More actions"
-                  />
+                onClick={() =>
+                  onClone(buildCloneInitialValues(issue, storyPointsFieldKey, epicLinkFieldKey))
                 }
+                aria-label="Clone issue"
+                title="Clone issue"
+                className={COLLAPSE_CLASS}
               >
-                <MoreHorizontal className="size-3.5" />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                {onClone && (
-                  <DropdownMenuItem
-                    className="cursor-pointer text-xs"
-                    aria-label="Clone issue"
-                    onClick={() =>
-                      onClone(buildCloneInitialValues(issue, storyPointsFieldKey, epicLinkFieldKey))
-                    }
-                  >
-                    <Copy className="size-3.5" />
-                    Clone
-                  </DropdownMenuItem>
-                )}
-                <DropdownMenuItem
-                  className="cursor-pointer text-xs"
-                  aria-label="Copy Jira link"
-                  closeOnClick={false}
-                  onClick={handleCopyJiraLink}
+                <Copy className="size-3.5" />
+                <span className={LABEL_CLASS}>Clone</span>
+              </Button>
+            )}
+            {/* Open in Jira + Copy link as one joined segmented control.
+                `LinkContextMenu`'s default trigger is `span.contents` (no box). */}
+            <div className="inline-flex items-stretch">
+              <LinkContextMenu href={jiraUrl}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => openExternal(jiraUrl)}
+                  aria-label="Open in Jira"
+                  title="Open in Jira"
+                  className={cn(COLLAPSE_CLASS, 'rounded-r-none border-r-0')}
                 >
-                  {copiedLink ? (
-                    <Check className="size-3.5 text-primary" />
-                  ) : (
-                    <ClipboardCopy className="size-3.5" />
-                  )}
-                  {copiedLink ? 'Copied' : 'Copy Jira link'}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                  <ExternalLink className="size-3.5" />
+                  <span className={LABEL_CLASS}>Open in Jira</span>
+                </Button>
+              </LinkContextMenu>
+              <Button
+                variant="outline"
+                size="icon-sm"
+                onClick={handleCopyJiraLink}
+                aria-label={copiedLink ? 'Copied Jira link' : 'Copy Jira link'}
+                title={copiedLink ? 'Copied!' : 'Copy Jira link'}
+                className="rounded-l-none"
+              >
+                {copiedLink ? (
+                  <Check className="size-3.5 text-primary" />
+                ) : (
+                  <ClipboardCopy className="size-3.5" />
+                )}
+              </Button>
+            </div>
           </>
         )}
         {headerTrailing && (

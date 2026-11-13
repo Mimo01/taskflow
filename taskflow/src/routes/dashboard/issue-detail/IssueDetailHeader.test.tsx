@@ -99,12 +99,32 @@ describe('IssueDetailHeader', () => {
     );
   });
 
-  it('More actions menu offers Clone and Copy Jira link', async () => {
+  it('lists every action inline (no overflow menu), in order, with Copy link joined to Open in Jira', () => {
+    render(<IssueDetailHeader {...base} onRefresh={vi.fn()} onEdit={vi.fn()} onClone={vi.fn()} />, {
+      wrapper,
+    });
+    expect(screen.queryByRole('button', { name: 'More actions' })).toBeNull();
+    const names = screen.getAllByRole('button').map((b) => b.getAttribute('aria-label'));
+    expect(names).toEqual([
+      'Refresh issue',
+      'Pin issue PROJ-10',
+      'Edit issue',
+      null, // Log work trigger (named by its label text)
+      'Clone issue',
+      'Open in Jira',
+      'Copy Jira link',
+    ]);
+    // Labels exist for every action (collapsed to sr-only below 860px of header width).
+    // Log work is mocked here; LogWorkPopover receives the same LABEL_CLASS via props.
+    for (const label of ['Refresh', 'Pin', 'Edit', 'Clone', 'Open in Jira']) {
+      expect(screen.getByText(label).className).toContain('@[860px]:not-sr-only');
+    }
+  });
+
+  it('Clone calls onClone with the built clone values', async () => {
     const onClone = vi.fn();
     render(<IssueDetailHeader {...base} onClone={onClone} />, { wrapper });
-    fireEvent.click(screen.getByRole('button', { name: 'More actions' }));
-    expect(await screen.findByRole('menuitem', { name: 'Copy Jira link' })).toBeTruthy();
-    fireEvent.click(screen.getByRole('menuitem', { name: 'Clone issue' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Clone issue' }));
     expect(onClone).toHaveBeenCalledWith(
       expect.objectContaining({ issueKey: '', summary: 'Clone - A subtask issue title' }),
     );
@@ -173,7 +193,7 @@ describe('IssueDetailHeader', () => {
     expect(screen.getByText('PROJ-10')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Close preview' })).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Refresh issue' })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'More actions' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Copy Jira link' })).toBeNull();
   });
 });
 
