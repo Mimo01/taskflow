@@ -299,8 +299,12 @@ describe('EpicProgressSection time metric, card and tooltips (261001-g5q)', () =
     const region = screen.getByRole('region', { name: 'Epic progress' });
     expect(region.querySelector('[data-slot="card"]')).toBeNull();
     expect(container.querySelector('[data-slot="card"]')).toBeNull();
-    expect(region.className).toContain('border-t');
-    expect(region.className).toContain('border-b');
+    expect(region.className).not.toContain('border-t');
+    expect(region.className).not.toContain('border-b');
+    const header = screen.getByRole('heading', { level: 3, name: 'Progress' }).parentElement;
+    expect(header?.parentElement).toBe(region);
+    expect(header?.className).toContain('sticky');
+    expect(header?.className).toContain('mb-2');
     unmount();
     renderSection(
       <EpicProgressSection
@@ -313,7 +317,7 @@ describe('EpicProgressSection time metric, card and tooltips (261001-g5q)', () =
     const sk = screen.getByTestId('epic-progress-skeleton');
     expect(sk.querySelector('[data-slot="card"]')).toBeNull();
     expect(sk).not.toHaveAttribute('data-slot', 'card');
-    expect(sk.className).toContain('border-t');
+    expect(sk.className).not.toContain('border-t');
   });
 
   it('offers Count / SP / Time with Count default', () => {

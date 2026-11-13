@@ -16,7 +16,7 @@ import {
   ZOOM_PRESETS,
   type ZoomPreset,
 } from '@/lib/epic-progress';
-import { cn } from '@/lib/utils';
+import { SectionSegmented } from './SectionHeader';
 
 export interface ChartZoom {
   /** The full shared domain (axis start to latest forecast date). */
@@ -185,28 +185,16 @@ export function useChartView<T extends { date: string; t: number }>(
 export function ZoomPresets({ zoom }: { zoom: ChartZoom }) {
   if (!zoom.enabled || zoom.domain.from >= zoom.domain.to) return null;
   return (
-    // biome-ignore lint/a11y/useSemanticElements: button toggle group; <fieldset> would add unwanted chrome
-    <div
-      role="group"
-      aria-label="Chart range"
+    <SectionSegmented
+      label="Chart range"
       data-testid="epic-zoom-presets"
-      className="flex flex-none gap-1"
-    >
-      {ZOOM_PRESETS.filter((p) => zoom.presets.includes(p.key)).map((p) => (
-        <button
-          key={p.key}
-          type="button"
-          aria-pressed={zoom.preset === p.key}
-          onClick={() => zoom.onPreset(p.key)}
-          className={cn(
-            'cursor-pointer rounded-md px-2 py-0.5 text-xs ring-1 ring-foreground/10',
-            zoom.preset === p.key ? 'bg-accent font-medium text-foreground' : 'hover:bg-accent',
-          )}
-        >
-          {p.label}
-        </button>
-      ))}
-    </div>
+      options={ZOOM_PRESETS.filter((p) => zoom.presets.includes(p.key)).map((p) => ({
+        value: p.key,
+        label: p.label,
+      }))}
+      value={zoom.preset}
+      onChange={zoom.onPreset}
+    />
   );
 }
 
