@@ -158,12 +158,15 @@ describe('IssueDetailHeader', () => {
     expect(h).toHaveAttribute('title', 'A subtask issue title');
   });
 
-  it('compact keeps the same content, condensing the title to one smaller line', () => {
+  it('compact keeps the same content in one slim row: title inline next to the key', () => {
     const { rerender } = render(<IssueDetailHeader {...base} />, { wrapper });
     const name = { level: 2, name: 'A subtask issue title' } as const;
     expect(screen.getByRole('heading', name)).toHaveClass('line-clamp-2', 'text-xl');
     rerender(<IssueDetailHeader {...base} compact />);
-    expect(screen.getByRole('heading', name)).toHaveClass('line-clamp-1', 'text-base');
+    const h = screen.getByRole('heading', name);
+    expect(h).toHaveClass('truncate', 'text-base');
+    // Inline: shares the key's row container.
+    expect(h.parentElement).toContainElement(screen.getByText('PROJ-10'));
     expect(screen.getByText('PROJ-10')).toBeTruthy();
     expect(screen.getByRole('toolbar', { name: 'Issue actions' })).toBeTruthy();
   });

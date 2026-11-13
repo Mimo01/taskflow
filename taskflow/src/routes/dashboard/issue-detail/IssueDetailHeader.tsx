@@ -138,11 +138,11 @@ export function IssueDetailHeader({
       className={cn(
         '@container shrink-0 border-b bg-(--detail-surface,var(--background)) transition-[padding] duration-200',
         peek ? 'px-4' : 'px-6',
-        compact ? 'pt-1.5 pb-2' : peek ? 'pt-2 pb-2.5' : 'pt-2.5 pb-3',
+        compact ? 'py-1.5' : peek ? 'pt-2 pb-2.5' : 'pt-2.5 pb-3',
       )}
     >
       <div className="flex h-7 items-center gap-3">
-        {/* Left: parent link (subtasks) › type icon + key */}
+        {/* Left: parent link (subtasks) › type icon + key (+ the title, inline, when compact) */}
         <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
           {parent && (
             <>
@@ -161,9 +161,21 @@ export function IssueDetailHeader({
           )}
           {issue && <IssueTypeIcon typeName={issue.fields.issuetype.name} />}
           <span className="shrink-0 font-mono text-xs text-muted-foreground">{issueKey}</span>
+          {issue && compact && (
+            /* pr-0.5 guards the italic/overhang truncate-clip pitfall */
+            <h2
+              className={cn(
+                'truncate pr-0.5 font-semibold leading-tight animate-in fade-in-0 slide-in-from-bottom-1 duration-200',
+                peek ? 'text-sm' : 'text-base',
+              )}
+              title={issue.fields.summary}
+            >
+              {issue.fields.summary}
+            </h2>
+          )}
         </div>
 
-        {/* Right: quiet toolbar + Log work accent + host controls (peek: Open full page, Close) */}
+        {/* Right: quiet toolbar + Open in Jira/Copy accent + host controls (peek: Open full page, Close) */}
         <div className="flex shrink-0 items-center gap-2">
           {issue && (
             <>
@@ -326,13 +338,13 @@ export function IssueDetailHeader({
         </div>
       </div>
 
-      {/* Title: same at every scroll position; two lines max, full summary as tooltip */}
-      {issue && (
+      {/* Title: own line(s) at the top (two lines max); moves inline next to the key when the
+          content is scrolled, so the compact header is a single slim row. Full summary as tooltip. */}
+      {issue && !compact && (
         <h2
           className={cn(
-            'font-semibold leading-tight transition-[font-size,margin] duration-200',
-            compact ? 'mt-0.5 line-clamp-1' : 'mt-1 line-clamp-2',
-            compact ? (peek ? 'text-sm' : 'text-base') : peek ? 'text-lg' : 'text-xl',
+            'mt-1 line-clamp-2 font-semibold leading-tight animate-in fade-in-0 duration-200',
+            peek ? 'text-lg' : 'text-xl',
           )}
           title={issue.fields.summary}
         >
