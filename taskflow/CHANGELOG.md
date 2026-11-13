@@ -2,6 +2,21 @@
 
 All notable changes to Taskflow are documented here.
 
+## [1.14.22] — 2026-11-13
+
+Detail pages share one calm header that stays in view.
+
+### New
+- Issue detail header stays on top and slims down as you scroll
+- Drop files anywhere on the attachments section to upload
+- More issue actions sit in a tidy ⋯ menu when space is tight
+
+### Improved
+- Release, MR, cycle and run detail pages use the same header
+- The issue header shows the parent issue and its title
+- Epic progress section matches the other section headers
+- An empty attachments section shows a quiet drop strip
+
 ## [1.14.21] — 2026-11-13
 
 Release notes are now short, clear and easy to catch up on.
