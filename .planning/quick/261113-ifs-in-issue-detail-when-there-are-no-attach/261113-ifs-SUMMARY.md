@@ -19,3 +19,5 @@ Commit: b04e9808 (2 files: AttachmentsSection.tsx and AttachmentsSection.test.ts
 User found the strip too small and disliked it under populated tiles. Research (Jira, Linear, Trello, Asana, Slack): content views make the whole surface droppable and show the affordance only during a drag, with no permanent drop box. Reworked:
 - Whole section is the drop target; a dashed overlay ("Drop to attach to KEY") appears only while an OS file drag (`types` includes `Files`) is over it.
 - Populated: tiles only, no box. Empty: centred paperclip circle + "No attachments" + "Drop files here or browse" (browse opens picker); no dashed border.
+
+**UAT:** approved 2026-11-13.
