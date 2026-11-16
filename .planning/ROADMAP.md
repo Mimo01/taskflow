@@ -143,7 +143,7 @@ Plans:
 **Wave 3** *(blocked on Wave 2 completion)*
 
 - [x] 96-04-PLAN.md — isEquivalent + minimal normaliser, corpus harness with identity, mutation self-tests and negative controls
-- [ ] 96-05-PLAN.md — TipTap vs CodeMirror-6 WKWebView spike on throwaway worktree, SAFE-01 spot check, findings doc
+- [x] 96-05-PLAN.md — TipTap vs CodeMirror-6 WKWebView spike on throwaway worktree, SAFE-01 spot check, findings doc
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
@@ -249,7 +249,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 96. Wiki Foundations & Equivalence Harness | 4/6 | In Progress|  |
+| 96. Wiki Foundations & Equivalence Harness | 5/6 | In Progress|  |
 | 97. Round-Trip Engine | 0/TBD | Not started | - |
 | 98. Editor Shell | 0/TBD | Not started | - |
 | 99. Mentions, Media & Smart Input | 0/TBD | Not started | - |
