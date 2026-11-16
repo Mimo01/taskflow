@@ -4,9 +4,18 @@
 
 Taskflow is a cross-platform Tauri 2 desktop app for Client's eshop development team. It unifies Jira (on-premise), Jira Tempo Timesheets, GitLab, and AIO Test Management into a single fast, focused interface — replacing the need to juggle multiple slow tools. It ships as a portable executable (no installer, no admin rights), stores credentials in the OS keychain, and serves both developers and project managers with a graph-driven personal dashboard, a dedicated My Tasks command center, sprint board, backlog, global search, notifications, AIO test execution visibility, and Tempo worklog tracking.
 
-## Current Milestone: not yet defined
+## Current Milestone: v1.15 Rich Wiki Editor
 
-v1.14 closed 2026-11-16, extended through Phase 95. Run `/gsd-new-milestone` to open v1.15 (questioning → research → requirements → roadmap).
+**Goal:** Replace the plain textarea + Preview-tab editing with one shared WYSIWYG editor that has a source toggle. The editor reads and writes Jira wiki markup, its editing view looks like WikiRenderer output, and its saves never change what WikiRenderer shows. Every surface that edits text gets a bigger, cleaner UI.
+
+**Target features:**
+- A shared rich editor: you type into formatted text that looks like WikiRenderer output, with a toggle to raw Jira wiki markup for edge cases
+- Full formatting coverage: core text (bold, italic, strike, underline, headings, lists, links, quotes, inline monospace, code blocks), tables, panels and `{info}`/`{note}`/`{color}` macros, @mentions, attachment embeds, pasted and dropped images, plus other Jira constructs that fit
+- A round-trip safety net: a fixture corpus asserting that load→save keeps the rendered output the same (semantic equivalence, not byte-identical). Constructs the editor can't model are preserved verbatim
+- The editor adopted everywhere text is edited: Create/Edit Issue modal, inline description edit (issue detail + peek), comment composer/inline comment/comment edit, Create Epic, Bulk Create Subtasks, Edit Release description
+- Polished surfaces: a larger Create/Edit Issue modal (editor in the main column, fields in a sidebar column), plus consistent, cleaner UI/UX across the other editor hosts
+
+**Key context:** WikiRenderer (`routes/dashboard/WikiRenderer.tsx`, ~1800 LOC, ~2700 LOC of tests) is heavily tuned for Jira parity. Its rendering must not regress, and it may be refactored only behind its existing tests. A TipTap v3 WikiEditor was built 2026-05-31 and later reverted for an unrecorded reason. It survives on tag `backup/wiki-editor-before-revert-260531` and can serve as prior art, but research should evaluate the library choice fresh.
 
 ## Latest Shipped Milestone: v1.14 Release Management (shipped 2026-08-13, extended and closed 2026-11-16)
 
@@ -172,7 +181,13 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 
 ### Active
 
-<!-- No active milestone. Run /gsd-new-milestone to define v1.15. -->
+<!-- v1.15 Rich Wiki Editor — see REQUIREMENTS.md for REQ-IDs -->
+
+- [ ] Shared WYSIWYG + source-toggle editor for Jira wiki markup, visually consistent with WikiRenderer
+- [ ] Semantic round-trip safety: load→save never changes rendered output; unmodelable constructs preserved verbatim
+- [ ] Full formatting coverage incl. tables, panels/colour macros, mentions, attachments, paste/drop images
+- [ ] Editor adopted in every text-editing surface (issue create/edit, inline description, comments, epic, bulk subtasks, release)
+- [ ] Bigger, polished Create/Edit Issue modal and consistent editor-host UI/UX
 
 ### Out of Scope
 
@@ -425,4 +440,4 @@ This document evolves at phase transitions and milestone boundaries.
 | `fetchEpicsBasic` ordering is a per-caller parameter, in the query key (v1.14 Phase 91.2) | The fetcher is shared with the Sidebar, Backlog and Sprint Board pickers under one cache key — this phase's `created ASC` was silently reordering all of them | ✓ Good — defaults to the original `updated DESC`; the two orderings cannot serve each other's cache |
 
 ---
-*Last updated: 2026-11-16 after v1.14 milestone close (Phases 87-95)*
+*Last updated: 2026-11-16 after v1.15 milestone start*

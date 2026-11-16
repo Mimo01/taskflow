@@ -1,17 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.14
-milestone_name: Release Management
-status: milestone_complete
-last_updated: 2026-11-16T12:00:00.000Z
+milestone: v1.15
+milestone_name: Rich Wiki Editor
+status: planning
+last_updated: "2026-11-16T10:23:39.794Z"
 last_activity: 2026-11-16
 progress:
-  total_phases: 11
-  completed_phases: 11
-  total_plans: 80
-  completed_plans: 80
-  percent: 100
-stopped_at: v1.14 milestone closed (Phases 87-95); next is /gsd-new-milestone
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -25,10 +24,10 @@ See: .planning/PROJECT.md (updated 2026-11-16)
 
 ## Current Position
 
-Phase: — (v1.14 closed through Phase 95)
+Phase: Not started (defining requirements)
 Plan: —
-Status: Milestone complete, next milestone not defined
-Last activity: 2026-11-16 - v1.14 milestone closed (Phases 92-95 folded in, archives extended, tag moved)
+Status: Defining requirements
+Last activity: 2026-11-16 — Milestone v1.15 started
 
 ## Performance Metrics
 
@@ -117,6 +116,7 @@ Key decisions for v1.14 (from CONTEXT.md/research, do not re-litigate):
 ### Pending Todos
 
 Carried from the v1.14 close (`.planning/todos/pending/`):
+
 - notifications-due-date-overdue — overdue / due-in-Nd on due cards; also verify the `duedate >= now()` JQL on the due day
 - notifications-highlight-you-mention — highlight @you in comment text
 - notifications-status-category-colours — real status categories instead of keyword guesses
