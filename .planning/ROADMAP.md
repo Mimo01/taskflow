@@ -133,8 +133,8 @@ Earlier milestones are collapsed. See per-milestone archives in `.planning/miles
 Plans:
 **Wave 1**
 
-- [ ] 96-01-PLAN.md — Verbatim extraction of preprocess + core plugin pipeline into lib/wiki (WikiRenderer.test.tsx unmodified)
-- [ ] 96-03-PLAN.md — Placeholder-only fixture corpus (37 .wiki files), .gitattributes -text, raw glob loader, coverage gate
+- [x] 96-01-PLAN.md — Verbatim extraction of preprocess + core plugin pipeline into lib/wiki (WikiRenderer.test.tsx unmodified)
+- [x] 96-03-PLAN.md — Placeholder-only fixture corpus (37 .wiki files), .gitattributes -text, raw glob loader, coverage gate
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -249,7 +249,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 96. Wiki Foundations & Equivalence Harness | 0/TBD | Not started | - |
+| 96. Wiki Foundations & Equivalence Harness | 2/6 | In Progress|  |
 | 97. Round-Trip Engine | 0/TBD | Not started | - |
 | 98. Editor Shell | 0/TBD | Not started | - |
 | 99. Mentions, Media & Smart Input | 0/TBD | Not started | - |
