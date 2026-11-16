@@ -163,7 +163,7 @@ Plans:
   4. Unknown macros and unparseable spans are carried as raw atoms that display as rendered read-only blocks and are saved verbatim
   5. Any construct that is not proven by the corpus is demoted to a raw atom rather than modelled
 
-**Plans**: 14 plans (10 + 4 gap closure)
+**Plans**: 17 plans (10 + 7 gap closure)
 Plans:
 **Wave 1**
 
@@ -214,6 +214,15 @@ Plans:
 **Gap closure — Wave 3** *(blocked on 97-11, 97-12, 97-13)*
 
 - [x] 97-14-PLAN.md — saveWiki structural re-check with WikiSave result (WR-01); validation map; SAFE-04/SAFE-06 back to Complete
+
+**Gap closure round 2 — Wave 1**
+
+- [ ] 97-15-PLAN.md — Renderer: Jira backslash escapes neutralised before jira2md, escaped code openers, inline-code entity decoding (gap 2 / CR-02)
+- [ ] 97-16-PLAN.md — Parser: mid-line live macro tokens as raw atoms so typed look-alikes escape; opening-delimiter escapes (gap 1 / CR-01, WR-04)
+
+**Gap closure round 2 — Wave 2** *(blocked on 97-15, 97-16)*
+
+- [ ] 97-17-PLAN.md — End-to-end typed text → saveWiki → wikiToHtml battery; validation map; SAFE-06 → Complete
 
 ### Phase 98: Editor Shell
 
