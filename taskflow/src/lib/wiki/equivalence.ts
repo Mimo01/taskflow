@@ -60,10 +60,19 @@ export function wikiToNormalizedHtml(wiki: string, maps?: EquivalenceMaps): stri
   ]);
 }
 
-/** Compares renderings of the core pipeline, not bytes (byte-level is SAFE-03, Phase 97). */
+/**
+ * Compares renderings of the core pipeline, not bytes (byte-level is SAFE-03, Phase 97).
+ * Fails closed: if the oracle throws on either side, the texts are not equivalent.
+ */
 export function isEquivalent(a: string, b: string, maps?: EquivalenceMaps): boolean {
-  return wikiToNormalizedHtml(a, maps) === wikiToNormalizedHtml(b, maps);
+  try {
+    return wikiToNormalizedHtml(a, maps) === wikiToNormalizedHtml(b, maps);
+  } catch {
+    return false;
+  }
 }
+
+const errorMessage = (err: unknown): string => (err instanceof Error ? err.message : String(err));
 
 // Display-only: newline between adjacent tags so the diff is line-readable.
 function split(html: string): string {
@@ -92,13 +101,20 @@ export function checkCorpus(
     } catch (err) {
       failures.push({
         path,
-        diff: `roundTrip threw: ${err instanceof Error ? err.message : String(err)}`,
+        diff: `roundTrip threw: ${errorMessage(err)}`,
         emitted: '',
       });
       continue;
     }
-    const before = wikiToNormalizedHtml(wiki, maps);
-    const after = wikiToNormalizedHtml(emitted, maps);
+    let before: string;
+    let after: string;
+    try {
+      before = wikiToNormalizedHtml(wiki, maps);
+      after = wikiToNormalizedHtml(emitted, maps);
+    } catch (err) {
+      failures.push({ path, diff: `oracle threw: ${errorMessage(err)}`, emitted });
+      continue;
+    }
     if (before !== after) {
       failures.push({ path, diff: formatEquivalenceDiff(path, before, after), emitted });
     }

@@ -61,6 +61,10 @@ describe('isEquivalent', () => {
   it('CRLF equals LF', () => {
     expect(isEquivalent('line one\r\nline two', 'line one\nline two')).toBe(true);
   });
+  it('fails closed when the oracle throws', () => {
+    // A non-string reaching the oracle makes preprocess throw (TypeError).
+    expect(isEquivalent('a', 42 as unknown as string)).toBe(false);
+  });
 });
 
 describe('formatEquivalenceDiff', () => {
@@ -89,6 +93,13 @@ describe('checkCorpus', () => {
       throw new Error('boom');
     });
     expect(f[0].diff).toContain('boom');
+  });
+  it('turns an oracle throw into a per-fixture failure', () => {
+    const two = [...corpus, { path: 'q.wiki', wiki: '(/) b' }];
+    const f = checkCorpus(two, (s) => (s.includes('b') ? s.split('(/)').join('OK') : 42) as string);
+    expect(f.map((x) => x.path)).toEqual(['p.wiki', 'q.wiki']);
+    expect(f[0].diff).toContain('oracle threw');
+    expect(f[1].diff).toContain('@@');
   });
   it('formats failures', () => {
     const f = checkCorpus(corpus, (s) => s.split('(/)').join('OK'));
