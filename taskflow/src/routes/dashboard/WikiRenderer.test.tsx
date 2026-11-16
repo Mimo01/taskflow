@@ -2747,3 +2747,17 @@ describe('D-02 header-less tables', () => {
     expect(container.querySelector('thead')?.textContent).toContain('h1');
   });
 });
+
+describe('D-12 panel family', () => {
+  it('renders {tip} as a styled callout', () => {
+    const { container } = render(<WikiRenderer wikiText={'{tip}Save often{tip}'} />);
+    const el = container.querySelector('[data-callout="tip"]');
+    expect(el?.textContent).toContain('Save often');
+    expect(el?.className).not.toBe('');
+  });
+
+  it('renders a list inside a panel as bullets', () => {
+    const { container } = render(<WikiRenderer wikiText={'{panel}\n* one\n* two\n{panel}'} />);
+    expect(container.querySelectorAll('[data-callout="panel"] ul li').length).toBe(2);
+  });
+});

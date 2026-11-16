@@ -255,6 +255,7 @@ function IssueKeyLink({ issueKey }: { issueKey: string }) {
 
 const calloutStyles: Record<string, string> = {
   info: 'border-l-4 border-blue-500 bg-blue-500/10 p-3 rounded-r-md my-2 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0',
+  tip: 'border-l-4 border-green-600 bg-green-600/10 p-3 rounded-r-md my-2 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0',
   warning:
     'border-l-4 border-amber-500 bg-amber-500/10 p-3 rounded-r-md my-2 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0',
   note: 'border-l-4 border-yellow-500 bg-yellow-500/10 p-3 rounded-r-md my-2 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0',

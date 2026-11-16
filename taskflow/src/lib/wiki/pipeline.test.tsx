@@ -185,3 +185,57 @@ describe('D-02 header-less tables', () => {
     expect(wikiToHtml('|a|b|\n|c|d|')).not.toContain('datawikiheaderless');
   });
 });
+
+describe('D-12 panel family', () => {
+  const html = (rel: string) => parseHtml(wikiToHtml(fixtureWiki(rel)));
+
+  it('renders {tip} as a tip callout', () => {
+    const r = html('panels/tip.wiki');
+    expect(r.querySelector('div[data-callout="tip"]')?.textContent).toContain('Use the shortcut');
+    expect(r.textContent).not.toContain('{tip}');
+  });
+
+  it.each([
+    ['panels/info-titled.wiki', 'info', 'Heads up'],
+    ['panels/warning-titled.wiki', 'warning', 'Careful'],
+    ['panels/tip-titled.wiki', 'tip', 'Hint'],
+  ])('renders %s as a titled %s panel', (rel, type, title) => {
+    const r = html(rel);
+    expect(r.querySelector(`div[data-callout="${type}"]`)?.getAttribute('data-title')).toBe(title);
+    expect(r.textContent).not.toContain(':title=');
+  });
+
+  it('renders a list inside a panel as a real list', () => {
+    const r = html('panels/panel-list-items.wiki');
+    const items = Array.from(r.querySelectorAll('div[data-callout="panel"] ul li'));
+    expect(items.map((li) => li.textContent)).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining('Item one'),
+        expect.stringContaining('Item two'),
+      ]),
+    );
+    expect(r.querySelector('div[data-callout="panel"] ul ul li')?.textContent).toContain(
+      'Sub item',
+    );
+    expect(r.textContent).not.toMatch(/\* Item/);
+  });
+
+  it('renders mixed nesting inside a panel', () => {
+    const r = html('panels/list-in-panel-nested.wiki');
+    expect(r.querySelector('div[data-callout="info"] ul > li > ol')).not.toBeNull();
+  });
+
+  it('keeps titled panel and note body text', () => {
+    expect(
+      html('panels/panel-titled.wiki').querySelector('div[data-callout="panel"]')?.textContent,
+    ).toContain('Tag the release');
+    expect(
+      html('panels/note.wiki').querySelector('div[data-callout="note"]')?.textContent,
+    ).toContain('update the docs');
+  });
+
+  it('nests an info div in a panel div', () => {
+    const r = html('panels/panel-in-panel.wiki');
+    expect(r.querySelector('div[data-callout="panel"] [data-callout="info"]')).not.toBeNull();
+  });
+});

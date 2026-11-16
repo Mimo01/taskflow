@@ -963,25 +963,20 @@ export function preprocessJiraMarkup(
     return `\`${filename}\``;
   });
 
-  // Panels with title: {panel:title=TITLE}...{panel}
-  result = result.replace(
-    /\{panel:title=([^}]+)\}([\s\S]*?)\{panel\}/g,
-    '<div data-callout="panel" data-title="$1">$2</div>',
-  );
-  // Panels without title: {panel}...{panel}
-  result = result.replace(/\{panel\}([\s\S]*?)\{panel\}/g, '<div data-callout="panel">$1</div>');
-
-  // Info panels
-  result = result.replace(/\{info\}([\s\S]*?)\{info\}/g, '<div data-callout="info">$1</div>');
-
-  // Warning panels
-  result = result.replace(
-    /\{warning\}([\s\S]*?)\{warning\}/g,
-    '<div data-callout="warning">$1</div>',
-  );
-
-  // Note panels
-  result = result.replace(/\{note\}([\s\S]*?)\{note\}/g, '<div data-callout="note">$1</div>');
+  // Panel family (D-12): panel|info|note|warning|tip, titled forms first, then bare.
+  // The body is wrapped in blank lines so markdown parses lists/paragraphs inside the
+  // HTML block. Titles are raw text; sanitize keeps only the allowlisted data-title attr.
+  for (const type of ['panel', 'info', 'warning', 'note', 'tip']) {
+    result = result.replace(
+      new RegExp(`\\{${type}:title=([^}]+)\\}([\\s\\S]*?)\\{${type}\\}`, 'g'),
+      (_m, title: string, body: string) =>
+        `<div data-callout="${type}" data-title="${title}">\n\n${body.trim()}\n\n</div>`,
+    );
+    result = result.replace(
+      new RegExp(`\\{${type}\\}([\\s\\S]*?)\\{${type}\\}`, 'g'),
+      (_m, body: string) => `<div data-callout="${type}">\n\n${body.trim()}\n\n</div>`,
+    );
+  }
 
   // Quote blocks: {quote}...{quote} -> markdown blockquote (> prefix per line).
   // jira2md only handles the single-paragraph bq. prefix form, not the block {quote} macro.
