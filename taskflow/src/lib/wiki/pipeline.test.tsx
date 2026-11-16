@@ -328,3 +328,93 @@ describe('attribute injection (CR-02)', () => {
     expect(i.querySelector('img')?.hasAttribute('onerror') ?? false).toBe(false);
   });
 });
+
+describe('Jira backslash escapes (CR-02)', () => {
+  const visibleText = (html: string) => parseHtml(html).textContent;
+  const FORBIDDEN = [
+    '<strong',
+    '<em',
+    '<ins',
+    '<sup',
+    '<sub',
+    '<del',
+    '<cite',
+    '<span',
+    '<img',
+    '<mention',
+    '<a ',
+    '&#x3C;',
+  ];
+
+  for (const x of '*_-+^~?{}[]|!#') {
+    it(`escape \\${x} renders literally`, () => {
+      const html = wikiToHtml(`a \\${x}b\\${x} c`);
+      expect(visibleText(html)).toBe(`a ${x}b${x} c`);
+      for (const f of FORBIDDEN) expect(html).not.toContain(f);
+    });
+  }
+
+  it('escaped mention, color and image render literally', () => {
+    const m = wikiToHtml('ping \\[~admin] now');
+    expect(visibleText(m)).toBe('ping [~admin] now');
+    expect(m).not.toContain('<mention');
+    const c = wikiToHtml('\\{color:red}x\\{color}');
+    expect(visibleText(c)).toBe('{color:red}x{color}');
+    expect(c).not.toContain('<span');
+    expect(wikiToHtml('img \\!http://e.example/p.png\\! x')).not.toContain('<img');
+  });
+
+  it('escaped code openers do not open a block', () => {
+    for (const tag of ['code', 'noformat']) {
+      const html = wikiToHtml(`a \\{${tag}}x\\{${tag}} b`);
+      expect(visibleText(html)).toBe(`a {${tag}}x{${tag}} b`);
+      expect(html).not.toContain('<pre');
+      expect(html).not.toContain('<code');
+    }
+  });
+
+  it('keeps hard breaks, code bodies and real code blocks', () => {
+    expect(wikiToHtml('line one\\\\line two')).toContain('<br');
+    expect(wikiToHtml('a\\\\*b* c')).toContain('<strong>b</strong>');
+    const pre = parseHtml(wikiToHtml('{code}\\*x\\*{code}')).querySelector('pre');
+    expect(pre?.textContent?.trim()).toBe('\\*x\\*');
+    const mixed = parseHtml(wikiToHtml('a \\{code} b\n\n{code}real{code}'));
+    expect(mixed.querySelector('pre')?.textContent).toContain('real');
+  });
+
+  it('escaped pipe stays in its table cell', () => {
+    const r = parseHtml(wikiToHtml('|a\\|b|c|'));
+    expect(r.querySelectorAll('tr')).toHaveLength(1);
+    const cells = r.querySelectorAll('td');
+    expect(cells).toHaveLength(2);
+    expect(cells[0].textContent).toBe('a|b');
+  });
+
+  it('escaped plus stays literal', () => {
+    const html = wikiToHtml('x \\+ y \\+ z');
+    expect(html).not.toContain('<ins');
+    expect(visibleText(html)).toBe('x + y + z');
+  });
+});
+
+describe('Jira backslash escapes in inline code (CR-02)', () => {
+  const codeText = (wiki: string) => parseHtml(wikiToHtml(wiki)).querySelector('code')?.textContent;
+
+  it('decodes escaped characters inside {{monospace}}', () => {
+    expect(codeText('{{a\\*b}}')).toBe('a*b');
+    expect(codeText('{{x\\{y}}')).toBe('x{y');
+    expect(codeText('{{p\\[q}}')).toBe('p[q');
+    expect(codeText('{{m\\^n}}')).toBe('m^n');
+    expect(codeText('{{h\\#}}')).toBe('h#');
+    expect(codeText('{{HW\\_SALE\\_FIX}}')).toBe('HW_SALE_FIX');
+  });
+
+  it('does not decode a user-typed entity twice', () => {
+    expect(codeText('{{&#42;}}')).toBe('&#42;');
+  });
+
+  it('keeps backslashes literal inside code blocks', () => {
+    const pre = parseHtml(wikiToHtml('{code}\\*x\\*{code}')).querySelector('pre');
+    expect(pre?.textContent?.trim()).toBe('\\*x\\*');
+  });
+});

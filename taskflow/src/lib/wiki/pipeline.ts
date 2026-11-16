@@ -17,7 +17,12 @@ import remarkParse from 'remark-parse';
 import remarkRehype from 'remark-rehype';
 import { type PluggableList, unified } from 'unified';
 import { visit } from 'unist-util-visit';
-import { type AttachmentMap, preprocessJiraMarkup, type UserMap } from './preprocess';
+import {
+  type AttachmentMap,
+  JIRA_ESCAPE_CHARS,
+  preprocessJiraMarkup,
+  type UserMap,
+} from './preprocess';
 
 /**
  * Plan 54-07 T-54-07-01 (XSS) mitigation:
@@ -139,10 +144,16 @@ export type HastElement = {
   children: Array<HastText | HastElement>;
 };
 
+/** Numeric entities the escape neutraliser emits, derived so the two cannot drift. */
+const ESCAPE_ENTITY_RE = new RegExp(
+  `&#(${[...JIRA_ESCAPE_CHARS].map((c) => c.charCodeAt(0)).join('|')});`,
+  'g',
+);
+
 /**
  * wiki-mono-entities: rehype plugin that decodes the entities preprocessJiraMarkup
- * injects (the raw-source `& < >` HTML escape, plus the `&#43;` / `&#33;`
- * neutralisers) back to literal characters inside INLINE `<code>` only.
+ * injects (the raw-source `& < >` HTML escape, plus the numeric entities for every
+ * Jira escape char in JIRA_ESCAPE_CHARS: `&#43;` `&#33;` `&#42;` `&#95;` `&#123;` ...) back to literal characters inside INLINE `<code>` only.
  *
  * Prose entities are decoded by the markdown parser, but jira2md turns `{{...}}`
  * into a backtick code span and markdown never decodes entities inside code
@@ -164,8 +175,7 @@ function rehypeDecodeInlineCodeEntities() {
           child.value = child.value
             .replace(/&lt;/g, '<')
             .replace(/&gt;/g, '>')
-            .replace(/&#43;/g, '+')
-            .replace(/&#33;/g, '!')
+            .replace(ESCAPE_ENTITY_RE, (_m, code: string) => String.fromCharCode(Number(code)))
             .replace(/&amp;/g, '&');
         }
       },

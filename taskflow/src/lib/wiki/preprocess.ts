@@ -639,6 +639,17 @@ export function convertMixedListMarkers(wiki: string): string {
 }
 
 /**
+ * Characters a Jira backslash may escape. Must equal the editor's ESCAPABLE_CHARS
+ * (asserted by a test); declared here because the renderer must not import lib/wiki/editor.
+ */
+export const JIRA_ESCAPE_CHARS = '*_-+^~?{}[]|!#';
+
+const JIRA_ESCAPE_RE = new RegExp(
+  `\\\\[\\\\${JIRA_ESCAPE_CHARS.replace(/[\]\\^-]/g, '\\$&')}]`,
+  'g',
+);
+
+/**
  * Pre-process Jira wiki markup that jira2md does not handle:
  * - Jira emoticon shortcodes: (/) (x) (!) (+) (-) (?) (i) (*) (on) (off) (flag) etc.
  * - User mentions: [~username] and [~accountId:xxx]
@@ -689,9 +700,12 @@ export function preprocessJiraMarkup(
   // wiki source often has) would otherwise land on the *same* markdown line
   // as the opening fence and get parsed as the fence's info-string, silently
   // dropping that whole first line from the rendered code block.
+  // An opener preceded by an ODD run of backslashes (`\{code}`) is a Jira escape, not an
+  // opener: it is left for the escape neutraliser below. An even run (`\\{code}`, a hard
+  // break then a real opener) is still an opener.
   const codeBlockBodies: string[] = [];
   result = result.replace(
-    /(\{code[^}]*\}|\{noformat\})([\s\S]*?)(\{code\}|\{noformat\})/g,
+    /((?<!(?<!\\)(?:\\\\)*\\)(?:\{code[^}]*\}|\{noformat\}))([\s\S]*?)(\{code\}|\{noformat\})/g,
     (_match, open: string, body: string, close: string) => {
       const leadingNewline = body.startsWith('\n') ? '' : '\n';
       // Strip exactly one trailing newline — the one separating the last code
@@ -729,6 +743,17 @@ export function preprocessJiraMarkup(
   // added via template-literal string concatenation further down and are
   // therefore untouched by this pass, so they still parse and render normally.
   result = result.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+  // Jira backslash escapes: `\X` (X in JIRA_ESCAPE_CHARS) means a literal X. jira2md does
+  // not know Jira escapes, so it pairs the delimiters anyway and the leftover backslash
+  // turns the generated tag into literal text. Replace each escape with a numeric entity,
+  // which no later regex matches (this also covers `\+`, which would otherwise create
+  // cross-cell <ins> tags in tables). A `\\` pair is the Jira hard break: returned
+  // unchanged, consumed by the later hard-break passes. Runs after the `& < >` escape
+  // (else the entity would become `&amp;#42;`) and after code extraction (code is content).
+  result = result.replace(JIRA_ESCAPE_RE, (m: string) =>
+    m === '\\\\' ? m : `&#${m.charCodeAt(1)};`,
+  );
 
   // Jira emoticons: replace shortcodes like "(/)", "(x)" with Unicode emoji.
   // Must run before jira2md (which would corrupt certain patterns like (*) → bold).
@@ -782,14 +807,6 @@ export function preprocessJiraMarkup(
   result = result.replace(/\{\{([^{}\n]+?)\}\}/g, (_m, inner: string) => {
     return `{{${inner.replace(/\\?_/g, '\x00USCORE\x00')}}}`;
   });
-
-  // Jira backslash-escaped plus: \\+ is a Jira escape sequence meaning a literal `+`.
-  // jira2md does not understand Jira escape sequences — it applies its `+text+` →
-  // `<ins>text</ins>` underline rule globally, so a bare `+` left after stripping
-  // the backslash can pair with another `+` in a different cell, producing cross-cell
-  // <ins> tags that corrupt the table structure. Replace \\+ with the HTML entity
-  // &#43; (renders as `+`) so the underline regex in jira2md never sees it.
-  result = result.replace(/\\\+/g, '&#43;');
 
   // Inline single-line table expansion: detect table rows (including the GFM
   // separator |---|---|) collapsed onto a single line and split them into proper
