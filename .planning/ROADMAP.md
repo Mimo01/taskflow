@@ -163,7 +163,19 @@ Plans:
   4. Unknown macros and unparseable spans are carried as raw atoms that display as rendered read-only blocks and are saved verbatim
   5. Any construct that is not proven by the corpus is demoted to a raw atom rather than modelled
 
-**Plans**: TBD
+**Plans**: 10 plans
+
+Plans:
+- [ ] 97-01-PLAN.md — Renderer fixes D-01 (mixed `*#` nesting) and D-02 (header-less tables)
+- [ ] 97-02-PLAN.md — 27 new fixtures, @tiptap deps, wiki schema + contract types, bundle guard
+- [ ] 97-03-PLAN.md — Renderer fix D-12 (panel family, lists in panels) + visual Jira-parity check
+- [ ] 97-04-PLAN.md — Lossless core: block scanner, macro segmenter/raw atoms, emitter, loadWiki/saveWiki no-op, corpus + fuzz tests
+- [ ] 97-05-PLAN.md — Lists (mixed nesting) and block quotes modelled
+- [ ] 97-06-PLAN.md — Panels (nested, in lists, in cells) and tables (headerless attr) modelled
+- [ ] 97-07-PLAN.md — Inline atoms: emoticons, mentions, escapes, breaks, images, attachments, inline raw
+- [ ] 97-08-PLAN.md — Formatting marks, links and typed-text escaping
+- [ ] 97-09-PLAN.md — `{color}` marks (allowlisted), multi-block span proven or demoted
+- [ ] 97-10-PLAN.md — D-11 fallback ladder, scripted edits (D-04..D-08), harness wiring
 
 ### Phase 98: Editor Shell
 
