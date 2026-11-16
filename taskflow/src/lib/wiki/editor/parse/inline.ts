@@ -7,12 +7,24 @@ import { type LineScan, type MarkSpan, matchMark, scanLine } from './marks';
 /**
  * Inline parser for a block's LF text. A single left-to-right scan per line
  * producing text, line breaks and inline atoms (emoticons, mentions, escapes,
- * images, attachments, bracket links, unknown inline macros), followed by a
+ * images, attachments, bracket links, unknown inline macros and live macro
+ * tokens such as a mid-line `{info}`), followed by a
  * mark pass (marks.ts) that wraps recorded-delimiter spans around the items. Every atom stores its exact
  * source token so the emitter replays it (SAFE-06); spelling is never decoded.
  * Closers are searched on the same line only and every pattern excludes the
  * opening bracket from its body, so the scan stays linear. Never throws.
  */
+
+/**
+ * Known macros other than `color` (which the mark scanner models). The renderer
+ * and Jira treat these tokens as live wherever they appear, and the editor
+ * cannot model a mid-line macro, so per D-10 each token becomes the smallest
+ * raw atom and keeps its spelling (D-05). Typed look-alikes then re-parse as
+ * atoms, so the emitter escapes them (97-16, SAFE-06).
+ */
+const LIVE_INLINE_MACROS: ReadonlySet<string> = new Set(
+  [...KNOWN_MACROS].filter((name) => name !== 'color'),
+);
 
 /** Characters whose backslash escape is modelled as an atom. */
 const ESCAPABLE = '*_-+^~?{}[]|!#';
@@ -184,7 +196,10 @@ export function parseInline(src: string): JSONContent[] {
             continue;
           }
         }
-        if (m && !KNOWN_MACROS.has(m[1] ?? '')) {
+        // `{{code}}` is a monospace span around the word, not a macro token.
+        const inMono = line[i - 1] === '{' && line[i + (m?.[0].length ?? 0)] === '}';
+        const live = m !== null && LIVE_INLINE_MACROS.has(m[1] ?? '') && !inMono;
+        if (m && (!KNOWN_MACROS.has(m[1] ?? '') || live)) {
           atom({ type: 'rawInline', attrs: { raw: m[0] } });
           i += m[0].length;
           continue;
