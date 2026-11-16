@@ -57,7 +57,9 @@ const WikiSpelling = Extension.create({
       { types: ['hardBreak'], attributes: { src: { default: null } } },
       {
         types: ['bold', 'italic', 'strike', 'underline', 'sup', 'sub', 'cite', 'mono'],
-        attributes: { open: { default: null }, close: { default: null } },
+        // `span` numbers each parsed span in document order (outer before inner) so
+        // equal-extent nesting and adjacent equal spans re-emit exactly.
+        attributes: { open: { default: null }, close: { default: null }, span: { default: null } },
       },
       {
         types: ['link'],

@@ -12,7 +12,11 @@ const kinds = (nodes: readonly JSONContent[] | undefined): string[] =>
   (nodes ?? []).map((n) => n.type ?? '');
 const cellText = (cell: JSONContent | undefined): string =>
   (cell?.content?.[0]?.content ?? [])
-    .map((n) => n.text ?? (typeof n.attrs?.src === 'string' ? n.attrs.src : '\n'))
+    .map((n) => {
+      const link = n.marks?.find((m) => m.type === 'link');
+      if (link && typeof link.attrs?.src === 'string') return link.attrs.src;
+      return n.text ?? (typeof n.attrs?.src === 'string' ? n.attrs.src : '\n');
+    })
     .join('');
 
 const MODELLED = [

@@ -1,5 +1,6 @@
 import type { JSONContent } from '@tiptap/core';
 import type { Node as PMNode } from '@tiptap/pm/model';
+import { CANONICAL_DELIMS } from './parse/marks';
 
 /**
  * Spelling-replaying emitter (Phase 97). Walks a document and rebuilds wiki
@@ -24,49 +25,119 @@ function textOf(node: JSONContent): string {
   return (node.content ?? []).map(textOf).join('');
 }
 
-function inlineSegments(nodes: readonly JSONContent[] | undefined): Segment[] {
+function nodeSegments(n: JSONContent): Segment[] {
   const out: Segment[] = [];
-  for (const n of nodes ?? []) {
-    switch (n.type) {
-      case 'text':
-        out.push(prose(n.text ?? ''));
-        break;
-      case 'hardBreak':
-        out.push(prose(str(n.attrs?.src, '\n')));
-        break;
-      case 'rawInline':
-        out.push(verbatim(str(n.attrs?.raw, '')));
-        break;
-      case 'emoticon':
-      case 'escape':
-        out.push(prose(str(n.attrs?.src, '')));
-        break;
-      case 'mention':
-        out.push(prose(str(n.attrs?.src, `[~${str(n.attrs?.id, '')}]`)));
-        break;
-      case 'image': {
-        const params = str(n.attrs?.params, '');
-        out.push(
-          prose(str(n.attrs?.src, `!${str(n.attrs?.name, '')}${params ? `|${params}` : ''}!`)),
-        );
-        break;
-      }
-      case 'attachment': {
-        const label = str(n.attrs?.label, '');
-        out.push(
-          prose(
-            str(
-              n.attrs?.src,
-              label ? `[${label}|^${str(n.attrs?.name, '')}]` : `[^${str(n.attrs?.name, '')}]`,
-            ),
-          ),
-        );
-        break;
-      }
-      default:
-        out.push(prose(textOf(n)));
+  switch (n.type) {
+    case 'text':
+      out.push(prose(n.text ?? ''));
+      break;
+    case 'hardBreak':
+      out.push(prose(str(n.attrs?.src, '\n')));
+      break;
+    case 'rawInline':
+      out.push(verbatim(str(n.attrs?.raw, '')));
+      break;
+    case 'emoticon':
+    case 'escape':
+      out.push(prose(str(n.attrs?.src, '')));
+      break;
+    case 'mention':
+      out.push(prose(str(n.attrs?.src, `[~${str(n.attrs?.id, '')}]`)));
+      break;
+    case 'image': {
+      const params = str(n.attrs?.params, '');
+      out.push(
+        prose(str(n.attrs?.src, `!${str(n.attrs?.name, '')}${params ? `|${params}` : ''}!`)),
+      );
+      break;
     }
+    case 'attachment': {
+      const label = str(n.attrs?.label, '');
+      out.push(
+        prose(
+          str(
+            n.attrs?.src,
+            label ? `[${label}|^${str(n.attrs?.name, '')}]` : `[^${str(n.attrs?.name, '')}]`,
+          ),
+        ),
+      );
+      break;
+    }
+    default:
+      out.push(prose(textOf(n)));
   }
+  return out;
+}
+
+type MarkJSON = { type: string; attrs?: Record<string, unknown> };
+
+/** Nesting preference for marks of equal extent and no recorded span (user-created). */
+const MARK_RANK = ['link', 'bold', 'italic', 'strike', 'underline', 'sup', 'sub', 'cite', 'mono'];
+
+const markKey = (m: MarkJSON): string => `${m.type}\u0000${JSON.stringify(m.attrs ?? {})}`;
+
+/** Opening delimiter of a mark; the closer depends on the run text for links. */
+function markDelims(m: MarkJSON, runText: string): [string, string] {
+  const a = m.attrs ?? {};
+  if (m.type === 'link') {
+    const href = str(a.href, '');
+    return a.form === 'bare' && runText === href ? ['[', ']'] : ['[', `|${href}]`];
+  }
+  const canon = CANONICAL_DELIMS[m.type as keyof typeof CANONICAL_DELIMS] ?? ['', ''];
+  return [str(a.open, canon[0]), str(a.close, canon[1])];
+}
+
+/**
+ * Inline content with marks: delimiters are opened around maximal runs of
+ * equally-marked children. Longer spans nest outside; equal extents use the
+ * recorded parse order (`span`), then a fixed rank.
+ */
+function inlineSegments(nodes: readonly JSONContent[] | undefined): Segment[] {
+  const kids = nodes ?? [];
+  const keySets = kids.map((k) => new Set((k.marks ?? []).map(markKey)));
+  const stack: { mark: MarkJSON; key: string; closeAt: string }[] = [];
+  const out: Segment[] = [];
+  const closeTo = (depth: number): void => {
+    while (stack.length > depth) {
+      const top = stack.pop();
+      if (!top) break;
+      out.push(prose(top.closeAt));
+    }
+  };
+  kids.forEach((kid, idx) => {
+    const want = keySets[idx] as Set<string>;
+    const bad = stack.findIndex((e) => !want.has(e.key));
+    if (bad !== -1) closeTo(bad);
+    const have = new Set(stack.map((e) => e.key));
+    const toOpen = (kid.marks ?? []).filter((m) => !have.has(markKey(m)));
+    const spanLen = (m: MarkJSON): number => {
+      const key = markKey(m);
+      let n = 0;
+      while (idx + n < kids.length && (keySets[idx + n] as Set<string>).has(key)) n++;
+      return n;
+    };
+    const order = (m: MarkJSON): number => {
+      const sp = m.attrs?.span;
+      return typeof sp === 'number' ? sp : Number.MAX_SAFE_INTEGER;
+    };
+    toOpen.sort(
+      (a, b) =>
+        spanLen(b) - spanLen(a) ||
+        order(a) - order(b) ||
+        MARK_RANK.indexOf(a.type) - MARK_RANK.indexOf(b.type),
+    );
+    for (const m of toOpen) {
+      let run = '';
+      for (let n = idx; n < kids.length && (keySets[n] as Set<string>).has(markKey(m)); n++) {
+        run += textOf(kids[n] as JSONContent);
+      }
+      const [open, close] = markDelims(m, run);
+      out.push(prose(open));
+      stack.push({ mark: m, key: markKey(m), closeAt: close });
+    }
+    out.push(...nodeSegments(kid));
+  });
+  closeTo(0);
   return out;
 }
 
