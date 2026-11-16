@@ -44,6 +44,39 @@ function inlineSegments(nodes: readonly JSONContent[] | undefined): Segment[] {
   return out;
 }
 
+/** Marker character a list contributes to the run of its items and descendants. */
+function listChar(list: JSONContent, depth: number): string {
+  if (list.type === 'orderedList') return '#';
+  return list.attrs?.marker === '-' && depth === 0 ? '-' : '*';
+}
+
+/** Segments of a list; `ancestors` is the marker run of the enclosing items. */
+function listSegments(list: JSONContent, ancestors: string): Segment[] {
+  const out: Segment[] = [];
+  const char = listChar(list, ancestors.length);
+  const run = ancestors + char;
+  const childRun = ancestors + (char === '#' ? '#' : '*');
+  let first = true;
+  for (const item of list.content ?? []) {
+    if (!first) out.push(prose('\n'));
+    first = false;
+    const recorded = item.attrs?.prefix;
+    const head =
+      typeof recorded === 'string' && recorded.replace(/[ \t]/g, '') === run ? recorded : `${run} `;
+    out.push(prose(head));
+    const kids = item.content ?? [];
+    kids.forEach((kid, i) => {
+      if (kid.type === 'bulletList' || kid.type === 'orderedList') {
+        out.push(prose('\n'), ...listSegments(kid, childRun));
+      } else {
+        if (i > 0) out.push(prose('\n'));
+        out.push(...inlineSegments(kid.content));
+      }
+    });
+  }
+  return out;
+}
+
 function blockSegments(node: JSONContent): Segment[] {
   const a = node.attrs ?? {};
   switch (node.type) {
@@ -54,6 +87,9 @@ function blockSegments(node: JSONContent): Segment[] {
         prose(`h${Number(a.level ?? 1)}.${str(a.sep, ' ')}`),
         ...inlineSegments(node.content),
       ];
+    case 'bulletList':
+    case 'orderedList':
+      return listSegments(node, '');
     case 'horizontalRule':
       return [prose(str(a.src, '----'))];
     case 'codeBlock': {

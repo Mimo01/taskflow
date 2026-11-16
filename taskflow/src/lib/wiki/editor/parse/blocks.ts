@@ -1,6 +1,7 @@
 import type { JSONContent } from '@tiptap/core';
 import type { WikiParse } from '../types';
 import { parseInline } from './inline';
+import { LIST_LINE, parseListRun } from './lists';
 import { buildCloserIndex, type CloserIndex, findMacroSpan } from './macros';
 import { detectEol, isBlankLine, normaliseEol, splitLines } from './source';
 
@@ -13,8 +14,9 @@ import { detectEol, isBlankLine, normaliseEol, splitLines } from './source';
 
 const HEADING = /^h([1-6])\.([ \t]*)(.*)$/;
 const RULE = /^(-{4,})[ \t]*$/;
-// Plan 05 models lists (`*`, `#`, `-`) and `bq.`; Plan 06 models tables.
-const GROUPED_START = /^(?:[ \t]*[*#-]+[ \t]|bq\.|[ \t]*\|)/;
+// Plan 05 models lists via parseListRun; `bq.` stays grouped raw until Task 2,
+// Plan 06 models tables.
+const GROUPED_START = /^(?:bq\.|[ \t]*\|)/;
 
 type Block = { end: number; node: JSONContent };
 
@@ -72,16 +74,24 @@ function scanSpecial(lines: readonly string[], i: number, index: CloserIndex): B
   return null;
 }
 
-function scanBlock(lines: readonly string[], i: number, index: CloserIndex): Block {
+const startsBlock = (lines: readonly string[], j: number, index: CloserIndex): boolean =>
+  LIST_LINE.test(lines[j] ?? '') || scanSpecial(lines, j, index) !== null;
+
+/** One or more top-level blocks starting at line `i` (a list run can yield several). */
+function scanBlocks(lines: readonly string[], i: number, index: CloserIndex): Block[] {
+  const list = parseListRun(lines, i, (j) => scanSpecial(lines, j, index) !== null);
+  if (list) return list.parts;
   const special = scanSpecial(lines, i, index);
-  if (special) return special;
+  if (special) return [special];
   let j = i + 1;
-  while (j < lines.length && !isBlankLine(lines[j] ?? '') && !scanSpecial(lines, j, index)) j++;
+  while (j < lines.length && !isBlankLine(lines[j] ?? '') && !startsBlock(lines, j, index)) j++;
   const content = parseInline(lines.slice(i, j).join('\n'));
-  return {
-    end: j,
-    node: { type: 'paragraph', ...(content.length > 0 ? { content } : {}) },
-  };
+  return [
+    {
+      end: j,
+      node: { type: 'paragraph', ...(content.length > 0 ? { content } : {}) },
+    },
+  ];
 }
 
 function parseUnsafe(text: string): WikiParse {
@@ -108,17 +118,26 @@ function parseUnsafe(text: string): WikiParse {
   while (i < bodyCount) {
     const gapStart = i;
     while (i < bodyCount && isBlankLine(body[i] ?? '')) i++;
-    const block = scanBlock(body, i, index);
-    content.push({ ...block.node, attrs: { ...block.node.attrs, gap: i - gapStart } });
-    slices.push(
-      (slices.length > 0 ? '\n' : '') +
-        body
-          .slice(gapStart, i)
-          .map((l) => `${l}\n`)
-          .join('') +
-        body.slice(i, block.end).join('\n'),
-    );
-    i = block.end;
+    let from = i;
+    for (const block of scanBlocks(body, i, index)) {
+      const first = from === i;
+      content.push({
+        ...block.node,
+        attrs: { ...block.node.attrs, gap: first ? i - gapStart : 0 },
+      });
+      slices.push(
+        (slices.length > 0 ? '\n' : '') +
+          (first
+            ? body
+                .slice(gapStart, i)
+                .map((l) => `${l}\n`)
+                .join('')
+            : '') +
+          body.slice(from, block.end).join('\n'),
+      );
+      from = block.end;
+    }
+    i = from;
   }
   const last = slices.length - 1;
   slices[last] += lines

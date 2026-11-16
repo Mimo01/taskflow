@@ -22,16 +22,10 @@ const TRAILING_WS = new Set([
  * delete entries as they model each family.
  */
 const RAW_ALLOWED: Record<string, string> = {
-  'emoticons/inline-emoticons.wiki': 'lists and tables modelled in Plans 05-06',
+  'emoticons/inline-emoticons.wiki': 'tables modelled in Plan 06',
   'escapes/line-breaks.wiki': 'table modelled in Plan 06',
-  'escapes/regressions.wiki': 'lists and panels modelled in Plans 05-06',
-  'lists/continuation.wiki': 'lists modelled in Plan 05',
-  'lists/dash-bullets.wiki': 'lists modelled in Plan 05',
-  'lists/mixed-deep.wiki': 'lists modelled in Plan 05',
-  'lists/mixed-nesting.wiki': 'lists modelled in Plan 05',
-  'lists/nested-bullets.wiki': 'lists modelled in Plan 05',
-  'lists/numbered-nested.wiki': 'lists modelled in Plan 05',
-  'lists/panel-after-item.wiki': 'lists and panels modelled in Plans 05-06',
+  'escapes/regressions.wiki': 'panels modelled in Plan 06',
+  'lists/panel-after-item.wiki': 'panels modelled in Plan 06',
   'macros/code-language-param.wiki': 'D-10 code opener outside the jira2md grammar',
   'macros/color-multi-block.wiki': '{color} modelled in Plan 08',
   'macros/expand-unknown.wiki': 'D-10 unknown macro with a closer',
@@ -40,7 +34,6 @@ const RAW_ALLOWED: Record<string, string> = {
   'macros/unclosed-code.wiki': 'D-10 unclosed known macro',
   'macros/unclosed-panel.wiki': 'D-10 unclosed known macro',
   'macros/unknown-macro.wiki': 'D-10 unknown macro with a closer',
-  'mentions/username.wiki': 'lists modelled in Plan 05',
   'panels/info-titled.wiki': 'panels modelled in Plan 06',
   'panels/list-in-panel-nested.wiki': 'panels modelled in Plan 06',
   'panels/note.wiki': 'panels modelled in Plan 06',
@@ -59,7 +52,7 @@ const RAW_ALLOWED: Record<string, string> = {
   'tables/mixed-header-row.wiki': 'tables modelled in Plan 06',
   'tables/open-row-merge.wiki': 'tables modelled in Plan 06',
   'tables/panel-in-cell-multi.wiki': 'tables modelled in Plan 06',
-  'whitespace/crlf.wiki': 'lists and tables modelled in Plans 05-06',
+  'whitespace/crlf.wiki': 'tables modelled in Plan 06',
 };
 
 /** Fixtures whose modelled node types must appear in the parsed doc. */
@@ -71,6 +64,8 @@ const MODELLED: Record<string, string[]> = {
   'inline/heading-no-space.wiki': ['heading'],
   'whitespace/code-trailing-ws.wiki': ['codeBlock'],
   'whitespace/blank-lines.wiki': ['paragraph', 'heading'],
+  'lists/mixed-nesting.wiki': ['bulletList', 'orderedList', 'listItem'],
+  'lists/dash-bullets.wiki': ['bulletList'],
 };
 
 function collect(node: JSONContent, into: Set<string>): void {
