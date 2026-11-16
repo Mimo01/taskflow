@@ -101,3 +101,47 @@ The `spike/96-editor-engine` branch and the `/Users/mimo/Documents/Projects/task
 The spike's dev app was stopped first.
 Main's `taskflow/package.json` has no `@tiptap/*`, `@codemirror/*` or `codemirror` entry.
 The Swift harness stays only in the session scratchpad and was never committed.
+
+## Jira render probe (D-11)
+
+### Status
+
+Run on 2026-11-16 against the live Jira DC instance using `POST /rest/api/1.0/render`. The fallback was not needed.
+The user started a script that read the base URL from the app settings and the token from hidden keyboard input, kept only in memory.
+The script sent 9 placeholder-only snippets.
+Claude compared Jira's responses with `wikiToHtml` output for the same text.
+Jira's HTML was kept only in the session scratchpad, with the host blanked out.
+D-11 rule: no Jira HTML is stored in the repo, and CI keeps WikiRenderer's pipeline as the only oracle.
+
+### Results
+
+| Probe | Result |
+|-------|--------|
+| Nested mixed lists `* a` / `*# b` / `*# c` / `** d` | Differs. Jira nests b and c as a numbered list under a, and d as a bullet list under a. We render `*# b` and `*# c` as literal text after a line break, and only nest d. |
+| Header-less table | Differs (known). Jira renders two body rows and no header. We add an empty header row, because GFM tables need one. |
+| Panel with title | Same. Both render a titled panel with the body. |
+| Emoticons `(/) (x) (!) (i) (*)` | Same meaning. Jira uses icon images, and we use Unicode characters on purpose. |
+| Mentions | Differs for unknown users. Jira marks all three placeholder forms as unresolved error text. We render a mention chip for each one. |
+| `{{ plain}}`, nbsp, `{{{}TT{}}}` | Same. Plain-space `{{ ` stays literal, and the nbsp form and teletype render as monospace. |
+| `\\` line break | Same. |
+| `{color:red}` and unknown `{expand}` | Same. The colour is applied, and `{expand}` stays literal text. |
+| Attachments `[^spec.pdf] !diagram.png!` | Same when the attachment exists. When it is missing, Jira shows an error marker and a no-image icon. The probe had no real issue, so the missing case is what Jira showed. We resolved both from the harness map. |
+
+### Mention format
+
+`[~username]`.
+Jira DC treated every bracket form, including `[~accountid:abc123]` and `[~accountId:abc123]`, as a username lookup.
+It did not recognise an account-id form.
+`preprocessJiraMarkup` handles both forms, so nothing breaks.
+Phase 97 should model mentions as a username and emit `[~username]`.
+
+### Follow-ups for Phase 97
+
+- **Mixed list nesting:** this is a real WikiRenderer bug, and Phase 97 has to fix it.
+  - A `*#` item under a bullet must become a nested ordered list, and the reverse holds for `#*`.
+  - The parser must model mixed nesting.
+  - Today the `lists/mixed-nesting.wiki` fixture locks in the current flat output through the oracle. When the parser and renderer change, this fixture's expectation changes too.
+  - The divergence is material, so the deferred idea of storing real Jira HTML as golden files may be worth revisiting for lists only. It stays deferred.
+- **Header-less tables:** the doc model needs a "no header row" flag. Then the emitter never writes an empty `||` row, and the editor can show the table without a header.
+- **Unknown-user mentions:** keep the mention as an atom holding the username, even when the user can't be resolved. Showing it as an unresolved chip is a UI choice for Phase 98.
+- **Missing attachments:** keep `[^file]` and `!file!` as atoms holding the filename, whether or not the attachment resolves.
