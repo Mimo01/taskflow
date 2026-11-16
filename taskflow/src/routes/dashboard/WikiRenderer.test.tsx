@@ -2539,6 +2539,26 @@ After quote`;
       expect(anchor?.textContent).toBe('report.pdf');
     });
 
+    it('[label|^filename] with known attachment renders a labelled chip, not a %5E link', () => {
+      const attachments = { 'spec.pdf': 'https://jira.example.com/secure/attachment/3/spec.pdf' };
+      const { container } = render(
+        <WikiRenderer wikiText="See [Spec|^spec.pdf] here." attachments={attachments} />,
+      );
+      const anchor = container.querySelector('a.wiki-attachment-chip');
+      expect(anchor?.getAttribute('href')).toBe(
+        'https://jira.example.com/secure/attachment/3/spec.pdf',
+      );
+      expect(anchor?.textContent).toBe('Spec');
+      expect(container.innerHTML).not.toContain('%5E');
+    });
+
+    it('[label|^filename] with unknown attachment renders the label without a broken link', () => {
+      const { container } = render(<WikiRenderer wikiText="See [Spec|^missing.pdf] here." />);
+      expect(container.querySelector('a')).toBeNull();
+      expect(container.textContent).toContain('Spec');
+      expect(container.innerHTML).not.toContain('%5E');
+    });
+
     it('[^unknown.txt] with no matching attachment still renders the code-span fallback (regression)', () => {
       const { container } = render(<WikiRenderer wikiText="[^unknown.txt]" />);
       const code = container.querySelector('code');

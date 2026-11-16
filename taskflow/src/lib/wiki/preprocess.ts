@@ -912,6 +912,16 @@ export function preprocessJiraMarkup(
   // proper clickable anchor. When the filename is not in the attachment map (no map provided,
   // or the attachment is unknown), emit a plain code span `filename` so the reference is
   // visible but does not produce a broken link.
+  // Labelled form [label|^filename]: same chip with the label as its text; unresolved
+  // keeps just the label (jira2md would otherwise emit a relative href="%5Efilename").
+  result = result.replace(
+    /\[([^|\]\n]+)\|\^([^\]\n]+)\]/g,
+    (_match, label: string, filename: string) => {
+      const url = attachments?.[filename];
+      // T-sak-01: constant class literal, never user-controlled.
+      return url ? `<a href="${url}" class="wiki-attachment-chip">${label}</a>` : label;
+    },
+  );
   result = result.replace(/\[\^([^\]]+)\]/g, (_match, filename: string) => {
     const url = attachments?.[filename];
     if (url) {
