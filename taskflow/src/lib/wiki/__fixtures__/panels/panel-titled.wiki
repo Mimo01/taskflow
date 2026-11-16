@@ -1,0 +1,4 @@
+{panel:title=Release checklist}
+Verify the build.
+Tag the release.
+{panel}

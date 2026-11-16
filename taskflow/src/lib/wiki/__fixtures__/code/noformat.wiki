@@ -1,0 +1,3 @@
+{noformat}
+*bold* _italic_ [link|https://example.com] {{mono}}
+{noformat}

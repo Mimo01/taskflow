@@ -1,0 +1,3 @@
+||Step||Notes||
+|Step one|{info}Check the config first{info}|
+|Step two|{panel:title=Warning}Do not skip this{panel}|

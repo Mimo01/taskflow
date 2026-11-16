@@ -1,0 +1,1 @@
+This is {color:red}red text{color} and {color:#0052cc}blue text{color}.

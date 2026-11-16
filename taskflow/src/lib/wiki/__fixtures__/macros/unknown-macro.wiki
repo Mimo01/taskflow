@@ -1,0 +1,5 @@
+{expand:title=More}
+Hidden content here.
+{expand}
+
+Status: {status:colour=Green|title=Done}

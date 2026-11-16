@@ -1,0 +1,3 @@
+{info:title=Heads up}
+This change affects PROJ-12.
+{info}

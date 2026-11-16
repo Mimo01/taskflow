@@ -1,0 +1,6 @@
+{quote}
+A quoted block of text.
+Second quoted line.
+{quote}
+
+bq. A single line quote.
