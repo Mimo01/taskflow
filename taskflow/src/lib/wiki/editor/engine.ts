@@ -2,6 +2,7 @@ import type { Node as PMNode } from '@tiptap/pm/model';
 import { type EquivalenceMaps, isEquivalent } from '../equivalence';
 import { emitBlockNode, emitWiki } from './emit';
 import { parseWiki } from './parse/blocks';
+import { blockSource } from './save-check';
 import { wikiSchema } from './schema';
 import type { WikiDocJSON, WikiLoad } from './types';
 
@@ -48,10 +49,6 @@ export function loadWiki(
     return { kind: 'failed', original: text, reason: errorMessage(err) };
   }
 }
-
-/** Source of one top-level block: its slice without separator, gap and tail blank lines. */
-const blockSource = (slice: string): string =>
-  slice.replace(/^(?:[^\S\n]*\n)*/, '').replace(/(?:\n[ \t]*)+$/, '');
 
 /**
  * D-11 ladder: replace each top-level block whose own emit is not equivalent
