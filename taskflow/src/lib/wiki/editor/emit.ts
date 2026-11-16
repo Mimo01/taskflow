@@ -359,12 +359,22 @@ function edge(n: JSONContent | undefined, last: boolean): string {
 }
 
 /**
+ * Characters that open an atom look-alike (`[~u]`, `{status}`, `!img!`). When one
+ * escape suffices the minimiser leaves one of these escaped (review WR-04): Jira
+ * documents an escaped opening delimiter as literal, while an inner escape such
+ * as `[\~admin]` is unverified in Jira and rendered badly in TaskFlow.
+ */
+const OPENING_DELIMS = '[{!';
+
+/**
  * Inline content as wiki text. Marks come from markedSegments. Text a user
  * typed may contain markup characters: when re-parsing the plain emission in
  * its block context would not show the same characters, the sites the
  * tokenizers could read as markup are backslash-escaped, one character class
  * at a time and only where that is needed (SAFE-06). Parsed text always
- * re-parses to itself, so it is never rewritten.
+ * re-parses to itself, so it is never rewritten. Live macro tokens such as
+ * `{info}` are escaped because the parser reads them as raw atoms (97-16 Task 1).
+ * Opening delimiters are tried last, so they are the ones left escaped.
  */
 function inlineSegments(nodes: readonly JSONContent[] | undefined, ctx: InlineCtx): Segment[] {
   const kids = nodes ?? [];
@@ -403,7 +413,10 @@ function inlineSegments(nodes: readonly JSONContent[] | undefined, ctx: InlineCt
   // No Jira spelling shows these characters (for example `h1. ` at a line start): leave as typed.
   if (!fits(all)) return plain;
   const keep = new Set<string>();
-  for (const ch of chars) {
+  const order = [...chars].sort(
+    (a, b) => Number(OPENING_DELIMS.includes(a)) - Number(OPENING_DELIMS.includes(b)),
+  );
+  for (const ch of order) {
     keep.add(ch);
     if (!fits(markedSegments(escaped(keep), ctx))) keep.delete(ch);
   }

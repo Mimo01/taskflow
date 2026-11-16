@@ -93,3 +93,54 @@ describe('parseWiki segmenter', () => {
     }
   });
 });
+
+describe('mid-line live macro tokens (gap 1)', () => {
+  const inlineOf = (text: string): JSONContent[] => blocks(text)[0]?.content ?? [];
+  const TOKENS = [
+    '{code}',
+    '{code:java}',
+    '{noformat}',
+    '{quote}',
+    '{panel}',
+    '{panel:title=T}',
+    '{info}',
+    '{note:title=x}',
+    '{warning}',
+    '{tip}',
+  ];
+
+  it('each live token mid-line becomes a rawInline holding exactly the token', () => {
+    for (const tok of TOKENS) {
+      const src = `a ${tok}x${tok} b`;
+      check(src);
+      const raws = inlineOf(src).filter((n) => n.type === 'rawInline');
+      expect(raws.map((n) => n.attrs?.raw)).toEqual([tok, tok]);
+    }
+  });
+
+  it('splits the line around the atoms', () => {
+    const nodes = inlineOf('Intro {info}inline info{info} and more text.');
+    expect(nodes.map((n) => (n.type === 'text' ? n.text : n.attrs?.raw))).toEqual([
+      'Intro ',
+      '{info}',
+      'inline info',
+      '{info}',
+      ' and more text.',
+    ]);
+  });
+
+  it('atoms sit inside marks', () => {
+    const src = '*a {info}b{info} c*';
+    check(src);
+    const nodes = inlineOf(src);
+    expect(nodes.some((n) => n.type === 'rawInline')).toBe(true);
+  });
+
+  it('controls: safe colour stays a mark, unknown macro stays an atom', () => {
+    const colour = inlineOf('a {color:red}x{color} b');
+    expect(colour.some((n) => n.type === 'rawInline')).toBe(false);
+    expect(colour.some((n) => n.marks?.some((m) => m.type === 'color'))).toBe(true);
+    const status = inlineOf('a {status:colour=Red} b');
+    expect(status.filter((n) => n.type === 'rawInline')).toHaveLength(1);
+  });
+});

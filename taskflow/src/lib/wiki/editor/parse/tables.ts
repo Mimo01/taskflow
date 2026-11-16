@@ -130,7 +130,8 @@ function cellPanel(name: string, params: string | undefined, body: string): JSON
 function cellBlocks(content: string): JSONContent[] | null {
   const out: JSONContent[] = [];
   let pos = 0;
-  const re = /\{(panel|info|note|warning|tip)(?::([^}]*))?\}/g;
+  // A backslash-escaped `\{` is text, not a cell panel opener (97-16, SAFE-06).
+  const re = /(?<!\\)\{(panel|info|note|warning|tip)(?::([^}]*))?\}/g;
   for (const m of content.matchAll(re)) {
     const at = m.index ?? 0;
     if (at < pos) continue;

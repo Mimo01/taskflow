@@ -261,7 +261,7 @@ describe('saveWiki (WR-01)', () => {
     expect(saved(saveDoc(doc(p(t('hello', 'bold'), t(' world')))))).toBe('*hello* world');
     expect(saved(saveDoc(doc(p(t('ping '), mention, t(' now')))))).toBe('ping [~admin] now');
     expect(saved(saveDoc(doc(ul(item(p(t('item')), raw)))))).toContain('{status:x}');
-    expect(saved(saveDoc(doc(p(t('ping [~admin] now')))))).toBe('ping [\\~admin] now');
+    expect(saved(saveDoc(doc(p(t('ping [~admin] now')))))).toBe('ping \\[~admin] now');
   });
 
   it('edge-whitespace bold saves as *hello* world', () => {
@@ -305,5 +305,47 @@ describe('saveWiki (WR-01)', () => {
     const r = saveDoc(doc(ul(item(p(t('a')), code))));
     expect(r.kind).toBe('failed');
     expect(r.kind === 'failed' && r.reason).toContain('list item');
+  });
+});
+
+describe('live macro look-alikes (gap 1)', () => {
+  const MAPS = { attachments: HARNESS_ATTACHMENTS, users: HARNESS_USERS };
+
+  it('backstop: an unescaped typed token fails the check', () => {
+    const d = doc(p(t('a {info}x{info} b')));
+    expect(checkSaved(d, 'a {info}x{info} b')).not.toBeNull();
+  });
+
+  it('a typed {code} in a table cell fails closed (cell code is raw per D-10)', () => {
+    const d = doc(table([cell(p(t('a {code}x{code} b')))]));
+    expect(check(d)).not.toBeNull();
+  });
+
+  it('a typed {code} paragraph saves escaped', () => {
+    const loaded = loadWiki('seed', MAPS);
+    if (loaded.kind === 'failed') throw new Error('expected an editable load');
+    const r = saveWiki(loaded, wikiSchema.nodeFromJSON(doc(p(t('a {code}x{code} b'))) as never));
+    expect(r.kind).toBe('saved');
+    expect(r.kind === 'saved' && r.text.trim()).toBe('a \\{code}x\\{code} b');
+  });
+
+  it('editing panel-mid-line keeps the parsed callouts unescaped', () => {
+    const src = WIKI_CORPUS.find((f) => f.path === 'panels/panel-mid-line.wiki');
+    if (!src) throw new Error('fixture missing');
+    const loaded = loadWiki(src.wiki, MAPS);
+    if (loaded.kind === 'failed') throw new Error('expected an editable load');
+    const node = wikiSchema.nodeFromJSON(loaded.doc);
+    let at = -1;
+    node.descendants((n, pos) => {
+      if (n.isTextblock && n.type.name !== 'codeBlock') at = pos + n.nodeSize - 1;
+      return true;
+    });
+    const edited = EditorState.create({ doc: node, schema: wikiSchema }).tr.insertText('x', at).doc;
+    const r = saveWiki(loaded, edited);
+    expect(r.kind).toBe('saved');
+    const text = r.kind === 'saved' ? r.text : '';
+    expect(text).toContain('{note}nested note{note}');
+    expect(text).toContain('{warning}careful{warning}');
+    expect(text).toContain('{info}inline info{info}');
   });
 });

@@ -29,6 +29,7 @@ const RAW_ALLOWED: Record<string, string> = {
   'macros/unclosed-panel.wiki': 'D-10 unclosed known macro',
   'macros/unknown-macro.wiki': 'D-10 unknown macro with a closer (and inline {status})',
   'macros/inline-status.wiki': 'D-10 unknown inline macro',
+  'panels/panel-mid-line.wiki': 'D-10 mid-line live macro tokens held as rawInline (97-16)',
   'tables/code-in-cell.wiki': 'D-10 malformed/heuristic table ({code} in a cell)',
   'tables/single-line-inline.wiki': 'D-10 malformed/heuristic table (inline single-line table)',
   'tables/mixed-header-row.wiki': 'D-10 malformed/heuristic table (mixed || and | row)',
