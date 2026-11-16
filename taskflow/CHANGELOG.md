@@ -2,6 +2,22 @@
 
 All notable changes to Taskflow are documented here.
 
+## [1.14.23] — 2026-11-16
+
+Worklogs, epic stories and MR search work more smoothly.
+
+### New
+- Copy someone else's worklog as your own
+
+### Improved
+- Other people's worklogs are read-only
+- New epic stories inherit required fields from the epic
+- MR search finds partial and fuzzy matches
+
+### Fixed
+- Epic detail refreshes after you create a story
+- My Tasks time bars update after you log work
+
 ## [1.14.22] — 2026-11-13
 
 Detail pages share one calm header that stays in view.
