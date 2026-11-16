@@ -72,6 +72,8 @@ vi.mock('@/stores/auth.store', () => ({
       activeJiraProject: 'TEST',
       jiraUsername: mockJiraUsername,
       jiraUserDisplayName: mockJiraUserDisplayName,
+      jiraUserKey: 'JIRAUSER10000',
+      jiraUserAvatarUrl: null,
     };
     return selector ? selector(state) : state;
   },
@@ -1056,7 +1058,7 @@ describe('WorklogsPage', () => {
       const entry: TempoWorklog = {
         jiraWorklogId: 99,
         issue: { key: 'PROJ-1' },
-        author: { name: 'alice', displayName: 'Alice Smith' },
+        author: { name: 'jdoe', displayName: 'Jane Doe' },
         timeSpentSeconds: 3600,
         dateStarted: '2026-05-18',
       };
@@ -1088,7 +1090,7 @@ describe('WorklogsPage', () => {
       const entry: TempoWorklog = {
         jiraWorklogId: 77,
         issue: { key: 'PROJ-1' },
-        author: { name: 'alice', displayName: 'Alice Smith' },
+        author: { name: 'jdoe', displayName: 'Jane Doe' },
         timeSpentSeconds: 7200,
         dateStarted: '2026-05-18',
       };
@@ -1148,6 +1150,99 @@ describe('WorklogsPage', () => {
     });
   });
 
+  // ── cv2: ownership gating + copy as mine ───────────────────────────────────
+
+  describe('WorklogEntryRow ownership', () => {
+    const aliceEntry: TempoWorklog = {
+      jiraWorklogId: 61,
+      issue: { key: 'PROJ-1' },
+      author: { name: 'alice', displayName: 'Alice Smith' },
+      timeSpentSeconds: 9000, // 2h 30m
+      dateStarted: '2026-05-18',
+      comment: 'Reviewed MR',
+    };
+
+    it("other person's entry is read-only and offers Copy", async () => {
+      const { WorklogEntryRow } = await import('./WorklogEntryRow');
+      const { container } = renderComponent(
+        <WorklogEntryRow
+          entry={aliceEntry}
+          issueKey="PROJ-1"
+          jiraBaseUrl="https://jira.example.com"
+          onMutationSuccess={vi.fn()}
+        />,
+      );
+      expect(container.querySelector('[aria-label="Edit worklog entry"]')).toBeNull();
+      expect(container.querySelector('[aria-label="Delete worklog entry"]')).toBeNull();
+      expect(container.querySelector('[aria-label="Copy worklog as mine"]')).toBeTruthy();
+    });
+
+    it('my entry keeps edit/delete and has no Copy', async () => {
+      const { WorklogEntryRow } = await import('./WorklogEntryRow');
+      const { container } = renderComponent(
+        <WorklogEntryRow
+          entry={{ ...aliceEntry, author: { name: 'jdoe', displayName: 'Jane Doe' } }}
+          issueKey="PROJ-1"
+          jiraBaseUrl="https://jira.example.com"
+          onMutationSuccess={vi.fn()}
+        />,
+      );
+      expect(container.querySelector('[aria-label="Edit worklog entry"]')).toBeTruthy();
+      expect(container.querySelector('[aria-label="Delete worklog entry"]')).toBeTruthy();
+      expect(container.querySelector('[aria-label="Copy worklog as mine"]')).toBeNull();
+    });
+
+    it('Copy prefills the form and Log as me calls createWorklog, not updateWorklog', async () => {
+      const { WorklogEntryRow } = await import('./WorklogEntryRow');
+      const { createWorklog, updateWorklog } = await import('@/services/jira/worklogs');
+      const onSuccess = vi.fn();
+      const { container, getByText, getByDisplayValue } = renderComponent(
+        <WorklogEntryRow
+          entry={aliceEntry}
+          issueKey="PROJ-1"
+          jiraBaseUrl="https://jira.example.com"
+          onMutationSuccess={onSuccess}
+        />,
+      );
+      fireEvent.click(container.querySelector('[aria-label="Copy worklog as mine"]') as Element);
+      expect(getByDisplayValue('2h 30m')).toBeTruthy();
+      expect(getByDisplayValue('Reviewed MR')).toBeTruthy();
+      expect(getByText(`Logging as ${mockJiraUserDisplayName}`)).toBeTruthy();
+      fireEvent.click(getByText('Log as me'));
+      await waitFor(() => {
+        expect(createWorklog).toHaveBeenCalledWith(
+          'https://jira.example.com',
+          'test-jira-token',
+          'PROJ-1',
+          expect.objectContaining({
+            timeSpentSeconds: 9000,
+            started: expect.stringMatching(/\+0000$/),
+            comment: 'Reviewed MR',
+          }),
+        );
+      });
+      expect(updateWorklog).not.toHaveBeenCalled();
+      await waitFor(() => expect(onSuccess).toHaveBeenCalled());
+    });
+
+    it('Cancel returns to the read-only row without creating', async () => {
+      const { WorklogEntryRow } = await import('./WorklogEntryRow');
+      const { createWorklog } = await import('@/services/jira/worklogs');
+      const { container, getByText } = renderComponent(
+        <WorklogEntryRow
+          entry={aliceEntry}
+          issueKey="PROJ-1"
+          jiraBaseUrl="https://jira.example.com"
+          onMutationSuccess={vi.fn()}
+        />,
+      );
+      fireEvent.click(container.querySelector('[aria-label="Copy worklog as mine"]') as Element);
+      fireEvent.click(getByText('Cancel'));
+      expect(container.querySelector('[aria-label="Copy worklog as mine"]')).toBeTruthy();
+      expect(createWorklog).not.toHaveBeenCalled();
+    });
+  });
+
   // ── Task 2: WorklogCellPopover wiring ─────────────────────────────────────
 
   describe('clicking a non-zero data cell opens WorklogCellPopover', () => {
@@ -1155,7 +1250,7 @@ describe('WorklogsPage', () => {
       const monday = thisWeekDate(1);
       mockFetchWorklogsResult = [
         {
-          ...makeWorklog('alice', 'Alice Smith', monday, 2, 'STORY-1'),
+          ...makeWorklog('jdoe', 'Jane Doe', monday, 2, 'STORY-1'),
           jiraWorklogId: 201,
           comment: 'Story work',
         },
@@ -1242,11 +1337,11 @@ describe('WorklogsPage', () => {
       const monday = thisWeekDate(1);
       mockFetchWorklogsResult = [
         {
-          ...makeWorklog('alice', 'Alice Smith', monday, 2, 'STORY-1'),
+          ...makeWorklog('jdoe', 'Jane Doe', monday, 2, 'STORY-1'),
           jiraWorklogId: 301,
         },
         {
-          ...makeWorklog('bob', 'Bob Jones', monday, 1, 'STORY-1'),
+          ...makeWorklog('jdoe', 'Jane Doe', monday, 1, 'STORY-1'),
           jiraWorklogId: 302,
         },
       ];
@@ -1295,7 +1390,7 @@ describe('WorklogsPage', () => {
       const monday = thisWeekDate(1);
       mockFetchWorklogsResult = [
         {
-          ...makeWorklog('alice', 'Alice Smith', monday, 2, 'STORY-1'),
+          ...makeWorklog('jdoe', 'Jane Doe', monday, 2, 'STORY-1'),
           jiraWorklogId: 401,
         },
       ];

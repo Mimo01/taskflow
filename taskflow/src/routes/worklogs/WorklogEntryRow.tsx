@@ -1,8 +1,11 @@
 /**
  * WorklogEntryRow — Single Tempo worklog entry row with edit/delete affordances.
  *
- * Renders: [time spent] [author displayName] [optional comment truncated] [pencil] [trash]
- * Pencil click: swaps in place with EditWorklogForm.
+ * Renders: [time spent] [optional comment truncated] then, on hover:
+ * - my entries: [pencil] [trash]
+ * - other people's entries: read-only, a single "Copy worklog as mine" button
+ * Pencil click: swaps in place with EditWorklogForm (own entries only, guarded at render).
+ * Copy click: swaps in place with CopyWorklogForm (creates a new worklog for me).
  * Trash click: immediate deleteWorklog mutation (no confirmation dialog — T-64-09 accepted).
  *
  * Pattern mirrors IssueDetailPage.tsx worklogDeleteMutation (lines 287–296).
@@ -10,11 +13,14 @@
  */
 
 import { useMutation } from '@tanstack/react-query';
-import { Pencil, Trash2 } from 'lucide-react';
+import { Copy, Pencil, Trash2 } from 'lucide-react';
 import { useState } from 'react';
+import { isOwnWorklog } from '@/lib/worklog-ownership';
 import { deleteWorklog } from '@/services/jira/worklogs';
 import { readSecret } from '@/services/stronghold';
 import type { TempoWorklog } from '@/services/tempo';
+import { useAuthStore } from '@/stores/auth.store';
+import { CopyWorklogForm } from './CopyWorklogForm';
 import { EditWorklogForm } from './EditWorklogForm';
 
 interface WorklogEntryRowProps {
@@ -42,11 +48,14 @@ export function WorklogEntryRow({
   onMutationSuccess,
   onEditingChange,
 }: WorklogEntryRowProps) {
-  const [editing, setEditing] = useState(false);
+  const [mode, setMode] = useState<'view' | 'edit' | 'copy'>('view');
+  const username = useAuthStore((s) => s.jiraUsername);
+  const userKey = useAuthStore((s) => s.jiraUserKey);
+  const isMine = isOwnWorklog(entry.author, { username, userKey });
 
-  function setEditingState(value: boolean) {
-    setEditing(value);
-    onEditingChange?.(value);
+  function changeMode(next: 'view' | 'edit' | 'copy') {
+    setMode(next);
+    onEditingChange?.(next !== 'view');
   }
 
   const deleteMutation = useMutation({
@@ -62,7 +71,22 @@ export function WorklogEntryRow({
     },
   });
 
-  if (editing) {
+  if (mode === 'copy') {
+    return (
+      <CopyWorklogForm
+        entry={entry}
+        issueKey={issueKey}
+        jiraBaseUrl={jiraBaseUrl}
+        onSuccess={() => {
+          changeMode('view');
+          onMutationSuccess();
+        }}
+        onCancel={() => changeMode('view')}
+      />
+    );
+  }
+
+  if (mode === 'edit' && isMine) {
     return (
       <EditWorklogForm
         entry={entry}
@@ -70,7 +94,7 @@ export function WorklogEntryRow({
         jiraBaseUrl={jiraBaseUrl}
         onDelete={() => deleteMutation.mutate()}
         onSuccess={() => {
-          setEditingState(false);
+          changeMode('view');
           onMutationSuccess();
         }}
       />
@@ -86,23 +110,37 @@ export function WorklogEntryRow({
         </span>
       )}
       <div className="absolute right-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-popover pl-2">
-        <button
-          type="button"
-          aria-label="Edit worklog entry"
-          onClick={() => setEditingState(true)}
-          className="p-0.5 text-muted-foreground hover:text-foreground"
-        >
-          <Pencil className="size-3.5" />
-        </button>
-        <button
-          type="button"
-          aria-label="Delete worklog entry"
-          onClick={() => deleteMutation.mutate()}
-          disabled={deleteMutation.isPending}
-          className="p-0.5 text-muted-foreground hover:text-destructive disabled:opacity-50"
-        >
-          <Trash2 className="size-3.5" />
-        </button>
+        {isMine ? (
+          <>
+            <button
+              type="button"
+              aria-label="Edit worklog entry"
+              onClick={() => changeMode('edit')}
+              className="p-0.5 text-muted-foreground hover:text-foreground"
+            >
+              <Pencil className="size-3.5" />
+            </button>
+            <button
+              type="button"
+              aria-label="Delete worklog entry"
+              onClick={() => deleteMutation.mutate()}
+              disabled={deleteMutation.isPending}
+              className="p-0.5 text-muted-foreground hover:text-destructive disabled:opacity-50"
+            >
+              <Trash2 className="size-3.5" />
+            </button>
+          </>
+        ) : (
+          <button
+            type="button"
+            aria-label="Copy worklog as mine"
+            title="Copy as mine"
+            onClick={() => changeMode('copy')}
+            className="p-0.5 text-muted-foreground hover:text-foreground"
+          >
+            <Copy className="size-3.5" />
+          </button>
+        )}
       </div>
     </div>
   );

@@ -34,7 +34,7 @@ interface EditWorklogFormProps {
  * Guards against sub-minute values with '0m' fallback (never returns empty
  * string when seconds > 0).
  */
-function formatSecondsForInput(secs: number): string {
+export function formatSecondsForInput(secs: number): string {
   if (secs <= 0) return '0m';
   const h = Math.floor(secs / 3600);
   const m = Math.floor((secs % 3600) / 60);
