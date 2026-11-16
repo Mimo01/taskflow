@@ -239,3 +239,42 @@ describe('D-12 panel family', () => {
     expect(r.querySelector('div[data-callout="panel"] [data-callout="info"]')).not.toBeNull();
   });
 });
+
+describe('D-12 panel family in table cells', () => {
+  it('renders {tip} in a cell as a tip span', () => {
+    const r = parseHtml(wikiToHtml('|a|{tip}Hint{tip}|'));
+    expect(r.querySelector('td span[data-callout="tip"]')?.textContent).toBe('Hint');
+  });
+
+  it('renders a titled info in a cell with its title', () => {
+    const r = parseHtml(wikiToHtml('|a|{info:title=Note}x{info}|'));
+    const span = r.querySelector('td span[data-callout="info"]');
+    expect(span?.getAttribute('data-title')).toBe('Note');
+    expect(span?.textContent).toBe('x');
+  });
+
+  it('keeps a multi-line info cell in one table', () => {
+    const r = parseHtml(wikiToHtml('|a|{info}line one\nline two{info}|\n|b|c|'));
+    expect(r.querySelectorAll('table').length).toBe(1);
+    expect(r.querySelector('td span[data-callout="info"]')?.textContent).toContain('line two');
+  });
+
+  it('renders panel-in-cell-multi as a single table with info and titled panel spans', () => {
+    const r = parseHtml(wikiToHtml(fixtureWiki('tables/panel-in-cell-multi.wiki')));
+    expect(r.querySelectorAll('table').length).toBe(1);
+    expect(r.querySelector('td span[data-callout="info"]')).not.toBeNull();
+    expect(r.querySelector('td span[data-callout="panel"][data-title]')).not.toBeNull();
+  });
+});
+
+describe('D-12 inline-callout-cell stays one table', () => {
+  it('keeps single-line callouts inside their cells', () => {
+    const r = parseHtml(wikiToHtml(fixtureWiki('tables/inline-callout-cell.wiki')));
+    expect(r.querySelectorAll('table').length).toBe(1);
+    expect(r.querySelectorAll('tbody tr').length).toBe(2);
+    expect(r.querySelector('td [data-callout="info"]')?.textContent).toBe('Check the config first');
+    expect(r.querySelector('td [data-callout="panel"]')?.getAttribute('data-title')).toBe(
+      'Warning',
+    );
+  });
+});

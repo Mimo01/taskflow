@@ -139,7 +139,7 @@ export function splitInlineSingleLineTables(wiki: string): string {
  * Validated against the verbatim SHOP fixture from 54-06-UAT-FINDINGS.md
  * Finding 1 (recorded in 54-PROBE-FINDINGS.md ## Probe E).
  */
-const PANEL_TAG_RE = /\{panel(?::[^}]*)?\}/g;
+const PANEL_TAG_RE = /\{(?:panel|info|note|warning|tip)(?::[^}]*)?\}/g;
 
 /**
  * Plan 54-09 Concern C (root cause #2): wiki numbered-list marker `# item`
@@ -220,21 +220,18 @@ function flattenInlineCalloutsForTableRow(body: string): string {
     const flattened = escaped.trim().replace(/\n/g, '<br/>');
     return `<span data-callout="panel">${flattened}</span>`;
   });
-  result = result.replace(
-    /\{info\}([\s\S]*?)\{info\}/g,
-    (_m, inner: string) =>
-      `<span data-callout="info">${inner.trim().replace(/\n/g, '<br/>')}</span>`,
-  );
-  result = result.replace(
-    /\{warning\}([\s\S]*?)\{warning\}/g,
-    (_m, inner: string) =>
-      `<span data-callout="warning">${inner.trim().replace(/\n/g, '<br/>')}</span>`,
-  );
-  result = result.replace(
-    /\{note\}([\s\S]*?)\{note\}/g,
-    (_m, inner: string) =>
-      `<span data-callout="note">${inner.trim().replace(/\n/g, '<br/>')}</span>`,
-  );
+  for (const type of ['info', 'warning', 'note', 'tip']) {
+    result = result.replace(
+      new RegExp(`\\{${type}:title=([^}]+)\\}([\\s\\S]*?)\\{${type}\\}`, 'g'),
+      (_m, title: string, inner: string) =>
+        `<span data-callout="${type}" data-title="${title}">${inner.trim().replace(/\n/g, '<br/>')}</span>`,
+    );
+    result = result.replace(
+      new RegExp(`\\{${type}\\}([\\s\\S]*?)\\{${type}\\}`, 'g'),
+      (_m, inner: string) =>
+        `<span data-callout="${type}">${inner.trim().replace(/\n/g, '<br/>')}</span>`,
+    );
+  }
   return result;
 }
 
@@ -966,15 +963,24 @@ export function preprocessJiraMarkup(
   // Panel family (D-12): panel|info|note|warning|tip, titled forms first, then bare.
   // The body is wrapped in blank lines so markdown parses lists/paragraphs inside the
   // HTML block. Titles are raw text; sanitize keeps only the allowlisted data-title attr.
+  // A match whose opening sits on a table-row line stays inline (a blank-line-wrapped
+  // div would split the row), so it becomes the same span the multi-line merge emits.
+  const inTableRow = (str: string, offset: number) =>
+    str.slice(str.lastIndexOf('\n', offset - 1) + 1).startsWith('|');
   for (const type of ['panel', 'info', 'warning', 'note', 'tip']) {
     result = result.replace(
       new RegExp(`\\{${type}:title=([^}]+)\\}([\\s\\S]*?)\\{${type}\\}`, 'g'),
-      (_m, title: string, body: string) =>
-        `<div data-callout="${type}" data-title="${title}">\n\n${body.trim()}\n\n</div>`,
+      (_m, title: string, body: string, offset: number, str: string) =>
+        inTableRow(str, offset)
+          ? `<span data-callout="${type}" data-title="${title}">${body.trim().replace(/\n/g, '<br/>')}</span>`
+          : `<div data-callout="${type}" data-title="${title}">\n\n${body.trim()}\n\n</div>`,
     );
     result = result.replace(
       new RegExp(`\\{${type}\\}([\\s\\S]*?)\\{${type}\\}`, 'g'),
-      (_m, body: string) => `<div data-callout="${type}">\n\n${body.trim()}\n\n</div>`,
+      (_m, body: string, offset: number, str: string) =>
+        inTableRow(str, offset)
+          ? `<span data-callout="${type}">${body.trim().replace(/\n/g, '<br/>')}</span>`
+          : `<div data-callout="${type}">\n\n${body.trim()}\n\n</div>`,
     );
   }
 
