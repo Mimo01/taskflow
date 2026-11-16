@@ -147,6 +147,16 @@ export function CreateEditIssueModal({
     e.target.value = '';
   }
 
+  // Epic stories inherit required custom fields (e.g. Account) from their epic, the same
+  // way subtasks inherit from their parent. Follows the Epic Link the user may change;
+  // edit mode never inherits.
+  const inheritFromKey =
+    state.selectedIssueType === 'Subtask'
+      ? defaultParentKey
+      : mode === 'create'
+        ? (state.epicLinkKey ?? undefined)
+        : undefined;
+
   const {
     creatmetaFields,
     creatmetaLoading,
@@ -162,7 +172,7 @@ export function CreateEditIssueModal({
     selectedIssueType: state.selectedIssueType,
     epicLinkFieldKey,
     storyPointsFieldKey,
-    parentKey: defaultParentKey,
+    inheritFromKey,
   });
 
   // Priorities must be scoped to the priority scheme that actually applies here, not
@@ -210,15 +220,29 @@ export function CreateEditIssueModal({
   // Show inherited field labels in the autocomplete inputs so users can see what's
   // being inherited, without touching customFieldValues (which would go through
   // wrapCustomFieldValue and lose type information).
-  const prePopulatedRef = useRef(false);
+  // Tracks which source key was prefilled and the labels written, so a changed/cleared
+  // Epic Link removes only labels the prefill itself wrote (never user-typed text).
+  const prePopulatedRef = useRef<{
+    key: string | undefined;
+    labels: Record<string, string>;
+  } | null>(null);
+  const inputValues = state.customFieldInputValues;
   useEffect(() => {
     if (!open) {
-      prePopulatedRef.current = false;
+      prePopulatedRef.current = null;
       return;
+    }
+    const prev = prePopulatedRef.current;
+    if (prev && prev.key !== inheritFromKey) {
+      for (const [fieldId, label] of Object.entries(prev.labels)) {
+        if (inputValues[fieldId] === label)
+          dispatch({ type: 'SET_CUSTOM_FIELD_INPUT', fieldId, value: '' });
+      }
+      prePopulatedRef.current = null;
     }
     if (prePopulatedRef.current) return;
     if (Object.keys(parentInheritMap).length === 0) return;
-    prePopulatedRef.current = true;
+    const labels: Record<string, string> = {};
     for (const field of customRequiredFields) {
       if (!parentInheritMap[field.fieldId]) continue;
       const raw = parentInheritMap[field.fieldId];
@@ -234,9 +258,13 @@ export function CreateEditIssueModal({
                 '',
             )
           : String(item);
-      if (label) dispatch({ type: 'SET_CUSTOM_FIELD_INPUT', fieldId: field.fieldId, value: label });
+      if (label) {
+        labels[field.fieldId] = label;
+        dispatch({ type: 'SET_CUSTOM_FIELD_INPUT', fieldId: field.fieldId, value: label });
+      }
     }
-  }, [open, parentInheritMap, customRequiredFields, dispatch]);
+    prePopulatedRef.current = { key: inheritFromKey, labels };
+  }, [open, inheritFromKey, parentInheritMap, customRequiredFields, inputValues, dispatch]);
 
   const requiredCustomFieldsFilled = customRequiredFields.every(
     (f) =>

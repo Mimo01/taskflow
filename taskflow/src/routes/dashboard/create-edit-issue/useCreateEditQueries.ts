@@ -24,7 +24,8 @@ interface UseCreateEditQueriesOptions {
   selectedIssueType: IssueType;
   epicLinkFieldKey: string | null;
   storyPointsFieldKey: string | null;
-  parentKey?: string;
+  /** Issue whose required custom fields are inherited: the parent (subtask) or the epic (story). */
+  inheritFromKey?: string;
 }
 
 // Core field IDs to exclude from custom field rendering
@@ -49,7 +50,7 @@ export function useCreateEditQueries({
   selectedIssueType,
   epicLinkFieldKey,
   storyPointsFieldKey,
-  parentKey,
+  inheritFromKey,
 }: UseCreateEditQueriesOptions) {
   const staleTime = 5 * 60 * 1000;
 
@@ -115,14 +116,14 @@ export function useCreateEditQueries({
   });
 
   const { data: parentFields } = useQuery<Record<string, unknown>>({
-    queryKey: ['parent-fields', parentKey],
+    queryKey: ['parent-fields', inheritFromKey],
     queryFn: async () => {
       const token = await readSecret('jira-pat').catch(() => null);
-      if (!token || !jiraBaseUrl || !parentKey) return {};
+      if (!token || !jiraBaseUrl || !inheritFromKey) return {};
       const base = jiraBaseUrl.replace(/\/$/, '');
       const resp = await apiFetch(
         'jira',
-        `${base}/rest/api/2/issue/${parentKey}?fields=*navigable`,
+        `${base}/rest/api/2/issue/${inheritFromKey}?fields=*navigable`,
         { headers: { Authorization: `Bearer ${token}` } },
         'Load Parent Fields',
       );
@@ -130,7 +131,7 @@ export function useCreateEditQueries({
       const data = (await resp.json()) as { fields?: Record<string, unknown> };
       return data.fields ?? {};
     },
-    enabled: open && !!jiraBaseUrl && !!parentKey && selectedIssueType === 'Subtask',
+    enabled: open && !!jiraBaseUrl && !!inheritFromKey,
     staleTime,
   });
 
