@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-08-13)
 Phase: 95
 Plan: Not started
 Status: Milestone complete
-Last activity: 2026-11-16 - Completed quick task 261116-c5g: Epic Add story inherits Account from epic; auto-close investigated
+Last activity: 2026-11-16 - Completed quick task 261116-cv2: Worklogs read-only for other people + copy as mine
 
 ## Performance Metrics
 
@@ -132,6 +132,7 @@ None yet.
 
 | # | Description | Date | Commit | Status | Directory |
 |---|-------------|------|--------|--------|-----------|
+| 261116-cv2 | Worklogs page: others' entries read-only (per-entry author key/name match, fail-closed); Copy as mine opens a prefilled create form with "Logging as {me}"; add-entry on someone else's/all view labelled "Log as me". Review: 0 blockers, 5 advisory warnings | 2026-11-16 | 2b19a4c7, 2fccc815 | Verified | [261116-cv2-worklogs-read-only-for-other-people-copy](./quick/261116-cv2-worklogs-read-only-for-other-people-copy/) |
 | 261116-c5g | Epic detail Add story: required custom fields (Account) inherited from the epic via the subtask inheritance pipeline (follows Epic Link, manual value wins); success refreshes epic detail + Stories; close-first guard in main.tsx. No-auto-close NOT reproduced in tests; UAT approved | 2026-11-16 | 0af65ff7, 24adc464 | Approved | [261116-c5g-epic-detail-create-task-prefill-account-](./quick/261116-c5g-epic-detail-create-task-prefill-account-/) |
 | 261113-jpg | Shared DetailHeader primitive (components/ui/detail-header.tsx + useCompactOnScroll) extracted from IssueDetailHeader (no behaviour change); Release, MR, AIO cycle and AIO test run detail now use it: one sticky bar with back + trail in the meta row, key/identity + status, quiet toolbar group, filled Open in Jira/GitLab + Copy pair, 2-line text-xl title, condense on scroll; separate breadcrumb bars removed | 2026-11-13 | 448e6b40, 40df5e06, 6cb327b2 | Approved | [261113-jpg-header-consistency-audit-across-detail-p](./quick/261113-jpg-header-consistency-audit-across-detail-p/) |
 | 261113-ifs | Attachments section: whole section is the file drop target with a drag-only dashed overlay; calm centred empty state (paperclip, "No attachments", drop or browse); no box when populated | 2026-11-13 | b04e9808, 6e33c4f7 | Approved | [261113-ifs-in-issue-detail-when-there-are-no-attach](./quick/261113-ifs-in-issue-detail-when-there-are-no-attach/) |
