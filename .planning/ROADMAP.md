@@ -196,7 +196,7 @@ Plans:
 
 **Wave 8** *(blocked on Wave 7 completion)*
 
-- [ ] 97-09-PLAN.md — `{color}` marks (allowlisted), multi-block span proven or demoted
+- [x] 97-09-PLAN.md — `{color}` marks (allowlisted), multi-block span proven or demoted
 
 **Wave 9** *(blocked on Wave 8 completion)*
 
@@ -287,7 +287,7 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 96. Wiki Foundations & Equivalence Harness | 6/6 | Complete    | 2026-11-16 |
-| 97. Round-Trip Engine | 8/10 | In Progress|  |
+| 97. Round-Trip Engine | 9/10 | In Progress|  |
 | 98. Editor Shell | 0/TBD | Not started | - |
 | 99. Mentions, Media & Smart Input | 0/TBD | Not started | - |
 | 100. Host Adoption & Editing Workflow | 0/TBD | Not started | - |
