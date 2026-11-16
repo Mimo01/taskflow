@@ -31,3 +31,16 @@ export type WikiLoad =
   | { kind: 'rich'; original: string; doc: WikiDocJSON }
   | { kind: 'rich-demoted'; original: string; doc: WikiDocJSON; demoted: number[] }
   | { kind: 'failed'; original: string; reason: string };
+
+/**
+ * Result of saving an edited doc (SAFE-03, SAFE-06, WR-01). Phase 98 acts on `kind`:
+ * - `unchanged`: nothing changed; `text` is the original, byte-identical.
+ * - `saved`: edited and verified by re-parsing; `text` is safe to write.
+ * - `failed`: the edit cannot be written safely (no wiki spelling for it, or
+ *   the emitted text would not read back as typed). Keep the doc and offer
+ *   source mode (SAFE-05); `reason` names the token and any workaround.
+ */
+export type WikiSave =
+  | { kind: 'unchanged'; text: string }
+  | { kind: 'saved'; text: string }
+  | { kind: 'failed'; reason: string };

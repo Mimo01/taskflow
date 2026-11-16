@@ -25,9 +25,11 @@ function edit(text: string, script: (tr: Transaction, doc: PMNode) => void): str
   const tr = state.tr;
   script(tr, doc);
   expect(tr.docChanged).toBe(true);
-  const out = saveWiki(loaded, tr.doc);
-  expect(out).not.toBe(text);
-  return out;
+  const saved = saveWiki(loaded, tr.doc);
+  expect(saved.kind).toBe('saved');
+  if (saved.kind !== 'saved') throw new Error(`expected saved, got ${saved.kind}`);
+  expect(saved.text).not.toBe(text);
+  return saved.text;
 }
 
 /** Position of the first occurrence of `needle` inside a single text node. */
@@ -122,9 +124,8 @@ describe('D-06 line endings', () => {
     if (loaded.kind !== 'rich') throw new Error('expected rich');
     const doc = wikiSchema.nodeFromJSON(loaded.doc);
     const tr = EditorState.create({ doc, schema: wikiSchema }).tr.insertText('typed', 1);
-    const out = saveWiki(loaded, tr.doc);
-    expect(out).toBe('typed');
-    expect(out).not.toContain('\r');
+    const saved = saveWiki(loaded, tr.doc);
+    expect(saved).toEqual({ kind: 'saved', text: 'typed' });
   });
 });
 

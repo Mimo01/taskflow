@@ -1,7 +1,12 @@
+import type { Node as PMNode } from '@tiptap/pm/model';
+import { EditorState } from '@tiptap/pm/state';
 import { describe, expect, it } from 'vitest';
+import { HARNESS_ATTACHMENTS, HARNESS_USERS, WIKI_CORPUS } from '../corpus.fixtures';
 import { emitWiki } from './emit';
+import { loadWiki, saveWiki } from './engine';
 import { parseWiki } from './parse/blocks';
 import { blockSource, checkSaved } from './save-check';
+import { wikiSchema } from './schema';
 import type { WikiDocJSON } from './types';
 
 type J = WikiDocJSON;
@@ -166,5 +171,139 @@ describe('shape rules', () => {
 describe('blockSource', () => {
   it('strips the leading gap and trailing blank lines', () => {
     expect(blockSource('\n\nabc\n\n')).toBe('abc');
+  });
+});
+
+describe('saveWiki (WR-01)', () => {
+  const MAPS = { attachments: HARNESS_ATTACHMENTS, users: HARNESS_USERS };
+  const load = (text: string) => {
+    const loaded = loadWiki(text, MAPS);
+    if (loaded.kind === 'failed') throw new Error('expected an editable load');
+    return loaded;
+  };
+  /** Save a JSON doc (rich load of `seed`) as if the user had produced it. */
+  const saveDoc = (d: J, seed = 'seed') =>
+    saveWiki(load(seed), wikiSchema.nodeFromJSON(d as never));
+  const saved = (r: ReturnType<typeof saveWiki>): string => {
+    if (r.kind !== 'saved') throw new Error(`expected saved, got ${JSON.stringify(r)}`);
+    return r.text.replace(/^\n+/, '');
+  };
+  /** Append "x" at the end of the first non-code textblock; null when there is none. */
+  const appendX = (doc: PMNode): PMNode | null => {
+    let at = -1;
+    doc.descendants((node, pos) => {
+      if (at < 0 && node.isTextblock && node.type.name !== 'codeBlock')
+        at = pos + node.nodeSize - 1;
+      return at < 0;
+    });
+    if (at < 0) return null;
+    return EditorState.create({ doc, schema: wikiSchema }).tr.insertText('x', at).doc;
+  };
+
+  /** Fixtures where appending one character legitimately cannot be written; each needs a reason. */
+  const EXCLUDED: { path: string; reason: string }[] = [];
+
+  it('every EXCLUDED entry names a corpus fixture and a reason', () => {
+    for (const e of EXCLUDED) {
+      expect(
+        WIKI_CORPUS.some((f) => f.path === e.path),
+        e.path,
+      ).toBe(true);
+      expect(e.reason.length, e.path).toBeGreaterThan(10);
+    }
+  });
+
+  it('corpus: one appended character saves for every rich fixture', () => {
+    const bad: string[] = [];
+    let n = 0;
+    for (const { path, wiki } of WIKI_CORPUS) {
+      if (EXCLUDED.some((e) => e.path === path)) continue;
+      const loaded = loadWiki(wiki, MAPS);
+      if (loaded.kind === 'failed') continue;
+      const edited = appendX(wikiSchema.nodeFromJSON(loaded.doc));
+      if (!edited) continue;
+      n++;
+      const r = saveWiki(loaded, edited);
+      if (r.kind !== 'saved') bad.push(`${path}: ${JSON.stringify(r)}`);
+    }
+    expect(n).toBeGreaterThan(40);
+    expect(bad).toEqual([]);
+  });
+
+  it('rich-demoted: raw block verbatim, other block edited', () => {
+    const text = 'h2. Title\n\nBody';
+    const { doc: d, slices } = parseWiki(text);
+    const blocks = [...(d.content ?? [])];
+    blocks[0] = { type: 'rawBlock', attrs: { raw: blockSource(slices[0] ?? ''), gap: 0 } };
+    const loaded = {
+      kind: 'rich-demoted' as const,
+      original: text,
+      doc: { ...d, content: blocks },
+      demoted: [0],
+    };
+    const node = wikiSchema.nodeFromJSON(loaded.doc);
+    const edited = appendX(node);
+    expect(edited).not.toBeNull();
+    const r = saveWiki(loaded, edited as PMNode);
+    expect(saved(r)).toBe('h2. Title\n\nBodyx');
+  });
+
+  it('user edits save', () => {
+    const mention: J = { type: 'mention', attrs: { id: 'admin', src: null } };
+    const raw: J = { type: 'rawBlock', attrs: { raw: '{status:x}', gap: 1 } };
+    expect(saved(saveDoc(doc(p(t('a')), p(), p(t('b')))))).toMatch(/^a\n\n+b$/);
+    expect(saved(saveDoc(doc(p(t('end   ')))))).toBe('end');
+    expect(saved(saveDoc(doc(ul(item(p(t('a'))), item(p(t('new')))))))).toContain('* new');
+    expect(
+      saved(saveDoc(doc(table([cell(p(t('a')), p()), cell(p())], [cell(p()), cell(p())])))),
+    ).toBeTruthy();
+    expect(saved(saveDoc(doc(p(t('all'.toString(), 'bold')))))).toBe('*all*');
+    expect(saved(saveDoc(doc(p(t('hello', 'bold'), t(' world')))))).toBe('*hello* world');
+    expect(saved(saveDoc(doc(p(t('ping '), mention, t(' now')))))).toBe('ping [~admin] now');
+    expect(saved(saveDoc(doc(ul(item(p(t('item')), raw)))))).toContain('{status:x}');
+    expect(saved(saveDoc(doc(p(t('ping [~admin] now')))))).toBe('ping [\\~admin] now');
+  });
+
+  it('edge-whitespace bold saves as *hello* world', () => {
+    const loaded = load('hello world');
+    const node = wikiSchema.nodeFromJSON(loaded.doc);
+    const tr = EditorState.create({ doc: node, schema: wikiSchema }).tr.addMark(
+      1,
+      7,
+      wikiSchema.marks.bold.create(),
+    );
+    expect(saved(saveWiki(loaded, tr.doc))).toBe('*hello* world');
+  });
+
+  it('corruptions fail with a reason and never throw', () => {
+    const cases: [string, J][] = [
+      ['intraword italic', doc(p(t('x'), t('a', 'italic'), t('y')))],
+      ['bold across break', doc(p(t('one', 'bold'), br(['bold']), t('two', 'bold')))],
+      ['mono with brace', doc(p(t('a}b', 'mono')))],
+      [
+        'link href with bracket',
+        doc(
+          p({
+            type: 'text',
+            text: 't',
+            marks: [{ type: 'link', attrs: { href: 'https://x.example/a]b' } }],
+          }),
+        ),
+      ],
+      ['typed h1.', doc(p(t('h1. hi')))],
+      ['typed (x)', doc(p(t('see (x) here')))],
+    ];
+    for (const [name, d] of cases) {
+      const r = saveDoc(d);
+      expect(r.kind, name).toBe('failed');
+    }
+    const h1 = saveDoc(doc(p(t('h1. hi'))));
+    expect(h1.kind === 'failed' && h1.reason).toContain('{{h1. hi}}');
+    const x = saveDoc(doc(p(t('see (x) here'))));
+    expect(x.kind === 'failed' && x.reason).toContain('monospace does not help');
+    const code: J = { type: 'codeBlock', content: [t('c')] };
+    const r = saveDoc(doc(ul(item(p(t('a')), code))));
+    expect(r.kind).toBe('failed');
+    expect(r.kind === 'failed' && r.reason).toContain('list item');
   });
 });

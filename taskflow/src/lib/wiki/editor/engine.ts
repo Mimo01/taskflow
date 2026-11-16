@@ -2,14 +2,15 @@ import type { Node as PMNode } from '@tiptap/pm/model';
 import { type EquivalenceMaps, isEquivalent } from '../equivalence';
 import { emitBlockNode, emitWiki } from './emit';
 import { parseWiki } from './parse/blocks';
-import { blockSource } from './save-check';
+import { blockSource, checkSaved } from './save-check';
 import { wikiSchema } from './schema';
-import type { WikiDocJSON, WikiLoad } from './types';
+import type { WikiDocJSON, WikiLoad, WikiSave } from './types';
 
 /**
  * Round-trip engine (Phase 97): pure, no React, no module state.
  * `loadWiki` proves a text round-trips before the editor may use rich mode;
- * `saveWiki` returns the original string byte-for-byte when nothing changed.
+ * `saveWiki` returns the original string byte-for-byte when nothing changed,
+ * and fails closed when the edited doc cannot be written so it reads back.
  */
 
 export type EngineDeps = {
@@ -86,7 +87,21 @@ function demote(
   return { kind: 'rich-demoted', original: text, doc: next, demoted };
 }
 
-/** D-04: structural equality decides no-op, never a dirty flag. */
-export function saveWiki(loaded: Extract<WikiLoad, { doc: unknown }>, current: PMNode): string {
-  return current.eq(wikiSchema.nodeFromJSON(loaded.doc)) ? loaded.original : emitWiki(current);
+/**
+ * D-04: structural equality decides no-op, never a dirty flag. Otherwise the
+ * edited doc is emitted and the emitted text re-parsed (WR-01): if it does not
+ * read back as the edited structure, or the emitter cannot spell a shape, the
+ * result is `failed` and no text is produced. Never throws.
+ */
+export function saveWiki(loaded: Extract<WikiLoad, { doc: unknown }>, current: PMNode): WikiSave {
+  if (current.eq(wikiSchema.nodeFromJSON(loaded.doc))) {
+    return { kind: 'unchanged', text: loaded.original };
+  }
+  try {
+    const emitted = emitWiki(current);
+    const reason = checkSaved(current.toJSON(), emitted);
+    return reason === null ? { kind: 'saved', text: emitted } : { kind: 'failed', reason };
+  } catch (err) {
+    return { kind: 'failed', reason: errorMessage(err) };
+  }
 }

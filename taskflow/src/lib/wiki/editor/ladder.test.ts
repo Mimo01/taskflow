@@ -43,7 +43,7 @@ describe('D-11 ladder', () => {
     expect(blocks[2]?.attrs?.raw).toBe('h2. Two');
     const node = wikiSchema.nodeFromJSON(loaded.doc);
     expect(() => node.check()).not.toThrow();
-    expect(saveWiki(loaded, node)).toBe(text);
+    expect(saveWiki(loaded, node)).toEqual({ kind: 'unchanged', text });
     expect(emitWiki(loaded.doc)).toBe(text);
   });
 

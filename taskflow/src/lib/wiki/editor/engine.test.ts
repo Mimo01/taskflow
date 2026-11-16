@@ -14,9 +14,13 @@ describe('loadWiki / saveWiki', () => {
       const loaded = loadWiki(wiki, MAPS);
       expect(loaded.kind, path).toBe('rich');
       if (loaded.kind !== 'rich') continue;
-      expect(saveWiki(loaded, wikiSchema.nodeFromJSON(loaded.doc)), path).toBe(wiki);
+      const same = saveWiki(loaded, wikiSchema.nodeFromJSON(loaded.doc));
+      expect(same.kind, path).toBe('unchanged');
+      expect(same.kind === 'unchanged' && same.text, path).toBe(wiki);
       const rebuilt = wikiSchema.nodeFromJSON(wikiSchema.nodeFromJSON(loaded.doc).toJSON());
-      expect(saveWiki(loaded, rebuilt), path).toBe(wiki);
+      const again = saveWiki(loaded, rebuilt);
+      expect(again.kind, path).toBe('unchanged');
+      expect(again.kind === 'unchanged' && again.text, path).toBe(wiki);
     }
   });
 
@@ -26,8 +30,7 @@ describe('loadWiki / saveWiki', () => {
     const json = structuredClone(loaded.doc);
     json.content?.push({ type: 'paragraph', content: [{ type: 'text', text: 'Added' }] });
     const saved = saveWiki(loaded, wikiSchema.nodeFromJSON(json));
-    expect(saved).not.toBe(loaded.original);
-    expect(saved).toBe('First\n\nSecond\n\nAdded');
+    expect(saved).toEqual({ kind: 'saved', text: 'First\n\nSecond\n\nAdded' });
   });
 
   it('keeps the CRLF style when editing a CRLF document', () => {
@@ -35,9 +38,10 @@ describe('loadWiki / saveWiki', () => {
     if (loaded.kind !== 'rich') throw new Error('expected rich');
     const json = structuredClone(loaded.doc);
     json.content?.push({ type: 'paragraph', content: [{ type: 'text', text: 'Added' }] });
-    expect(saveWiki(loaded, wikiSchema.nodeFromJSON(json))).toBe(
-      'First\r\n\r\nSecond\r\n\r\nAdded',
-    );
+    expect(saveWiki(loaded, wikiSchema.nodeFromJSON(json))).toEqual({
+      kind: 'saved',
+      text: 'First\r\n\r\nSecond\r\n\r\nAdded',
+    });
   });
 
   it('never throws on degenerate input', () => {
