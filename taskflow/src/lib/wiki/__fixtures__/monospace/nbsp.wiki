@@ -1,0 +1,2 @@
+A sentence with {{ code}} using nbsp.
+Contrast: {{ x}} with plain space.
