@@ -1,0 +1,3 @@
+{tip:title=Hint}
+Try this
+{tip}

@@ -1,0 +1,7 @@
+Before
+
+{panel:title=T}
+line one
+line two
+
+After paragraph

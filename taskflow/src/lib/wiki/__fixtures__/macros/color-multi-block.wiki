@@ -1,0 +1,5 @@
+{color:red}First paragraph
+
+Second paragraph{color}
+
+Some {color:#00875a}ok{color} text

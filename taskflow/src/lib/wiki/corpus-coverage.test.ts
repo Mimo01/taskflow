@@ -7,44 +7,77 @@ const REQUIRED_FIXTURES = [
   'lists/nested-bullets.wiki',
   'lists/mixed-nesting.wiki',
   'lists/numbered-nested.wiki',
+  'lists/mixed-deep.wiki',
+  'lists/dash-bullets.wiki',
+  'lists/continuation.wiki',
+  'lists/panel-after-item.wiki',
   'tables/header-row.wiki',
   'tables/headerless.wiki',
   'tables/inline-callout-cell.wiki',
   'tables/single-line-inline.wiki',
   'tables/cell-formatting.wiki',
   'tables/open-row-merge.wiki',
+  'tables/headerless-with-links.wiki',
+  'tables/panel-in-cell-multi.wiki',
+  'tables/mixed-header-row.wiki',
+  'tables/code-in-cell.wiki',
   'panels/panel-titled.wiki',
   'panels/info-titled.wiki',
   'panels/note.wiki',
   'panels/warning-titled.wiki',
   'panels/tip.wiki',
   'panels/panel-list-items.wiki',
+  'panels/panel-in-panel.wiki',
+  'panels/list-in-panel-nested.wiki',
+  'panels/tip-titled.wiki',
   'code/code-language.wiki',
   'code/code-plain.wiki',
   'code/noformat.wiki',
   'macros/color.wiki',
   'macros/unknown-macro.wiki',
   'macros/quote.wiki',
+  'macros/unclosed-panel.wiki',
+  'macros/unclosed-code.wiki',
+  'macros/mismatched-closer.wiki',
+  'macros/color-multi-block.wiki',
+  'macros/inline-status.wiki',
+  'macros/expand-unknown.wiki',
+  'macros/code-language-param.wiki',
   'emoticons/all-emoticons.wiki',
   'emoticons/inline-emoticons.wiki',
   'mentions/username.wiki',
   'mentions/accountid.wiki',
+  'mentions/unknown-user.wiki',
   'escapes/escaped-chars.wiki',
   'escapes/line-breaks.wiki',
+  'escapes/regressions.wiki',
   'whitespace/crlf.wiki',
   'whitespace/trailing-whitespace.wiki',
+  'whitespace/mixed-eol.wiki',
+  'whitespace/blank-lines.wiki',
+  'whitespace/code-trailing-ws.wiki',
   'monospace/plain-space.wiki',
   'monospace/nbsp.wiki',
   'monospace/teletype-braces.wiki',
   'attachments/image.wiki',
   'attachments/file-link.wiki',
+  'attachments/image-params.wiki',
+  'attachments/missing.wiki',
   'inline/formatting.wiki',
   'inline/links-underscores.wiki',
   'inline/headings-rule.wiki',
+  'inline/heading-no-space.wiki',
+  'inline/brace-bold.wiki',
 ] as const;
 
 const ALLOWED_HOSTS = new Set(['example.com', 'jira.example.com', 'example.org']);
-const ALLOWED_MENTIONS = new Set(['jdoe', 'asmith', 'accountId:placeholder-0001']);
+// 'placeholder-missing' is the deliberate unknown-user placeholder (mentions/unknown-user.wiki).
+const ALLOWED_MENTIONS = new Set([
+  'jdoe',
+  'asmith',
+  'accountId:placeholder-0001',
+  'placeholder-missing',
+]);
 
 function wikiOf(path: string): string {
   const entry = WIKI_CORPUS.find((f) => f.path === path);
@@ -53,8 +86,8 @@ function wikiOf(path: string): string {
 }
 
 describe('wiki corpus coverage', () => {
-  it('lists exactly 37 required fixtures', () => {
-    expect(REQUIRED_FIXTURES).toHaveLength(37);
+  it('lists exactly 64 required fixtures', () => {
+    expect(REQUIRED_FIXTURES).toHaveLength(64);
   });
 
   it('contains every required fixture, non-empty and sorted by path', () => {
@@ -68,6 +101,12 @@ describe('wiki corpus coverage', () => {
     const raw = wikiOf('whitespace/crlf.wiki');
     expect(raw).toContain('\r\n');
     expect(/(?<!\r)\n/.test(raw)).toBe(false);
+  });
+
+  it('mixes CRLF and bare LF in whitespace/mixed-eol.wiki', () => {
+    const raw = wikiOf('whitespace/mixed-eol.wiki');
+    expect(raw).toContain('\r\n');
+    expect(/(?<!\r)\n/.test(raw)).toBe(true);
   });
 
   it('keeps trailing spaces and tabs in whitespace/trailing-whitespace.wiki', () => {

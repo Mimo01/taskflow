@@ -1,0 +1,5 @@
+{noformat}
+a {code}b{code} c
+{noformat}
+
+{noformat}x{code}

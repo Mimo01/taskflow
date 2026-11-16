@@ -1,0 +1,3 @@
+!diagram.png|thumbnail!
+
+!screenshot.png|width=300!
