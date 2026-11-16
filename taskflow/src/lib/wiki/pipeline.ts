@@ -32,7 +32,7 @@ import { type AttachmentMap, preprocessJiraMarkup, type UserMap } from './prepro
  * `<script>` payloads embedded in user content render as LITERAL TEXT after
  * sanitisation — verified by the T-54-07-01 XSS guard test in WikiRenderer.test.tsx.
  */
-export const wikiSanitizeSchema = {
+const wikiSanitizeSchema = {
   ...defaultSchema,
   // 260610-fnk: `issuekeylink` is a synthetic element emitted by rehypeIssueKeys
   // (before sanitize) to mark a bare active-project issue key. It is allowlisted
