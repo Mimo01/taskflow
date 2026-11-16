@@ -5,12 +5,20 @@ const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
-// Read git tag, fallback to 0.0.0-dev if no tags exist
+// Highest version tag reachable from HEAD, fallback to 0.0.0-dev if none.
+// Not `git describe`: it returns the *nearest* tag, and a milestone tag (v1.14)
+// created after the last release tag (v1.14.23) would win and yield 1.14.0.
 let version;
 try {
-  const tag = execSync('git describe --tags --match "v[0-9]*" --abbrev=0', { encoding: 'utf8' }).trim();
-  // Normalize to SemVer: v1 -> 1.0.0, v1.5 -> 1.5.0, v1.5.0 -> 1.5.0
-  version = tag.replace(/^v/, '').split('.').concat(['0', '0']).slice(0, 3).join('.');
+  const tags = execSync('git tag --merged HEAD --list "v[0-9]*"', { encoding: 'utf8' })
+    .split('\n')
+    .map((t) => t.trim())
+    .filter((t) => /^v\d+(\.\d+){0,2}$/.test(t))
+    // Normalize to SemVer: v1 -> 1.0.0, v1.5 -> 1.5.0, v1.5.0 -> 1.5.0
+    .map((t) => t.slice(1).split('.').concat(['0', '0']).slice(0, 3).map(Number));
+  if (tags.length === 0) throw new Error('no version tags');
+  tags.sort((a, b) => b[0] - a[0] || b[1] - a[1] || b[2] - a[2]);
+  version = tags[0].join('.');
 } catch {
   version = '0.0.0-dev';
 }
