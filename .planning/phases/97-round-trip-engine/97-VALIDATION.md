@@ -51,6 +51,11 @@ Filled in by the planner and executor. Requirement-to-test map from research:
 | D-12 | `{tip}`, `{info:title=}`, `{warning:title=}`, lists in panels render as panels | render | same | ✅ extended | ✅ green |
 | Isolation | WikiRenderer import graph has no `@tiptap`/`prosemirror`/`lib/wiki/editor` | node unit | `npx vitest run src/lib/wiki/editor/bundle-guard.test.ts` | ✅ | ✅ green |
 | Edits | Scripted edits re-emit untouched blocks byte-identical | unit | `npx vitest run src/lib/wiki/editor/edit.test.ts` | ✅ | ✅ green |
+| CR-01 | Mid-line panel openers keep the surrounding list/paragraph | render | `npx vitest run src/routes/dashboard/WikiRenderer.test.tsx -t "mid-line"` | ✅ | ✅ green |
+| CR-02 | Attribute injection through panel params / links is neutralised | render | `npx vitest run src/lib/wiki/pipeline.test.tsx -t "CR-02"` | ✅ | ✅ green |
+| CR-03 / CR-04 / WR-02 | Container children, cell paragraphs/breaks and edited attrs emit or throw `WikiEmitError` | unit | `npx vitest run src/lib/wiki/editor/emit-edited.test.ts` | ✅ | ✅ green |
+| CR-05 | Typed atom look-alikes escape; unspellable tokens are reported; tightened oracle | unit | `npx vitest run src/lib/wiki/editor/escape.test.ts` | ✅ | ✅ green |
+| WR-01 | `saveWiki` re-parses what it would write; `failed` for unwritable edits; legitimate edits save | unit | `npx vitest run src/lib/wiki/editor/save-check.test.ts` | ✅ | ✅ green |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -68,7 +73,13 @@ Filled in by the planner and executor. Requirement-to-test map from research:
 
 | Behavior | Requirement | Why Manual | Test Instructions |
 |----------|-------------|------------|-------------------|
-| Renderer fixes look like Jira in the app | D-01, D-02, D-12 | Visual parity with real Jira | Open an issue with mixed nesting, a header-less table and `{tip}`/`{info:title=}` panels; compare against Jira |
+| Renderer fixes look like Jira in the app | D-01, D-02, D-12 | Visual parity with real Jira | Open an issue with mixed nesting, a header-less table and `{tip}`/`{info:title=}` panels; compare against Jira. Deferred 97-03 Task 3 check; must be re-run after the CR-01/CR-02 renderer fixes. Owned by `/gsd-verify-work 97`. |
+
+---
+
+## Deferred to Phase 98
+
+- `saveWiki` returns `{ kind: 'failed', reason }` for typed tokens that have no wiki spelling: an `hN. ` / `bq. ` prefix at a paragraph start, and the emoticon tokens `(/)`, `(x)`, `(i)`, `(on)`, `(off)`, `(flag)`, `(flagoff)`. The reason names the token. Phase 98 must handle this failure kind, not only switch to source mode. Options: offer to wrap a heading/quote prefix in monospace (verified to stay literal); convert an emoticon token to an emoticon atom (monospace does not keep emoticons literal in the current renderer or parser); or check with real Jira whether `{{(x)}}` stays literal and, if it does, align the renderer.
 
 ---
 
