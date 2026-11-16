@@ -100,11 +100,60 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
+| SAFE-01 | Phase 96 | Pending |
+| SAFE-02 | Phase 96 | Pending |
+| SAFE-03 | Phase 97 | Pending |
+| SAFE-04 | Phase 97 | Pending |
+| SAFE-05 | Phase 98 | Pending |
+| SAFE-06 | Phase 97 | Pending |
+| EDIT-01 | Phase 98 | Pending |
+| EDIT-02 | Phase 98 | Pending |
+| EDIT-03 | Phase 98 | Pending |
+| EDIT-04 | Phase 98 | Pending |
+| EDIT-05 | Phase 98 | Pending |
+| EDIT-06 | Phase 98 | Pending |
+| EDIT-07 | Phase 98 | Pending |
+| EDIT-08 | Phase 98 | Pending |
+| EDIT-09 | Phase 98 | Pending |
+| BLOCK-01 | Phase 98 | Pending |
+| BLOCK-02 | Phase 98 | Pending |
+| BLOCK-03 | Phase 98 | Pending |
+| BLOCK-04 | Phase 98 | Pending |
+| BLOCK-05 | Phase 99 | Pending |
+| INPUT-01 | Phase 99 | Pending |
+| INPUT-02 | Phase 99 | Pending |
+| INPUT-03 | Phase 99 | Pending |
+| INPUT-04 | Phase 99 | Pending |
+| INPUT-05 | Phase 99 | Pending |
+| INPUT-06 | Phase 99 | Pending |
+| INPUT-07 | Phase 99 | Pending |
+| FLOW-01 | Phase 100 | Pending |
+| FLOW-02 | Phase 100 | Pending |
+| FLOW-03 | Phase 100 | Pending |
+| FLOW-04 | Phase 98 | Pending |
+| DRAFT-01 | Phase 101 | Pending |
+| DRAFT-02 | Phase 101 | Pending |
+| DRAFT-03 | Phase 101 | Pending |
+| DRAFT-04 | Phase 101 | Pending |
+| DRAFT-05 | Phase 101 | Pending |
+| DRAFT-06 | Phase 101 | Pending |
+| DRAFT-07 | Phase 101 | Pending |
+| HOST-01 | Phase 100 | Pending |
+| HOST-02 | Phase 100 | Pending |
+| HOST-03 | Phase 100 | Pending |
+| HOST-04 | Phase 100 | Pending |
+| HOST-05 | Phase 100 | Pending |
+| UI-01 | Phase 101 | Pending |
+| UI-02 | Phase 101 | Pending |
+| UI-03 | Phase 102 | Pending |
+| UI-04 | Phase 102 | Pending |
+| UI-05 | Phase 102 | Pending |
 
 **Coverage:**
 - v1.15 requirements: 48 total
-- Mapped to phases: 0 (filled by roadmap)
+- Mapped to phases: 48
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-11-16*
-*Last updated: 2026-11-16 after initial definition (incl. issue drafts)*
+*Last updated: 2026-11-16 after roadmap creation (traceability filled)*

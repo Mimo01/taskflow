@@ -2,11 +2,11 @@
 gsd_state_version: 1.0
 milestone: v1.15
 milestone_name: Rich Wiki Editor
-status: planning
+status: ready_to_plan
 last_updated: "2026-11-16T10:23:39.794Z"
 last_activity: 2026-11-16
 progress:
-  total_phases: 0
+  total_phases: 7
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -20,14 +20,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-11-16)
 
 **Core value:** Developers and PMs can see everything they need — tasks, MRs, sprint state, notifications, and test execution health — in one place, without switching between Jira, GitLab, and AIO.
-**Current focus:** Planning next milestone (v1.14 closed 2026-11-16)
+**Current focus:** v1.15 Rich Wiki Editor — Phase 96 (Wiki Foundations & Equivalence Harness)
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: 96 of 102 (Wiki Foundations & Equivalence Harness)
 Plan: —
-Status: Defining requirements
-Last activity: 2026-11-16 — Milestone v1.15 started
+Status: Ready to plan
+Last activity: 2026-11-16 — v1.15 roadmap created (7 phases, 48/48 requirements mapped)
+
+Progress: [░░░░░░░░░░] 0%
 
 ## Performance Metrics
 
@@ -69,6 +71,7 @@ Last activity: 2026-11-16 — Milestone v1.15 started
 
 ### Roadmap Evolution
 
+- v1.15 roadmap created 2026-11-16: 7 phases (96-102). Foundations (96) -> round-trip engine (97) -> editor shell incl. blocks (98) -> mentions/media/smart input (99) -> host adoption + FLOW (100) -> issue drafts + large modal (101) -> polished surfaces (102). Library spike dropped (TipTap v3 decided). Phases 96-99 flagged for --research-phase.
 - v1.14 roadmap created 2026-08-10: 5 phases (87-91), continuing numbering from v1.13's Phase 86. Coarse granularity — reconciled the research's 6-slice build order into 5 phases by combining release-branch-create + milestone-create into one phase (88), since both share the "first write" cross-cutting concerns (permission gating, idempotent-mutation contract).
 - Phase 91.1 inserted after Phase 91: Unified Release Detail Task Table — one Jira-task table with inline MRs, secondary table for uncovered MRs (URGENT)
 - Phase 91.2 inserted after Phase 91: Epics Page Redesign — creation-order sort, quick-search, progress/points/priority/labels/child-status per row (URGENT)
