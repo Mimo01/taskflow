@@ -209,6 +209,8 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 
 ## Current State
 
+**Phase 96 complete 2026-11-16** (v1.15 Rich Wiki Editor). The wiki pipeline now lives in `lib/wiki`, and the extraction caused zero render change (SAFE-01). A 37-fixture placeholder corpus and the `isEquivalent` harness run on every commit through the pre-commit hook (SAFE-02). The spike chose TipTap. The live Jira probe found that mixed `*#` list nesting renders flat, which Phase 97 will fix. Mentions on DC use `[~username]`.
+
 **v1.14 closed 2026-11-16**, folding Phases 92-95 into the milestone; archives are in `milestones/v1.14-*`. The Phase 95 follow-ups listed below are partly resolved: the Jira poll page cap and the due-reminder id/cursor issues (WR-05/06) were fixed in 261116-fe7. Status colours, overdue/in-Nd and @you highlighting remain todos.
 
 **Phase 95 complete 2026-11-11** (post-v1.14, standalone): the notifications popover was redesigned. Research first produced grouped one-line rows. Live UAT then ran 13+ rounds and replaced them with a flat list of two-line cards. Grouping UI was removed, and system-side merging of consecutive same-actor events took its place. Cards gained per-action icons and colours, explicit "added / removed / changed" phrasing, a dashed "none" chip, an aligned change grid, and the app's shared Card surface. They no longer have hover tooltips.
@@ -442,4 +444,4 @@ This document evolves at phase transitions and milestone boundaries.
 | `fetchEpicsBasic` ordering is a per-caller parameter, in the query key (v1.14 Phase 91.2) | The fetcher is shared with the Sidebar, Backlog and Sprint Board pickers under one cache key — this phase's `created ASC` was silently reordering all of them | ✓ Good — defaults to the original `updated DESC`; the two orderings cannot serve each other's cache |
 
 ---
-*Last updated: 2026-11-16 after v1.15 milestone start*
+*Last updated: 2026-11-16 after Phase 96 completion*
