@@ -9,7 +9,7 @@
 
 - [x] **SAFE-01**: WikiRenderer's parse pipeline is extracted into `lib/wiki/` with zero behaviour change and its existing tests passing unchanged
 - [x] **SAFE-02**: A placeholder-only fixture corpus asserts in CI that every fixture renders identically through WikiRenderer after load → save (semantic equivalence)
-- [ ] **SAFE-03**: Opening text in the editor and saving without edits writes it back byte-identical
+- [x] **SAFE-03**: Opening text in the editor and saving without edits writes it back byte-identical
 - [ ] **SAFE-04**: Constructs the editor can't model (unknown macros, unparseable spans) are shown read-only as rendered blocks and saved verbatim
 - [ ] **SAFE-05**: If a text fails the round-trip check on load, the editor opens it in source mode with a quiet notice, so no rich edit can corrupt it
 - [ ] **SAFE-06**: Emoticons, `[~username]` mentions, escaping, `\\` line breaks and CRLF/trailing whitespace survive round-trip with their original spelling
@@ -102,7 +102,7 @@
 |-------------|-------|--------|
 | SAFE-01 | Phase 96 | Complete |
 | SAFE-02 | Phase 96 | Complete |
-| SAFE-03 | Phase 97 | Pending |
+| SAFE-03 | Phase 97 | Complete |
 | SAFE-04 | Phase 97 | Pending |
 | SAFE-05 | Phase 98 | Pending |
 | SAFE-06 | Phase 97 | Pending |
