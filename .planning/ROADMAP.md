@@ -167,8 +167,8 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 97-01-PLAN.md — Renderer fixes D-01 (mixed `*#` nesting) and D-02 (header-less tables)
-- [ ] 97-02-PLAN.md — 27 new fixtures, @tiptap deps, wiki schema + contract types, bundle guard
+- [x] 97-01-PLAN.md — Renderer fixes D-01 (mixed `*#` nesting) and D-02 (header-less tables)
+- [x] 97-02-PLAN.md — 27 new fixtures, @tiptap deps, wiki schema + contract types, bundle guard
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -287,7 +287,7 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 96. Wiki Foundations & Equivalence Harness | 6/6 | Complete    | 2026-11-16 |
-| 97. Round-Trip Engine | 0/TBD | Not started | - |
+| 97. Round-Trip Engine | 2/10 | In Progress|  |
 | 98. Editor Shell | 0/TBD | Not started | - |
 | 99. Mentions, Media & Smart Input | 0/TBD | Not started | - |
 | 100. Host Adoption & Editing Workflow | 0/TBD | Not started | - |
