@@ -180,10 +180,28 @@ function rehypeDecodeInlineCodeEntities() {
  * after rehypeRaw (the marker is parsed to a property) and before sanitize, so
  * the sanitize schema needs no change and the marker never reaches the output.
  */
-function hasHeaderlessMarker(node: HastElement | HastText): boolean {
-  if (node.type !== 'element') return false;
-  if (node.properties && node.properties.dataWikiHeaderless !== undefined) return true;
-  return node.children.some(hasHeaderlessMarker);
+function firstElementChild(node: HastElement, tagName: string): HastElement | undefined {
+  const first = node.children.find((c): c is HastElement => c.type === 'element');
+  return first && first.tagName === tagName ? first : undefined;
+}
+
+/**
+ * Positional check: only the marker the preprocessor injects counts, i.e. a direct
+ * `<span data-wiki-headerless>` child of the first `<th>` of the thead's first `<tr>`.
+ * Typed text can carry the attribute name elsewhere (for example inside a real header
+ * cell), so a recursive match would let user text delete a real header row.
+ */
+function hasHeaderlessMarker(thead: HastElement): boolean {
+  const tr = firstElementChild(thead, 'tr');
+  const th = tr && firstElementChild(tr, 'th');
+  if (!th) return false;
+  return th.children.some(
+    (c) =>
+      c.type === 'element' &&
+      c.tagName === 'span' &&
+      c.properties !== undefined &&
+      c.properties.dataWikiHeaderless !== undefined,
+  );
 }
 
 function rehypeDropHeaderlessThead() {

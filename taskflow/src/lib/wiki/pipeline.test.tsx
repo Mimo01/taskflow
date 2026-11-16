@@ -278,3 +278,53 @@ describe('D-12 inline-callout-cell stays one table', () => {
     );
   });
 });
+
+describe('attribute injection (CR-02)', () => {
+  it('a forged marker in a panel title does not remove a real header row', () => {
+    const r = parseHtml(
+      wikiToHtml('||Secret header{info:title=x" data-wiki-headerless="1}a{info}||h2||\n|c|d|'),
+    );
+    const thead = r.querySelector('thead');
+    expect(thead).not.toBeNull();
+    expect(thead?.textContent).toContain('Secret header');
+    expect(thead?.textContent).toContain('h2');
+    expect(r.querySelectorAll('tbody tr').length).toBe(1);
+  });
+
+  it('a forged marker in a color value does not remove a real header row', () => {
+    const r = parseHtml(wikiToHtml('||H1{color:red" data-wiki-headerless="}z{color}||H2||\n|c|d|'));
+    const thead = r.querySelector('thead');
+    expect(thead).not.toBeNull();
+    expect(thead?.textContent).toContain('H1');
+    expect(thead?.textContent).toContain('H2');
+  });
+
+  it('a quote in a panel title cannot add attributes', () => {
+    const r = parseHtml(
+      wikiToHtml('{info:title=a" id="x" tabindex="1" aria-label="pwn}body{info}'),
+    );
+    const el = r.querySelector('[data-callout="info"]');
+    expect(el).not.toBeNull();
+    expect(el?.hasAttribute('id')).toBe(false);
+    expect(el?.hasAttribute('tabindex')).toBe(false);
+    expect(el?.hasAttribute('aria-label')).toBe(false);
+    expect(el?.getAttribute('data-title') ?? el?.textContent).toContain('"');
+  });
+
+  it('a newline in a panel title keeps the body inside the callout', () => {
+    const r = parseHtml(wikiToHtml('{info:title=a\nb}body{info}'));
+    expect(r.querySelector('[data-callout="info"]')?.textContent).toContain('body');
+  });
+
+  it('a genuine header-less table has no thead and an empty header row is kept', () => {
+    expect(parseHtml(wikiToHtml('|a|b|\n|c|d|')).querySelector('thead')).toBeNull();
+    expect(parseHtml(wikiToHtml('|| ||\n|a|')).querySelector('thead')).not.toBeNull();
+  });
+
+  it('a quote in a mention id or image name adds no attribute', () => {
+    const m = parseHtml(wikiToHtml('[~a" title="x]'));
+    expect(m.querySelector('[title]')).toBeNull();
+    const i = parseHtml(wikiToHtml('!https://example.test/a" onerror="x.png!'));
+    expect(i.querySelector('img')?.hasAttribute('onerror') ?? false).toBe(false);
+  });
+});

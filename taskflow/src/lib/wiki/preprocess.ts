@@ -161,6 +161,16 @@ const PANEL_TAG_RE = /\{(?:panel|info|note|warning|tip)(?::[^}]*)?\}/g;
  *
  * Private helper — not exported.
  */
+/**
+ * Escapes a user-derived value for interpolation inside a double-quoted HTML
+ * attribute. Only `"` and line breaks are handled: the raw source already had
+ * `& < >` escaped (to `&amp; &lt; &gt;`) before any HTML is injected, so escaping
+ * `&` again would double-encode.
+ */
+function attr(value: string): string {
+  return value.replace(/"/g, '&quot;').replace(/[\r\n]/g, ' ');
+}
+
 function transformPanelListItems(panelBody: string): string {
   const lines = panelBody.split('\n');
   const out: string[] = [];
@@ -177,7 +187,7 @@ function transformPanelListItems(panelBody: string): string {
         .map((item) => {
           const linkMatch = /^\[([^|\]]+)\|([^\]]+)\]$/.exec(item.trim());
           if (linkMatch) {
-            return `<li><a href="${linkMatch[2]}">${linkMatch[1]}</a></li>`;
+            return `<li><a href="${attr(linkMatch[2])}">${linkMatch[1]}</a></li>`;
           }
           // Non-link item — still escape any remaining `|` to prevent table split.
           return `<li>${item.replace(/\|/g, '\\|')}</li>`;
@@ -211,7 +221,7 @@ function flattenInlineCalloutsForTableRow(body: string): string {
       // on each side (UAT round-3 finding: visible doubled padding around the
       // inner <ol> was caused by exactly these stray edge <br/> tags).
       const flattened = escaped.trim().replace(/\n/g, '<br/>');
-      return `<span data-callout="panel" data-title="${title}">${flattened}</span>`;
+      return `<span data-callout="panel" data-title="${attr(title)}">${flattened}</span>`;
     },
   );
   result = result.replace(/\{panel\}([\s\S]*?)\{panel\}/g, (_m, inner: string) => {
@@ -224,7 +234,7 @@ function flattenInlineCalloutsForTableRow(body: string): string {
     result = result.replace(
       new RegExp(`\\{${type}:title=([^}]+)\\}([\\s\\S]*?)\\{${type}\\}`, 'g'),
       (_m, title: string, inner: string) =>
-        `<span data-callout="${type}" data-title="${title}">${inner.trim().replace(/\n/g, '<br/>')}</span>`,
+        `<span data-callout="${type}" data-title="${attr(title)}">${inner.trim().replace(/\n/g, '<br/>')}</span>`,
     );
     result = result.replace(
       new RegExp(`\\{${type}\\}([\\s\\S]*?)\\{${type}\\}`, 'g'),
@@ -361,8 +371,9 @@ export function injectHeaderlessTableSeparators(wiki: string): string {
         const cols = countJiraTableRowColumns(trimmed);
         if (cols >= 1) {
           // The first cell carries a marker that rehypeDropHeaderlessThead (pipeline.ts)
-          // uses to drop the synthetic header after rehypeRaw. Raw `<` in user source is
-          // escaped earlier, so the marker cannot be typed.
+          // uses to drop the synthetic header after rehypeRaw. Typed text can contain the
+          // attribute name, but pipeline.ts only honours the marker in the injected
+          // position (first th of the first thead row, as a direct span child).
           const emptyCells = [
             '<span data-wiki-headerless></span>',
             ...Array(cols - 1).fill(' '),
@@ -922,12 +933,12 @@ export function preprocessJiraMarkup(
     // CommonMark treats <img> on its own line as an HTML block that consumes
     // everything until the next blank line, swallowing the heading.
     if (ref.startsWith('http://') || ref.startsWith('https://')) {
-      return `<img src="${ref.replace(/\+/g, '%20')}" alt="" />\n`;
+      return `<img src="${attr(ref.replace(/\+/g, '%20'))}" alt="" />\n`;
     }
     // Look up in attachment map — same treatment
     const url = attachments?.[ref];
     if (url) {
-      return `<img src="${url.replace(/\+/g, '%20')}" alt="" />\n`;
+      return `<img src="${attr(url.replace(/\+/g, '%20'))}" alt="" />\n`;
     }
     // Not in map (or no attachment map): strip Jira options, emit plain !filename!
     // for jira2md to convert cleanly to ![](filename).
@@ -947,12 +958,12 @@ export function preprocessJiraMarkup(
   // Mentions: [~accountId:XXX] -> <mention data-id="XXX">DisplayName</mention>
   result = result.replace(/\[~accountId:([^\]]+)\]/g, (_match, id: string) => {
     const name = users?.[id] ?? id;
-    return `<mention data-id="${id}">${name}</mention>`;
+    return `<mention data-id="${attr(id)}">${name}</mention>`;
   });
   // Mentions: [~username] -> <mention data-id="username">DisplayName</mention>
   result = result.replace(/\[~([^\]]+)\]/g, (_match, username: string) => {
     const name = users?.[username] ?? username;
-    return `<mention data-id="${username}">${name}</mention>`;
+    return `<mention data-id="${attr(username)}">${name}</mention>`;
   });
 
   // Attachment references: [^filename] -> raw HTML anchor resolved via attachment map.
@@ -1006,8 +1017,8 @@ export function preprocessJiraMarkup(
       new RegExp(`\\{${type}:title=([^}]+)\\}([\\s\\S]*?)\\{${type}\\}`, 'g'),
       (m: string, title: string, body: string, offset: number, str: string) =>
         inTableRow(str, offset) || !ownLine(str, offset, m.length)
-          ? `<span data-callout="${type}" data-title="${title}">${body.trim().replace(/\n/g, '<br/>')}</span>`
-          : `<div data-callout="${type}" data-title="${title}">\n\n${body.trim()}\n\n</div>`,
+          ? `<span data-callout="${type}" data-title="${attr(title)}">${body.trim().replace(/\n/g, '<br/>')}</span>`
+          : `<div data-callout="${type}" data-title="${attr(title)}">\n\n${body.trim()}\n\n</div>`,
     );
     result = result.replace(
       new RegExp(`\\{${type}\\}([\\s\\S]*?)\\{${type}\\}`, 'g'),
@@ -1048,8 +1059,8 @@ export function preprocessJiraMarkup(
     (_match: string, hex: string, inner: string) => {
       // jira2md won't process Jira inline markup inside raw HTML, so convert it here.
       // data-color goes on <strong> too so its inline style beats .prose strong { color }.
-      const html = inner.replace(/\*([^*\n]+)\*/g, `<strong data-color="${hex}">$1</strong>`);
-      return `<span data-color="${hex}">${html}</span>`;
+      const html = inner.replace(/\*([^*\n]+)\*/g, `<strong data-color="${attr(hex)}">$1</strong>`);
+      return `<span data-color="${attr(hex)}">${html}</span>`;
     },
   );
 
