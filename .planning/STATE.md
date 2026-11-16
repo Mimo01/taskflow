@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.15
 milestone_name: Rich Wiki Editor
-status: ready_to_plan
-last_updated: "2026-11-16T10:23:39.794Z"
-last_activity: 2026-11-16
+status: planning
+last_updated: "2026-11-16T11:21:39.985Z"
+last_activity: 2026-11-16 — v1.15 roadmap created (7 phases, 48/48 requirements mapped)
 progress:
   total_phases: 7
   completed_phases: 0
@@ -327,9 +327,9 @@ Acknowledged and deferred at v1.14 milestone close (2026-08-13) — 111 open art
 
 ## Session Continuity
 
-Last session: 2026-11-10T09:46:52.863Z
-Stopped at: Phase 95 context gathered
-Resume file: .planning/phases/95-notifications-redesign-research-driven-visual-redesign-polis/95-CONTEXT.md
+Last session: 2026-11-16T11:21:39.979Z
+Stopped at: Phase 96 context gathered
+Resume file: .planning/phases/96-wiki-foundations-equivalence-harness/96-CONTEXT.md
 
 ## Operator Next Steps
 
