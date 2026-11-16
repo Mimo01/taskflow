@@ -10,9 +10,12 @@
 import j2m from 'jira2md';
 import rehypeRaw from 'rehype-raw';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
+import rehypeStringify from 'rehype-stringify';
 import remarkBreaks from 'remark-breaks';
 import remarkGfm from 'remark-gfm';
-import type { PluggableList } from 'unified';
+import remarkParse from 'remark-parse';
+import remarkRehype from 'remark-rehype';
+import { type PluggableList, unified } from 'unified';
 import { visit } from 'unist-util-visit';
 import { type AttachmentMap, preprocessJiraMarkup, type UserMap } from './preprocess';
 
@@ -214,4 +217,36 @@ export function wikiRehypePlugins(presentation: PluggableList = []): PluggableLi
     rehypeDecodeInlineCodeEntities,
     [rehypeSanitize, wikiSanitizeSchema],
   ];
+}
+
+/**
+ * Markdown to HTML string via the same core plugin lists WikiRenderer feeds to
+ * react-markdown (mirrors its createProcessor). For comparison / oracle use
+ * ONLY: never inject the result into the DOM via innerHTML-style APIs (T-96-07).
+ * `finalRehype` runs after sanitize and must never be used to bypass it.
+ * Known divergence: react-markdown also applies defaultUrlTransform to
+ * href/src after plugins; sanitize already constrains protocols.
+ */
+export function wikiMarkdownToHtml(markdown: string, finalRehype: PluggableList = []): string {
+  const processor = unified()
+    .use(remarkParse)
+    .use(wikiRemarkPlugins)
+    .use(remarkRehype, { allowDangerousHtml: true })
+    .use(wikiRehypePlugins([]))
+    .use(finalRehype)
+    .use(rehypeStringify);
+  return String(processor.processSync(markdown));
+}
+
+/**
+ * Jira wiki markup to HTML string (oracle for the equivalence harness). Excludes
+ * presentation-only plugins (issue-key linkification, D-07). Comparison use
+ * only: never inject into the DOM (T-96-07).
+ */
+export function wikiToHtml(
+  wiki: string | null | undefined,
+  attachments?: AttachmentMap,
+  users?: UserMap,
+): string {
+  return wikiMarkdownToHtml(wikiToMarkdown(wiki, attachments, users));
 }
