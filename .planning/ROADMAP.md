@@ -164,17 +164,42 @@ Plans:
   5. Any construct that is not proven by the corpus is demoted to a raw atom rather than modelled
 
 **Plans**: 10 plans
-
 Plans:
+**Wave 1**
+
 - [ ] 97-01-PLAN.md — Renderer fixes D-01 (mixed `*#` nesting) and D-02 (header-less tables)
 - [ ] 97-02-PLAN.md — 27 new fixtures, @tiptap deps, wiki schema + contract types, bundle guard
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 97-03-PLAN.md — Renderer fix D-12 (panel family, lists in panels) + visual Jira-parity check
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 97-04-PLAN.md — Lossless core: block scanner, macro segmenter/raw atoms, emitter, loadWiki/saveWiki no-op, corpus + fuzz tests
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
 - [ ] 97-05-PLAN.md — Lists (mixed nesting) and block quotes modelled
+
+**Wave 5** *(blocked on Wave 4 completion)*
+
 - [ ] 97-06-PLAN.md — Panels (nested, in lists, in cells) and tables (headerless attr) modelled
+
+**Wave 6** *(blocked on Wave 5 completion)*
+
 - [ ] 97-07-PLAN.md — Inline atoms: emoticons, mentions, escapes, breaks, images, attachments, inline raw
+
+**Wave 7** *(blocked on Wave 6 completion)*
+
 - [ ] 97-08-PLAN.md — Formatting marks, links and typed-text escaping
+
+**Wave 8** *(blocked on Wave 7 completion)*
+
 - [ ] 97-09-PLAN.md — `{color}` marks (allowlisted), multi-block span proven or demoted
+
+**Wave 9** *(blocked on Wave 8 completion)*
+
 - [ ] 97-10-PLAN.md — D-11 fallback ladder, scripted edits (D-04..D-08), harness wiring
 
 ### Phase 98: Editor Shell

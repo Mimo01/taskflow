@@ -409,17 +409,17 @@ Run with the real `wikiToHtml`, 2026-11-16 `[VERIFIED: scratch vitest run]`:
 | A5 | slopcheck-equivalent legitimacy of the 4 `@tiptap` packages (user-approved in Phase 96; slopcheck unavailable) | Package Legitimacy Audit | Low |
 | A6 | New breaks default to `\n` in prose and `\\` in cells | Pattern 2 | Low: D-08 lists no toolbar break; confirm in Phase 98 |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Multi-block `{color}` (D-09)**
+1. **Multi-block `{color}` (D-09)** RESOLVED: Plan 97-09 Task 2 turns this into a prove-or-demote gate (edit tests prove it, or cross-block color is demoted to rawBlock).
    - Known: the oracle renders it as one invalid `<span>` containing `<p>`s; spelling replay can still round-trip it.
    - Unclear: whether per-block marks plus merge-on-emit is stable under edits (splitting a paragraph inside a span).
    - Recommendation: implement per-block color marks with a shared `span` id; if the fixtures or the fuzz test show any instability, demote cross-block color to `rawBlock` rather than ship lossy. Intra-paragraph color (corpus: `macros/color.wiki`) is modelled for sure.
-2. **Oracle renders `{info:title=}`, `{warning:title=}`, `{tip}`, lists-in-panels as literal text**
+2. **Oracle renders `{info:title=}`, `{warning:title=}`, `{tip}`, lists-in-panels as literal text** RESOLVED: the user put this in scope as D-12 (97-CONTEXT.md); Plan 97-03 fixes the renderer.
    - Known: round trip is fine either way. The Phase 98 editor will show real panels while read-only WikiRenderer views show literal text until the renderer learns them.
    - Recommendation: model as panels now (Jira-correct, parity of spelling); raise a follow-up to extend the pipeline in the spirit of D-01/D-02. Not required for this phase; needs a user call if they want it in scope.
-3. **Escaping and the renderer's broken `\*`**: accept Jira-correct escaping for newly typed text and document the renderer gap (Pitfall 3), or add a renderer fix. Recommend: accept and track.
-4. **List item with a panel or `{code}` after it (`* item\n{panel}…`)**: oracle renders the panel as a sibling of the list. Parse it as sibling blocks (gap 0); the "panels inside list items" part of D-09 therefore means panels adjacent to items, not a nested node, unless a fixture proves otherwise (listItem content `paragraph block*` would permit it).
+3. **Escaping and the renderer's broken `\*`** RESOLVED: accepted and tracked; Plan 97-08 escapes typed text Jira-correctly and lists unspellable sequences in `UNSPELLABLE`: accept Jira-correct escaping for newly typed text and document the renderer gap (Pitfall 3), or add a renderer fix. Recommend: accept and track.
+4. **List item with a panel or `{code}` after it (`* item\n{panel}…`)** RESOLVED: Plan 97-06 Task 1 checks post-D-12 `wikiToHtml` output first and models to match: oracle renders the panel as a sibling of the list. Parse it as sibling blocks (gap 0); the "panels inside list items" part of D-09 therefore means panels adjacent to items, not a nested node, unless a fixture proves otherwise (listItem content `paragraph block*` would permit it).
 
 ## Environment Availability
 
