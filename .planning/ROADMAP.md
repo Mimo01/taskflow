@@ -200,7 +200,7 @@ Plans:
 
 **Wave 9** *(blocked on Wave 8 completion)*
 
-- [ ] 97-10-PLAN.md — D-11 fallback ladder, scripted edits (D-04..D-08), harness wiring
+- [x] 97-10-PLAN.md — D-11 fallback ladder, scripted edits (D-04..D-08), harness wiring
 
 ### Phase 98: Editor Shell
 
@@ -287,7 +287,7 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 96. Wiki Foundations & Equivalence Harness | 6/6 | Complete    | 2026-11-16 |
-| 97. Round-Trip Engine | 9/10 | In Progress|  |
+| 97. Round-Trip Engine | 10/10 | Complete   | 2026-11-16 |
 | 98. Editor Shell | 0/TBD | Not started | - |
 | 99. Mentions, Media & Smart Input | 0/TBD | Not started | - |
 | 100. Host Adoption & Editing Workflow | 0/TBD | Not started | - |
