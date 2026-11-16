@@ -36,8 +36,6 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 101: Issue Drafts & Large Create/Edit Modal** - Two-column Create/Edit Issue modal with Create another, plus auto-saved multi-draft issue creation with a header Drafts chip
 - [ ] **Phase 102: Polished Surfaces** - Comment hosts, inline description, Create Epic, Bulk Subtasks and Edit Release restyled to match
 
-
-
 <details>
 <summary>✅ v1.14 Release Management (Phases 87-95) — SHIPPED 2026-08-13, closed 2026-11-16</summary>
 
@@ -119,92 +117,131 @@ Earlier milestones are collapsed. See per-milestone archives in `.planning/miles
 ## Phase Details
 
 ### Phase 96: Wiki Foundations & Equivalence Harness
+
 **Goal**: The existing wiki rendering pipeline is reusable outside WikiRenderer and a corpus can prove, in CI, that any text round-trips with the same rendering
 **Depends on**: Nothing (first phase of v1.15)
 **Requirements**: SAFE-01, SAFE-02
 **Research**: Needs phase research (plugin order, live Jira grammar checks, mention format)
 **Success Criteria** (what must be TRUE):
+
   1. Wiki issue descriptions and comments render exactly as before across the app, and the existing WikiRenderer tests pass without modification
   2. `lib/wiki/` exposes the preprocess, wiki-to-markdown and shared plugin pipeline plus a wikiToHtml helper, with presentation-only plugins kept out of the core list
   3. A placeholder-only fixture corpus (no customer data) covers the constructs in the grammar, including hard cases (nested lists, tables, panels, emoticons, mentions, CRLF)
   4. CI runs an equivalence assertion over the corpus and fails when a fixture renders differently after load and save
-**Plans**: TBD
+
+**Plans**: 6 plans
+Plans:
+**Wave 1**
+
+- [ ] 96-01-PLAN.md — Verbatim extraction of preprocess + core plugin pipeline into lib/wiki (WikiRenderer.test.tsx unmodified)
+- [ ] 96-03-PLAN.md — Placeholder-only fixture corpus (37 .wiki files), .gitattributes -text, raw glob loader, coverage gate
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 96-02-PLAN.md — Package legitimacy gate, direct unified deps + rehype-stringify, wikiToHtml with react-markdown parity test
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 96-04-PLAN.md — isEquivalent + minimal normaliser, corpus harness with identity, mutation self-tests and negative controls
+- [ ] 96-05-PLAN.md — TipTap vs CodeMirror-6 WKWebView spike on throwaway worktree, SAFE-01 spot check, findings doc
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
+- [ ] 96-06-PLAN.md — User-run live Jira render probe (D-11), mention format, text-only findings
 
 ### Phase 97: Round-Trip Engine
+
 **Goal**: Wiki text can be parsed into an editor document and emitted back without changing what Jira shows, and an unedited text is saved byte-identical
 **Depends on**: Phase 96
 **Requirements**: SAFE-03, SAFE-04, SAFE-06
 **Research**: Needs phase research (table and nested-list modelling)
 **Success Criteria** (what must be TRUE):
+
   1. Every corpus fixture parsed and re-emitted renders identically through WikiRenderer, including header-less tables, panel family, `{color}` and mixed `*#` nesting
   2. Loading and saving a text with no edits returns the original string byte-for-byte, including CRLF and trailing whitespace
   3. Emoticons such as `(/)` and `(x)`, `[~username]` mentions, escapes and `\\` line breaks keep their original spelling after a round-trip
   4. Unknown macros and unparseable spans are carried as raw atoms that display as rendered read-only blocks and are saved verbatim
   5. Any construct that is not proven by the corpus is demoted to a raw atom rather than modelled
+
 **Plans**: TBD
 
 ### Phase 98: Editor Shell
+
 **Goal**: Users can edit wiki text in a rich view or in source with every core construct available, shown in a dev-tools preview tab before any host adopts it
 **Depends on**: Phase 97
 **Requirements**: EDIT-01, EDIT-02, EDIT-03, EDIT-04, EDIT-05, EDIT-06, EDIT-07, EDIT-08, EDIT-09, SAFE-05, BLOCK-01, BLOCK-02, BLOCK-03, BLOCK-04, FLOW-04
 **Research**: Needs phase research (TipTap v3 API via Context7, React Compiler smoke test)
 **Success Criteria** (what must be TRUE):
+
   1. User edits in a rich view styled like WikiRenderer output, formats with the toolbar and keyboard shortcuts, and creates headings, mixed lists, quotes, rules and links
   2. User can insert and edit tables, code/noformat blocks, panels with titles and palette-validated coloured text
   3. User toggles between rich and raw source without losing content or undo history, and sees a side-by-side WikiRenderer preview in source mode
   4. A text that fails the round-trip check opens in source mode with a quiet notice, so rich editing can't corrupt it
   5. Typing never loses the caret or rebuilds the editor, wiki/markdown shortcuts and IME composition behave on macOS WKWebView (manual check), and app shortcuts are suppressed while typing
+
 **Plans**: TBD
 **UI hint**: yes
 
 ### Phase 99: Mentions, Media & Smart Input
+
 **Goal**: Users can mention people, embed attachments and images, paste rich content and use smart autocompletes inside the editor
 **Depends on**: Phase 98
 **Requirements**: INPUT-01, INPUT-02, INPUT-03, INPUT-04, INPUT-05, INPUT-06, INPUT-07, BLOCK-05
 **Research**: Needs phase research (rich HTML paste samples, Tauri drop path)
 **Success Criteria** (what must be TRUE):
+
   1. User types @ and picks a person from server-side search, and the text saves as `[~username]`
   2. User embeds an existing attachment from the picker, and can paste or drop an image or file that uploads (or stages on create) and embeds
   3. Pasting rich HTML from a web page, Word or Jira keeps supported formatting and drops everything else
   4. User can open a `/` slash menu to insert any block, get issue-key autocomplete and decoration, and type `:` for Jira emoticons
   5. Compact comment hosts show a floating selection menu instead of a toolbar, and popovers inside dialogs close with Esc before the dialog does (manual WKWebView drag/drop and caret check)
+
 **Plans**: TBD
 **UI hint**: yes
 
 ### Phase 100: Host Adoption & Editing Workflow
+
 **Goal**: Every wiki text box in the app uses the new editor and unsent text is never lost or silently discarded
 **Depends on**: Phase 99
 **Requirements**: HOST-01, HOST-02, HOST-03, HOST-04, HOST-05, FLOW-01, FLOW-02, FLOW-03
 **Success Criteria** (what must be TRUE):
+
   1. Create Epic, Create/Edit Issue description, inline description (detail and peek), comment composer, inline comment and comment edit all use the new editor, adopted one host at a time
   2. An unsent comment or description edit survives closing the peek or modal and restarting the app
   3. User is warned before unsaved edits are discarded by Esc, close or navigation (Create Issue modal excepted)
   4. Cmd+Enter submits and Esc cancels in every editor host, deferring to open popovers
   5. The old textarea toolbar and Preview-tab code no longer exists in the codebase
+
 **Plans**: TBD
 **UI hint**: yes
 
 ### Phase 101: Issue Drafts & Large Create/Edit Modal
+
 **Goal**: Users create issues in a large two-column modal and never lose a half-written issue
 **Depends on**: Phase 100
 **Requirements**: UI-01, UI-02, DRAFT-01, DRAFT-02, DRAFT-03, DRAFT-04, DRAFT-05, DRAFT-06, DRAFT-07
 **Success Criteria** (what must be TRUE):
+
   1. Create/Edit Issue opens as a large dialog with summary, editor, subtasks and links in the main column, a fields sidebar and a sticky footer
   2. User can tick "Create another" and the modal stays open for the next issue with common fields kept
   3. Closing the modal with content saves a draft without a prompt, and several independent drafts can exist at once
   4. A header Drafts chip with a count, styled apart from pinned tabs, appears whenever drafts exist and lists them (type icon, summary or "Untitled", parent/epic, last edited, Resume/Discard)
   5. Resuming from anywhere restores every field and staged attachment, drafts survive an app restart, and a successful create or a discard removes the draft
+
 **Plans**: TBD
 **UI hint**: yes
 
 ### Phase 102: Polished Surfaces
+
 **Goal**: The remaining editing surfaces look and behave consistently with the new modal
 **Depends on**: Phase 101
 **Requirements**: UI-03, UI-04, UI-05
 **Success Criteria** (what must be TRUE):
+
   1. Comment hosts have an expanding editor and a consistent, clean action row
   2. Inline description editing happens in place, larger, with sticky Save/Cancel
   3. Create Epic, Bulk Create Subtasks and Edit Release modals are larger and visually consistent with the Create/Edit Issue modal, and Edit Release keeps its plain-text/Markdown fields
+
 **Plans**: TBD
 **UI hint**: yes
 
@@ -239,4 +276,3 @@ Earlier milestones are collapsed. See per-milestone archives in `.planning/miles
 | v1.2 Jira Parity | 9 (9-17) | 29 | 2026-03-15 |
 | v1.1 Polish | 4 (5-8) | 24 | 2026-03-13 |
 | v1.0 MVP | 4 (1-4) | 20 | 2026-03-12 |
-

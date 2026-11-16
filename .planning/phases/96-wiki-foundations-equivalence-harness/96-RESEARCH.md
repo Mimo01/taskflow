@@ -320,11 +320,11 @@ Threats: script/iframe injection via raw HTML (sanitize after raw, order preserv
 | A4 | hast property insertion order + sort suffices for attribute normalisation | Normaliser | add rule with fixture if not |
 | A5 | tsconfig includes `vite/client` types for `import.meta.glob` | Fixtures | add reference directive |
 
-## Open Questions
-1. **Live Jira probe not run** (credentials only in Stronghold, interactive). Recommendation: user runs the curl block, reports grammar surprises as text; planner schedules a `checkpoint:human-action` plan or leaves it as non-blocking; harness does not depend on it.
-2. **Emoticon mutation choice**: CONTEXT's "emoji spelling" mutation is render-equivalent and would not be flagged. Recommend the planner use drop/rename mutations and carry the byte-level concern (SAFE-03) to Phase 97.
-3. **Direct vs transitive dependency declarations** for `unified`/`remark-parse`/`remark-rehype`: recommend declaring directly (they are imported by app code).
-4. **Whether the Phase 97 runtime guard needs `rehype-stringify` in the production bundle**; yes if `isEquivalent` renders HTML, so keep it a regular dep.
+## Open Questions (RESOLVED)
+1. **Live Jira probe not run** — RESOLVED: deferred to plan 96-06 (non-blocking human-action checkpoint, findings text only). (credentials only in Stronghold, interactive). Recommendation: user runs the curl block, reports grammar surprises as text; planner schedules a `checkpoint:human-action` plan or leaves it as non-blocking; harness does not depend on it.
+2. **Emoticon mutation choice** — RESOLVED: plan 96-04 uses render-visible mutations (`(/)`→`OK`, flattened `*#`, dropped panel title) and emoji-spelling as a must-not-flag control. Background: CONTEXT's "emoji spelling" mutation is render-equivalent and would not be flagged. Recommend the planner use drop/rename mutations and carry the byte-level concern (SAFE-03) to Phase 97.
+3. **Direct vs transitive dependency declarations** — RESOLVED: declared directly in plan 96-02 Task 2 (for `unified`/`remark-parse`/`remark-rehype`: declaring directly because they are imported by app code).
+4. **Whether the Phase 97 runtime guard needs `rehype-stringify` in the production bundle** — RESOLVED: regular dependency (plan 96-02). Yes if `isEquivalent` renders HTML, so keep it a regular dep.
 
 ## Sources
 - Repo: `taskflow/src/routes/dashboard/WikiRenderer.tsx` (L1-135, 230, 478-520, 680, 1199-1230, 1306-1340, 1511-1540, 1781-1799), `WikiRenderer.test.tsx` L1-10, 1397-1405; `vitest.config.ts`; `package.json`; `.husky/pre-commit`; `src/services/jira.ts` L82 [VERIFIED]
