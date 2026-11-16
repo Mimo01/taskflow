@@ -209,6 +209,8 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 
 ## Current State
 
+**Phase 97 complete 2026-11-16** (v1.15 Rich Wiki Editor). The round-trip engine parses wiki text into a TipTap document and emits it back. An unedited text saves byte-identical. Constructs the editor can't model are kept as read-only raw atoms and saved verbatim. Typed look-alikes of macros and markup are escaped, and the renderer shows Jira backslash escapes literally (SAFE-03, SAFE-04, SAFE-06). Jira-side parity checks are pending in 97-HUMAN-UAT.md. Follow-ups for Phase 98: escaped bare URLs, typed `{code}` in table cells, cell-panel backslash parity.
+
 **Phase 96 complete 2026-11-16** (v1.15 Rich Wiki Editor). The wiki pipeline now lives in `lib/wiki`, and the extraction caused zero render change (SAFE-01). A 37-fixture placeholder corpus and the `isEquivalent` harness run on every commit through the pre-commit hook (SAFE-02). The spike chose TipTap. The live Jira probe found that mixed `*#` list nesting renders flat, which Phase 97 will fix. Mentions on DC use `[~username]`.
 
 **v1.14 closed 2026-11-16**, folding Phases 92-95 into the milestone; archives are in `milestones/v1.14-*`. The Phase 95 follow-ups listed below are partly resolved: the Jira poll page cap and the due-reminder id/cursor issues (WR-05/06) were fixed in 261116-fe7. Status colours, overdue/in-Nd and @you highlighting remain todos.
@@ -444,4 +446,4 @@ This document evolves at phase transitions and milestone boundaries.
 | `fetchEpicsBasic` ordering is a per-caller parameter, in the query key (v1.14 Phase 91.2) | The fetcher is shared with the Sidebar, Backlog and Sprint Board pickers under one cache key — this phase's `created ASC` was silently reordering all of them | ✓ Good — defaults to the original `updated DESC`; the two orderings cannot serve each other's cache |
 
 ---
-*Last updated: 2026-11-16 after Phase 96 completion*
+*Last updated: 2026-11-16 after Phase 97 completion*
