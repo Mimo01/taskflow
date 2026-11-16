@@ -1,5 +1,6 @@
 import type { JSONContent } from '@tiptap/core';
 import type { WikiParse } from '../types';
+import { COLOR_OPEN, parseColorSpan } from './color';
 import { parseInline } from './inline';
 import { LIST_LINE, parseListRun } from './lists';
 import { buildCloserIndex, type CloserIndex, findMacroSpan } from './macros';
@@ -21,7 +22,7 @@ const RULE = /^(-{4,})[ \t]*$/;
 // Lists, quotes, panels and tables are modelled; indented or unclean rows stay raw.
 const GROUPED_START = /^[ \t]*\|/;
 
-type Block = { end: number; node: JSONContent };
+type Block = { end: number; node: JSONContent; gap?: number };
 
 const raw = (lines: readonly string[], start: number, end: number): JSONContent => ({
   type: 'rawBlock',
@@ -124,6 +125,8 @@ function scanSpecial(lines: readonly string[], i: number, index: CloserIndex): B
 
   const span = findMacroSpan(lines, i, index);
   if (span) {
+    // A closed `{color}` on its own line is inline prose, not a block.
+    if (span.closer?.[0] === i && COLOR_OPEN.test(line)) return null;
     const c = span.code;
     if (c) {
       return {
@@ -165,6 +168,13 @@ const startsBlock = (lines: readonly string[], j: number, index: CloserIndex): b
 function scanBlocks(lines: readonly string[], i: number, index: CloserIndex): Block[] {
   const list = parseListRun(lines, i, (j) => scanSpecial(lines, j, index) !== null);
   if (list) return list.parts;
+  if (COLOR_OPEN.test(lines[i] ?? '')) {
+    const sp = findMacroSpan(lines, i, index);
+    const color = parseColorSpan(lines, i, sp?.closer ?? null, scanBody);
+    if (color) {
+      return color.blocks;
+    }
+  }
   const special = scanSpecial(lines, i, index);
   if (special) return [special];
   let j = i + 1;
@@ -192,19 +202,17 @@ function scanBody(body: readonly string[]): { content: JSONContent[]; slices: st
     let from = i;
     for (const block of scanBlocks(body, i, index)) {
       const first = from === i;
-      content.push({
-        ...block.node,
-        attrs: { ...block.node.attrs, gap: first ? i - gapStart : 0 },
-      });
+      const g = first ? i - gapStart : (block.gap ?? 0);
+      const gapFrom = first ? gapStart : from;
+      const textFrom = first ? i : from + g;
+      content.push({ ...block.node, attrs: { ...block.node.attrs, gap: g } });
       slices.push(
         (slices.length > 0 ? '\n' : '') +
-          (first
-            ? body
-                .slice(gapStart, i)
-                .map((l) => `${l}\n`)
-                .join('')
-            : '') +
-          body.slice(from, block.end).join('\n'),
+          body
+            .slice(gapFrom, textFrom)
+            .map((l) => `${l}\n`)
+            .join('') +
+          body.slice(textFrom, block.end).join('\n'),
       );
       from = block.end;
     }

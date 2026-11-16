@@ -74,13 +74,27 @@ function nodeSegments(n: JSONContent): Segment[] {
 type MarkJSON = { type: string; attrs?: Record<string, unknown> };
 
 /** Nesting preference for marks of equal extent and no recorded span (user-created). */
-const MARK_RANK = ['link', 'bold', 'italic', 'strike', 'underline', 'sup', 'sub', 'cite', 'mono'];
+const MARK_RANK = [
+  'color',
+  'link',
+  'bold',
+  'italic',
+  'strike',
+  'underline',
+  'sup',
+  'sub',
+  'cite',
+  'mono',
+];
 
 const markKey = (m: MarkJSON): string => `${m.type}\u0000${JSON.stringify(m.attrs ?? {})}`;
 
 /** Opening delimiter of a mark; the closer depends on the run text for links. */
 function markDelims(m: MarkJSON, runText: string): [string, string] {
   const a = m.attrs ?? {};
+  if (m.type === 'color') {
+    return [str(a.open, `{color:${str(a.value, '')}}`), '{color}'];
+  }
   if (m.type === 'link') {
     const href = str(a.href, '');
     return a.form === 'bare' && runText === href ? ['[', ']'] : ['[', `|${href}]`];
@@ -287,9 +301,10 @@ function listSegments(list: JSONContent, ancestors: string): Segment[] {
 /** Wiki text of a container body: blocks with their recorded gaps. */
 function bodyText(blocks: readonly JSONContent[]): string {
   let out = '';
+  const texts = blockTexts(blocks);
   blocks.forEach((block, i) => {
     const gap = i === 0 ? 0 : Number(block.attrs?.gap ?? 1);
-    out += `${i > 0 ? '\n' : ''}${'\n'.repeat(gap)}${emitBlockNode(block)}`;
+    out += `${i > 0 ? '\n' : ''}${'\n'.repeat(gap)}${texts[i]}`;
   });
   return out;
 }
@@ -354,7 +369,47 @@ function tableSegments(table: JSONContent): Segment[] {
   return out;
 }
 
-function blockSegments(node: JSONContent): Segment[] {
+/** A cross-block color span member: every inline node carries the same string-span color mark. */
+type ColorRun = { span: string; value: string; open: string | null };
+
+function colorRunOf(block: JSONContent): ColorRun | null {
+  if (block.type !== 'paragraph' && block.type !== 'heading') return null;
+  const kids = block.content ?? [];
+  const first = kids[0]?.marks?.find(
+    (m) => m.type === 'color' && typeof m.attrs?.span === 'string',
+  );
+  if (!first) return null;
+  const span = first.attrs?.span as string;
+  const value = str(first.attrs?.value, '');
+  const same = kids.every((k) =>
+    k.marks?.some((m) => m.type === 'color' && m.attrs?.span === span && m.attrs?.value === value),
+  );
+  if (!same) return null;
+  return { span, value, open: typeof first.attrs?.open === 'string' ? first.attrs.open : null };
+}
+
+type BlockOpts = { drop?: string; open?: string; close?: string };
+
+/** The node with the color marks of span `drop` removed from its inline children. */
+function withoutSpan(node: JSONContent, drop: string): JSONContent {
+  return {
+    ...node,
+    content: (node.content ?? []).map((k) => {
+      const marks = (k.marks ?? []).filter((m) => !(m.type === 'color' && m.attrs?.span === drop));
+      const { marks: _old, ...rest } = k;
+      return marks.length ? { ...rest, marks } : rest;
+    }),
+  };
+}
+
+function blockSegments(node: JSONContent, opts: BlockOpts = {}): Segment[] {
+  if (opts.drop !== undefined) {
+    return [
+      prose(opts.open ?? ''),
+      ...blockSegments(withoutSpan(node, opts.drop)),
+      prose(opts.close ?? ''),
+    ];
+  }
   const a = node.attrs ?? {};
   switch (node.type) {
     case 'paragraph':
@@ -418,17 +473,53 @@ const toJSON = (doc: JSONContent | PMNode): JSONContent =>
     : (doc as JSONContent);
 
 /** Wiki text of one top-level block, without gap or separators. */
-export function emitBlockNode(node: JSONContent | PMNode): string {
-  return render(blockSegments(toJSON(node)));
+export function emitBlockNode(node: JSONContent | PMNode, opts?: BlockOpts): string {
+  return render(blockSegments(toJSON(node), opts));
+}
+
+/**
+ * Text of each block. A run of two or more paragraphs/headings that share one
+ * color span id (D-09) is written as one `{color:…}` opener and one `{color}`
+ * closer; a run broken by an edit is written as separate pairs by the normal
+ * mark path.
+ */
+function blockTexts(blocks: readonly JSONContent[]): string[] {
+  const out: string[] = [];
+  let i = 0;
+  while (i < blocks.length) {
+    const b = blocks[i] as JSONContent;
+    const run = b.type === 'paragraph' ? colorRunOf(b) : null;
+    let j = i + 1;
+    while (run && j < blocks.length) {
+      const next = colorRunOf(blocks[j] as JSONContent);
+      if (!next || next.span !== run.span || next.value !== run.value) break;
+      j++;
+    }
+    if (run && j - i >= 2) {
+      const open = run.open ?? `{color:${run.value}}`;
+      for (let n = i; n < j; n++) {
+        out.push(
+          emitBlockNode(blocks[n] as JSONContent, {
+            drop: run.span,
+            ...(n === i ? { open } : {}),
+            ...(n === j - 1 ? { close: '{color}' } : {}),
+          }),
+        );
+      }
+    } else out.push(emitBlockNode(b));
+    i = j;
+  }
+  return out;
 }
 
 export function emitWiki(doc: JSONContent | PMNode): string {
   const json = toJSON(doc);
   const blocks = json.content ?? [];
   let out = '';
+  const texts = blockTexts(blocks);
   blocks.forEach((block, i) => {
     const gap = Number(block.attrs?.gap ?? (i === 0 ? 0 : 1));
-    out += `${i > 0 ? '\n' : ''}${'\n'.repeat(gap)}${emitBlockNode(block)}`;
+    out += `${i > 0 ? '\n' : ''}${'\n'.repeat(gap)}${texts[i]}`;
   });
   out += '\n'.repeat(Number(json.attrs?.tail ?? 0));
   return json.attrs?.eol === 'crlf' ? out.replace(/\n/g, '\r\n') : out;

@@ -23,7 +23,6 @@ const TRAILING_WS = new Set([
  */
 const RAW_ALLOWED: Record<string, string> = {
   'macros/code-language-param.wiki': 'D-10 code opener outside the jira2md grammar',
-  'macros/color-multi-block.wiki': '{color} modelled in Plan 08',
   'macros/expand-unknown.wiki': 'D-10 unknown macro with a closer',
   'macros/mismatched-closer.wiki': 'D-10 mismatched code/noformat closers',
   'macros/unclosed-code.wiki': 'D-10 unclosed known macro',
@@ -52,6 +51,8 @@ const MODELLED: Record<string, string[]> = {
   'monospace/plain-space.wiki': ['mono'],
   'monospace/nbsp.wiki': ['mono'],
   'monospace/teletype-braces.wiki': ['mono'],
+  'macros/color.wiki': ['color'],
+  'macros/color-multi-block.wiki': ['color'],
   'macros/quote.wiki': ['blockquote'],
   'panels/tip.wiki': ['panel'],
   'panels/info-titled.wiki': ['panel'],

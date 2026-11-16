@@ -1,5 +1,6 @@
 import type { JSONContent } from '@tiptap/core';
 import { JIRA_EMOTICON_TOKENS } from '../../preprocess';
+import { COLOR_CLOSE, isSafeColor } from './color';
 import { KNOWN_MACROS } from './macros';
 import { type LineScan, type MarkSpan, matchMark, scanLine } from './marks';
 
@@ -19,7 +20,7 @@ const ESCAPABLE = '*_-+^~?{}[]|!#';
 /** One inline item of a line: a source character or an opaque node. */
 type Item = { ch: string } | { node: JSONContent };
 
-type MarkJSON = { type: string; attrs: { open: string; close: string; span: number } };
+type MarkJSON = { type: string; attrs: Record<string, unknown> };
 
 const BARE_LINK = /^[a-z][a-z0-9+.-]*:\S+$/i;
 
@@ -49,7 +50,10 @@ function build(
         flush();
         const mark: MarkJSON = {
           type: sp.mark,
-          attrs: { open: sp.open, close: sp.close, span: counter.n++ },
+          attrs:
+            sp.mark === 'color'
+              ? { value: sp.value, open: sp.open, span: counter.n++ }
+              : { open: sp.open, close: sp.close, span: counter.n++ },
         };
         out.push(...build(items, scan, sp.cs, sp.ce, [...active, mark], sp.literal, counter));
         i = sp.end;
@@ -168,6 +172,18 @@ export function parseInline(src: string): JSONContent[] {
       } else if (ch === '{') {
         macro.lastIndex = i;
         const m = macro.exec(line);
+        const cm = /\{color:([^}\n]+)\}/y;
+        cm.lastIndex = i;
+        const col = cm.exec(line);
+        if (col && !isSafeColor(col[1] ?? '')) {
+          const close = line.indexOf(COLOR_CLOSE, i + col[0].length);
+          if (close !== -1) {
+            const rawText = line.slice(i, close + COLOR_CLOSE.length);
+            atom({ type: 'rawInline', attrs: { raw: rawText } });
+            i += rawText.length;
+            continue;
+          }
+        }
         if (m && !KNOWN_MACROS.has(m[1] ?? '')) {
           atom({ type: 'rawInline', attrs: { raw: m[0] } });
           i += m[0].length;

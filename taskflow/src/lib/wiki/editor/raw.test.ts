@@ -76,7 +76,7 @@ describe('parseWiki segmenter', () => {
   it('unmodelled families are grouped into raw runs', () => {
     const src = '* a\n* b\n\nbq. quote\n\n|a|b|\n\n{quote}\nq\n{quote}\n\n{color:red}x{color}';
     check(src);
-    expect(types(src)).toEqual(['bulletList', 'blockquote', 'table', 'blockquote', 'rawBlock']);
+    expect(types(src)).toEqual(['bulletList', 'blockquote', 'table', 'blockquote', 'paragraph']);
   });
 
   it('raw atoms are substrings of the source', () => {

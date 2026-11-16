@@ -1,3 +1,5 @@
+import { COLOR_CLOSE, isSafeColor } from './color';
+
 /**
  * Inline mark recognition (Phase 97, D-05). The rules mirror what the renderer
  * itself shows (jira2md plus preprocess.ts), so the editor shows a mark only
@@ -8,12 +10,21 @@
  * per nesting level (T-97-26). Module state is frozen constants only.
  */
 
-export type MarkType = 'bold' | 'italic' | 'strike' | 'underline' | 'sup' | 'sub' | 'mono';
+export type MarkType =
+  | 'color'
+  | 'bold'
+  | 'italic'
+  | 'strike'
+  | 'underline'
+  | 'sup'
+  | 'sub'
+  | 'mono';
 
 /** Delimiter spelling of a mark when the user creates it (D-08). */
 export const CANONICAL_DELIMS: Readonly<
   Record<MarkType | 'cite', readonly [open: string, close: string]>
 > = Object.freeze({
+  color: ['{color}', '{color}'], // placeholder: the emitter writes `{color:value}`…`{color}`
   bold: ['*', '*'],
   italic: ['_', '_'],
   strike: ['-', '-'],
@@ -44,6 +55,8 @@ export type MarkSpan = {
   end: number;
   /** Content of this mark is literal (monospace): no nested marks. */
   literal: boolean;
+  /** Color value (color marks only). */
+  value?: string;
 };
 
 export type LineScan = {
@@ -107,6 +120,17 @@ export function matchMark(scan: LineScan, i: number, e: number): MarkSpan | null
   const m = scan.mask;
   const c = m[i];
   if (c === '{') {
+    if (m.startsWith('{color:', i)) {
+      const q = m.indexOf('}', i + 7);
+      const value = q > i + 7 ? m.slice(i + 7, q) : '';
+      if (q !== -1 && isSafeColor(value)) {
+        const j = m.indexOf(COLOR_CLOSE, q + 1);
+        if (j > q + 1 && j + COLOR_CLOSE.length <= e) {
+          return { ...span('color', m.slice(i, q + 1), COLOR_CLOSE, q + 1, j), value };
+        }
+      }
+      return null;
+    }
     if (m.startsWith('{{{', i)) {
       let p = i + 3;
       let open = '{{{';
