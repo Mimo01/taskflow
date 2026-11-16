@@ -2,16 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.15
 milestone_name: Rich Wiki Editor
-status: ready_to_plan
-last_updated: 2026-11-16T12:59:49.138Z
-last_activity: 2026-11-16 -- Phase 96 execution started
+status: planning
+last_updated: "2026-11-16T13:57:51.060Z"
+last_activity: 2026-11-16
 progress:
   total_phases: 7
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 6
   completed_plans: 6
-  percent: 0
-stopped_at: Phase 96 complete (6/6) — ready to discuss Phase 97
+  percent: 14
 ---
 
 # Project State
@@ -328,9 +327,9 @@ Acknowledged and deferred at v1.14 milestone close (2026-08-13) — 111 open art
 
 ## Session Continuity
 
-Last session: 2026-11-16T11:21:39.979Z
-Stopped at: Phase 96 context gathered
-Resume file: .planning/phases/96-wiki-foundations-equivalence-harness/96-CONTEXT.md
+Last session: 2026-11-16T13:57:51.054Z
+Stopped at: Phase 97 context gathered
+Resume file: .planning/phases/97-round-trip-engine/97-CONTEXT.md
 
 ## Operator Next Steps
 
