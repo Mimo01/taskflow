@@ -209,7 +209,45 @@ describe('typed text escaping (SAFE-06)', () => {
       const wiki = emitWiki(doc);
       expect(shown(parseWiki(wiki).doc, inCell), wiki).toBe(want);
     }
-    expect(emitWiki(paraDoc('ping [~admin] now'))).toBe('ping [\\~admin] now');
+    expect(emitWiki(paraDoc('ping [~admin] now'))).toBe('ping \\[~admin] now');
+    expect(emitWiki(paraDoc('macro {status:colour=Red} x'))).toBe('macro \\{status:colour=Red} x');
+    expect(emitWiki(paraDoc('a [^secret.pdf] b'))).toBe('a \\[^secret.pdf] b');
+  });
+
+  it('typed block-macro look-alikes stay text (gap 1)', () => {
+    const strings = [
+      'a {code}x{code} b',
+      'a {code:java}x{code} b',
+      'a {noformat}x{noformat} b',
+      'a {quote}q{quote} b',
+      'a {panel:title=T}x{panel} b',
+      'a {info}x{info} b',
+      'a {note}x{note} b',
+      'a {warning}x{warning} b',
+      'a {tip}x{tip} b',
+    ];
+    const item = (text: string): JSONContent => ({
+      type: 'doc',
+      content: [
+        {
+          type: 'bulletList',
+          content: [{ type: 'listItem', content: [para(text)] }],
+        },
+      ],
+    });
+    const unescapedBrace = /(?<!\\)\{/;
+    for (const s of strings) {
+      for (const make of [paraDoc, cellDoc, item]) {
+        const wiki = emitWiki(make(s));
+        // tables.ts keeps any cell containing `{code`/`{noformat` as a raw table (D-10), escaped or
+        // not, so no spelling reads back there: the save check fails closed instead (save-check.test).
+        if (make === cellDoc && /\{(code|noformat)/.test(s)) continue;
+        expect(wiki, `${make.name} ${s}`).not.toMatch(unescapedBrace);
+        if (make === item) continue;
+        expect(shown(parseWiki(wiki).doc, make === cellDoc), wiki).toBe(s);
+      }
+    }
+    expect(emitWiki(paraDoc('a {code}x{code} b'))).toBe('a \\{code}x\\{code} b');
   });
 
   it('escapes emoticon tokens through their inner character', () => {
