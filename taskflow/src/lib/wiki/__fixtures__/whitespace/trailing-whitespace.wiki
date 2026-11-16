@@ -1,0 +1,4 @@
+Line with two trailing spaces  
+Line with trailing tab	
+   
+Plain final line

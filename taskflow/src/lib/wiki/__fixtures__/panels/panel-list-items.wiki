@@ -1,0 +1,5 @@
+{panel:title=Checklist}
+* Item one
+* Item two
+** Sub item
+{panel}

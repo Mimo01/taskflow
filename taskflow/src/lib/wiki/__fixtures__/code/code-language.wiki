@@ -1,0 +1,7 @@
+Example:
+{code:java}
+if (a < b && c) {
+  String s = "*not bold*";
+  int _x_ = 1;
+}
+{code}

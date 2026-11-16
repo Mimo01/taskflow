@@ -1,0 +1,3 @@
+{tip}
+Use the shortcut to save time.
+{tip}

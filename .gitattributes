@@ -1,0 +1,2 @@
+# Wiki fixtures must stay byte-exact: CRLF and trailing whitespace are test data (Phase 96 D-12)
+taskflow/src/lib/wiki/__fixtures__/** -text

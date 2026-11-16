@@ -1,0 +1,4 @@
+||Item||Description||
+|*Bold item*|_Italic description_|
+|Link|[Example page|https://example.com/page_one]|
+|*Mixed* and _mixed_|plain text|

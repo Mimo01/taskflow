@@ -1,0 +1,2 @@
+*bold* _italic_ -strike- +underline+ ^sup^ ~sub~ ??cite??
+A bare + sign and 1 + 2 = 3.
