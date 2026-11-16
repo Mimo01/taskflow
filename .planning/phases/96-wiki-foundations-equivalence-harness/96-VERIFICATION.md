@@ -85,3 +85,8 @@ No code gaps. All 4 roadmap success criteria are met in the codebase and the tes
 
 _Verified: 2026-11-16T14:10:00Z_
 _Verifier: Claude (gsd-verifier)_
+
+## Human verification resolution (2026-11-16)
+
+1. CI scope passed. The user ruled that the husky pre-commit hook, which runs the full suite on every commit, counts as CI.
+2. The real-issue visual check was skipped as optional, because the corpus byte-diff before and after extraction was identical.

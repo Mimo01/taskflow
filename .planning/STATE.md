@@ -2,15 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.15
 milestone_name: Rich Wiki Editor
-status: executing
-last_updated: "2026-11-16T11:55:14.524Z"
+status: ready_to_plan
+last_updated: 2026-11-16T12:59:49.138Z
 last_activity: 2026-11-16 -- Phase 96 execution started
 progress:
   total_phases: 7
   completed_phases: 0
   total_plans: 6
-  completed_plans: 0
+  completed_plans: 6
   percent: 0
+stopped_at: Phase 96 complete (6/6) — ready to discuss Phase 97
 ---
 
 # Project State
@@ -20,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-11-16)
 
 **Core value:** Developers and PMs can see everything they need — tasks, MRs, sprint state, notifications, and test execution health — in one place, without switching between Jira, GitLab, and AIO.
-**Current focus:** Phase 96 — wiki-foundations-equivalence-harness
+**Current focus:** Phase 97 — round trip engine
 
 ## Current Position
 
-Phase: 96 (wiki-foundations-equivalence-harness) — EXECUTING
-Plan: 1 of 6
-Status: Executing Phase 96
-Last activity: 2026-11-16 -- Phase 96 execution started
+Phase: 97
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-11-16
 
 Progress: [░░░░░░░░░░] 0%
 
