@@ -217,8 +217,8 @@ Plans:
 
 **Gap closure round 2 — Wave 1**
 
-- [ ] 97-15-PLAN.md — Renderer: Jira backslash escapes neutralised before jira2md, escaped code openers, inline-code entity decoding (gap 2 / CR-02)
-- [ ] 97-16-PLAN.md — Parser: mid-line live macro tokens as raw atoms so typed look-alikes escape; opening-delimiter escapes (gap 1 / CR-01, WR-04)
+- [x] 97-15-PLAN.md — Renderer: Jira backslash escapes neutralised before jira2md, escaped code openers, inline-code entity decoding (gap 2 / CR-02)
+- [x] 97-16-PLAN.md — Parser: mid-line live macro tokens as raw atoms so typed look-alikes escape; opening-delimiter escapes (gap 1 / CR-01, WR-04)
 
 **Gap closure round 2 — Wave 2** *(blocked on 97-15, 97-16)*
 
@@ -309,7 +309,7 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 96. Wiki Foundations & Equivalence Harness | 6/6 | Complete    | 2026-11-16 |
-| 97. Round-Trip Engine | 14/14 | Complete   | 2026-11-16 |
+| 97. Round-Trip Engine | 16/17 | In Progress|  |
 | 98. Editor Shell | 0/TBD | Not started | - |
 | 99. Mentions, Media & Smart Input | 0/TBD | Not started | - |
 | 100. Host Adoption & Editing Workflow | 0/TBD | Not started | - |
