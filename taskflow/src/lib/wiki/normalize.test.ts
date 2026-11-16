@@ -43,6 +43,21 @@ describe('normalizeHastForCompare', () => {
     normalizeHastForCompare(el('p', {}, [t]));
     expect(t.value).toBe('a\u00a0\u00a0b');
   });
+
+  it('skips childless nodes (comment, doctype, raw)', () => {
+    const t = text('a  b');
+    const root = {
+      type: 'root',
+      children: [
+        { type: 'doctype' },
+        { type: 'comment', value: 'x' },
+        { type: 'raw', value: '<b>' },
+        el('p', {}, [t]),
+      ],
+    } as unknown as Parameters<typeof normalizeHastForCompare>[0];
+    expect(() => normalizeHastForCompare(root)).not.toThrow();
+    expect(t.value).toBe('a b');
+  });
 });
 
 describe('isEquivalent', () => {

@@ -10,7 +10,9 @@ import type { Plugin } from 'unified';
 import { type HastElement, type HastText, wikiMarkdownToHtml, wikiToMarkdown } from './pipeline';
 import type { AttachmentMap, UserMap } from './preprocess';
 
-type HastNode = HastText | HastElement;
+// Childless non-text nodes (sanitize strips comments, but the helpers are exported).
+type HastLeaf = { type: 'comment' | 'doctype' | 'raw'; value?: string };
+type HastNode = HastText | HastElement | HastLeaf;
 type HastRoot = { type: 'root'; children: HastNode[] };
 
 export type EquivalenceMaps = { attachments?: AttachmentMap; users?: UserMap };
@@ -26,6 +28,7 @@ function walk(node: HastRoot | HastNode, insidePre: boolean): void {
     }
     return;
   }
+  if (!('children' in node) || !Array.isArray(node.children)) return;
   let pre = insidePre;
   if (node.type === 'element') {
     pre = insidePre || node.tagName === 'pre';
