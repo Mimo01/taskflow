@@ -90,3 +90,56 @@ describe('lib/wiki purity guard', () => {
     }
   });
 });
+
+function parseHtml(html: string): HTMLElement {
+  const div = document.createElement('div');
+  div.innerHTML = html;
+  return div;
+}
+
+function fixtureWiki(rel: string): string {
+  const f = WIKI_CORPUS.find((x) => x.path.endsWith(rel));
+  if (!f) throw new Error(`fixture not found: ${rel}`);
+  return f.wiki;
+}
+
+describe('D-01 mixed list nesting', () => {
+  const root = parseHtml(wikiToHtml(fixtureWiki('lists/mixed-nesting.wiki')));
+
+  it('renders *# under a bullet as an ordered list nested in the parent li', () => {
+    const ol = root.querySelector('ul > li > ol');
+    expect(ol).not.toBeNull();
+    expect(ol?.textContent).toContain('Numbered child one');
+    expect(ol?.textContent).toContain('Numbered child two');
+    // the following ** run is a bullet list inside the same parent li
+    expect(root.querySelector('ul > li > ul')?.textContent).toContain('Bullet child');
+  });
+
+  it('renders #* under a number as a nested bullet list, with a numbered grandchild', () => {
+    const ols = Array.from(root.querySelectorAll('ol')).filter((o) => o.parentElement === root);
+    const parentOl = ols.find((o) => o.textContent?.includes('Numbered parent'));
+    expect(parentOl).toBeDefined();
+    const ul = parentOl?.querySelector('li > ul');
+    expect(ul?.textContent).toContain('Bullet child of number');
+    expect(ul?.textContent).toContain('Another bullet child');
+    expect(parentOl?.querySelector('li > ol')?.textContent).toContain('Numbered grandchild');
+  });
+
+  it('leaves no literal mixed marker in the output', () => {
+    expect(root.textContent).not.toMatch(/\*#|#\*/);
+  });
+
+  it('keeps inline formatting inside a mixed item', () => {
+    const r = parseHtml(wikiToHtml('* a\n*# b *x*'));
+    expect(r.querySelector('ul > li > ol > li strong')?.textContent).toBe('x');
+  });
+
+  it('renders pure ** and ## runs as before', () => {
+    const ul = parseHtml(wikiToHtml('* a\n** b\n* c'));
+    expect(ul.querySelectorAll('ul > li > ul > li').length).toBe(1);
+    expect(ul.querySelector('ol')).toBeNull();
+    const ol = parseHtml(wikiToHtml('# a\n## b\n# c'));
+    expect(ol.querySelectorAll('ol > li > ol > li').length).toBe(1);
+    expect(ol.querySelector('ul')).toBeNull();
+  });
+});

@@ -578,6 +578,28 @@ function normalizeTableCellInlineFormatting(wiki: string): string {
 }
 
 /**
+ * Jira nests a list of the other kind under an item when the marker run mixes
+ * `*` and `#` (`*#` under a bullet is a nested ordered list, `#*` under a number
+ * a nested bullet list). jira2md only understands pure `**`/`##` runs, so a mixed
+ * run rendered as literal text. Each mixed marker run is replaced by a
+ * `\x00LI{indent}{b|o}\x00` sentinel (indent = parent content offset: 2 per `*`,
+ * 3 per `#`, over all markers but the last; b = bullet, o = ordered) that
+ * wikiToMarkdown turns into an indented markdown marker after jira2md has run.
+ * The sentinel starts the line, so no jira2md/list regex can touch it.
+ *
+ * Must run BEFORE the numeric-prefix rewrite (`^\s*\d+\.\s+` becomes `#`), which
+ * would otherwise turn a produced `1.` back into `#`. Pure runs are left alone.
+ */
+export function convertMixedListMarkers(wiki: string): string {
+  return wiki.replace(/^[ \t]*([*#]{2,})[ \t]+(?=\S)/gm, (m, marks: string) => {
+    if (!(marks.includes('*') && marks.includes('#'))) return m;
+    let indent = 0;
+    for (let i = 0; i < marks.length - 1; i++) indent += marks[i] === '*' ? 2 : 3;
+    return `\x00LI${indent}${marks[marks.length - 1] === '*' ? 'b' : 'o'}\x00`;
+  });
+}
+
+/**
  * Pre-process Jira wiki markup that jira2md does not handle:
  * - Jira emoticon shortcodes: (/) (x) (!) (+) (-) (?) (i) (*) (on) (off) (flag) etc.
  * - User mentions: [~username] and [~accountId:xxx]
@@ -768,6 +790,8 @@ export function preprocessJiraMarkup(
   // total characters can never satisfy the strikethrough rule's 4-character minimum
   // of open + 2-char content + close).
   result = result.replace(/^-{4,}$/gm, '\n---\n');
+
+  result = convertMixedListMarkers(result);
 
   // Table cell inline formatting: normalize Jira bold (*text*), italic (_text_), and
   // strikethrough (-text-) to markdown/HTML equivalents on a per-cell basis, BEFORE

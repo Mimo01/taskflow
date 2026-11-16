@@ -2720,3 +2720,16 @@ After quote`;
     });
   });
 });
+
+describe('D-01 mixed nesting', () => {
+  it('renders *# under a bullet as a nested ordered list', () => {
+    const { container } = render(<WikiRenderer wikiText={'* a\n*# b'} />);
+    expect(container.querySelector('ul li ol li')?.textContent).toBe('b');
+    expect(container.textContent).not.toContain('*#');
+  });
+
+  it('renders #* under a number as a nested bullet list', () => {
+    const { container } = render(<WikiRenderer wikiText={'# a\n#* b'} />);
+    expect(container.querySelector('ol li ul li')?.textContent).toBe('b');
+  });
+});

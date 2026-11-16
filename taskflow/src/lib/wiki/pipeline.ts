@@ -190,11 +190,17 @@ export function wikiToMarkdown(
     ? preprocessJiraMarkup(wikiText, attachments, users)
     : { text: '', codeBlockBodies: [] };
   return preprocessed
-    ? fixMarkdownLinkUnderscores(j2m.to_markdown(preprocessed)).replace(
-        // biome-ignore lint/suspicious/noControlCharactersInRegex: \x00 (null byte) sentinel, see preprocessJiraMarkup
-        /\x00CODEBODY(\d+)\x00/g,
-        (_, i) => codeBlockBodies[Number.parseInt(i, 10)],
-      )
+    ? fixMarkdownLinkUnderscores(j2m.to_markdown(preprocessed))
+        .replace(
+          // biome-ignore lint/suspicious/noControlCharactersInRegex: \x00 (null byte) sentinel, see preprocessJiraMarkup
+          /\x00CODEBODY(\d+)\x00/g,
+          (_, i) => codeBlockBodies[Number.parseInt(i, 10)],
+        )
+        .replace(
+          // biome-ignore lint/suspicious/noControlCharactersInRegex: \x00 (null byte) sentinel, see preprocessJiraMarkup
+          /\x00LI(\d+)([bo])\x00/g,
+          (_, n, k) => ' '.repeat(Number(n)) + (k === 'b' ? '* ' : '1. '),
+        )
     : '';
 }
 
