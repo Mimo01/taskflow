@@ -188,7 +188,7 @@ Plans:
 
 **Wave 6** *(blocked on Wave 5 completion)*
 
-- [ ] 97-07-PLAN.md — Inline atoms: emoticons, mentions, escapes, breaks, images, attachments, inline raw
+- [x] 97-07-PLAN.md — Inline atoms: emoticons, mentions, escapes, breaks, images, attachments, inline raw
 
 **Wave 7** *(blocked on Wave 6 completion)*
 
@@ -287,7 +287,7 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 96. Wiki Foundations & Equivalence Harness | 6/6 | Complete    | 2026-11-16 |
-| 97. Round-Trip Engine | 6/10 | In Progress|  |
+| 97. Round-Trip Engine | 7/10 | In Progress|  |
 | 98. Editor Shell | 0/TBD | Not started | - |
 | 99. Mentions, Media & Smart Input | 0/TBD | Not started | - |
 | 100. Host Adoption & Editing Workflow | 0/TBD | Not started | - |
