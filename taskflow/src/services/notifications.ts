@@ -43,6 +43,51 @@ export type { NotificationItem };
 
 // ─── Jira Comment Fetcher ─────────────────────────────────────────────────────
 
+/** Page size for the notification searches (expand=changelog pages are heavy). */
+const NOTIFICATION_PAGE_SIZE = 50;
+/** Safety bound: at most this many pages (1000 issues) per query per poll. */
+const NOTIFICATION_MAX_PAGES = 20;
+
+/**
+ * Page through one Jira search until the polling window is covered. A single capped page
+ * silently dropped matching issues on busy days, and the cursor then moved past them for good.
+ * Advances by what Jira actually returned (instances may cap maxResults lower). Returns null when
+ * the first page fails (the query yields nothing, as before), or the pages fetched so far when a
+ * later page fails.
+ */
+async function searchAllNotificationPages(
+  baseSearchUrl: string,
+  headers: Record<string, string>,
+): Promise<unknown[] | null> {
+  const all: unknown[] = [];
+  let startAt = 0;
+  for (let page = 0; page < NOTIFICATION_MAX_PAGES; page++) {
+    const url = `${baseSearchUrl}&maxResults=${NOTIFICATION_PAGE_SIZE}&startAt=${startAt}`;
+    let issues: unknown[];
+    let total: number;
+    try {
+      const response = await apiFetch('jira', url, { headers }, 'Load Notifications');
+      if (!response.ok) return page === 0 ? null : all;
+      const data = await response.json();
+      issues = data.issues ?? [];
+      total = typeof data.total === 'number' ? data.total : startAt + issues.length;
+    } catch {
+      return page === 0 ? null : all;
+    }
+    all.push(...issues);
+    startAt += issues.length;
+    if (issues.length === 0 || startAt >= total) break;
+  }
+  return all;
+}
+
+/** Local calendar date as YYYY-MM-DD. */
+function localDateKey(d: Date): string {
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${m}-${day}`;
+}
+
 /**
  * Fetch Jira notifications newer than lastSeenCursor for the current user.
  *
@@ -124,18 +169,10 @@ async function fetchNewJiraComments(
       ` AND (assignee = "${username}" OR reporter = "${username}" OR watcher = "${username}")` +
       ` AND updatedDate >= "${sinceJql}"` +
       ` ORDER BY updated DESC`;
-    const url = `${base}/rest/api/2/search?jql=${encodeURIComponent(jql)}&fields=summary,status,assignee,reporter,updated,parent,issuetype&expand=changelog&maxResults=20`;
+    const url = `${base}/rest/api/2/search?jql=${encodeURIComponent(jql)}&fields=summary,status,assignee,reporter,updated,parent,issuetype&expand=changelog`;
 
-    let response: Response;
-    try {
-      response = await apiFetch('jira', url, { headers }, 'Load Notifications');
-    } catch {
-      return [];
-    }
-    if (!response.ok) return [];
-
-    const data = await response.json();
-    const issues: unknown[] = data.issues ?? [];
+    const issues = await searchAllNotificationPages(url, headers);
+    if (!issues) return [];
     const results: NotificationItem[] = [];
 
     for (const rawIssue of issues) {
@@ -279,18 +316,10 @@ async function fetchNewJiraComments(
   async function fetchCommentMentions(): Promise<NotificationItem[]> {
     const mentionTarget = displayName ?? username ?? '';
     const jql = `project = ${projectKey} AND comment ~ "${mentionTarget}" AND updatedDate >= "${sinceJql}" ORDER BY updated DESC`;
-    const url = `${base}/rest/api/2/search?jql=${encodeURIComponent(jql)}&fields=summary,comment,parent,issuetype&maxResults=20`;
+    const url = `${base}/rest/api/2/search?jql=${encodeURIComponent(jql)}&fields=summary,comment,parent,issuetype`;
 
-    let response: Response;
-    try {
-      response = await apiFetch('jira', url, { headers }, 'Load Notifications');
-    } catch {
-      return [];
-    }
-    if (!response.ok) return [];
-
-    const data = await response.json();
-    const issues: unknown[] = data.issues ?? [];
+    const issues = await searchAllNotificationPages(url, headers);
+    if (!issues) return [];
     const results: NotificationItem[] = [];
 
     for (const rawIssue of issues) {
@@ -353,18 +382,10 @@ async function fetchNewJiraComments(
       ` AND (assignee = "${username}" OR reporter = "${username}" OR watcher = "${username}")` +
       ` AND updatedDate >= "${sinceJql}"` +
       ` ORDER BY updated DESC`;
-    const url = `${base}/rest/api/2/search?jql=${encodeURIComponent(jql)}&fields=summary,comment,parent,issuetype&maxResults=20`;
+    const url = `${base}/rest/api/2/search?jql=${encodeURIComponent(jql)}&fields=summary,comment,parent,issuetype`;
 
-    let response: Response;
-    try {
-      response = await apiFetch('jira', url, { headers }, 'Load Notifications');
-    } catch {
-      return [];
-    }
-    if (!response.ok) return [];
-
-    const data = await response.json();
-    const issues: unknown[] = data.issues ?? [];
+    const issues = await searchAllNotificationPages(url, headers);
+    if (!issues) return [];
     const results: NotificationItem[] = [];
 
     for (const rawIssue of issues) {
@@ -428,18 +449,10 @@ async function fetchNewJiraComments(
     const jql =
       `assignee = "${username}" AND duedate >= now() AND duedate <= endOfDay("+1")` +
       ` ORDER BY duedate ASC`;
-    const url = `${base}/rest/api/2/search?jql=${encodeURIComponent(jql)}&fields=summary,duedate,status,parent,issuetype&maxResults=20`;
+    const url = `${base}/rest/api/2/search?jql=${encodeURIComponent(jql)}&fields=summary,duedate,status,parent,issuetype`;
 
-    let response: Response;
-    try {
-      response = await apiFetch('jira', url, { headers }, 'Load Notifications');
-    } catch {
-      return [];
-    }
-    if (!response.ok) return [];
-
-    const data = await response.json();
-    const issues: unknown[] = data.issues ?? [];
+    const issues = await searchAllNotificationPages(url, headers);
+    if (!issues) return [];
     const results: NotificationItem[] = [];
 
     for (const rawIssue of issues) {
@@ -456,16 +469,17 @@ async function fetchNewJiraComments(
 
       if (!issue.fields.duedate) continue;
 
-      // Determine relative label
-      const dueDate = new Date(issue.fields.duedate);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const tomorrow = new Date(today);
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      const dueLabel = dueDate <= today ? 'Due today' : 'Due tomorrow';
+      // Compare calendar dates in local time. `new Date('YYYY-MM-DD')` is UTC midnight, which
+      // east of UTC lands after local midnight and labelled an issue due today "Due tomorrow".
+      const dueDay = issue.fields.duedate.slice(0, 10);
+      const dueToday = dueDay <= localDateKey(new Date());
+      const dueLabel = dueToday ? 'Due today' : 'Due tomorrow';
 
       results.push({
-        id: `jira-duedate-${issue.key}-${issue.fields.duedate}`,
+        // The day before: the date-only id (unchanged, so stored reminders keep deduping). On
+        // the day: a separate `-today` id, so "Due today" arrives instead of being deduped
+        // against yesterday's "Due tomorrow" card (95-REVIEW WR-05).
+        id: `jira-duedate-${issue.key}-${issue.fields.duedate}${dueToday ? '-today' : ''}`,
         source: 'jira',
         entityTitle: `${issue.key}: ${issue.fields.summary}`,
         author: '',

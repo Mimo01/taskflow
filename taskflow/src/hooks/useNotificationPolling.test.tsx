@@ -282,4 +282,18 @@ describe('useNotificationPolling banners', () => {
     await waitFor(() => expect(useNotificationsStore.getState().items.length).toBe(1));
     expect(useNotificationsStore.getState().lastSeenJiraCursor).toBe('2026-11-11T09:00:00.000Z');
   });
+
+  it('due reminders (client-clock createdAt) never advance the Jira cursor (WR-06)', async () => {
+    fetchNew.mockResolvedValueOnce([
+      { ...item('server-1'), createdAt: '2026-11-11T09:30:00.000Z' },
+      {
+        ...item('jira-duedate-PROJ-2-2026-11-12'),
+        notificationType: 'due-date-reminder' as const,
+        createdAt: '2026-11-11T11:45:00.000Z', // client "now", ahead of any server event
+      },
+    ]);
+    renderHook(() => useNotificationPolling(), { wrapper });
+    await waitFor(() => expect(useNotificationsStore.getState().items.length).toBe(2));
+    expect(useNotificationsStore.getState().lastSeenJiraCursor).toBe('2026-11-11T09:30:00.000Z');
+  });
 });

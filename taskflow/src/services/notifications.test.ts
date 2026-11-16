@@ -1,7 +1,7 @@
 // NOTF-01: Unified notification feed (Jira + GitLab)
 // NOTF-02: Polling with configurable interval, clamped to [30, 300] seconds
 // NOTF-03: OS desktop notification dispatch
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   fetchNewNotifications,
   pickPersonAvatars,
@@ -1430,13 +1430,114 @@ describe('notifications service', () => {
       );
     }
 
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
     it('includes the due date in the id and changes it when the date changes', async () => {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      vi.setSystemTime(new Date(2026, 10, 11, 9, 0)); // local 11 Nov: both dates are "tomorrow" or later
       const a = await runWithDueDate('2026-11-12');
       expect(a.map((i) => i.id)).toContain('jira-duedate-PROJ-1-2026-11-12');
       vi.mocked(mockFetch).mockReset();
       const b = await runWithDueDate('2026-11-13');
       expect(b.map((i) => i.id)).toContain('jira-duedate-PROJ-1-2026-11-13');
       expect(b.map((i) => i.id)).not.toContain('jira-duedate-PROJ-1-2026-11-12');
+    });
+
+    it('labels by local calendar day and gives the due-day reminder its own -today id (WR-05)', async () => {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      // Just after local midnight: UTC parsing of '2026-11-12' used to call this "tomorrow"
+      // in any timezone east of UTC.
+      vi.setSystemTime(new Date(2026, 10, 12, 0, 30));
+      const today = await runWithDueDate('2026-11-12');
+      const t = today.find((i) => i.notificationType === 'due-date-reminder');
+      expect(t?.id).toBe('jira-duedate-PROJ-1-2026-11-12-today');
+      expect(t?.bodyPreview).toBe('Due today');
+
+      vi.mocked(mockFetch).mockReset();
+      vi.setSystemTime(new Date(2026, 10, 11, 23, 30));
+      const before = await runWithDueDate('2026-11-12');
+      const b = before.find((i) => i.notificationType === 'due-date-reminder');
+      expect(b?.id).toBe('jira-duedate-PROJ-1-2026-11-12');
+      expect(b?.bodyPreview).toBe('Due tomorrow');
+    });
+  });
+
+  describe('Jira polls page through results (no maxResults=20 cap)', () => {
+    const empty = { ok: true, status: 200, json: async () => ({ issues: [], total: 0 }) };
+    const commentIssue = (n: number) => ({
+      key: `PROJ-${n}`,
+      fields: {
+        summary: `Issue ${n}`,
+        comment: {
+          comments: [
+            {
+              id: `c${n}`,
+              author: { displayName: 'J.Smith', name: 'jsmith' },
+              body: 'Hey @Jane Doe please look',
+              updated: '2026-03-11T12:00:00.000Z',
+              created: '2026-03-11T12:00:00.000Z',
+            },
+          ],
+        },
+      },
+    });
+    const run = () =>
+      fetchNewNotifications(
+        'https://jira.example.com',
+        null,
+        { jira: 'jira-token', gitlab: null },
+        {
+          activeJiraProject: 'PROJ',
+          jiraUserDisplayName: 'Jane Doe',
+          jiraUsername: null, // only Query B (mentions) runs
+          gitlabUserId: null,
+          gitlabUsername: null,
+          mrList: [],
+          lastSeenJiraCursor: '2026-03-11T10:00:00.000Z',
+          lastSeenGitlabCursor: null,
+        },
+      );
+
+    it('keeps every matching issue beyond the first page, stepping by what Jira returned', async () => {
+      const all = Array.from({ length: 35 }, (_, i) => commentIssue(i + 1));
+      vi.mocked(mockFetch).mockImplementation((async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (!url.includes('comment')) return empty as unknown as Response;
+        const startAt = Number(new URL(url).searchParams.get('startAt'));
+        // Instance caps pages at 20 even though 50 was asked for.
+        const page = all.slice(startAt, startAt + 20);
+        return { ok: true, status: 200, json: async () => ({ issues: page, total: 35 }) } as never;
+      }) as never);
+
+      const items = await run();
+      const ids = items.filter((i) => i.id.startsWith('jira-comment-')).map((i) => i.id);
+      expect(ids).toHaveLength(35);
+      const starts = vi
+        .mocked(mockFetch)
+        .mock.calls.map(([u]) => String(u))
+        .filter((u) => u.includes('comment'))
+        .map((u) => new URL(u).searchParams.get('startAt'));
+      expect(starts).toEqual(['0', '20']);
+    });
+
+    it('a failing later page keeps the pages already fetched', async () => {
+      const all = Array.from({ length: 30 }, (_, i) => commentIssue(i + 1));
+      vi.mocked(mockFetch).mockImplementation((async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (!url.includes('comment')) return empty as unknown as Response;
+        const startAt = Number(new URL(url).searchParams.get('startAt'));
+        if (startAt > 0) return { ok: false, status: 500, json: async () => ({}) } as never;
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ issues: all.slice(0, 20), total: 30 }),
+        } as never;
+      }) as never);
+
+      const items = await run();
+      expect(items.filter((i) => i.id.startsWith('jira-comment-'))).toHaveLength(20);
     });
   });
 

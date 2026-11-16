@@ -202,7 +202,12 @@ export function useNotificationPolling() {
       // Advance per-source cursors independently so one source's failure
       // doesn't skip the other source's unseen notifications.
       const advanceCursors = (items: typeof allItems) => {
-        const jiraItems = items.filter((i) => i.source === 'jira');
+        // Due reminders are stamped with the client clock, not a server time. Letting them move
+        // the Jira cursor skipped server events that landed between the queries, and every event
+        // while the client clock ran ahead (95-REVIEW WR-06). Cursors follow server timestamps only.
+        const jiraItems = items.filter(
+          (i) => i.source === 'jira' && i.notificationType !== 'due-date-reminder',
+        );
         const gitlabItems = items.filter((i) => i.source === 'gitlab');
         // Never move a cursor backwards: an edited comment is fetched by `updated` but carries
         // its older `created`, and a regressed cursor re-reads changelog entries already shown.
