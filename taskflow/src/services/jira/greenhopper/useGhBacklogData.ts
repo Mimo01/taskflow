@@ -63,30 +63,38 @@ export function useGhBacklogData(
   },
 ): UseQueryResult<GhBacklogResponse> {
   const jiraBaseUrl = useAuthStore((s) => s.jiraBaseUrl);
-  const [secret, setSecret] = useState<{ baseUrl: string | null; token: string | null }>({
-    baseUrl: null,
-    token: null,
-  });
+  const credentialsRevision = useAuthStore((s) => s.credentialsRevision);
+  const [secret, setSecret] = useState<{
+    baseUrl: string | null;
+    revision: number;
+    token: string | null;
+  }>({ baseUrl: null, revision: -1, token: null });
 
   useEffect(() => {
     // WR-05 (Phase 71/73 carry-forward): re-read the secret whenever the
-    // Jira instance changes (login rotation, instance switch). Empty deps
-    // would leave the hook with a stale token across re-auth cycles.
+    // Jira instance changes (login rotation, instance switch) or a new PAT
+    // is saved. Empty deps would leave the hook with a stale token across
+    // re-auth cycles.
     let cancelled = false;
     readSecret('jira-pat')
       .then((t) => {
-        if (!cancelled) setSecret({ baseUrl: jiraBaseUrl, token: t });
+        if (!cancelled)
+          setSecret({ baseUrl: jiraBaseUrl, revision: credentialsRevision, token: t });
       })
       .catch(() => {
-        if (!cancelled) setSecret({ baseUrl: jiraBaseUrl, token: null });
+        if (!cancelled)
+          setSecret({ baseUrl: jiraBaseUrl, revision: credentialsRevision, token: null });
       });
     return () => {
       cancelled = true;
     };
-  }, [jiraBaseUrl]);
+  }, [jiraBaseUrl, credentialsRevision]);
   // WR-06: only trust a PAT read for the current instance — on the render where jiraBaseUrl
-  // switches, the previous instance's token must not be sent to the new host.
-  const token = secret.baseUrl === jiraBaseUrl ? secret.token : null;
+  // switches, the previous instance's token must not be sent to the new host. Same for a
+  // credential save: the render after queryClient.clear() + revision bump must not refetch
+  // with the old token before the re-read settles.
+  const token =
+    secret.baseUrl === jiraBaseUrl && secret.revision === credentialsRevision ? secret.token : null;
 
   const isActive = useIsActiveRoute('/backlog');
 

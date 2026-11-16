@@ -166,4 +166,26 @@ describe('useGlobalSearchSources', () => {
     const backlogCalls = vi.mocked(fetchBacklogData).mock.calls.filter(([base]) => base === B);
     expect(backlogCalls.every(([, tok]) => tok === 'tok-b')).toBe(true);
   });
+
+  it('never sends the old PAT after a credential save on the same host (clear + revision bump)', async () => {
+    let current = 'tok-old';
+    vi.mocked(readSecret).mockImplementation(async () => current);
+    const qc = newClient();
+    renderHook(() => useGlobalSearchSources(true), { wrapper: makeWrapper(qc) });
+    await waitFor(() => expect(fetchBacklogData).toHaveBeenCalledWith(BASE, 'tok-old', 7));
+    const boardCallsBefore = vi.mocked(useBoardId).mock.calls.length;
+    const backlogCallsBefore = vi.mocked(fetchBacklogData).mock.calls.length;
+
+    // Same order as ConnectionsSection.resetAfterCredentialSave.
+    current = 'tok-new';
+    await act(async () => {
+      qc.clear();
+      useAuthStore.getState().bumpCredentialsRevision();
+    });
+    await waitFor(() => expect(fetchBacklogData).toHaveBeenLastCalledWith(BASE, 'tok-new', 7));
+    const boardCalls = vi.mocked(useBoardId).mock.calls.slice(boardCallsBefore);
+    expect(boardCalls.every(([, tok]) => tok === null || tok === 'tok-new')).toBe(true);
+    const backlogCalls = vi.mocked(fetchBacklogData).mock.calls.slice(backlogCallsBefore);
+    expect(backlogCalls.every(([, tok]) => tok === 'tok-new')).toBe(true);
+  });
 });

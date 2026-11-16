@@ -139,6 +139,27 @@ describe('useGhBacklogData (hook)', () => {
     expect(mockedFetchBacklogData).toHaveBeenCalledWith(BASE, TOKEN, BOARD_ID);
     expect(result.current.data).toBe(payload);
   });
+
+  it('re-reads the PAT when credentialsRevision bumps (token saved in Settings, same base URL)', async () => {
+    mockedFetchBacklogData.mockResolvedValue(makeBacklogResponse());
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const wrapper = makeWrapper(qc);
+
+    const { result } = renderHook(() => useGhBacklogData(BOARD_ID), { wrapper });
+    await waitFor(() => expect(result.current.data).toBeDefined());
+    expect(mockedFetchBacklogData).toHaveBeenLastCalledWith(BASE, TOKEN, BOARD_ID);
+
+    // Mirrors the credential-save path: new PAT stored, revision bumped, cache cleared.
+    mockedReadSecret.mockResolvedValue('rotated-token');
+    qc.clear();
+    useAuthStore.getState().bumpCredentialsRevision();
+
+    await waitFor(() =>
+      expect(mockedFetchBacklogData).toHaveBeenLastCalledWith(BASE, 'rotated-token', BOARD_ID),
+    );
+    // No refetch with the old token slipped in between clear and the re-read.
+    expect(mockedFetchBacklogData).toHaveBeenCalledTimes(2);
+  });
 });
 
 describe('getGhBacklogData (imperative)', () => {

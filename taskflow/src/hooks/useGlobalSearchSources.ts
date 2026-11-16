@@ -29,30 +29,39 @@ export function useGlobalSearchSources(open: boolean): {
   const credentialsRevision = useAuthStore((s) => s.credentialsRevision);
   const [secret, setSecret] = useState<{
     baseUrl: string | null;
+    revision: number;
     token: string | null;
     read: boolean;
-  }>({ baseUrl: null, token: null, read: false });
+  }>({ baseUrl: null, revision: -1, token: null, read: false });
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: credentialsRevision is a re-read trigger — a token saved in Settings must replace the one held here.
   useEffect(() => {
     let cancelled = false;
     readSecret('jira-pat')
       .then((t) => {
-        if (!cancelled) setSecret({ baseUrl: jiraBaseUrl, token: t, read: true });
+        if (!cancelled)
+          setSecret({ baseUrl: jiraBaseUrl, revision: credentialsRevision, token: t, read: true });
       })
       .catch(() => {
-        if (!cancelled) setSecret({ baseUrl: jiraBaseUrl, token: null, read: true });
+        if (!cancelled)
+          setSecret({
+            baseUrl: jiraBaseUrl,
+            revision: credentialsRevision,
+            token: null,
+            read: true,
+          });
       });
     return () => {
       cancelled = true;
     };
   }, [jiraBaseUrl, credentialsRevision]);
   // WR-06: only trust a PAT read for the current instance — on the render where jiraBaseUrl
-  // switches, the previous instance's token must not be sent to the new host.
-  const token = secret.baseUrl === jiraBaseUrl ? secret.token : null;
+  // switches, the previous instance's token must not be sent to the new host. Likewise after a
+  // credential save (clear + revision bump): no lookup with the old token before the re-read.
+  const current = secret.baseUrl === jiraBaseUrl && secret.revision === credentialsRevision;
+  const token = current ? secret.token : null;
   // `token` is null both before the read settles and after it failed; tell them apart so an
   // unread PAT counts as loading and a missing one as an error (never a forever-pending query).
-  const secretRead = secret.baseUrl === jiraBaseUrl && secret.read;
+  const secretRead = current && secret.read;
   const patMissing = secretRead && !token && !!jiraBaseUrl;
 
   const { boardId, isLoading: boardIdLoading } = useBoardId(jiraBaseUrl, token, activeJiraProject);
