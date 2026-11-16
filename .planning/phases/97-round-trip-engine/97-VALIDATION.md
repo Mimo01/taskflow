@@ -56,6 +56,9 @@ Filled in by the planner and executor. Requirement-to-test map from research:
 | CR-03 / CR-04 / WR-02 | Container children, cell paragraphs/breaks and edited attrs emit or throw `WikiEmitError` | unit | `npx vitest run src/lib/wiki/editor/emit-edited.test.ts` | ✅ | ✅ green |
 | CR-05 | Typed atom look-alikes escape; unspellable tokens are reported; tightened oracle | unit | `npx vitest run src/lib/wiki/editor/escape.test.ts` | ✅ | ✅ green |
 | WR-01 | `saveWiki` re-parses what it would write; `failed` for unwritable edits; legitimate edits save | unit | `npx vitest run src/lib/wiki/editor/save-check.test.ts` | ✅ | ✅ green |
+| Gap 1 (CR-01 re-review, WR-04) | Typed mid-line block-macro look-alikes are escaped (opening delimiter last, WR-04); parsed mid-line macros are raw atoms | unit | `npx vitest run src/lib/wiki/editor/raw.test.ts src/lib/wiki/editor/escape.test.ts src/lib/wiki/editor/save-check.test.ts -t "gap 1"` | ✅ | ✅ green |
+| Gap 2 (CR-02 re-review) | Jira backslash escapes render literally in prose and inline code | render | `npx vitest run src/lib/wiki/pipeline.test.tsx -t "CR-02"` | ✅ | ✅ green |
+| SC1+SC3 end to end | Typed text -> saveWiki -> wikiToHtml displays as typed (paragraph, list item, table cell except `{code}`/`{noformat}` which fail closed) | integration | `npx vitest run src/lib/wiki/editor/typed-render.test.ts` | ✅ | ✅ green |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -74,6 +77,7 @@ Filled in by the planner and executor. Requirement-to-test map from research:
 | Behavior | Requirement | Why Manual | Test Instructions |
 |----------|-------------|------------|-------------------|
 | Renderer fixes look like Jira in the app | D-01, D-02, D-12 | Visual parity with real Jira | Open an issue with mixed nesting, a header-less table and `{tip}`/`{info:title=}` panels; compare against Jira. Deferred 97-03 Task 3 check; must be re-run after the CR-01/CR-02 renderer fixes. Owned by `/gsd-verify-work 97`. |
+| Escapes and escaped openers are literal in Jira | SAFE-06 | Real Jira behaviour cannot be asserted in code | Paste `a \*b\* c`, `\[~admin]`, `\{color:red}x\{color}`, `\!http://e.example/p.png\!` and `a \{code}x\{code} b` into a Jira test issue and confirm each shows the literal characters. Owned by `/gsd-verify-work 97`. |
 
 ---
 
