@@ -209,3 +209,82 @@ describe('edge whitespace outside marks', () => {
     );
   });
 });
+
+/** The first node (depth-first) of `type` in a parsed doc. */
+function firstOf(d: JSONContent, type: string): JSONContent {
+  const hit = (n: JSONContent): JSONContent | undefined => {
+    if (n.type === type) return n;
+    for (const k of n.content ?? []) {
+      const r = hit(k);
+      if (r) return r;
+    }
+    return undefined;
+  };
+  const found = hit(d);
+  if (!found) throw new Error(`no ${type} in doc`);
+  return found;
+}
+
+/** Parses `src`, sets attributes on the first `type` node (spelling untouched), and emits. */
+function editedAttrs(src: string, type: string, attrs: Record<string, unknown>): string {
+  const d = parseWiki(src).doc;
+  const n = firstOf(d, type);
+  n.attrs = { ...n.attrs, ...attrs };
+  return emitWiki(d);
+}
+
+function editedMark(src: string, value: string): string {
+  const d = parseWiki(src).doc;
+  const walk = (n: JSONContent): void => {
+    for (const m of n.marks ?? []) if (m.type === 'color') m.attrs = { ...m.attrs, value };
+    for (const k of n.content ?? []) walk(k);
+  };
+  walk(d);
+  return emitWiki(d);
+}
+
+describe('WR-02 edited attributes', () => {
+  it('writes an edited mention id instead of the recorded spelling', () => {
+    expect(editedAttrs('[~jdoe]', 'mention', { id: 'asmith' })).toBe('[~asmith]');
+    expect(editedAttrs('[~accountid:placeholder-0001]', 'mention', { id: 'asmith' })).toBe(
+      '[~asmith]',
+    );
+  });
+
+  it('keeps an untouched mention spelling', () => {
+    expect(emitWiki(parseWiki('[~accountid:placeholder-0001]').doc)).toBe(
+      '[~accountid:placeholder-0001]',
+    );
+  });
+
+  it('writes an edited image name or params', () => {
+    expect(editedAttrs('!a.png|width=3!', 'image', { name: 'b.png' })).toBe('!b.png|width=3!');
+    expect(editedAttrs('!a.png|width=3!', 'image', { params: 'thumbnail' })).toBe(
+      '!a.png|thumbnail!',
+    );
+  });
+
+  it('writes an edited attachment label', () => {
+    expect(editedAttrs('[x|^f.pdf]', 'attachment', { label: 'y' })).toBe('[y|^f.pdf]');
+  });
+
+  it('writes an edited color value', () => {
+    expect(editedMark('{color:red}a{color}', 'blue')).toBe('{color:blue}a{color}');
+    expect(editedMark('{color:red}a\n\nb{color}', 'blue')).toBe('{color:blue}a\n\nb{color}');
+  });
+
+  it('writes an edited code language', () => {
+    expect(editedAttrs('{code:java}\nx\n{code}', 'codeBlock', { language: 'python' })).toBe(
+      '{code:python}\nx\n{code}',
+    );
+  });
+
+  it('keeps an unedited image and attachment spelling', () => {
+    expect(emitWiki(parseWiki('!a.png|width=3!').doc)).toBe('!a.png|width=3!');
+    expect(emitWiki(parseWiki('[x|^f.pdf]').doc)).toBe('[x|^f.pdf]');
+  });
+
+  it('keeps an unedited code opener', () => {
+    expect(emitWiki(parseWiki('{code:java}\nx\n{code}').doc)).toBe('{code:java}\nx\n{code}');
+  });
+});

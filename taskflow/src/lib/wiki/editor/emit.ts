@@ -2,6 +2,7 @@ import type { JSONContent } from '@tiptap/core';
 import type { Node as PMNode } from '@tiptap/pm/model';
 import { type EscapeContext, escapeSites, escapeText } from './escape';
 import { parseWiki } from './parse/blocks';
+import { COLOR_OPEN } from './parse/color';
 import { CANONICAL_DELIMS } from './parse/marks';
 
 /**
@@ -47,6 +48,40 @@ function breakSpelling(n: JSONContent, ctx: InlineCtx): string {
   return src ?? '\n';
 }
 
+/** Attributes that carry an atom's meaning (the rest of its attrs only record spelling). */
+const SEMANTIC: Record<string, readonly string[]> = {
+  mention: ['id'],
+  image: ['name', 'params'],
+  attachment: ['name', 'label'],
+};
+
+/**
+ * True while a recorded `src` still spells the node's current attributes: the
+ * source is re-parsed and its semantic attributes compared. After an attribute
+ * edit the recorded spelling is stale and the canonical form must be written.
+ */
+function stillSpells(n: JSONContent, src: string): boolean {
+  const keys = SEMANTIC[n.type ?? ''] ?? [];
+  const blocks = parseWiki(src).doc.content ?? [];
+  const p = blocks[0];
+  const inline = p?.type === 'paragraph' && p.content?.length === 1 ? p.content[0] : undefined;
+  if (blocks.length !== 1 || !inline || inline.type !== n.type) return false;
+  return keys.every((k) => str(inline.attrs?.[k], '') === str(n.attrs?.[k], ''));
+}
+
+/** A recorded color opener is reused only while it still names the mark's value. */
+const colorOpen = (open: unknown, value: string): string => {
+  const m = typeof open === 'string' ? COLOR_OPEN.exec(open) : null;
+  return typeof open === 'string' && m && m[0] === open && m[1] === value
+    ? open
+    : `{color:${value}}`;
+};
+
+const spelled = (n: JSONContent, canonical: string): string => {
+  const src = n.attrs?.src;
+  return typeof src === 'string' && stillSpells(n, src) ? src : canonical;
+};
+
 function nodeSegments(n: JSONContent, ctx: InlineCtx = 'para'): Segment[] {
   const out: Segment[] = [];
   switch (n.type) {
@@ -64,21 +99,19 @@ function nodeSegments(n: JSONContent, ctx: InlineCtx = 'para'): Segment[] {
       out.push(prose(str(n.attrs?.src, '')));
       break;
     case 'mention':
-      out.push(prose(str(n.attrs?.src, `[~${str(n.attrs?.id, '')}]`)));
+      out.push(prose(spelled(n, `[~${str(n.attrs?.id, '')}]`)));
       break;
     case 'image': {
       const params = str(n.attrs?.params, '');
-      out.push(
-        prose(str(n.attrs?.src, `!${str(n.attrs?.name, '')}${params ? `|${params}` : ''}!`)),
-      );
+      out.push(prose(spelled(n, `!${str(n.attrs?.name, '')}${params ? `|${params}` : ''}!`)));
       break;
     }
     case 'attachment': {
       const label = str(n.attrs?.label, '');
       out.push(
         prose(
-          str(
-            n.attrs?.src,
+          spelled(
+            n,
             label ? `[${label}|^${str(n.attrs?.name, '')}]` : `[^${str(n.attrs?.name, '')}]`,
           ),
         ),
@@ -113,7 +146,7 @@ const markKey = (m: MarkJSON): string => `${m.type}\u0000${JSON.stringify(m.attr
 function markDelims(m: MarkJSON, runText: string): [string, string] {
   const a = m.attrs ?? {};
   if (m.type === 'color') {
-    return [str(a.open, `{color:${str(a.value, '')}}`), '{color}'];
+    return [colorOpen(a.open, str(a.value, '')), '{color}'];
   }
   if (m.type === 'link') {
     const href = str(a.href, '');
@@ -539,6 +572,15 @@ function withoutSpan(node: JSONContent, drop: string): JSONContent {
   };
 }
 
+/** A recorded code opener is reused only while it still reads as the block's language. */
+function codeOpenHolds(open: string, close: string, language: string | null): boolean {
+  const b = parseWiki(`${open}\nx\n${close}`).doc.content ?? [];
+  const only = b.length === 1 ? b[0] : undefined;
+  if (only?.type !== 'codeBlock') return false;
+  const got = typeof only.attrs?.language === 'string' ? only.attrs.language : '';
+  return got === (language ?? '');
+}
+
 function blockSegments(node: JSONContent, opts: BlockOpts = {}): Segment[] {
   if (opts.drop !== undefined) {
     return [
@@ -569,8 +611,10 @@ function blockSegments(node: JSONContent, opts: BlockOpts = {}): Segment[] {
       return [prose(str(a.src, '----'))];
     case 'codeBlock': {
       const language = typeof a.language === 'string' && a.language !== '' ? a.language : null;
-      const open = str(a.open, language ? `{code:${language}}` : '{code}');
+      const canonOpen = language ? `{code:${language}}` : '{code}';
       const close = str(a.close, '{code}');
+      const open =
+        typeof a.open === 'string' && codeOpenHolds(a.open, close, language) ? a.open : canonOpen;
       const body = (node.content ?? []).map(textOf).join('');
       return [verbatim(open + str(a.bodyLead, '\n') + body + str(a.bodyTail, '\n') + close)];
     }
@@ -633,7 +677,7 @@ function blockTexts(blocks: readonly JSONContent[]): string[] {
       j++;
     }
     if (run && j - i >= 2) {
-      const open = run.open ?? `{color:${run.value}}`;
+      const open = colorOpen(run.open, run.value);
       for (let n = i; n < j; n++) {
         out.push(
           emitBlockNode(blocks[n] as JSONContent, {
