@@ -2,8 +2,8 @@
  * WorklogCellPopover — Cell drill-down popover for non-zero worklog data cells.
  *
  * Opens when the user clicks a non-zero (issueKey, date) cell in the hierarchy table.
- * Shows individual Tempo worklog entries with edit/delete affordances and an
- * "Add entry" section that reuses LogWorkPopover from issue-detail/.
+ * Shows individual Tempo worklog entries (edit/delete on my own, Copy as mine on others')
+ * and an "Add entry" section that reuses LogWorkPopover from issue-detail/.
  *
  * On any mutation success, invalidates the broad ['tempo', 'worklogs'] cache prefix
  * (D-14) so the hierarchy table refetches and reflects the updated hours.
@@ -19,6 +19,7 @@ import { useState } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { LogWorkPopover } from '@/routes/dashboard/issue-detail/LogWorkPopover';
 import type { TempoWorklog } from '@/services/tempo';
+import { useAuthStore } from '@/stores/auth.store';
 import { WorklogEntryRow } from './WorklogEntryRow';
 
 // formatSeconds and formatDayHeader are re-exported from WorklogsPage (see below).
@@ -32,6 +33,8 @@ interface WorklogCellPopoverProps {
   jiraBaseUrl: string;
   totalSeconds: number; // pre-aggregated cell total, used as trigger label
   dayColClassName?: string; // schedule-day background class from parent
+  /** True when the viewed person is not me (or all people): adding logs as me, so say so. */
+  logAsMe?: boolean;
   children?: never;
 }
 
@@ -42,6 +45,7 @@ export function WorklogCellPopover({
   jiraBaseUrl,
   totalSeconds,
   dayColClassName,
+  logAsMe = false,
 }: WorklogCellPopoverProps) {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
@@ -93,16 +97,44 @@ export function WorklogCellPopover({
         {/* Separator — hidden while an entry is in edit mode */}
         {!anyEditing && (
           <div className="border-t border-border mt-2 pt-2">
-            <LogWorkPopover
+            <AddEntrySection
               issueKey={issueKey}
               jiraBaseUrl={jiraBaseUrl}
-              initialDate={date}
-              triggerLabel="Add New Entry"
+              date={date}
+              logAsMe={logAsMe}
               onSuccess={() => queryClient.invalidateQueries({ queryKey: ['tempo', 'worklogs'] })}
             />
           </div>
         )}
       </PopoverContent>
     </Popover>
+  );
+}
+
+/** Rendered only while the popover is open, so closed cells don't subscribe to the auth store. */
+function AddEntrySection({
+  issueKey,
+  jiraBaseUrl,
+  date,
+  logAsMe,
+  onSuccess,
+}: {
+  issueKey: string;
+  jiraBaseUrl: string;
+  date: string;
+  logAsMe: boolean;
+  onSuccess: () => void;
+}) {
+  const displayName = useAuthStore((s) => s.jiraUserDisplayName);
+  const avatarUrl = useAuthStore((s) => s.jiraUserAvatarUrl);
+  return (
+    <LogWorkPopover
+      issueKey={issueKey}
+      jiraBaseUrl={jiraBaseUrl}
+      initialDate={date}
+      triggerLabel={logAsMe ? 'Log as me' : 'Add New Entry'}
+      loggingAs={logAsMe ? { displayName: displayName ?? 'me', avatarUrl } : undefined}
+      onSuccess={onSuccess}
+    />
   );
 }

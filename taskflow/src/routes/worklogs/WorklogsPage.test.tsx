@@ -1445,6 +1445,74 @@ describe('WorklogsPage', () => {
     });
   });
 
+  // ── cv2: "Log as me" labelling ────────────────────────────────────────────
+
+  describe('add-entry labelling when the viewed person is not me', () => {
+    async function openCell(logUsername: string | null, monday: string, issue = 'STORY-1') {
+      mockJiraUsername = logUsername;
+      mockEnrichResult = [
+        {
+          key: 'EPIC-1',
+          fields: { summary: 'Epic One', issuetype: { name: 'Epic', subtask: false } },
+        },
+        {
+          key: 'STORY-1',
+          fields: {
+            summary: 'Story One',
+            issuetype: { name: 'Story', subtask: false },
+            parent: { key: 'EPIC-1', fields: { summary: 'Epic One' } },
+          },
+        },
+      ];
+      const { container } = await renderPage();
+      const { fetchWorklogs } = await import('@/services/tempo');
+      await waitFor(() => expect(fetchWorklogs).toHaveBeenCalled());
+      await new Promise((r) => setTimeout(r, 150));
+      const cellBtn = container.querySelector(
+        `[aria-label="View worklogs for ${issue} on ${monday}"]`,
+      );
+      expect(cellBtn).toBeTruthy();
+      await act(async () => {
+        fireEvent.click(cellBtn as Element);
+      });
+    }
+
+    it('all-people view labels the trigger "Log as me" and shows who is logging', async () => {
+      const monday = thisWeekDate(1);
+      mockFetchWorklogsResult = [
+        { ...makeWorklog('alice', 'Alice Smith', monday, 2, 'STORY-1'), jiraWorklogId: 501 },
+      ];
+      await openCell(null, monday);
+      const trig = await waitFor(() => {
+        const el = Array.from(document.body.querySelectorAll('button')).find(
+          (b) => b.textContent?.trim() === 'Log as me',
+        );
+        expect(el).toBeTruthy();
+        return el as HTMLElement;
+      });
+      expect(document.body.textContent).not.toContain('Add New Entry');
+      await act(async () => {
+        fireEvent.click(trig);
+      });
+      await waitFor(() => {
+        expect(document.body.textContent).toContain(`Logging as ${mockJiraUserDisplayName}`);
+      });
+    });
+
+    it('viewing myself keeps "Add New Entry" with no indicator', async () => {
+      const monday = thisWeekDate(1);
+      mockFetchWorklogsResult = [
+        { ...makeWorklog('jdoe', 'Jane Doe', monday, 2, 'STORY-1'), jiraWorklogId: 502 },
+      ];
+      await openCell('jdoe', monday);
+      await waitFor(() => {
+        expect(document.body.textContent).toContain('Add New Entry');
+      });
+      expect(document.body.textContent).not.toContain('Log as me');
+      expect(document.body.textContent).not.toContain('Logging as');
+    });
+  });
+
   // ── CLEAN-01: timer cleanup on unmount ────────────────────────────────────
 
   describe('CLEAN-01 — cleanup on unmount', () => {

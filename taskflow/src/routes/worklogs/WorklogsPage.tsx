@@ -51,6 +51,7 @@ import {
   getThisWeekRange,
   normalizeDatePreset,
 } from '@/lib/worklog-date-ranges';
+import { isMeUsername } from '@/lib/worklog-ownership';
 import { readSecret } from '@/services/stronghold';
 import { fetchUserSchedule, fetchWorklogs, type ScheduleDayType } from '@/services/tempo';
 import type { DatePreset } from '@/services/tempo/types';
@@ -222,6 +223,8 @@ export default function WorklogsPage() {
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo] = useState('');
   const [selectedUsername, setSelectedUsername] = useState<string | null>(null);
+  // Anything logged while viewing someone else (or everyone) is logged as me — label it.
+  const logAsMe = !isMeUsername(selectedUsername, { username: jiraUsername });
   const [selectedDisplayName, setSelectedDisplayName] = useState<string | null>(null);
   const [selectedAvatarUrl, setSelectedAvatarUrl] = useState<string | null>(null);
   // userTouchedFilter: true once user has manually changed or cleared the person selection
@@ -1041,6 +1044,7 @@ export default function WorklogsPage() {
                               jiraBaseUrl={jiraBaseUrl ?? ''}
                               totalSeconds={secs}
                               dayColClassName={cellBg}
+                              logAsMe={logAsMe}
                             />
                           </td>
                         );
@@ -1106,6 +1110,7 @@ export default function WorklogsPage() {
                                     jiraBaseUrl={jiraBaseUrl ?? ''}
                                     totalSeconds={secs}
                                     dayColClassName={cellBg}
+                                    logAsMe={logAsMe}
                                   />
                                 </td>
                               );
@@ -1171,6 +1176,7 @@ export default function WorklogsPage() {
                                         jiraBaseUrl={jiraBaseUrl ?? ''}
                                         totalSeconds={secs}
                                         dayColClassName={cellBg}
+                                        logAsMe={logAsMe}
                                       />
                                     </td>
                                   );

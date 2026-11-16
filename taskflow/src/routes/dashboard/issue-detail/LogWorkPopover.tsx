@@ -15,6 +15,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Clock } from 'lucide-react';
 import { useState } from 'react';
 import { Button, buttonVariants } from '@/components/ui/button';
+import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -46,6 +47,8 @@ interface LogWorkPopoverProps {
   anchor?: Element | null;
   /** Render no trigger button (open via `open` + `anchor` instead). */
   hideTrigger?: boolean;
+  /** When set, the form shows a "Logging as {displayName}" line (logging for me while viewing someone else). */
+  loggingAs?: { displayName: string; avatarUrl?: string | null };
 }
 
 function todayString(): string {
@@ -66,6 +69,7 @@ export function LogWorkPopover({
   onOpenChange,
   anchor,
   hideTrigger = false,
+  loggingAs,
 }: LogWorkPopoverProps) {
   const queryClient = useQueryClient();
   const [openState, setOpenState] = useState(false);
@@ -169,6 +173,14 @@ export function LogWorkPopover({
         align={anchor ? 'end' : undefined}
       >
         <div className="space-y-3">
+          {loggingAs && (
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              {loggingAs.avatarUrl && (
+                <CachedAvatar url={loggingAs.avatarUrl} name={loggingAs.displayName} size={16} />
+              )}
+              <span>Logging as {loggingAs.displayName}</span>
+            </div>
+          )}
           <div>
             <Label className="text-xs mb-1">Time Spent</Label>
             <DurationInput
