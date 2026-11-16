@@ -203,3 +203,51 @@ describe('CreateEditIssueModal: epic story inherits from epic', () => {
     await waitFor(() => expect(input.value).toBe('Parent Account'));
   });
 });
+
+describe('CreateEditIssueModal: close after create', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockApi();
+  });
+
+  it('epic story create closes the modal exactly once and invalidates the epic lists', async () => {
+    const { qc, onClose } = renderModal();
+    const spy = vi.spyOn(qc, 'invalidateQueries');
+    const input = (await accountInput()) as HTMLInputElement;
+    await waitFor(() => expect(input.value).toBe('Acme Account'));
+    fillSummary();
+    fireEvent.click(createBtn());
+    await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
+    expect(screen.queryByText(/Jira|failed|error/i)).not.toBeInTheDocument();
+    const keys = spy.mock.calls.map((c) => JSON.stringify(c[0]?.queryKey));
+    // The Stories list key ['jira-epic-stories', epicKey, baseUrl] is covered by this prefix.
+    expect(keys).toContain(JSON.stringify(['jira-epic-stories']));
+    expect(keys).toContain(
+      JSON.stringify(['jira-issue-detail', 'EPIC-1', 'https://jira.example.com']),
+    );
+  });
+
+  it('subtask create still closes once', async () => {
+    const { onClose } = renderModal({
+      defaultIssueType: 'Subtask',
+      defaultParentKey: 'PARENT-1',
+      defaultEpicLinkKey: undefined,
+    });
+    const input = (await accountInput()) as HTMLInputElement;
+    await waitFor(() => expect(input.value).toBe('Parent Account'));
+    fillSummary();
+    fireEvent.click(createBtn());
+    await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
+  });
+
+  it('a Jira error keeps the modal open and shows the message', async () => {
+    vi.mocked(jiraService.createIssue).mockRejectedValue(new Error('Account is invalid'));
+    const { onClose } = renderModal();
+    const input = (await accountInput()) as HTMLInputElement;
+    await waitFor(() => expect(input.value).toBe('Acme Account'));
+    fillSummary();
+    fireEvent.click(createBtn());
+    expect(await screen.findByText('Account is invalid')).toBeInTheDocument();
+    expect(onClose).not.toHaveBeenCalled();
+  });
+});

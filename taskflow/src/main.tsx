@@ -633,12 +633,14 @@ function AppLayout() {
   };
 
   const handleCreateModalClose = () => {
-    if (wasStoryCreate.current) {
+    // Close first so a throwing invalidation can never leave the modal open.
+    const refreshBacklog = wasStoryCreate.current;
+    wasStoryCreate.current = false;
+    setCreateModalOpen(false);
+    if (refreshBacklog) {
       // Phase 74 GH-CUT-01: backlog data lives under ['gh-backlog'].
       invalidateGhBacklogData(queryClient);
     }
-    wasStoryCreate.current = false;
-    setCreateModalOpen(false);
   };
 
   // Bring window to front when OS notification click activates the app

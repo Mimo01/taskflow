@@ -151,6 +151,13 @@ export function useIssueMutations({
           queryKey: ['jira-issue-detail', state.parentKey, jiraBaseUrl],
         });
       }
+      // Epic stories: refresh the owning epic's detail (progress/counts) like the subtask
+      // block above does for its parent. The Stories list is covered by the prefix below.
+      if (!isSubtask && state.epicLinkKey && jiraBaseUrl) {
+        queryClient.invalidateQueries({
+          queryKey: ['jira-issue-detail', state.epicLinkKey, jiraBaseUrl],
+        });
+      }
       queryClient.invalidateQueries({ queryKey: ['jira-epic-stories'] });
       onSuccess();
     },
@@ -237,6 +244,13 @@ export function useIssueMutations({
       queryClient.invalidateQueries({ queryKey: ['jira-parent-detail'] });
       // Phase 74 GH-CUT-01: backlog data lives under ['gh-backlog'].
       invalidateGhBacklogData(queryClient);
+      // Epic stories: refresh the owning epic's detail (progress/counts) like the subtask
+      // block above does for its parent. The Stories list is covered by the prefix below.
+      if (!isSubtask && state.epicLinkKey && jiraBaseUrl) {
+        queryClient.invalidateQueries({
+          queryKey: ['jira-issue-detail', state.epicLinkKey, jiraBaseUrl],
+        });
+      }
       queryClient.invalidateQueries({ queryKey: ['jira-epic-stories'] });
       onSuccess();
     },
