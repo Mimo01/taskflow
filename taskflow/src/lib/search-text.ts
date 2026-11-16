@@ -61,7 +61,8 @@ function union(lists: number[][]): number[] {
 export function matchText(
   query: string,
   target: string,
-  opts: { fuzzy?: boolean } = {},
+  /** `fuzzyThreshold` overrides FUZZY_THRESHOLD (lower = more typo-tolerant). */
+  opts: { fuzzy?: boolean; fuzzyThreshold?: number } = {},
 ): TextMatch | null {
   const tokens = tokenize(query);
   if (tokens.length === 0 || !target) return null;
@@ -106,7 +107,7 @@ export function matchText(
     }
     if (token.length < MIN_FUZZY_TOKEN_LEN) return null;
     const res = fuzzysort.single(token, target);
-    if (!res || res.score < FUZZY_THRESHOLD) return null;
+    if (!res || res.score < (opts.fuzzyThreshold ?? FUZZY_THRESHOLD)) return null;
     scores.push(res.score);
     lists.push([...res.indexes]);
   }

@@ -1633,8 +1633,11 @@ export async function fetchProjectMRs(
   token: string,
   projectId: number,
   state: 'opened' | 'merged' | 'closed' | 'all' = 'opened',
+  /** GitLab-side substring search over title + description (project-scoped, not page-capped). */
+  search?: string,
 ): Promise<GitLabMR[]> {
-  const url = `${baseUrl.replace(/\/$/, '')}/api/v4/projects/${projectId}/merge_requests?state=${state}&per_page=100`;
+  const searchParam = search?.trim() ? `&search=${encodeURIComponent(search.trim())}` : '';
+  const url = `${baseUrl.replace(/\/$/, '')}/api/v4/projects/${projectId}/merge_requests?state=${state}&per_page=100${searchParam}`;
 
   let response: Response;
   try {
@@ -2326,60 +2329,6 @@ export async function fetchAllProjectMRs(
   }
 
   return allMRs;
-}
-
-/**
- * Search GitLab merge requests by text query.
- *
- * @param baseUrl - GitLab base URL
- * @param token   - Personal Access Token
- * @param query   - Free-text search query
- * @returns Array of matching MRs (up to 20); returns empty array on error to not block parallel Jira search
- */
-export async function searchGitLabMRs(
-  baseUrl: string,
-  token: string,
-  query: string,
-): Promise<GitLabMR[]> {
-  const base = baseUrl.replace(/\/$/, '');
-  const url = `${base}/api/v4/search?scope=merge_requests&search=${encodeURIComponent(query)}&state=opened&per_page=20`;
-
-  let response: Response;
-  try {
-    response = await apiFetch(
-      'gitlab',
-      url,
-      {
-        headers: {
-          'PRIVATE-TOKEN': token,
-          'Content-Type': 'application/json',
-        },
-      },
-      'Load Merge Requests',
-    );
-  } catch {
-    return [];
-  }
-
-  if (!response.ok) {
-    return [];
-  }
-
-  const data = (await response.json()) as GitLabMR[];
-
-  // Convert string labels to GitLabLabel with default gray (search spans multiple projects)
-  for (const mr of data) {
-    if (Array.isArray(mr.labels)) {
-      mr.labels = mr.labels.map((l: string | GitLabLabel) => {
-        if (typeof l === 'string') {
-          return { name: l, color: '#6b7280', text_color: '#FFFFFF' };
-        }
-        return l;
-      });
-    }
-  }
-
-  return data;
 }
 
 /**

@@ -16,8 +16,9 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StaleDataBanner } from '@/components/ui/stale-data-banner';
+import { searchMRs } from '@/lib/mr-search';
 import type { GitLabMR } from '@/services/gitlab';
-import { fetchProjectMRs, searchGitLabMRs } from '@/services/gitlab';
+import { fetchProjectMRs } from '@/services/gitlab';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useBreadcrumbStore } from '@/stores/breadcrumb.store';
@@ -67,40 +68,47 @@ export default function MergeRequestListPage() {
   }, [searchText]);
 
   const projectId = activeGitlabProject;
-  const isSearching = debouncedSearch.trim().length > 0;
+  const isSearching = searchText.trim().length > 0;
+  const hasServerQuery = debouncedSearch.trim().length > 0;
 
-  // Fetch project MRs by state
+  // Fetch project MRs by state — always loaded; the search filters/ranks it client-side.
   const {
     data: mrsByState,
     isLoading: mrsLoading,
-    isError: mrsError,
-    error: mrsErr,
+    isError,
+    error,
     refetch: mrsRefetch,
   } = useQuery({
     queryKey: ['gitlab-project-mrs', projectId, stateFilter],
     queryFn: () =>
       fetchProjectMRs(gitlabBaseUrl ?? '', gitlabToken ?? '', projectId ?? 0, stateFilter),
     staleTime: 30_000,
-    enabled: !!gitlabBaseUrl && !!gitlabToken && !!projectId && !isSearching,
+    enabled: !!gitlabBaseUrl && !!gitlabToken && !!projectId,
   });
 
-  // Search MRs
-  const {
-    data: searchResults,
-    isLoading: searchLoading,
-    isError: searchError,
-    error: searchErr,
-  } = useQuery({
-    queryKey: ['gitlab-search-mrs', debouncedSearch],
-    queryFn: () => searchGitLabMRs(gitlabBaseUrl ?? '', gitlabToken ?? '', debouncedSearch),
+  // Server-side substring search (title + description) for the same project + state, so MRs
+  // outside the loaded page are still found. Non-fatal: local fuzzy results show regardless.
+  const { data: serverMatches, isFetching: serverSearching } = useQuery({
+    queryKey: ['gitlab-project-mrs', projectId, stateFilter, 'search', debouncedSearch.trim()],
+    queryFn: () =>
+      fetchProjectMRs(
+        gitlabBaseUrl ?? '',
+        gitlabToken ?? '',
+        projectId ?? 0,
+        stateFilter,
+        debouncedSearch,
+      ),
     staleTime: 30_000,
-    enabled: !!gitlabBaseUrl && !!gitlabToken && isSearching,
+    enabled: !!gitlabBaseUrl && !!gitlabToken && !!projectId && hasServerQuery,
   });
 
-  const mrs: GitLabMR[] = isSearching ? (searchResults ?? []) : (mrsByState ?? []);
-  const isLoading = tokenLoading || (isSearching ? searchLoading : mrsLoading);
-  const isError = isSearching ? searchError : mrsError;
-  const error = isSearching ? searchErr : mrsErr;
+  const mrs: GitLabMR[] = searchMRs(
+    searchText,
+    mrsByState ?? [],
+    // Only merge server hits for the query currently typed (avoid stale-debounce mixing).
+    debouncedSearch.trim() === searchText.trim() ? (serverMatches ?? []) : [],
+  );
+  const isLoading = tokenLoading || mrsLoading;
 
   const handleMRClick = (mr: GitLabMR) => {
     breadcrumbReset();
@@ -179,7 +187,9 @@ export default function MergeRequestListPage() {
             title="No merge requests"
             subtitle={
               isSearching
-                ? 'Try a different search term'
+                ? serverSearching || debouncedSearch.trim() !== searchText.trim()
+                  ? 'Searching…'
+                  : 'Try a different search term'
                 : `No ${stateFilter === 'all' ? '' : stateFilter} merge requests found`
             }
           />

@@ -9,6 +9,7 @@ import {
   createMilestone,
   fetchAllProjectMRs,
   fetchAssignedMRs,
+  fetchProjectMRs,
   fetchBranch,
   fetchBranchTargetedMRs,
   fetchMRApprovals,
@@ -26,7 +27,6 @@ import {
   flattenGitLabError,
   listGitLabGroups,
   listGitLabProjects,
-  searchGitLabMRs,
   searchProjectTags,
   updateMergeRequest,
   updateMilestone,
@@ -516,16 +516,18 @@ describe('gitlab service', () => {
     });
   });
 
-  describe('searchGitLabMRs', () => {
-    it('APIF-04: request URL includes state=opened filter', async () => {
+  describe('fetchProjectMRs search', () => {
+    it('scopes the search to the project and state', async () => {
       vi.mocked(mockFetch).mockResolvedValue({
         ok: true,
         status: 200,
         json: async () => [],
       } as Response);
-      await searchGitLabMRs('https://gitlab.example.com', 'my-token', 'feat login');
+      await fetchProjectMRs('https://gitlab.example.com', 't', 42, 'merged', ' login fix ');
       const calledUrl = vi.mocked(mockFetch).mock.calls[0][0] as string;
-      expect(calledUrl).toMatch(/state=opened/);
+      expect(calledUrl).toContain('/api/v4/projects/42/merge_requests?state=merged');
+      expect(calledUrl).toContain('search=login%20fix');
+      expect(calledUrl).not.toContain('/api/v4/search');
     });
   });
 
