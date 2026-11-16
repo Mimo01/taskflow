@@ -13,6 +13,7 @@ Taskflow is a cross-platform Tauri 2 desktop app for Client's eshop development 
 - Full formatting coverage: core text (bold, italic, strike, underline, headings, lists, links, quotes, inline monospace, code blocks), tables, panels and `{info}`/`{note}`/`{color}` macros, @mentions, attachment embeds, pasted and dropped images, plus other Jira constructs that fit
 - A round-trip safety net: a fixture corpus asserting that load→save keeps the rendered output the same (semantic equivalence, not byte-identical). Constructs the editor can't model are preserved verbatim
 - The editor adopted everywhere text is edited: Create/Edit Issue modal, inline description edit (issue detail + peek), comment composer/inline comment/comment edit, Create Epic, Bulk Create Subtasks, Edit Release description
+- Create-issue drafts: closing the Create modal auto-saves a draft; several drafts at once (fields + staged attachments), persisted across restarts and resumable from a header Drafts chip that looks different from the pinned tabs
 - Polished surfaces: a larger Create/Edit Issue modal (editor in the main column, fields in a sidebar column), plus consistent, cleaner UI/UX across the other editor hosts
 
 **Key context:** WikiRenderer (`routes/dashboard/WikiRenderer.tsx`, ~1800 LOC, ~2700 LOC of tests) is heavily tuned for Jira parity. Its rendering must not regress, and it may be refactored only behind its existing tests. A TipTap v3 WikiEditor was built 2026-05-31 and later reverted for an unrecorded reason. It survives on tag `backup/wiki-editor-before-revert-260531` and can serve as prior art, but research should evaluate the library choice fresh.
@@ -187,6 +188,7 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 - [ ] Semantic round-trip safety: load→save never changes rendered output; unmodelable constructs preserved verbatim
 - [ ] Full formatting coverage incl. tables, panels/colour macros, mentions, attachments, paste/drop images
 - [ ] Editor adopted in every text-editing surface (issue create/edit, inline description, comments, epic, bulk subtasks, release)
+- [ ] Multiple persistent create-issue drafts resumable from anywhere
 - [ ] Bigger, polished Create/Edit Issue modal and consistent editor-host UI/UX
 
 ### Out of Scope
