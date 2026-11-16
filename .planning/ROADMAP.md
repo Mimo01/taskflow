@@ -163,7 +163,7 @@ Plans:
   4. Unknown macros and unparseable spans are carried as raw atoms that display as rendered read-only blocks and are saved verbatim
   5. Any construct that is not proven by the corpus is demoted to a raw atom rather than modelled
 
-**Plans**: 10 plans
+**Plans**: 14 plans (10 + 4 gap closure)
 Plans:
 **Wave 1**
 
@@ -201,6 +201,19 @@ Plans:
 **Wave 9** *(blocked on Wave 8 completion)*
 
 - [x] 97-10-PLAN.md — D-11 fallback ladder, scripted edits (D-04..D-08), harness wiring
+
+**Gap closure — Wave 1**
+
+- [ ] 97-11-PLAN.md — Renderer: mid-line panels keep their list item/paragraph (CR-01); attribute escaping + positional headerless marker (CR-02)
+- [ ] 97-12-PLAN.md — Emitter: typed atom look-alikes escaped, emoticon inner-char escapes, strict property oracle (CR-05)
+
+**Gap closure — Wave 2** *(blocked on 97-12)*
+
+- [ ] 97-13-PLAN.md — Emitter on edited docs: raw atoms in items/cells, WikiEmitError (CR-03); empty cells and hard breaks (CR-04); edited attrs beat recorded spelling (WR-02)
+
+**Gap closure — Wave 3** *(blocked on 97-11, 97-12, 97-13)*
+
+- [ ] 97-14-PLAN.md — saveWiki structural re-check with WikiSave result (WR-01); validation map; SAFE-04/SAFE-06 back to Complete
 
 ### Phase 98: Editor Shell
 
