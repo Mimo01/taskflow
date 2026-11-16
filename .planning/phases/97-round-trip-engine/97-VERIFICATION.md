@@ -1,123 +1,125 @@
 ---
 phase: 97-round-trip-engine
-verified: 2026-11-16T20:50:00Z
+verified: 2026-11-16T22:20:00Z
 status: gaps_found
-score: 3/5 roadmap success criteria verified (SC1 and SC3 partial, see gaps)
+score: 4/5 roadmap success criteria verified (SC3 fails for typed text)
 overrides_applied: 0
-re_verification: false
+re_verification:
+  previous_status: gaps_found
+  previous_score: 3/5
+  gaps_closed:
+    - "SC1: mid-line panel regression in preprocess.ts (prior CR-01), fixed by ownLine in preprocess.ts"
+    - "SC1/D-02: attribute injection and forged headerless marker (prior CR-02), attr() plus positional marker match in pipeline.ts"
+    - "SAFE-04: raw atoms inside list items and table cells written verbatim (prior CR-03)"
+    - "Edited-table corruption: empty cells and hard breaks in cells (prior CR-04)"
+    - "SAFE-06 typed atom look-alikes ([~x], !img!, [^f], {status}, emoticons) are now escaped (prior CR-05, partial)"
+  gaps_remaining:
+    - "SAFE-06 typed block macros mid-line saved unescaped and render live (new CR-01)"
+    - "SAFE-06 the new escapes render as literal HTML text in TaskFlow's own renderer (new CR-02)"
+  regressions: []
 gaps:
-  - truth: "SC1: every corpus fixture renders identically through WikiRenderer, including the panel family (D-12 renderer fix)"
+  - truth: "SAFE-06 / SC3: typed text containing markup characters is saved so that what Jira shows equals what the user typed"
     status: failed
-    reason: "CR-01 confirmed. The D-12 panel rewrite in preprocess.ts emits blank-line-wrapped block divs for panels that open mid-line, which splits list items and paragraphs. wikiToMarkdown('* item one {note}nested{note} tail\n* item two') now gives '* item one <div data-callout=\"note\">\n\nnested\n\n</div> tail\n* item two'. The list is cut and the rest renders as literal text. This is a regression of existing renderer behaviour caused by this phase."
+    reason: "Verified by my own repro (saveWiki of an edited doc, then wikiToHtml). Typed 'a {code}x{code} b' is saved unescaped as 'a {code}x{code} b' and renders as a literal triple-backtick plus an empty <pre><code class=language-b>. Typed 'a {info}x{info} b' renders a live callout span; 'a {quote}q{quote} b' renders a blockquote marker; 'a {noformat}x{noformat} b' renders inline code. Cause: inlineSegments escapes only when the editor's own parseWiki would read the text differently, and parseWiki treats these macros as plain text mid-line, while the renderer (and Jira) treat them as live. save-check.ts compares only against parseWiki, so it accepts the text."
+    artifacts:
+      - path: "taskflow/src/lib/wiki/editor/emit.ts"
+        issue: "inlineSegments (~369-380) and the keep minimiser decide escaping by the editor parser alone"
+      - path: "taskflow/src/lib/wiki/editor/escape.ts"
+        issue: "'{' is not an unconditional escape site for code/noformat/quote/panel/info/note/warning/tip/color"
+      - path: "taskflow/src/lib/wiki/editor/save-check.ts"
+        issue: "oracle is parseWiki, not the renderer"
+    missing:
+      - "Always escape the opening brace of live macro names in typed text"
+      - "Add a regression test that runs typed macro look-alikes through saveWiki and wikiToHtml"
+  - truth: "The escapes the emitter writes display as the typed characters in TaskFlow (SC1: identical through WikiRenderer)"
+    status: failed
+    reason: "Verified. Typed 'a *b* c' saves as 'a \\*b\\* c' and wikiToHtml gives <p>a &#x3C;strong>b&#x3C;/strong> c</p>, i.e. literal tag text. Same for '\\_', '[\\~admin]' (shows <~admin>), and '\\{color:red}' (shows a literal span tag). preprocess.ts does not neutralise Jira backslash escapes before jira2md. What Jira shows for these escapes is not determinable from the code, so only the TaskFlow side is asserted here."
     artifacts:
       - path: "taskflow/src/lib/wiki/preprocess.ts"
-        issue: "lines ~988-1010: block form used even when the opener/closer is not on its own line"
+        issue: "no handling of \\* \\_ \\^ \\~ \\{ \\[ \\! before jira2md (only \\+ and \\\\ handled)"
     missing:
-      - "Use the block form only when the opener starts a line and the closer ends a line; otherwise keep the inline form (as inTableRow does)"
-      - "Add a corpus fixture and renderer test for a panel opened mid-list-item and mid-paragraph"
-  - truth: "SC1 / D-02: header-less table marker cannot be forged; renderer output does not change what Jira shows"
-    status: failed
-    reason: "CR-02 confirmed. Panel title and color values are pasted unescaped into HTML attributes. wikiToMarkdown('||Secret header{info:title=x\" data-wiki-headerless=\"1}a{info}||h2||\n|c|d|') yields a span carrying data-wiki-headerless=\"1\", which rehypeDropHeaderlessThead then uses to delete a real header row. Sanitize still runs, so no script execution, but attacker-controlled attributes reach the tree and the stated invariant (marker cannot be typed) is false."
-    artifacts:
-      - path: "taskflow/src/lib/wiki/preprocess.ts"
-        issue: "lines ~223-234, 995-1009, 1040-1046: data-title / data-color interpolated without attribute escaping"
-      - path: "taskflow/src/lib/wiki/pipeline.ts"
-        issue: "lines ~183-201: hasHeaderlessMarker searches the whole thead subtree"
-    missing:
-      - "Attribute-escape every interpolated value (quote and newline)"
-      - "Restrict hasHeaderlessMarker to thead > tr > th:first-child > span"
-  - truth: "SAFE-06 / 97-08 must-have: typed text containing markup characters is escaped so re-parsing shows the same characters"
-    status: failed
-    reason: "CR-05 confirmed. emitWiki of a paragraph whose text node is 'ping [~admin] now' emits it unescaped, so it re-parses as a mention (also '!http://..!' images, '[^f]' attachments, '{status:..}' macros, '(x)' emoticons). The 1000-case property test in escape.test.ts treats atom src as equal to typed text, so it cannot detect this."
-    artifacts:
-      - path: "taskflow/src/lib/wiki/editor/emit.ts"
-        issue: "display() (~194-205) renders atoms and text identically, so fits() passes and escaping is skipped"
-      - path: "taskflow/src/lib/wiki/editor/escape.test.ts"
-        issue: "property oracle too lenient"
-    missing:
-      - "Make display() distinguish atom nodes from text so a text-vs-atom mismatch triggers escaping; add '(' emoticon handling"
-      - "Tighten the property test so typed text may not re-parse as an atom"
-  - truth: "SAFE-04: raw atoms are saved verbatim (schema-valid raw atoms inside list items and table cells)"
-    status: partial
-    reason: "CR-03 confirmed. emitWiki on listItem[paragraph, rawBlock('{status:x}')] returns '* a\n' (raw content lost). Parser does not currently produce this shape, so the unedited path is unaffected, but schema allows it and Phase 98 edits can create it (e.g. paste/move)."
-    artifacts:
-      - path: "taskflow/src/lib/wiki/editor/emit.ts"
-        issue: "lines ~288-296, 339-353: non-paragraph children go through textOf/inlineSegments, rawBlock content dropped"
-    missing:
-      - "Route non-inline children through the block emitter; always emit rawBlock attrs.raw; throw for constructs wiki cannot express"
-  - truth: "Emitter output for user-edited tables does not corrupt the table (D-08 user-created defaults)"
-    status: partial
-    reason: "CR-04 confirmed. A table whose first cell is empty with no padding emits '||b|' (the row becomes a header separator mix and the parser would reject it as raw). Hard breaks with src null emit a raw newline, splitting rows."
-    artifacts:
-      - path: "taskflow/src/lib/wiki/editor/emit.ts"
-        issue: "lines ~356-370 and ~36-37"
-    missing:
-      - "Emit a single space for empty unpadded cells; emit hardBreak with no src as '\\\\' inside cells and headings"
+      - "Replace backslash-escaped ESCAPABLE_CHARS with entities or sentinels before jira2md; add a renderer test per character"
 human_verification:
-  - test: "Plan 97-03 Task 3 (deferred by user): in the running app compare Jira and WikiRenderer for mixed *# nesting (D-01), header-less tables (D-02) and the panel family including lists in panels (D-12)"
-    expected: "WikiRenderer matches Jira for each; re-check after the CR-01/CR-02 renderer fixes"
+  - test: "Paste into a Jira test issue: 'a \\*b\\* c', '[\\~admin]', '\\{color:red}x\\{color}', '\\!http://e.example/p.png\\!' and compare with the emitter's output"
+    expected: "Jira shows the literal characters (asterisks, brackets, braces, bang) with no bold, mention, color or image"
+    why_human: "Only Jira can say whether its parser honours these escapes, and whether the minimiser's choice of '[\\~admin]' (rather than '\\[~admin]') is literal there (review WR-04)"
+  - test: "Deferred 97-03 Task 3: compare Jira and WikiRenderer for mixed *# nesting (D-01), header-less tables (D-02), panels including lists (D-12)"
+    expected: "WikiRenderer matches Jira for each"
     why_human: "Visual Jira parity cannot be asserted by grep"
 ---
 
-# Phase 97: Round-Trip Engine Verification Report
+# Phase 97: Round-Trip Engine Verification Report (re-verification)
 
 **Phase Goal:** Wiki text can be parsed into an editor document and emitted back without changing what Jira shows, and an unedited text is saved byte-identical
+**Verified:** 2026-11-16T22:20:00Z
 **Status:** gaps_found
-**Re-verification:** No, initial verification
+**Re-verification:** Yes, after gap closure plans 97-11..97-14
 
 ## Observable Truths (ROADMAP success criteria)
 
 | # | Truth | Status | Evidence |
 |---|-------|--------|----------|
-| 1 | Corpus fixtures re-emitted render identically through WikiRenderer (header-less tables, panels, `{color}`, mixed `*#`) | FAILED (partial) | Corpus tests pass (5603 vitest green), but the phase's own D-12 renderer rewrite regresses mid-line panels (CR-01) and permits forging the headerless marker (CR-02); both confirmed by scratch run of wikiToMarkdown |
-| 2 | No-edit load/save is byte-identical incl. CRLF and trailing whitespace | VERIFIED | saveWiki returns `loaded.original` when `current.eq(loaded.doc)` (engine.ts:93-95); roundtrip, fuzz and ladder tests green; reviewer found the load path sound |
-| 3 | Emoticons, `[~user]`, escapes, `\\` breaks keep original spelling | VERIFIED for parsed text (atoms replay `src`); typed-text side fails under SAFE-06 (CR-05) | See gaps; parsed spelling is preserved |
-| 4 | Unknown macros / unparseable spans become raw atoms, shown read-only, saved verbatim | VERIFIED for the parse and unedited path; partial for raw atoms nested in list items / cells on edited docs (CR-03) | engine tests, raw.test.ts green |
-| 5 | Unproven constructs demoted to raw atoms | VERIFIED | D-11 ladder in loadWiki (commit 6d82e963), ladder.test.ts green |
+| 1 | Corpus fixtures re-emitted render identically through WikiRenderer | VERIFIED for corpus | Prior CR-01 (mid-line panel) and CR-02 (attr injection) are closed; ownLine and attr() present in preprocess.ts, positional headerless match in pipeline.ts. 368 wiki tests and tsc pass. The new CR-02 below concerns edited typed text, not the corpus. |
+| 2 | No-edit load/save is byte-identical incl. CRLF and trailing whitespace | VERIFIED | saveWiki returns the original when the doc is unchanged; engine, roundtrip and fuzz tests pass. saveWiki now also re-parses its output and fails closed (97-14). |
+| 3 | Emoticons, `[~user]`, escapes, `\\` breaks keep original spelling | VERIFIED for parsed text; FAILED for typed text | Atoms replay their recorded spelling and yield to attribute edits. Typed block macros are saved live (gap 1). |
+| 4 | Unknown macros / unparseable spans become raw atoms, read-only, saved verbatim | VERIFIED | Also verified for raw atoms inside list items and cells (97-13). Unsupported nested blocks fail closed with WikiEmitError. |
+| 5 | Unproven constructs demoted to raw atoms | VERIFIED | D-11 ladder tests pass. |
 
-**Score:** 3/5 (SC2, SC4, SC5 verified for the unedited and parsed path; SC1 failed, SC3 partial)
+**Score:** 4/5 (SC3 fails for typed text)
 
-## Independent confirmation of review blockers
+## Independent repro (my own scratch vitest, deleted afterwards, git tree clean)
 
-Scratch vitest run (temp file, deleted, no source modified):
+Edited doc with a single paragraph of typed text, passed through saveWiki, then wikiToHtml:
 
-| ID | Reproduced | Output | Defeats |
-|----|-----------|--------|---------|
-| CR-01 | Yes | list item cut by `\n\n</div>` blocks | SC1 (renderer parity) |
-| CR-02 | Yes | `data-wiki-headerless="1"` forged on a span in a header cell | SC1, D-02 invariant |
-| CR-03 | Yes | `"* a\n"`, `{status:x}` lost | SAFE-04 contract |
-| CR-04 | Yes | `"||b|"` for an empty first cell | edited-table safety (plan 06 D-08) |
-| CR-05 | Yes | `"ping [~admin] now"` emitted unescaped | SAFE-06, plan 97-08 truth |
+| Typed text | Saved | TaskFlow renders |
+|-----------|-------|------------------|
+| `a {code}x{code} b` | unescaped | literal backticks and an empty `<pre>` (language-b) |
+| `a {info}x{info} b` | unescaped | live callout span |
+| `a {quote}q{quote} b` | unescaped | blockquote marker and `<br>` |
+| `a {noformat}x{noformat} b` | unescaped | inline `<code>` |
+| `a *b* c` | `a \*b\* c` | `<p>a &#x3C;strong>b&#x3C;/strong> c</p>` (literal tag text) |
+| `a _b_ c` | `a \_b\_ c` | literal `<em>` text |
+| `ping [~admin] now` | `ping [\~admin] now` | `<~admin>` |
+| `{color:red}x{color}` | `\{color:red}x\{color}` | literal `<span data-color=...>` text |
 
-CR-03/CR-04 do not affect the unedited path, so the headline guarantee (SC2) holds. They do break emit contracts that Phase 98 depends on, so they are recorded as partial gaps.
+Both review criticals are confirmed as far as the TaskFlow renderer goes. Jira's rendering of the first four rows is expected to be live (the macros are Jira's own syntax), but I have not seen Jira render them. For the escape rows the saved text is probably right in Jira; that is human_needed.
+
+The save check compares only against parseWiki, so it cannot see either problem; it is blind by construction rather than buggy.
+
+## Prior gap re-verification
+
+| Prior gap | Result |
+|-----------|--------|
+| CR-01 mid-line panels split lists | Closed (code present, review repro and test suite pass) |
+| CR-02 forged headerless / attribute injection | Closed for title/color/data-id; siblings missed (see warning W5) |
+| CR-03 raw atoms in items/cells | Closed |
+| CR-04 empty cells, hard break in cells | Closed |
+| CR-05 typed atom look-alikes | Partially closed: atoms escaped, block macros not, and escapes render badly in TaskFlow |
 
 ## Requirements Coverage
 
-| Requirement | Plans | Status | Evidence |
-|-------------|-------|--------|----------|
-| SAFE-03 | 01, 02, 04, 05, 06, 09, 10 | SATISFIED | no-edit byte identity verified (SC2) |
-| SAFE-04 | 04, 05, 06, 10 (and 07) | PARTIAL | verbatim for parsed docs; CR-03 loses raw content in edited docs |
-| SAFE-06 | 07, 08, 09, 10 | PARTIAL | spelling kept for parsed text; typed text becomes markup (CR-05) |
+| Requirement | Status | Evidence |
+|-------------|--------|----------|
+| SAFE-03 (unedited save byte-identical) | SATISFIED | SC2 verified; fail-closed re-parse on edits |
+| SAFE-04 (unmodelable constructs read-only, saved verbatim) | SATISFIED | SC4, SC5 verified including nested raw atoms |
+| SAFE-06 (spelling, escaping, `\\`, CRLF survive) | NOT SATISFIED for typed text | gap 1 and gap 2; parsed spelling is fine |
 
-No orphaned requirements: REQUIREMENTS.md maps only SAFE-03/04/06 to Phase 97 (SAFE-05 belongs to Phase 98). REQUIREMENTS.md currently marks all three Complete; that should be reverted to Pending until the gaps close.
+No orphaned requirements; REQUIREMENTS.md maps only SAFE-03/04/06 to Phase 97. REQUIREMENTS.md currently marks SAFE-06 Complete; this should be reverted to Pending until the gaps close.
 
-## Other findings (non-blocking, from 97-REVIEW.md)
+## Other review findings (read from 97-REVIEW.md, not all re-run by me)
 
-WR-01..WR-09 and IN-01..IN-05 are not independently re-verified here. WR-01 (saveWiki never re-checks its output) and WR-02 (recorded spelling overrides edited attrs) matter for Phase 98 and should be planned alongside the gap closure.
-
-## Human Verification Required
-
-1. Deferred 97-03 Task 3: visual Jira-parity check of D-01/D-02/D-12 (see frontmatter). Run it after the CR-01/CR-02 fixes, since they change the same renderer paths.
-
-## Anti-patterns
-
-No TBD/FIXME/XXX scan was run beyond the review; the review reported none relevant.
+- WR-01: parser/renderer divergence accepted by the save check (`*one<br>two*`, heading hard break). Same root cause as gap 1.
+- WR-02: toggling a table header row always fails to save. Fail-closed but blocks a basic Phase 98 edit.
+- WR-03: first block gets a leading blank line after edits. I observed this in my repro (saved text began with `\n`).
+- WR-04: minimiser picks `[\~admin]`; Jira behaviour unverified (human_needed above).
+- WR-05: display name and attachment URL not attribute-escaped (tracking pixel via user-map name). Sanitize prevents script execution.
+- WR-06..WR-08, IN-01..IN-05: unchanged or fail-closed; none touches the unedited path.
 
 ## Gaps Summary
 
-The no-edit byte-identical guarantee and the demotion ladder are solid. The phase falls short in two places. (1) The renderer changes made for D-12 regress mid-line panels and open an attribute-injection path (CR-01, CR-02), which breaks SC1. (2) The emitter fails its typed-text escaping must-have (CR-05) and mishandles raw atoms and empty cells on edited docs (CR-03, CR-04). A gap-closure plan should cover CR-01 to CR-05 and tighten the tests that missed them (escape property oracle; no mid-line panel fixture).
+The headline guarantees (no-edit byte identity, raw atom preservation, fail-closed save) hold, and every prior gap is closed or reduced. The remaining blocker is SAFE-06 for typed text: the emitter and the save check use the editor parser as the only judge of what is literal, but the renderer and Jira are the real judges. Block macros typed mid-line stay live, and the escapes written for other characters display as raw tag text in TaskFlow. A further closure plan should force-escape live macro openers, teach preprocess.ts the Jira backslash escapes, and add tests that route typed text through wikiToHtml.
 
 ---
 
-_Verified: 2026-11-16T20:50:00Z_
+_Verified: 2026-11-16T22:20:00Z_
 _Verifier: Claude (gsd-verifier)_
