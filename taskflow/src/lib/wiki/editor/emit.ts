@@ -1,5 +1,7 @@
 import type { JSONContent } from '@tiptap/core';
 import type { Node as PMNode } from '@tiptap/pm/model';
+import { type EscapeContext, escapeSites, escapeText } from './escape';
+import { parseWiki } from './parse/blocks';
 import { CANONICAL_DELIMS } from './parse/marks';
 
 /**
@@ -92,7 +94,7 @@ function markDelims(m: MarkJSON, runText: string): [string, string] {
  * equally-marked children. Longer spans nest outside; equal extents use the
  * recorded parse order (`span`), then a fixed rank.
  */
-function inlineSegments(nodes: readonly JSONContent[] | undefined): Segment[] {
+function markedSegments(nodes: readonly JSONContent[] | undefined): Segment[] {
   const kids = nodes ?? [];
   const keySets = kids.map((k) => new Set((k.marks ?? []).map(markKey)));
   const stack: { mark: MarkJSON; key: string; closeAt: string }[] = [];
@@ -141,6 +143,114 @@ function inlineSegments(nodes: readonly JSONContent[] | undefined): Segment[] {
   return out;
 }
 
+type InlineCtx = 'para' | 'heading' | 'item' | 'quote' | 'cell';
+
+/** Source wrapped around inline text so the real block/cell parser sees its context. */
+const WRAP: Record<InlineCtx, readonly [string, string]> = {
+  para: ['', ''],
+  heading: ['h1. ', ''],
+  item: ['* ', ''],
+  quote: ['bq. ', ''],
+  cell: ['|', '|'],
+};
+
+/** The inline nodes the parser reads out of `wrapped`, or null when its structure differs. */
+function reparsed(ctx: InlineCtx, wrapped: string): JSONContent[] | null {
+  const blocks = parseWiki(wrapped).doc.content ?? [];
+  const b = blocks[0];
+  if (blocks.length !== 1 || !b) return null;
+  if (ctx === 'para') return b.type === 'paragraph' ? (b.content ?? []) : null;
+  if (ctx === 'heading') return b.type === 'heading' ? (b.content ?? []) : null;
+  if (ctx === 'quote') {
+    const p = b.type === 'blockquote' && b.content?.length === 1 ? b.content[0] : undefined;
+    return p?.type === 'paragraph' ? (p.content ?? []) : null;
+  }
+  if (ctx === 'item') {
+    const item = b.type === 'bulletList' && b.content?.length === 1 ? b.content[0] : undefined;
+    const p = item?.content?.length === 1 ? item.content[0] : undefined;
+    return p?.type === 'paragraph' ? (p.content ?? []) : null;
+  }
+  const row = b.type === 'table' && b.content?.length === 1 ? b.content[0] : undefined;
+  const cell = row?.content?.length === 1 ? row.content[0] : undefined;
+  const p = cell?.content?.length === 1 ? cell.content[0] : undefined;
+  return p?.type === 'paragraph' ? (p.content ?? []) : null;
+}
+
+/** What a reader sees of inline nodes: characters, escape targets, atom source (marks are invisible). */
+function display(nodes: readonly JSONContent[]): string {
+  return nodes
+    .map((n) => {
+      if (n.type === 'text') return n.text ?? '';
+      if (n.type === 'escape') return str(n.attrs?.src, '').slice(1);
+      if (n.type === 'hardBreak') return '\n';
+      return nodeSegments(n)
+        .map((g) => g.text)
+        .join('');
+    })
+    .join('');
+}
+
+const joinText = (segs: readonly Segment[]): string => segs.map((g) => g.text).join('');
+
+/** Neighbour character for escape context ('' at a boundary, `\x01` for an atom). */
+function edge(n: JSONContent | undefined, last: boolean): string {
+  if (!n) return '';
+  if (n.type !== 'text') return n.type === 'hardBreak' ? '' : '\x01';
+  const t = n.text ?? '';
+  return (last ? t[t.length - 1] : t[0]) ?? '';
+}
+
+/**
+ * Inline content as wiki text. Marks come from markedSegments. Text a user
+ * typed may contain markup characters: when re-parsing the plain emission in
+ * its block context would not show the same characters, the sites the
+ * tokenizers could read as markup are backslash-escaped, one character class
+ * at a time and only where that is needed (SAFE-06). Parsed text always
+ * re-parses to itself, so it is never rewritten.
+ */
+function inlineSegments(nodes: readonly JSONContent[] | undefined, ctx: InlineCtx): Segment[] {
+  const kids = nodes ?? [];
+  const plain = markedSegments(kids);
+  const risky = kids.some((n) => n.type === 'text' && /[*_\-+^~{}[\]!#|]/.test(n.text ?? ''));
+  if (!risky) return plain;
+  const [pre, post] = WRAP[ctx];
+  const want = display(kids);
+  const fits = (segs: readonly Segment[]): boolean => {
+    const back = reparsed(ctx, pre + joinText(segs) + post);
+    return back !== null && display(back) === want;
+  };
+  if (fits(plain)) return plain;
+  const ctxOf = (i: number): EscapeContext => {
+    const prevNode = kids[i - 1];
+    return {
+      lineStart: i === 0 || (prevNode?.type === 'hardBreak' && prevNode.attrs?.src === '\n'),
+      inCell: ctx === 'cell',
+      prev: edge(prevNode, true),
+      next: edge(kids[i + 1], false),
+    };
+  };
+  const escaped = (keep: ReadonlySet<string>): JSONContent[] =>
+    kids.map((n, i) =>
+      n.type === 'text' && !n.marks?.some((m) => m.type === 'mono')
+        ? { ...n, text: escapeText(n.text ?? '', ctxOf(i), keep) }
+        : n,
+    );
+  const chars = new Set<string>();
+  kids.forEach((n, i) => {
+    if (n.type === 'text' && !n.marks?.some((m) => m.type === 'mono'))
+      for (const ch of escapeSites(n.text ?? '', ctxOf(i)).keys()) chars.add(ch);
+  });
+  const all = markedSegments(escaped(new Set()));
+  // No Jira spelling shows these characters (for example `h1. ` at a line start): leave as typed.
+  if (!fits(all)) return plain;
+  const keep = new Set<string>();
+  for (const ch of chars) {
+    keep.add(ch);
+    if (!fits(markedSegments(escaped(keep)))) keep.delete(ch);
+  }
+  return markedSegments(escaped(keep));
+}
+
 /** Marker character a list contributes to the run of its items and descendants. */
 function listChar(list: JSONContent, depth: number): string {
   if (list.type === 'orderedList') return '#';
@@ -167,7 +277,7 @@ function listSegments(list: JSONContent, ancestors: string): Segment[] {
         out.push(prose('\n'), ...listSegments(kid, childRun));
       } else {
         if (i > 0) out.push(prose('\n'));
-        out.push(...inlineSegments(kid.content));
+        out.push(...inlineSegments(kid.content, 'item'));
       }
     });
   }
@@ -190,7 +300,10 @@ function quoteSegments(node: JSONContent): Segment[] {
   const lead = str(a.bodyLead, ' ');
   const single = kids.length === 1 && kids[0]?.type === 'paragraph';
   if (a.form !== 'macro' && single) {
-    return [prose(`bq.${/^[ \t]*$/.test(lead) ? lead : ' '}`), ...inlineSegments(kids[0]?.content)];
+    return [
+      prose(`bq.${/^[ \t]*$/.test(lead) ? lead : ' '}`),
+      ...inlineSegments(kids[0]?.content, 'quote'),
+    ];
   }
   const recorded = a.form === 'macro';
   const l = recorded ? str(a.bodyLead, '\n') : '\n';
@@ -214,7 +327,7 @@ function cellSegments(cell: JSONContent): Segment[] {
   for (const kid of cell.content ?? []) {
     if (kid.type === 'paragraph') {
       if (prevPara) out.push(prose('\\\\'));
-      out.push(...inlineSegments(kid.content));
+      out.push(...inlineSegments(kid.content, 'cell'));
       prevPara = true;
     } else {
       out.push(kid.type === 'panel' ? panelSegments(kid)[0] : prose(textOf(kid)));
@@ -245,11 +358,11 @@ function blockSegments(node: JSONContent): Segment[] {
   const a = node.attrs ?? {};
   switch (node.type) {
     case 'paragraph':
-      return inlineSegments(node.content);
+      return inlineSegments(node.content, 'para');
     case 'heading':
       return [
         prose(`h${Number(a.level ?? 1)}.${str(a.sep, ' ')}`),
-        ...inlineSegments(node.content),
+        ...inlineSegments(node.content, 'heading'),
       ];
     case 'blockquote':
       return quoteSegments(node);
