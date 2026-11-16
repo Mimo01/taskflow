@@ -197,9 +197,11 @@ function display(nodes: readonly JSONContent[]): string {
       if (n.type === 'text') return n.text ?? '';
       if (n.type === 'escape') return str(n.attrs?.src, '').slice(1);
       if (n.type === 'hardBreak') return '\n';
-      return nodeSegments(n)
+      // Tag atoms by type so typed text that merely looks like one never compares equal to it.
+      const spelling = nodeSegments(n)
         .map((g) => g.text)
         .join('');
+      return `\u0001${n.type}:${spelling}\u0001`;
     })
     .join('');
 }
@@ -225,7 +227,7 @@ function edge(n: JSONContent | undefined, last: boolean): string {
 function inlineSegments(nodes: readonly JSONContent[] | undefined, ctx: InlineCtx): Segment[] {
   const kids = nodes ?? [];
   const plain = markedSegments(kids);
-  const risky = kids.some((n) => n.type === 'text' && /[*_\-+^~{}[\]!#|]/.test(n.text ?? ''));
+  const risky = kids.some((n) => n.type === 'text' && /[*_\-+^~{}[\]!#|(]/.test(n.text ?? ''));
   if (!risky) return plain;
   const [pre, post] = WRAP[ctx];
   const want = display(kids);
