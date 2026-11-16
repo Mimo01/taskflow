@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-08-13)
 Phase: 95
 Plan: Not started
 Status: Milestone complete
-Last activity: 2026-11-16 - Completed quick task 261116-ez8: Fix v1.14 audit tech debt (PAT re-read on credential save)
+Last activity: 2026-11-16 - Completed quick task 261116-fe7: Notifications data-loss fixes (paged Jira polls, server-time cursor, due-today id)
 
 ## Performance Metrics
 
@@ -132,6 +132,7 @@ None yet.
 
 | # | Description | Date | Commit | Status | Directory |
 |---|-------------|------|--------|--------|-----------|
+| 261116-fe7 | Notifications data loss: Jira polls page past maxResults=20 (50/page, ≤20 pages), due reminders no longer advance the Jira cursor (WR-06), due-day reminder gets its own -today id and local-date label (WR-05 + UTC-midnight label bug) | 2026-11-16 | 741073c9 | Verified | [261116-fe7-notifications-data-loss-fixes-paged-jira](./quick/261116-fe7-notifications-data-loss-fixes-paged-jira/) |
 | 261116-ez8 | v1.14 audit tech debt: both PAT readers (useGhBacklogData, useGlobalSearchSources) tie the token to its credentialsRevision, so no old-token refetch after a credential save; RM-refresh and breakdown-seed items verified non-defects | 2026-11-16 | 0b497f51 | Verified | [261116-ez8-fix-v1-14-audit-tech-debt-edit-release-r](./quick/261116-ez8-fix-v1-14-audit-tech-debt-edit-release-r/) |
 | 261116-cv2 | Worklogs page: others' entries read-only (per-entry author key/name match, fail-closed); Copy as mine opens a prefilled create form with "Logging as {me}"; add-entry on someone else's/all view labelled "Log as me". Review: 0 blockers, 5 advisory warnings | 2026-11-16 | 2b19a4c7, 2fccc815 | Approved | [261116-cv2-worklogs-read-only-for-other-people-copy](./quick/261116-cv2-worklogs-read-only-for-other-people-copy/) |
 | 261116-c5g | Epic detail Add story: required custom fields (Account) inherited from the epic via the subtask inheritance pipeline (follows Epic Link, manual value wins); success refreshes epic detail + Stories; close-first guard in main.tsx. No-auto-close NOT reproduced in tests; UAT approved | 2026-11-16 | 0af65ff7, 24adc464 | Approved | [261116-c5g-epic-detail-create-task-prefill-account-](./quick/261116-c5g-epic-detail-create-task-prefill-account-/) |

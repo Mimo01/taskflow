@@ -16,3 +16,6 @@ From the phase 95 code review (not fixed in phase 95):
 - **WR-06 (predates phase 95, data loss risk):** due reminders are stamped with the client's
   `now` and advance the Jira cursor. Server events landing between the queries, or any event when
   the client clock is ahead, are skipped permanently. Keep the cursor on server timestamps only.
+
+
+**Completed 2026-11-16** by quick 261116-fe7 (741073c9).

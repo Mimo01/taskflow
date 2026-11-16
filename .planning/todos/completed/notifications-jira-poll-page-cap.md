@@ -15,3 +15,6 @@ pitfall (see memory: fetch-once page-cap).
 
 Fix: page through results (startAt/total) until the polling window is covered, or bound by a sane
 max with a visible "more activity" signal. Add a test with >20 issues.
+
+
+**Completed 2026-11-16** by quick 261116-fe7 (741073c9).

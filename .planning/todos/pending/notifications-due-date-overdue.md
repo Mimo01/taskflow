@@ -11,3 +11,5 @@ priority: medium
 The due-date query already requests `fields=duedate` but the NotificationItem doesn't carry it, so
 cards only parse "Due today/tomorrow" from the body text. Pass `dueDate` through on the item and render
 `due in 3d` / `overdue 2d` (red) on the card.
+
+**Also check (found in 261116-fe7):** Query D uses `duedate >= now()`. `duedate` is date-only, so on the due day Jira DC may compare midnight < now and drop the issue, which means "Due today" may never be fetched. Verify against live Jira; if confirmed, switch to `duedate >= startOfDay()`.
