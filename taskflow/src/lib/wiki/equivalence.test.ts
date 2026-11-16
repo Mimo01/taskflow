@@ -1,14 +1,15 @@
 /**
  * Corpus equivalence harness (SAFE-02, D-04).
  *
- * This phase ships the identity round-trip plus mutation self-tests proving the
- * gate bites. Phase 97 adds `checkCorpus(WIKI_CORPUS, (s) => emit(parse(s)), MAPS)`
- * here. Mutation tests assert that failures are REPORTED, so the suite stays
- * green under pre-commit.
+ * Two corpus runs: the identity round-trip (proves the gate itself) and the
+ * Phase 97 engine round-trip `emitWiki(parseWiki(s).doc)` (proves the editor
+ * engine). Mutation self-tests assert that failures are REPORTED, so the suite
+ * stays green under pre-commit. equivalence.ts itself never imports the editor.
  */
 import { describe, expect, it } from 'vitest';
 import { HARNESS_ATTACHMENTS, HARNESS_USERS, WIKI_CORPUS } from './corpus.fixtures';
 import { checkCorpus, formatCorpusFailures } from './equivalence';
+import { emitWiki, parseWiki } from './editor';
 import { JIRA_EMOTICON_MAP } from './preprocess';
 
 const MAPS = { attachments: HARNESS_ATTACHMENTS, users: HARNESS_USERS };
@@ -22,6 +23,11 @@ describe('corpus equivalence harness', () => {
 
   it('identity round-trip is equivalent over the whole corpus', () => {
     const failures = checkCorpus(WIKI_CORPUS, (s) => s, MAPS);
+    expect(failures, formatCorpusFailures(failures)).toEqual([]);
+  });
+
+  it('parse -> emit round-trip is equivalent over the whole corpus (Phase 97)', () => {
+    const failures = checkCorpus(WIKI_CORPUS, (s) => emitWiki(parseWiki(s).doc), MAPS);
     expect(failures, formatCorpusFailures(failures)).toEqual([]);
   });
 });

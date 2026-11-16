@@ -155,7 +155,7 @@ describe('corpus round-trip (SAFE-03, SAFE-04)', () => {
 
   it('registry: raw atoms only where allowed, modelled nodes present', () => {
     for (const [path, reason] of Object.entries(RAW_ALLOWED)) {
-      expect(reason.length, path).toBeGreaterThan(0);
+      expect(reason, path).toMatch(/^(D-10|D-09 demotion:)/);
       expect(
         WIKI_CORPUS.some((f) => f.path === path),
         `stale path ${path}`,
