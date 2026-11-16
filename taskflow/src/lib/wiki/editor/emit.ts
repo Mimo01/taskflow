@@ -37,6 +37,32 @@ function inlineSegments(nodes: readonly JSONContent[] | undefined): Segment[] {
       case 'rawInline':
         out.push(verbatim(str(n.attrs?.raw, '')));
         break;
+      case 'emoticon':
+      case 'escape':
+        out.push(prose(str(n.attrs?.src, '')));
+        break;
+      case 'mention':
+        out.push(prose(str(n.attrs?.src, `[~${str(n.attrs?.id, '')}]`)));
+        break;
+      case 'image': {
+        const params = str(n.attrs?.params, '');
+        out.push(
+          prose(str(n.attrs?.src, `!${str(n.attrs?.name, '')}${params ? `|${params}` : ''}!`)),
+        );
+        break;
+      }
+      case 'attachment': {
+        const label = str(n.attrs?.label, '');
+        out.push(
+          prose(
+            str(
+              n.attrs?.src,
+              label ? `[${label}|^${str(n.attrs?.name, '')}]` : `[^${str(n.attrs?.name, '')}]`,
+            ),
+          ),
+        );
+        break;
+      }
       default:
         out.push(prose(textOf(n)));
     }

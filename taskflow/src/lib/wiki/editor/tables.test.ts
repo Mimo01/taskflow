@@ -11,7 +11,9 @@ const blocks = (s: string): JSONContent[] => parse(s).content ?? [];
 const kinds = (nodes: readonly JSONContent[] | undefined): string[] =>
   (nodes ?? []).map((n) => n.type ?? '');
 const cellText = (cell: JSONContent | undefined): string =>
-  (cell?.content?.[0]?.content ?? []).map((n) => n.text ?? '\n').join('');
+  (cell?.content?.[0]?.content ?? [])
+    .map((n) => n.text ?? (typeof n.attrs?.src === 'string' ? n.attrs.src : '\n'))
+    .join('');
 
 const MODELLED = [
   'tables/headerless.wiki',

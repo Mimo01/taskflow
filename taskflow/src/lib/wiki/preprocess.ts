@@ -410,6 +410,31 @@ export const JIRA_EMOTICON_MAP: ReadonlyArray<[RegExp, string]> = [
 ];
 
 /**
+ * The literal emoticon tokens, in exactly the JIRA_EMOTICON_MAP order (longest
+ * first where prefixes overlap). The two must agree: a unit test checks that
+ * each token matches its map regex. Single source of truth for the token set;
+ * the wiki editor's inline parser consumes this list.
+ */
+export const JIRA_EMOTICON_TOKENS: readonly string[] = Object.freeze([
+  '(/)',
+  '(x)',
+  '(!)',
+  '(+)',
+  '(-)',
+  '(?)',
+  '(i)',
+  '(*r)',
+  '(*g)',
+  '(*b)',
+  '(*y)',
+  '(*)',
+  '(on)',
+  '(off)',
+  '(flagoff)',
+  '(flag)',
+]);
+
+/**
  * Replace Jira emoticon shortcodes with their Unicode equivalents.
  * Must run before jira2md because jira2md's bold pattern `*...*` would
  * otherwise corrupt `(*)` into `(**)` and similar sequences.
