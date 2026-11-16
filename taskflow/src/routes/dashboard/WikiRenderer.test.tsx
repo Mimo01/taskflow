@@ -2761,3 +2761,51 @@ describe('D-12 panel family', () => {
     expect(container.querySelectorAll('[data-callout="panel"] ul li').length).toBe(2);
   });
 });
+
+describe('D-12 mid-line panels (CR-01)', () => {
+  it('keeps a bullet item that opens a panel mid-line', () => {
+    const { container } = render(
+      <WikiRenderer wikiText={'* item one {note}nested note{note} tail\n* item two'} />,
+    );
+    expect(container.querySelectorAll('ul').length).toBe(1);
+    const items = container.querySelectorAll('ul > li');
+    expect(items.length).toBe(2);
+    expect(items[0].querySelector('[data-callout="note"]')?.textContent).toBe('nested note');
+    expect(items[0].textContent).toContain('tail');
+    expect(items[1].textContent).toBe('item two');
+  });
+
+  it('keeps a numbered item that opens a panel mid-line', () => {
+    const { container } = render(
+      <WikiRenderer wikiText={'# step {warning}careful{warning}\n# step two'} />,
+    );
+    expect(container.querySelectorAll('ol').length).toBe(1);
+    const items = container.querySelectorAll('ol > li');
+    expect(items.length).toBe(2);
+    expect(items[0].querySelector('[data-callout="warning"]')).not.toBeNull();
+    expect(container.textContent).not.toContain('1. step two');
+  });
+
+  it('keeps a paragraph that opens a panel mid-line', () => {
+    const { container } = render(
+      <WikiRenderer wikiText={'Intro {info}inline info{info} and more text.'} />,
+    );
+    const paras = container.querySelectorAll('p');
+    expect(paras.length).toBe(1);
+    expect(paras[0].querySelector('[data-callout="info"]')).not.toBeNull();
+    expect(paras[0].textContent).toContain('and more text.');
+    expect(container.querySelector('[data-callout="info"] p')).toBeNull();
+  });
+
+  it('still renders an own-line panel as a block with its list', () => {
+    const { container } = render(<WikiRenderer wikiText={'{info}\n* a\n* b\n{info}'} />);
+    expect(container.querySelectorAll('div[data-callout="info"] ul li').length).toBe(2);
+  });
+
+  it('uses the inline form when only the opener starts the line', () => {
+    const { container } = render(<WikiRenderer wikiText={'{note}x{note} tail'} />);
+    expect(container.querySelector('span[data-callout="note"]')).not.toBeNull();
+    expect(container.querySelector('div[data-callout="note"]')).toBeNull();
+    expect(container.textContent).toContain('tail');
+  });
+});

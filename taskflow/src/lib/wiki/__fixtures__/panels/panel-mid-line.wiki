@@ -1,0 +1,7 @@
+* item one {note}nested note{note} tail
+* item two
+
+# step {warning}careful{warning}
+# step two
+
+Intro {info}inline info{info} and more text.

@@ -22,6 +22,7 @@ const REQUIRED_FIXTURES = [
   'tables/mixed-header-row.wiki',
   'tables/code-in-cell.wiki',
   'panels/panel-titled.wiki',
+  'panels/panel-mid-line.wiki',
   'panels/info-titled.wiki',
   'panels/note.wiki',
   'panels/warning-titled.wiki',
@@ -86,8 +87,8 @@ function wikiOf(path: string): string {
 }
 
 describe('wiki corpus coverage', () => {
-  it('lists exactly 64 required fixtures', () => {
-    expect(REQUIRED_FIXTURES).toHaveLength(64);
+  it('lists exactly 65 required fixtures', () => {
+    expect(REQUIRED_FIXTURES).toHaveLength(65);
   });
 
   it('contains every required fixture, non-empty and sorted by path', () => {

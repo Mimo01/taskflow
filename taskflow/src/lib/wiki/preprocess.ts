@@ -985,25 +985,34 @@ export function preprocessJiraMarkup(
     return `\`${filename}\``;
   });
 
-  // Panel family (D-12): panel|info|note|warning|tip, titled forms first, then bare.
-  // The body is wrapped in blank lines so markdown parses lists/paragraphs inside the
-  // HTML block. Titles are raw text; sanitize keeps only the allowlisted data-title attr.
-  // A match whose opening sits on a table-row line stays inline (a blank-line-wrapped
-  // div would split the row), so it becomes the same span the multi-line merge emits.
+  // Panel family (D-12): panel|info|warning|note|tip, titled forms first, then bare.
+  // A panel that sits on its own lines (only spaces/tabs before the opener and after the
+  // closer) becomes a block div wrapped in blank lines so markdown parses lists/paragraphs
+  // inside the HTML block. A panel opened or closed mid-line (inside a list item or a
+  // paragraph) must stay inline: a blank-line-wrapped div there splits the enclosing list
+  // item or paragraph, so it uses the same span the table-row form emits. A match whose
+  // opening sits on a table-row line is inline for the same reason. Titles are raw text;
+  // sanitize keeps only the allowlisted data-title attr.
   const inTableRow = (str: string, offset: number) =>
     str.slice(str.lastIndexOf('\n', offset - 1) + 1).startsWith('|');
+  const ownLine = (str: string, offset: number, len: number) => {
+    const before = str.slice(str.lastIndexOf('\n', offset - 1) + 1, offset);
+    const nl = str.indexOf('\n', offset + len);
+    const after = str.slice(offset + len, nl === -1 ? str.length : nl);
+    return /^[ \t]*$/.test(before) && /^[ \t]*$/.test(after);
+  };
   for (const type of ['panel', 'info', 'warning', 'note', 'tip']) {
     result = result.replace(
       new RegExp(`\\{${type}:title=([^}]+)\\}([\\s\\S]*?)\\{${type}\\}`, 'g'),
-      (_m, title: string, body: string, offset: number, str: string) =>
-        inTableRow(str, offset)
+      (m: string, title: string, body: string, offset: number, str: string) =>
+        inTableRow(str, offset) || !ownLine(str, offset, m.length)
           ? `<span data-callout="${type}" data-title="${title}">${body.trim().replace(/\n/g, '<br/>')}</span>`
           : `<div data-callout="${type}" data-title="${title}">\n\n${body.trim()}\n\n</div>`,
     );
     result = result.replace(
       new RegExp(`\\{${type}\\}([\\s\\S]*?)\\{${type}\\}`, 'g'),
-      (_m, body: string, offset: number, str: string) =>
-        inTableRow(str, offset)
+      (m: string, body: string, offset: number, str: string) =>
+        inTableRow(str, offset) || !ownLine(str, offset, m.length)
           ? `<span data-callout="${type}">${body.trim().replace(/\n/g, '<br/>')}</span>`
           : `<div data-callout="${type}">\n\n${body.trim()}\n\n</div>`,
     );
