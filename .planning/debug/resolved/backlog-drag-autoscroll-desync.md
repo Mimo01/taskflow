@@ -1,8 +1,8 @@
 ---
-status: investigating
+status: resolved
 trigger: "when i drag and the page auto scrolls, the layout gets a little broken and the drag is not happening where the cursor is"
 created: 2026-06-04T00:00:00Z
-updated: 2026-06-04T00:00:00Z
+updated: 2026-11-16
 ---
 
 ## Current Focus
@@ -54,3 +54,7 @@ root_cause: DragOverlay is rendered inside the inner overflow-auto scroll contai
 fix: (direction only) 1) Render DragOverlay in a body portal so it is positioned in viewport coords (wrap with createPortal or use dnd-kit's portal pattern). 2) Set measuring={{droppable:{strategy:MeasuringStrategy.Always}}} on DndContext so droppable rects re-measure during scroll. Optionally collapse to a single scroll container.
 verification:
 files_changed: []
+
+## Closure (2026-11-16)
+
+Verified against the current code at the v1.14 close. Fixed by later Phase 78 work: DragOverlay is portaled (BacklogPage.tsx createPortal), droppables re-measure with MeasuringStrategy.Always (BacklogPage.tsx:1466), and dnd-kit autoScroll is disabled as the final UAT P78 decision (BacklogPage.tsx:1478), so the autoscroll desync can no longer happen.

@@ -1,8 +1,8 @@
 ---
-status: diagnosed
+status: resolved
 trigger: "there are no transitions available (bug), cant test this"
 created: 2026-05-29
-updated: 2026-05-29
+updated: 2026-11-16
 ---
 
 ## Current Focus
@@ -103,3 +103,7 @@ files_changed:
   - taskflow/src/services/jira/greenhopper/adapter.ts
 
 confidence: high
+
+## Closure (2026-11-16)
+
+Verified against the current code at the v1.14 close. Fixed: the GreenHopper adapter now sets fields.issuetype.id from gh.typeId (services/jira/greenhopper/adapter.ts:121-125), and SprintBoardTab passes it to peekGhTransitions (SprintBoardTab.tsx:1076).

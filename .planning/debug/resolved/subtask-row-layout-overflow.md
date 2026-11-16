@@ -1,8 +1,8 @@
 ---
-status: diagnosed
+status: resolved
 trigger: "UAT Phase 80 — SubtaskTemplateRow inline-field row layout broken, overflows right, Title squished to 0 width, in both settings and preview modes"
 created: 2026-06-07
-updated: 2026-06-07
+updated: 2026-11-16
 ---
 
 ## Current Focus
@@ -46,3 +46,7 @@ root_cause: The row is a single non-wrapping flex track (`flex items-center gap-
 fix: (direction) Stop relying on one horizontal track of fixed widths. Options: (a) allow the row to wrap (add flex-wrap and give Title a min-width floor like min-w-[160px]); (b) reduce/relax the fixed widths and/or move less-critical fields (Labels/Estimate/Story points/Due date) into the Advanced expand; (c) constrain via a responsive grid instead of flex so columns share remaining space. Minimal: give Title a min-width floor and let secondary fields shrink (remove some shrink-0 / cap widths), plus widen/adjust the modal or make the row container scroll-x as a fallback.
 verification: (not applied — diagnose-only)
 files_changed: []
+
+## Closure (2026-11-16)
+
+Verified against the current code at the v1.14 close. Fixed by later work: SubtaskTemplateRow keeps only the title on the first line (flex-1 min-w-0), and the secondary fields move to a wrapping second row (flex flex-wrap, each min-w-[8rem]) (create-edit-issue/SubtaskTemplateRow.tsx:221-312).

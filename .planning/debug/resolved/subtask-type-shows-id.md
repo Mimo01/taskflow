@@ -1,8 +1,8 @@
 ---
-status: diagnosed
+status: resolved
 trigger: "subtask type shows id instead of the name of the type"
 created: 2026-06-07
-updated: 2026-06-07
+updated: 2026-11-16
 ---
 
 ## Current Focus
@@ -41,3 +41,7 @@ root_cause: base-ui Select.Value renders the raw bound value when value != label
 fix: give Select.Value a value->name mapping — either function child `<SelectValue>{(v) => subtaskTypes.find(t=>t.id===v)?.name ?? 'Select type'}</SelectValue>` OR pass `items={Object.fromEntries(subtaskTypes.map(t=>[t.id,t.name]))}` to <Select>. SelectItem markup is already correct.
 verification: (not applied — diagnose-only)
 files_changed: []
+
+## Closure (2026-11-16)
+
+Verified against the current code at the v1.14 close. Fixed: both subtask-type Selects use a function child mapping id to name (SubtaskTemplatesSection.tsx:217-219, BulkCreateSubtasksModal.tsx:644-646).

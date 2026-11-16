@@ -1,8 +1,8 @@
 ---
-status: diagnosed
+status: resolved
 trigger: "the button is there but it has different styling than the single subtask button, make them match"
 created: 2026-06-07
-updated: 2026-06-07
+updated: 2026-11-16
 ---
 
 ## Current Focus
@@ -29,3 +29,7 @@ root_cause: The two controls are different element types with mismatched styling
 fix: (not applied — diagnose only) Make Bulk Create a native <button> matching the Add subtask treatment, or switch both to a shared style.
 verification: (not applied)
 files_changed: []
+
+## Closure (2026-11-16)
+
+Verified against the current code at the v1.14 close. Fixed by later work: 'Bulk create' and 'Add subtask' both render through SubtaskCreateControl (issue-detail/SubtaskCreateControl.tsx) using the shared SectionHeader ghost xs button style (261112-fqd).

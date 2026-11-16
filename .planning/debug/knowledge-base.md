@@ -1,7 +1,7 @@
 ---
 type: reference
-status: archived
-note: "Not a debug session — curated knowledge base of resolved patterns consumed by gsd-debugger. Set status: archived so audit-open scanner does not flag it as an open session."
+status: complete
+note: "Not a debug session — curated knowledge base of resolved patterns consumed by gsd-debugger. status: complete because audit-open only skips resolved/complete (archived was still flagged)."
 ---
 
 # GSD Debug Knowledge Base

@@ -1,8 +1,8 @@
 ---
-status: diagnosed
+status: resolved
 trigger: "after releasing a drag that auto-scrolled, clicks select rows NOT under the pointer (visual != hit-test)"
 created: 2026-06-04
-updated: 2026-06-04
+updated: 2026-11-16
 ---
 
 ## Current Focus
@@ -26,3 +26,7 @@ root_cause: see ROOT CAUSE below
 fix: not implemented (diagnose-only)
 verification: empty
 files_changed: []
+
+## Closure (2026-11-16)
+
+Verified against the current code at the v1.14 close. Superseded: dnd-kit autoScroll is disabled (UAT P78 final decision, BacklogPage.tsx:1478), so nothing scrolls mid-drag and the visual and hit-test positions can't diverge after a drop.
