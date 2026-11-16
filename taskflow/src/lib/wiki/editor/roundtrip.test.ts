@@ -22,10 +22,6 @@ const TRAILING_WS = new Set([
  * delete entries as they model each family.
  */
 const RAW_ALLOWED: Record<string, string> = {
-  'emoticons/inline-emoticons.wiki': 'tables modelled in Plan 06',
-  'escapes/line-breaks.wiki': 'table modelled in Plan 06',
-  'escapes/regressions.wiki': 'panels modelled in Plan 06',
-  'lists/panel-after-item.wiki': 'panels modelled in Plan 06',
   'macros/code-language-param.wiki': 'D-10 code opener outside the jira2md grammar',
   'macros/color-multi-block.wiki': '{color} modelled in Plan 08',
   'macros/expand-unknown.wiki': 'D-10 unknown macro with a closer',
@@ -33,25 +29,9 @@ const RAW_ALLOWED: Record<string, string> = {
   'macros/unclosed-code.wiki': 'D-10 unclosed known macro',
   'macros/unclosed-panel.wiki': 'D-10 unclosed known macro',
   'macros/unknown-macro.wiki': 'D-10 unknown macro with a closer',
-  'panels/info-titled.wiki': 'panels modelled in Plan 06',
-  'panels/list-in-panel-nested.wiki': 'panels modelled in Plan 06',
-  'panels/note.wiki': 'panels modelled in Plan 06',
-  'panels/panel-in-panel.wiki': 'panels modelled in Plan 06',
-  'panels/panel-list-items.wiki': 'panels modelled in Plan 06',
-  'panels/panel-titled.wiki': 'panels modelled in Plan 06',
-  'panels/tip-titled.wiki': 'panels modelled in Plan 06',
-  'panels/tip.wiki': 'panels modelled in Plan 06',
-  'panels/warning-titled.wiki': 'panels modelled in Plan 06',
-  'tables/cell-formatting.wiki': 'tables modelled in Plan 06',
-  'tables/code-in-cell.wiki': 'tables modelled in Plan 06',
-  'tables/header-row.wiki': 'tables modelled in Plan 06',
-  'tables/headerless-with-links.wiki': 'tables modelled in Plan 06',
-  'tables/headerless.wiki': 'tables modelled in Plan 06',
-  'tables/inline-callout-cell.wiki': 'tables modelled in Plan 06',
-  'tables/mixed-header-row.wiki': 'tables modelled in Plan 06',
-  'tables/open-row-merge.wiki': 'tables modelled in Plan 06',
-  'tables/panel-in-cell-multi.wiki': 'tables modelled in Plan 06',
-  'whitespace/crlf.wiki': 'tables modelled in Plan 06',
+  'tables/code-in-cell.wiki': 'D-10 malformed/heuristic table ({code} in a cell)',
+  'tables/single-line-inline.wiki': 'D-10 malformed/heuristic table (inline single-line table)',
+  'tables/mixed-header-row.wiki': 'D-10 malformed/heuristic table (mixed || and | row)',
 };
 
 /** Fixtures whose modelled node types must appear in the parsed doc. */
@@ -66,6 +46,15 @@ const MODELLED: Record<string, string[]> = {
   'lists/mixed-nesting.wiki': ['bulletList', 'orderedList', 'listItem'],
   'lists/dash-bullets.wiki': ['bulletList'],
   'macros/quote.wiki': ['blockquote'],
+  'panels/tip.wiki': ['panel'],
+  'panels/info-titled.wiki': ['panel'],
+  'panels/panel-in-panel.wiki': ['panel'],
+  'panels/panel-list-items.wiki': ['panel', 'bulletList'],
+  'panels/list-in-panel-nested.wiki': ['panel', 'bulletList', 'orderedList'],
+  'lists/panel-after-item.wiki': ['panel', 'bulletList'],
+  'tables/headerless.wiki': ['table', 'tableCell'],
+  'tables/header-row.wiki': ['table', 'tableHeader'],
+  'tables/panel-in-cell-multi.wiki': ['table', 'panel'],
 };
 
 function collect(node: JSONContent, into: Set<string>): void {

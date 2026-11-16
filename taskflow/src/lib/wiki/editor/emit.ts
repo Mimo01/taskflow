@@ -81,7 +81,7 @@ function listSegments(list: JSONContent, ancestors: string): Segment[] {
 function bodyText(blocks: readonly JSONContent[]): string {
   let out = '';
   blocks.forEach((block, i) => {
-    const gap = Number(block.attrs?.gap ?? (i === 0 ? 0 : 1));
+    const gap = i === 0 ? 0 : Number(block.attrs?.gap ?? 1);
     out += `${i > 0 ? '\n' : ''}${'\n'.repeat(gap)}${emitBlockNode(block)}`;
   });
   return out;
@@ -101,6 +101,49 @@ function quoteSegments(node: JSONContent): Segment[] {
   return [verbatim(`{quote}${l}${bodyText(kids)}${t}{quote}`)];
 }
 
+function panelSegments(node: JSONContent): Segment[] {
+  const a = node.attrs ?? {};
+  const type = str(a.type, 'panel');
+  const params = typeof a.params === 'string' ? `:${a.params}` : '';
+  const lead = str(a.bodyLead, '\n');
+  const tail = str(a.bodyTail, '\n');
+  return [verbatim(`{${type}${params}}${lead}${bodyText(node.content ?? [])}${tail}{${type}}`)];
+}
+
+/** Cell content: blocks concatenated with no separator (adjacent paragraphs get a `\\\\` break). */
+function cellSegments(cell: JSONContent): Segment[] {
+  const out: Segment[] = [];
+  let prevPara = false;
+  for (const kid of cell.content ?? []) {
+    if (kid.type === 'paragraph') {
+      if (prevPara) out.push(prose('\\\\'));
+      out.push(...inlineSegments(kid.content));
+      prevPara = true;
+    } else {
+      out.push(kid.type === 'panel' ? panelSegments(kid)[0] : prose(textOf(kid)));
+      prevPara = false;
+    }
+  }
+  return out;
+}
+
+/** Rows in order; a headerless table writes body rows only (never a synthetic header). */
+function tableSegments(table: JSONContent): Segment[] {
+  const headerless = table.attrs?.headerless === true;
+  const out: Segment[] = [];
+  (table.content ?? []).forEach((row, ri) => {
+    if (ri > 0) out.push(prose('\n'));
+    let sep = '|';
+    for (const cell of row.content ?? []) {
+      const ca = cell.attrs ?? {};
+      sep = cell.type === 'tableHeader' && !headerless ? '||' : '|';
+      out.push(prose(sep + str(ca.padL, '')), ...cellSegments(cell), prose(str(ca.padR, '')));
+    }
+    out.push(prose(str(row.attrs?.close, sep)));
+  });
+  return out;
+}
+
 function blockSegments(node: JSONContent): Segment[] {
   const a = node.attrs ?? {};
   switch (node.type) {
@@ -116,6 +159,10 @@ function blockSegments(node: JSONContent): Segment[] {
     case 'bulletList':
     case 'orderedList':
       return listSegments(node, '');
+    case 'panel':
+      return panelSegments(node);
+    case 'table':
+      return tableSegments(node);
     case 'horizontalRule':
       return [prose(str(a.src, '----'))];
     case 'codeBlock': {

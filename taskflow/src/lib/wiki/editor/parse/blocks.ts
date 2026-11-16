@@ -3,7 +3,9 @@ import type { WikiParse } from '../types';
 import { parseInline } from './inline';
 import { LIST_LINE, parseListRun } from './lists';
 import { buildCloserIndex, type CloserIndex, findMacroSpan } from './macros';
+import { parsePanel } from './panels';
 import { detectEol, isBlankLine, normaliseEol, splitLines } from './source';
+import { looksLikeInlineTable, parseTableRun } from './tables';
 
 /**
  * Block scanner (Phase 97). Every construct that is not yet modelled is
@@ -16,7 +18,7 @@ const BQ = /^bq\.([ \t]*)(.*)$/;
 const QUOTE_OPEN = '{quote}';
 const HEADING = /^h([1-6])\.([ \t]*)(.*)$/;
 const RULE = /^(-{4,})[ \t]*$/;
-// Lists and quotes are modelled (Plan 05); Plan 06 models tables.
+// Lists, quotes, panels and tables are modelled; indented or unclean rows stay raw.
 const GROUPED_START = /^[ \t]*\|/;
 
 type Block = { end: number; node: JSONContent };
@@ -79,7 +81,7 @@ export function parseContainerBody(src: string): {
   let b = src.length;
   while (b > 0 && isWs(src[b - 1] as string)) b--;
   const nl = src.indexOf('\n', b);
-  const tailAt = nl === -1 ? src.length : nl;
+  const tailAt = nl === -1 ? b : nl;
   const body = src.slice(lead, tailAt);
   const { content } = scanBody(body.split('\n'));
   return { content, bodyLead: src.slice(0, lead), bodyTail: src.slice(tailAt) };
@@ -141,10 +143,14 @@ function scanSpecial(lines: readonly string[], i: number, index: CloserIndex): B
     }
     const quote = quoteBlock(lines, i, span);
     if (quote) return quote;
+    const panel = parsePanel(lines, i, span, parseContainerBody);
+    if (panel) return panel;
     return { end: span.end, node: raw(lines, i, span.end) };
   }
 
   if (GROUPED_START.test(line)) {
+    const table = parseTableRun(lines, i);
+    if (table) return table;
     let j = i + 1;
     while (j < lines.length && !isBlankLine(lines[j] ?? '')) j++;
     return { end: j, node: raw(lines, i, j) };
@@ -163,6 +169,7 @@ function scanBlocks(lines: readonly string[], i: number, index: CloserIndex): Bl
   if (special) return [special];
   let j = i + 1;
   while (j < lines.length && !isBlankLine(lines[j] ?? '') && !startsBlock(lines, j, index)) j++;
+  if (lines.slice(i, j).some(looksLikeInlineTable)) return [{ end: j, node: raw(lines, i, j) }];
   const content = parseInline(lines.slice(i, j).join('\n'));
   return [
     {
