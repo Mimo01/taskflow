@@ -209,7 +209,7 @@ Plans:
 
 **Gap closure — Wave 2** *(blocked on 97-12)*
 
-- [ ] 97-13-PLAN.md — Emitter on edited docs: raw atoms in items/cells, WikiEmitError (CR-03); empty cells and hard breaks (CR-04); edited attrs beat recorded spelling (WR-02)
+- [x] 97-13-PLAN.md — Emitter on edited docs: raw atoms in items/cells, WikiEmitError (CR-03); empty cells and hard breaks (CR-04); edited attrs beat recorded spelling (WR-02)
 
 **Gap closure — Wave 3** *(blocked on 97-11, 97-12, 97-13)*
 
@@ -300,7 +300,7 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 96. Wiki Foundations & Equivalence Harness | 6/6 | Complete    | 2026-11-16 |
-| 97. Round-Trip Engine | 12/14 | In Progress|  |
+| 97. Round-Trip Engine | 13/14 | In Progress|  |
 | 98. Editor Shell | 0/TBD | Not started | - |
 | 99. Mentions, Media & Smart Input | 0/TBD | Not started | - |
 | 100. Host Adoption & Editing Workflow | 0/TBD | Not started | - |
