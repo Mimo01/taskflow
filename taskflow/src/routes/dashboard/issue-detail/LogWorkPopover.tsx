@@ -4,9 +4,10 @@
  * Uses DurationInput for natural language time entry, a date picker,
  * and an optional comment. Calls createWorklog on submit.
  *
- * On success, two query keys are invalidated:
+ * On success, three query keys are invalidated:
  * - ['jira-worklogs', issueKey, jiraBaseUrl] — the issue-detail worklog list
  * - ['tempo', 'worklogs'] — the WorklogsPage Tempo grid (broad prefix match)
+ * - ['jira-issues'] — list views (My Tasks etc.) whose rows show time bars
  * Callers that need additional cache invalidation (e.g. refreshing jira-issue-detail
  * to update TimeTrackingSummary) should do so via the onSuccess prop.
  */
@@ -98,6 +99,10 @@ export function LogWorkPopover({
       // Callers that need jira-issue-detail refreshed (e.g. to update TimeTrackingSummary)
       // should do so via the onSuccess prop.
       queryClient.invalidateQueries({ queryKey: ['tempo', 'worklogs'] });
+      // List views (My Tasks, Backlog, Sprint Board…) read timetracking from the
+      // ['jira-issues', …] search caches — refresh them so their time bars update too
+      // (same prefix the sidebar field mutations invalidate).
+      queryClient.invalidateQueries({ queryKey: ['jira-issues'] });
       onSuccess?.();
     },
     onError: (err: Error) => {
