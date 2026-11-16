@@ -14,6 +14,14 @@ import { CANONICAL_DELIMS } from './parse/marks';
  * code bodies or raw atoms.
  */
 
+/** Thrown when a document holds a shape wiki text cannot express; saving must fail closed. */
+export class WikiEmitError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'WikiEmitError';
+  }
+}
+
 type Segment = { text: string; verbatim: boolean };
 
 const prose = (text: string): Segment => ({ text, verbatim: false });
@@ -66,7 +74,7 @@ function nodeSegments(n: JSONContent): Segment[] {
       break;
     }
     default:
-      out.push(prose(textOf(n)));
+      throw new WikiEmitError(`cannot emit inline node type "${String(n.type)}"`);
   }
   return out;
 }
@@ -291,9 +299,16 @@ function listSegments(list: JSONContent, ancestors: string): Segment[] {
     kids.forEach((kid, i) => {
       if (kid.type === 'bulletList' || kid.type === 'orderedList') {
         out.push(prose('\n'), ...listSegments(kid, childRun));
-      } else {
+      } else if (kid.type === 'rawBlock') {
+        const raw = str(kid.attrs?.raw, '');
+        if (raw.includes('\n'))
+          throw new WikiEmitError('cannot emit a multi-line raw block inside a list item');
+        out.push(prose('\n'), verbatim(raw));
+      } else if (kid.type === 'paragraph') {
         if (i > 0) out.push(prose('\n'));
         out.push(...inlineSegments(kid.content, 'item'));
+      } else {
+        throw new WikiEmitError(`cannot emit a ${String(kid.type)} inside a list item`);
       }
     });
   }
@@ -346,9 +361,20 @@ function cellSegments(cell: JSONContent): Segment[] {
       if (prevPara) out.push(prose('\\\\'));
       out.push(...inlineSegments(kid.content, 'cell'));
       prevPara = true;
-    } else {
-      out.push(kid.type === 'panel' ? panelSegments(kid)[0] : prose(textOf(kid)));
+    } else if (kid.type === 'panel') {
+      out.push(...panelSegments(kid));
       prevPara = false;
+    } else if (kid.type === 'rawBlock') {
+      const raw = str(kid.attrs?.raw, '');
+      if (raw.includes('\n') || raw.includes('|'))
+        throw new WikiEmitError(
+          'cannot emit a raw block with a newline or pipe inside a table cell',
+        );
+      if (prevPara) out.push(prose('\\\\'));
+      out.push(verbatim(raw));
+      prevPara = false;
+    } else {
+      throw new WikiEmitError(`cannot emit a ${String(kid.type)} inside a table cell`);
     }
   }
   return out;
@@ -442,7 +468,7 @@ function blockSegments(node: JSONContent, opts: BlockOpts = {}): Segment[] {
     case 'rawBlock':
       return [verbatim(str(a.raw, ''))];
     default:
-      return [prose(textOf(node))];
+      throw new WikiEmitError(`cannot emit block node type "${String(node.type)}"`);
   }
 }
 
