@@ -84,7 +84,11 @@ export type CodeParts = {
   language: string | null;
 };
 
-export type MacroSpan = { end: number; code?: CodeParts };
+export type MacroSpan = {
+  end: number;
+  code?: CodeParts;
+  closer?: readonly [line: number, col: number];
+};
 
 /** Exclusive end line of the block that starts at `start` (next blank line or end). */
 function blockEnd(lines: readonly string[], start: number): number {
@@ -157,6 +161,6 @@ export function findMacroSpan(
   }
 
   const closer = firstCloser(index, name, start, opener.length);
-  if (closer) return { end: closer[0] + 1 };
+  if (closer) return { end: closer[0] + 1, closer };
   return known ? { end: blockEnd(lines, start) } : null;
 }

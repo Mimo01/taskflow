@@ -77,6 +77,30 @@ function listSegments(list: JSONContent, ancestors: string): Segment[] {
   return out;
 }
 
+/** Wiki text of a container body: blocks with their recorded gaps. */
+function bodyText(blocks: readonly JSONContent[]): string {
+  let out = '';
+  blocks.forEach((block, i) => {
+    const gap = Number(block.attrs?.gap ?? (i === 0 ? 0 : 1));
+    out += `${i > 0 ? '\n' : ''}${'\n'.repeat(gap)}${emitBlockNode(block)}`;
+  });
+  return out;
+}
+
+function quoteSegments(node: JSONContent): Segment[] {
+  const a = node.attrs ?? {};
+  const kids = node.content ?? [];
+  const lead = str(a.bodyLead, ' ');
+  const single = kids.length === 1 && kids[0]?.type === 'paragraph';
+  if (a.form !== 'macro' && single) {
+    return [prose(`bq.${/^[ \t]*$/.test(lead) ? lead : ' '}`), ...inlineSegments(kids[0]?.content)];
+  }
+  const recorded = a.form === 'macro';
+  const l = recorded ? str(a.bodyLead, '\n') : '\n';
+  const t = recorded ? str(a.bodyTail, '\n') : '\n';
+  return [verbatim(`{quote}${l}${bodyText(kids)}${t}{quote}`)];
+}
+
 function blockSegments(node: JSONContent): Segment[] {
   const a = node.attrs ?? {};
   switch (node.type) {
@@ -87,6 +111,8 @@ function blockSegments(node: JSONContent): Segment[] {
         prose(`h${Number(a.level ?? 1)}.${str(a.sep, ' ')}`),
         ...inlineSegments(node.content),
       ];
+    case 'blockquote':
+      return quoteSegments(node);
     case 'bulletList':
     case 'orderedList':
       return listSegments(node, '');

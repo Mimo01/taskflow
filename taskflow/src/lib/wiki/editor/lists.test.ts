@@ -1,8 +1,8 @@
 import type { JSONContent } from '@tiptap/core';
 import { describe, expect, it } from 'vitest';
 import { WIKI_CORPUS } from '../corpus.fixtures';
-import { emitWiki } from './emit';
-import { parseWiki } from './parse/blocks';
+import { emitBlockNode, emitWiki } from './emit';
+import { parseContainerBody, parseWiki } from './parse/blocks';
 import { wikiSchema } from './schema';
 
 const fixture = (path: string): string => WIKI_CORPUS.find((f) => f.path === path)?.wiki ?? '';
@@ -93,5 +93,73 @@ describe('lists', () => {
     });
     expect(emitWiki(mk('bulletList'))).toBe('* item');
     expect(emitWiki(mk('orderedList'))).toBe('# item');
+  });
+});
+
+describe('blockquote', () => {
+  it('models bq. with its separator', () => {
+    const wiki = 'bq. Quoted text';
+    const q = blocks(wiki)[0];
+    expect(q?.type).toBe('blockquote');
+    expect(q?.attrs).toMatchObject({ form: 'bq', bodyLead: ' ' });
+    expect(kinds(q?.content)).toEqual(['paragraph']);
+    expect(emitWiki(parse(wiki))).toBe(wiki);
+    expect(emitWiki(parse('bq.tight'))).toBe('bq.tight');
+  });
+
+  it('models the quote macro fixture byte-identically', () => {
+    const wiki = fixture('macros/quote.wiki');
+    const b = blocks(wiki);
+    expect(b[0]?.type).toBe('blockquote');
+    expect(b[0]?.attrs?.form).toBe('macro');
+    expect(JSON.stringify(parse(wiki))).not.toContain('rawBlock');
+    wikiSchema.nodeFromJSON(parse(wiki)).check();
+    expect(emitWiki(parse(wiki))).toBe(wiki);
+  });
+
+  it('holds block content such as lists', () => {
+    const wiki = '{quote}\n* a\n* b\n{quote}';
+    const q = blocks(wiki)[0];
+    expect(kinds(q?.content)).toEqual(['bulletList']);
+    expect(emitWiki(parse(wiki))).toBe(wiki);
+  });
+
+  it('handles same-line bodies with empty lead and tail', () => {
+    const wiki = '{quote}inline{quote}';
+    const q = blocks(wiki)[0];
+    expect(q?.attrs).toMatchObject({ bodyLead: '', bodyTail: '' });
+    expect(emitWiki(parse(wiki))).toBe(wiki);
+  });
+
+  it('keeps same-name nesting ambiguity raw', () => {
+    const wiki = '{quote}a{quote}b{quote}c{quote}';
+    expect(kinds(blocks(wiki))).toEqual(['rawBlock']);
+    expect(emitWiki(parse(wiki))).toBe(wiki);
+  });
+
+  it('parseContainerBody splits lead and tail so the source rebuilds', () => {
+    for (const src of ['\nfoo\n', '', 'x', '\n\n a\n\nb\n\n', '  \n', '\n* a\n* b\n']) {
+      const r = parseContainerBody(src);
+      const body = (r.content ?? [])
+        .map(
+          (n, i) =>
+            `${i > 0 ? '\n' : ''}${'\n'.repeat(Number(n.attrs?.gap ?? 0))}${emitBlockNode(n)}`,
+        )
+        .join('');
+      expect(r.bodyLead + body + r.bodyTail, JSON.stringify(src)).toBe(src);
+    }
+  });
+
+  it('emits canonical forms for user-created quotes', () => {
+    const p = (t: string): JSONContent => ({
+      type: 'paragraph',
+      content: [{ type: 'text', text: t }],
+    });
+    expect(emitWiki({ type: 'doc', content: [{ type: 'blockquote', content: [p('one')] }] })).toBe(
+      'bq. one',
+    );
+    expect(
+      emitWiki({ type: 'doc', content: [{ type: 'blockquote', content: [p('one'), p('two')] }] }),
+    ).toBe('{quote}\none\n\ntwo\n{quote}');
   });
 });

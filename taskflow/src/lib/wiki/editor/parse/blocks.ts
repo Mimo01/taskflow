@@ -12,11 +12,12 @@ import { detectEol, isBlankLine, normaliseEol, splitLines } from './source';
  * 08 `{color}`.
  */
 
+const BQ = /^bq\.([ \t]*)(.*)$/;
+const QUOTE_OPEN = '{quote}';
 const HEADING = /^h([1-6])\.([ \t]*)(.*)$/;
 const RULE = /^(-{4,})[ \t]*$/;
-// Plan 05 models lists via parseListRun; `bq.` stays grouped raw until Task 2,
-// Plan 06 models tables.
-const GROUPED_START = /^(?:bq\.|[ \t]*\|)/;
+// Lists and quotes are modelled (Plan 05); Plan 06 models tables.
+const GROUPED_START = /^[ \t]*\|/;
 
 type Block = { end: number; node: JSONContent };
 
@@ -24,6 +25,65 @@ const raw = (lines: readonly string[], start: number, end: number): JSONContent 
   type: 'rawBlock',
   attrs: { raw: lines.slice(start, end).join('\n') },
 });
+
+/**
+ * A `{quote}` span as a blockquote, or null when it cannot be modelled
+ * without guessing: parameters, text after the closer, or a nested opener.
+ */
+function quoteBlock(
+  lines: readonly string[],
+  i: number,
+  span: { end: number; closer?: readonly [number, number] },
+): Block | null {
+  const line = lines[i] ?? '';
+  if (!line.startsWith(QUOTE_OPEN) || !span.closer) return null;
+  const [k, col] = span.closer;
+  const closeLine = lines[k] ?? '';
+  if (closeLine.length !== col + QUOTE_OPEN.length) return null;
+  const body =
+    k === i
+      ? line.slice(QUOTE_OPEN.length, col)
+      : [line.slice(QUOTE_OPEN.length), ...lines.slice(i + 1, k), closeLine.slice(0, col)].join(
+          '\n',
+        );
+  if (body.includes('{quote:')) return null;
+  const parsed = parseContainerBody(body);
+  return {
+    end: span.end,
+    node: {
+      type: 'blockquote',
+      attrs: { form: 'macro', bodyLead: parsed.bodyLead, bodyTail: parsed.bodyTail },
+      content: parsed.content,
+    },
+  };
+}
+
+/**
+ * Parses the text between a macro opener and its closer into blocks.
+ * `bodyLead` is the leading whitespace up to and including the last newline of
+ * the leading blank area, `bodyTail` the trailing newline plus blank area, so
+ * `bodyLead + emitted body + bodyTail` rebuilds the source. Reused by panels.
+ */
+export function parseContainerBody(src: string): {
+  content: JSONContent[];
+  bodyLead: string;
+  bodyTail: string;
+} {
+  const isWs = (c: string): boolean => c === ' ' || c === '\t' || c === '\n';
+  let a = 0;
+  while (a < src.length && isWs(src[a] as string)) a++;
+  if (a === src.length) {
+    return { content: [{ type: 'paragraph', attrs: { gap: 0 } }], bodyLead: src, bodyTail: '' };
+  }
+  const lead = src.lastIndexOf('\n', a - 1) + 1; // 0 when no newline in the prefix
+  let b = src.length;
+  while (b > 0 && isWs(src[b - 1] as string)) b--;
+  const nl = src.indexOf('\n', b);
+  const tailAt = nl === -1 ? src.length : nl;
+  const body = src.slice(lead, tailAt);
+  const { content } = scanBody(body.split('\n'));
+  return { content, bodyLead: src.slice(0, lead), bodyTail: src.slice(tailAt) };
+}
 
 /** A non-paragraph block starting at `i`, or null when the line is plain prose. */
 function scanSpecial(lines: readonly string[], i: number, index: CloserIndex): Block | null {
@@ -40,6 +100,22 @@ function scanSpecial(lines: readonly string[], i: number, index: CloserIndex): B
         type: 'heading',
         attrs: { level: Number(h[1]), sep: h[2] ?? '' },
         ...(content.length > 0 ? { content } : {}),
+      },
+    };
+  }
+
+  const bq = BQ.exec(line);
+  if (bq) {
+    let j = i + 1;
+    while (j < lines.length && !isBlankLine(lines[j] ?? '') && !startsBlock(lines, j, index)) j++;
+    const text = [bq[2] ?? '', ...lines.slice(i + 1, j)].join('\n');
+    const inline = parseInline(text);
+    return {
+      end: j,
+      node: {
+        type: 'blockquote',
+        attrs: { form: 'bq', bodyLead: bq[1] ?? '', bodyTail: '' },
+        content: [{ type: 'paragraph', ...(inline.length > 0 ? { content: inline } : {}) }],
       },
     };
   }
@@ -63,6 +139,8 @@ function scanSpecial(lines: readonly string[], i: number, index: CloserIndex): B
         },
       };
     }
+    const quote = quoteBlock(lines, i, span);
+    if (quote) return quote;
     return { end: span.end, node: raw(lines, i, span.end) };
   }
 
@@ -94,23 +172,9 @@ function scanBlocks(lines: readonly string[], i: number, index: CloserIndex): Bl
   ];
 }
 
-function parseUnsafe(text: string): WikiParse {
-  const eol = detectEol(text);
-  const norm = normaliseEol(text);
-  const { lines, bodyCount, tail } = splitLines(norm);
-
-  if (bodyCount === 0) {
-    return {
-      doc: {
-        type: 'doc',
-        attrs: { eol, tail },
-        content: [{ type: 'paragraph', attrs: { gap: 0 } }],
-      },
-      slices: [norm],
-    };
-  }
-
-  const body = lines.slice(0, bodyCount);
+/** Scans body lines into top-level blocks (with gaps) and their source slices. */
+function scanBody(body: readonly string[]): { content: JSONContent[]; slices: string[] } {
+  const bodyCount = body.length;
   const index = buildCloserIndex(body);
   const content: JSONContent[] = [];
   const slices: string[] = [];
@@ -139,6 +203,26 @@ function parseUnsafe(text: string): WikiParse {
     }
     i = from;
   }
+  return { content, slices };
+}
+
+function parseUnsafe(text: string): WikiParse {
+  const eol = detectEol(text);
+  const norm = normaliseEol(text);
+  const { lines, bodyCount, tail } = splitLines(norm);
+
+  if (bodyCount === 0) {
+    return {
+      doc: {
+        type: 'doc',
+        attrs: { eol, tail },
+        content: [{ type: 'paragraph', attrs: { gap: 0 } }],
+      },
+      slices: [norm],
+    };
+  }
+
+  const { content, slices } = scanBody(lines.slice(0, bodyCount));
   const last = slices.length - 1;
   slices[last] += lines
     .slice(bodyCount)

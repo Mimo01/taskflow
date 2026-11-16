@@ -30,7 +30,6 @@ const RAW_ALLOWED: Record<string, string> = {
   'macros/color-multi-block.wiki': '{color} modelled in Plan 08',
   'macros/expand-unknown.wiki': 'D-10 unknown macro with a closer',
   'macros/mismatched-closer.wiki': 'D-10 mismatched code/noformat closers',
-  'macros/quote.wiki': 'quotes modelled in Plan 05',
   'macros/unclosed-code.wiki': 'D-10 unclosed known macro',
   'macros/unclosed-panel.wiki': 'D-10 unclosed known macro',
   'macros/unknown-macro.wiki': 'D-10 unknown macro with a closer',
@@ -66,6 +65,7 @@ const MODELLED: Record<string, string[]> = {
   'whitespace/blank-lines.wiki': ['paragraph', 'heading'],
   'lists/mixed-nesting.wiki': ['bulletList', 'orderedList', 'listItem'],
   'lists/dash-bullets.wiki': ['bulletList'],
+  'macros/quote.wiki': ['blockquote'],
 };
 
 function collect(node: JSONContent, into: Set<string>): void {
