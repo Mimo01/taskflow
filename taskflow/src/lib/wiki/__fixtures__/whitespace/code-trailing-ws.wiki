@@ -1,0 +1,5 @@
+Prose line  
+{code}
+foo  
+bar	
+{code}

@@ -1,0 +1,7 @@
+{code:language=java}
+int a = 1;
+{code}
+
+{code:title=a.java|borderStyle=solid}
+int b = 2;
+{code}

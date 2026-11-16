@@ -1,0 +1,5 @@
+{*}bold{*}text
+
+{_}it{_}
+
+plain *bold*

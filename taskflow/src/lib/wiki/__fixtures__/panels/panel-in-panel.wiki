@@ -1,0 +1,4 @@
+{panel:title=Outer}
+Outer paragraph
+{info}Inner note{info}
+{panel}
