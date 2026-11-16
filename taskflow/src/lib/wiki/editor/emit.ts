@@ -1,0 +1,116 @@
+import type { JSONContent } from '@tiptap/core';
+import type { Node as PMNode } from '@tiptap/pm/model';
+
+/**
+ * Spelling-replaying emitter (Phase 97). Walks a document and rebuilds wiki
+ * text from the recorded spellings (D-05); user-created nodes with no recorded
+ * spelling use canonical forms (D-08). Pure, no module state.
+ *
+ * D-06: the detected majority line ending is restored at the very end.
+ * D-07: trailing whitespace is stripped on prose lines only, never inside
+ * code bodies or raw atoms.
+ */
+
+type Segment = { text: string; verbatim: boolean };
+
+const prose = (text: string): Segment => ({ text, verbatim: false });
+const verbatim = (text: string): Segment => ({ text, verbatim: true });
+
+const str = (v: unknown, fallback: string): string => (typeof v === 'string' ? v : fallback);
+
+/** Plain text of a node, the safe fallback for constructs with no emitter yet. */
+function textOf(node: JSONContent): string {
+  if (typeof node.text === 'string') return node.text;
+  return (node.content ?? []).map(textOf).join('');
+}
+
+function inlineSegments(nodes: readonly JSONContent[] | undefined): Segment[] {
+  const out: Segment[] = [];
+  for (const n of nodes ?? []) {
+    switch (n.type) {
+      case 'text':
+        out.push(prose(n.text ?? ''));
+        break;
+      case 'hardBreak':
+        out.push(prose(str(n.attrs?.src, '\n')));
+        break;
+      case 'rawInline':
+        out.push(verbatim(str(n.attrs?.raw, '')));
+        break;
+      default:
+        out.push(prose(textOf(n)));
+    }
+  }
+  return out;
+}
+
+function blockSegments(node: JSONContent): Segment[] {
+  const a = node.attrs ?? {};
+  switch (node.type) {
+    case 'paragraph':
+      return inlineSegments(node.content);
+    case 'heading':
+      return [
+        prose(`h${Number(a.level ?? 1)}.${str(a.sep, ' ')}`),
+        ...inlineSegments(node.content),
+      ];
+    case 'horizontalRule':
+      return [prose(str(a.src, '----'))];
+    case 'codeBlock': {
+      const language = typeof a.language === 'string' && a.language !== '' ? a.language : null;
+      const open = str(a.open, language ? `{code:${language}}` : '{code}');
+      const close = str(a.close, '{code}');
+      const body = (node.content ?? []).map(textOf).join('');
+      return [verbatim(open + str(a.bodyLead, '\n') + body + str(a.bodyTail, '\n') + close)];
+    }
+    case 'rawBlock':
+      return [verbatim(str(a.raw, ''))];
+    default:
+      return [prose(textOf(node))];
+  }
+}
+
+/** D-07: strip line-end whitespace from prose segments only. */
+function render(segments: readonly Segment[]): string {
+  // Merge adjacent prose segments so a line break in a later segment still
+  // ends the line of an earlier one.
+  const merged: Segment[] = [];
+  for (const seg of segments) {
+    const prev = merged[merged.length - 1];
+    if (prev && !prev.verbatim && !seg.verbatim) prev.text += seg.text;
+    else merged.push({ ...seg });
+  }
+  let out = '';
+  merged.forEach((seg, i) => {
+    if (seg.verbatim) {
+      out += seg.text;
+      return;
+    }
+    let t = seg.text.replace(/[ \t]+(?=\n)/g, '');
+    if (i === merged.length - 1) t = t.replace(/[ \t]+$/, '');
+    out += t;
+  });
+  return out;
+}
+
+const toJSON = (doc: JSONContent | PMNode): JSONContent =>
+  'toJSON' in doc && typeof doc.toJSON === 'function'
+    ? (doc.toJSON() as JSONContent)
+    : (doc as JSONContent);
+
+/** Wiki text of one top-level block, without gap or separators. */
+export function emitBlockNode(node: JSONContent | PMNode): string {
+  return render(blockSegments(toJSON(node)));
+}
+
+export function emitWiki(doc: JSONContent | PMNode): string {
+  const json = toJSON(doc);
+  const blocks = json.content ?? [];
+  let out = '';
+  blocks.forEach((block, i) => {
+    const gap = Number(block.attrs?.gap ?? (i === 0 ? 0 : 1));
+    out += `${i > 0 ? '\n' : ''}${'\n'.repeat(gap)}${emitBlockNode(block)}`;
+  });
+  out += '\n'.repeat(Number(json.attrs?.tail ?? 0));
+  return json.attrs?.eol === 'crlf' ? out.replace(/\n/g, '\r\n') : out;
+}
