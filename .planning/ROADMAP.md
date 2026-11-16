@@ -192,7 +192,7 @@ Plans:
 
 **Wave 7** *(blocked on Wave 6 completion)*
 
-- [ ] 97-08-PLAN.md — Formatting marks, links and typed-text escaping
+- [x] 97-08-PLAN.md — Formatting marks, links and typed-text escaping
 
 **Wave 8** *(blocked on Wave 7 completion)*
 
@@ -287,7 +287,7 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 96. Wiki Foundations & Equivalence Harness | 6/6 | Complete    | 2026-11-16 |
-| 97. Round-Trip Engine | 7/10 | In Progress|  |
+| 97. Round-Trip Engine | 8/10 | In Progress|  |
 | 98. Editor Shell | 0/TBD | Not started | - |
 | 99. Mentions, Media & Smart Input | 0/TBD | Not started | - |
 | 100. Host Adoption & Editing Workflow | 0/TBD | Not started | - |
