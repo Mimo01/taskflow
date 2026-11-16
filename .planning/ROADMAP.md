@@ -147,7 +147,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 96-06-PLAN.md — User-run live Jira render probe (D-11), mention format, text-only findings
+- [x] 96-06-PLAN.md — User-run live Jira render probe (D-11), mention format, text-only findings
 
 ### Phase 97: Round-Trip Engine
 
@@ -249,7 +249,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 96. Wiki Foundations & Equivalence Harness | 5/6 | In Progress|  |
+| 96. Wiki Foundations & Equivalence Harness | 6/6 | Complete   | 2026-11-16 |
 | 97. Round-Trip Engine | 0/TBD | Not started | - |
 | 98. Editor Shell | 0/TBD | Not started | - |
 | 99. Mentions, Media & Smart Input | 0/TBD | Not started | - |
