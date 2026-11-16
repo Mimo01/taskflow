@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.15
 milestone_name: Rich Wiki Editor
 status: executing
-last_updated: "2026-11-16T19:08:35.766Z"
+last_updated: "2026-11-16T19:09:13.763Z"
 last_activity: 2026-11-16
 progress:
   total_phases: 7
@@ -67,6 +67,7 @@ Progress: [████████░░] 75%
 | Phase 91 P09 | 25min | 3 tasks | 5 files |
 | Phase 91.2 P04 | 55min | 3 tasks | 10 files |
 | Phase 97 P04 | 25min | 3 tasks | 11 files |
+| Phase 97 P06 | 25min | 2 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -117,6 +118,7 @@ Key decisions for v1.14 (from CONTEXT.md/research, do not re-litigate):
 - [Phase 91.2-04]: PROJECT.md Key Decisions row corrected to record EpicsPage progressive enrichment (fetchEpicEnrichmentMap) as current, superseding the old too-slow-for-list-view decision
 - [Phase 91.2-04]: UAT during the human-verification checkpoint found and fixed 3 issues on the main tree: priority column reordered to match Backlog convention, priority cell pl-2 spacing, and fetchAllSearchPagesConcurrent added for bounded-concurrency (6 in flight) enrichment pagination, fail-closed per D-15
 - [Phase 97]: 97-04: closers via per-parse bare-token index; code opener gate linear; unmodelled families raw until Plans 05-08
+- [Phase 97]: 97-06: panel params other than bare/title= and heuristic table forms stay raw; panel after list item is a sibling block
 
 ### Pending Todos
 
