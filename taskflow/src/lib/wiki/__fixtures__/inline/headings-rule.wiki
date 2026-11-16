@@ -1,0 +1,6 @@
+h1. Title
+h2. Section
+h3. Subsection
+Body text.
+----
+After the rule.

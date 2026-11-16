@@ -1,0 +1,2 @@
+See [label|https://example.com/a_b_c] and [https://example.com/x_y].
+Related to PROJ-12 and some_snake_case words.

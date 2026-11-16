@@ -1,0 +1,5 @@
+* (/) Item passed
+* (x) Item failed
+||Check||Status||
+|Build|(/)|
+|Tests|(x)|
