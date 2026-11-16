@@ -1,34 +1,34 @@
 ---
 gsd_state_version: 1.0
 milestone: v1.14
-milestone_name: MVP
+milestone_name: Release Management
 status: milestone_complete
-last_updated: 2026-11-11T08:59:46.742Z
-last_activity: 2026-11-10
+last_updated: 2026-11-16T12:00:00.000Z
+last_activity: 2026-11-16
 progress:
-  total_phases: 2
-  completed_phases: 1
-  total_plans: 11
-  completed_plans: 25
-  percent: 50
-stopped_at: Milestone complete (Phase 95 was final phase)
+  total_phases: 11
+  completed_phases: 11
+  total_plans: 80
+  completed_plans: 80
+  percent: 100
+stopped_at: v1.14 milestone closed (Phases 87-95); next is /gsd-new-milestone
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-08-13)
+See: .planning/PROJECT.md (updated 2026-11-16)
 
 **Core value:** Developers and PMs can see everything they need — tasks, MRs, sprint state, notifications, and test execution health — in one place, without switching between Jira, GitLab, and AIO.
-**Current focus:** Milestone complete
+**Current focus:** Planning next milestone (v1.14 closed 2026-11-16)
 
 ## Current Position
 
-Phase: 95
-Plan: Not started
-Status: Milestone complete
-Last activity: 2026-11-16 - Completed quick task 261116-fe7: Notifications data-loss fixes (paged Jira polls, server-time cursor, due-today id)
+Phase: — (v1.14 closed through Phase 95)
+Plan: —
+Status: Milestone complete, next milestone not defined
+Last activity: 2026-11-16 - v1.14 milestone closed (Phases 92-95 folded in, archives extended, tag moved)
 
 ## Performance Metrics
 
@@ -116,7 +116,11 @@ Key decisions for v1.14 (from CONTEXT.md/research, do not re-litigate):
 
 ### Pending Todos
 
-None yet.
+Carried from the v1.14 close (`.planning/todos/pending/`):
+- notifications-due-date-overdue — overdue / due-in-Nd on due cards; also verify the `duedate >= now()` JQL on the due day
+- notifications-highlight-you-mention — highlight @you in comment text
+- notifications-status-category-colours — real status categories instead of keyword guesses
+- priority-stripe-rest-rank — stripe colour by REST /priority rank
 
 ### Blockers/Concerns
 
@@ -226,6 +230,14 @@ None yet.
 | 261109-n6r | Issue detail action row collapses on narrow widths: row is @container; <600px Refresh/Pin/Log Work/Edit/Clone become square icon buttons (sr-only label + title); Open in Jira keeps full label | 2026-11-09 | fb7a6b21 | Approved | [261109-n6r-issue-detail-action-buttons-collapse-on-](./quick/261109-n6r-issue-detail-action-buttons-collapse-on-/) |
 
 ## Deferred Items
+
+Acknowledged and deferred at the v1.14 extension close (2026-11-16): 243 items from the pre-close audit, after 6 debug sessions were closed and 2 todos fixed (261116-fe7):
+
+| Category | Item | Status |
+|----------|------|--------|
+| quick_task | 238 quick-task dirs reported "missing" | scanner bug: audit-open looks for `SUMMARY.md`, but tasks write `{id}-SUMMARY.md`. All 238 have a summary. |
+| uat_gap | Phase 95 95-HUMAN-UAT.md | status `passed` (scanner only accepts `complete`); 0 open scenarios |
+| todo | 4 pending todos (see Pending Todos) | carried to the next milestone by user choice |
 
 Acknowledged and deferred at v1.14 milestone close (2026-08-13) — 111 open artifacts from the pre-close audit. None block v1.15 planning:
 

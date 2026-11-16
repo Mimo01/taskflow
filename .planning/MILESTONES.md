@@ -1,6 +1,6 @@
 # Milestones
 
-## v1.14 Release Management (Shipped: 2026-08-13)
+## v1.14 Release Management (Shipped: 2026-08-13; extended through Phase 95, closed 2026-11-16)
 
 **Phases completed:** 7 phases (87-91.2, incl. 2 inserted), 49 plans, 121 tasks
 **Timeline:** 2026-06-16 → 2026-08-13 (phase execution 2026-08-10 → 2026-08-12)
@@ -21,6 +21,24 @@ Plus a substantial quick-task layer between v1.13 and v1.14 (~25 tasks): compact
 
 **Known gaps and deferred items:** 111 surfaced by the open-artifact audit (see STATE.md Deferred Items) — overwhelmingly historical noise: 95 stale quick-task dirs (dating to 260521), 7 pre-v1.14 debug sessions, 1 deferred priority-stripe-by-REST-rank TODO. The genuinely v1.14-scoped items are the Phase 88 and Phase 90 human-verification gaps: **no GitLab write path (create-branch, create-milestone) has ever executed against a real GitLab instance** — the checkpoints were explicitly waived by the user and coverage is mocked-fetch unit tests only — and the Phase 90 D-16 approvals/protected-branch probe was never run (no reachable PAT; per D-16 this changes no UI either way). The milestone audit closed at `tech_debt`: 31/31 requirements (DRIFT-09 and MERGE-03 intentionally descoped by the user), 7/7 phases verified, 10/10 integration paths, 3/3 flows.
 
+
+### Extension: Phases 92-95 (closed 2026-11-16)
+
+**Phases completed:** 4 (92-95), 31 plans, and 143 quick tasks, shipped as patch releases v1.14.9 → v1.14.23. They were planned as standalone phases after the August close and folded back into v1.14 at this close.
+**Timeline:** 2026-08-13 → 2026-11-16 (phases 2026-10-14 → 2026-11-11)
+**Codebase:** 1,667 commits since the `v1.14` tag at c8d65583; `taskflow/src` 599 files changed (+86,648/−13,036)
+
+**Key accomplishments:**
+
+1. **Ranked global search (Phase 92).** The command palette returns instant, ranked issue results from the cached backlog index, even off the Backlog route. Results are ordered by sprint tier (current > upcoming > backlog > closed), then by field (title > description > comment), with subtasks grouped under their parent. Compact rows show epic badge, status, assignee and match highlights. Each query makes one debounced Jira body request. Verified 21/21 decisions; 16/16 review findings fixed.
+2. **Fix-version-driven Releases list (Phase 93).** The list is GitLab-free, built from one batched fix-version status search streamed per visible row. It shows an F5 agenda rail (overdue first, TODAY line, next-release card, month groups), a Released panel and an ambient hero. The shared release model (pill, graph, package cell, `dateStamp`) feeds the detail header too. A second gap wave rebuilt the first version after UAT called it "too plain".
+3. **Release detail redesign (Phase 94).** The page is full width with no sidebar. It has a CycleHeader-style header with an icon facts row, a compact graph band (progress burnup, MR donut, by-assignee rows, by-type waffle), a sticky task-table header and upstream-first refresh. `releaseDetailPanelWidth` was removed with a v32 settings migration. About 30 later quick tasks tuned the graphs, labels, MR status and table to UAT.
+4. **Notifications redesign (Phase 95).** Store hygiene came first (readIds pruning, capped dismissed tombstones, due-date ids, bulk triage), then a pure view-model for time buckets and same-entity merging, keyboard triage, a filter bar and shared states. Live UAT turned the researched one-line grouped rows into a floating panel of two-line cards. Follow-up quick tasks added real avatars, desktop-notification formatting, a dev-tools dispatch log and data-loss fixes (paged Jira polls, server-time cursor). NOTIF-01..10: 10/10.
+5. **Quick-task layer.** The 143 quick tasks covered: shared PageHeader, PersonPicker, SearchableSelect and SectionHeader primitives; onboarding wizard re-runs with release-management setup; the attachments tile grid with more preview types; issue-detail sticky header and refresh; standup-notes density; AIO cycle and test-case pages; Settings → Updates changelog; and the redesigned update dialog.
+
+**Close-out fixes:** 261116-ez8 (both Jira-token readers re-read the token after a credential save, so global search stops refetching with the old token) and 261116-fe7 (notification data loss). Six stale debug sessions were verified fixed and closed.
+
+**Known gaps and deferred items:** the extension audit closed `tech_debt` with 0 blockers (4/4 phases, 10/10 NOTIF, integration 6/6, flows 3/3). Still open: the 94/95 VALIDATION.md documents left in draft (the tests exist and pass); and 4 todos carried forward (due/overdue display plus the `duedate >= now()` JQL question, @you highlighting, real status colours, priority stripe by REST rank). Known deferred items at close: 243 (see STATE.md Deferred Items), of which 238 are quick tasks the scanner misreads (it looks for `SUMMARY.md`, not `{id}-SUMMARY.md`; all 238 have summaries).
 ---
 
 ## v1.13 Personal Workspace (Shipped: 2026-06-16)

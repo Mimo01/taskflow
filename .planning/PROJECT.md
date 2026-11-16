@@ -6,11 +6,13 @@ Taskflow is a cross-platform Tauri 2 desktop app for Client's eshop development 
 
 ## Current Milestone: not yet defined
 
-The v1.14 Release Management milestone shipped 2026-08-13. Run `/gsd-new-milestone` to open v1.15 (questioning → research → requirements → roadmap).
+v1.14 closed 2026-11-16, extended through Phase 95. Run `/gsd-new-milestone` to open v1.15 (questioning → research → requirements → roadmap).
 
-## Latest Shipped Milestone: v1.14 Release Management (shipped 2026-08-13)
+## Latest Shipped Milestone: v1.14 Release Management (shipped 2026-08-13, extended and closed 2026-11-16)
 
-**Goal:** Turn the Releases view from a read-only Jira↔GitLab match into a working release-coordination surface that detects git-flow drift and lets the user fix it per-MR. **31/31 committed requirements delivered (DRIFT-09 and MERGE-03 intentionally descoped by the user); milestone audit `tech_debt`, 0 blockers.**
+**Extension (Phases 92-95, released as v1.14.9 → v1.14.23):** ranked cache-backed global search, a fix-version-driven Releases list (F5 agenda), a full-width release detail page with four graphs, and the notifications redesign, plus 143 quick tasks. The extension audit closed `tech_debt` with 0 blockers. Close-out fixes: the Jira token is re-read after a credential save (261116-ez8), and notification polls no longer lose items (261116-fe7). Four todos carry forward: due/overdue display and the `duedate >= now()` JQL question, @you highlighting, real status colours, and the priority stripe by REST rank.
+
+**Original v1.14 goal (Phases 87-91.2):** Turn the Releases view from a read-only Jira↔GitLab match into a working release-coordination surface that detects git-flow drift and lets the user fix it per-MR. **31/31 committed requirements delivered (DRIFT-09 and MERGE-03 intentionally descoped by the user); milestone audit `tech_debt`, 0 blockers.**
 
 **Delivered features:**
 - **Release branch & milestone awareness + creation** — `release/<version>` and the matching GitLab milestone are resolved and their existence surfaced (six `BranchState` variants in the sidebar, drift triangles on the Releases list); either can be created behind a confirm dialog, with git-ref validation, the real `X.Y.Z (DD.MM.YYYY)` title format, and duplicate-title blocking.
@@ -189,6 +191,8 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 - Planned-worklog-targets / Log Work action on Standup Notes Today (STAND-09) — built in Phase 70 then removed in the standup redesign (commit b7984f2f); Log Work stays on the Worklogs page and issue detail
 
 ## Current State
+
+**v1.14 closed 2026-11-16**, folding Phases 92-95 into the milestone; archives are in `milestones/v1.14-*`. The Phase 95 follow-ups listed below are partly resolved: the Jira poll page cap and the due-reminder id/cursor issues (WR-05/06) were fixed in 261116-fe7. Status colours, overdue/in-Nd and @you highlighting remain todos.
 
 **Phase 95 complete 2026-11-11** (post-v1.14, standalone): the notifications popover was redesigned. Research first produced grouped one-line rows. Live UAT then ran 13+ rounds and replaced them with a flat list of two-line cards. Grouping UI was removed, and system-side merging of consecutive same-actor events took its place. Cards gained per-action icons and colours, explicit "added / removed / changed" phrasing, a dashed "none" chip, an aligned change grid, and the app's shared Card surface. They no longer have hover tooltips.
 
@@ -421,4 +425,4 @@ This document evolves at phase transitions and milestone boundaries.
 | `fetchEpicsBasic` ordering is a per-caller parameter, in the query key (v1.14 Phase 91.2) | The fetcher is shared with the Sidebar, Backlog and Sprint Board pickers under one cache key — this phase's `created ASC` was silently reordering all of them | ✓ Good — defaults to the original `updated DESC`; the two orderings cannot serve each other's cache |
 
 ---
-*Last updated: 2026-11-11 — after Phase 95 (Notifications redesign)*
+*Last updated: 2026-11-16 after v1.14 milestone close (Phases 87-95)*

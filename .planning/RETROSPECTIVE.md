@@ -725,19 +725,45 @@
 - Milestone audit: closed `tech_debt` (0 blockers); 31/31 committed requirements satisfied, DRIFT-09 and MERGE-03 intentionally descoped; 111 items acknowledged as deferred, overwhelmingly historical noise (95 stale quick-task dirs, 7 pre-v1.14 debug sessions)
 - Notable: low deletion ratio (+68,011/−5,675) versus v1.13's build-then-redesign churn — this milestone added surface rather than replacing it, despite two inserted redesign phases
 
+
+### Extension: Phases 92-95 (closed 2026-11-16)
+
+**Phases:** 4 (92-95) | **Plans:** 31 | **Quick tasks:** 143 | Released as v1.14.9 → v1.14.23
+
+#### What Was Built
+- Ranked, cache-backed global search with tiered ordering and subtasks grouped under their parent (92).
+- A fix-version-driven, GitLab-free Releases list rebuilt to sketch F5 after "too plain" UAT (93).
+- A full-width release detail page with burnup, MR donut, assignee and type graphs (94).
+- The notifications redesign: view-model merging, two-line cards, keyboard triage (95).
+
+#### What Worked
+- **Sketch-first for visual pages.** Sketch 002 F5 and 003-005 gave the 93/94 rebuilds a fixed target. The gap wave in 93 rebuilt toward an approved picture instead of iterating blind.
+- **Verify-before-fix at close.** Of the audit's three code tech-debt items, two were non-defects once read against the code. The real one turned out worse than the audit said: the claimed "mitigated by `queryClient.clear()`" was the trigger of the race. Regression tests were proven to fail on HEAD first.
+
+#### What Was Inefficient
+- **Phases ran without a milestone for three months.** 92-95 were planned after the v1.14 close as standalone phases, so there was no REQUIREMENTS.md for 92-94 and the audit had to be scoped by hand.
+- **UAT polish ran long.** 94 took 12 rounds and 95 took 13+, with about 30 quick tasks after verification on the release detail alone. The researched design for 95 (one-line grouped rows) was replaced wholesale at UAT.
+- **Stale VALIDATION/VERIFICATION docs.** The 94/95 VALIDATION.md files stayed in draft with every test present. The audit also first called the avatar check open because VERIFICATION predated HUMAN-UAT, so read both.
+- **audit-open scanner noise.** It looks for `SUMMARY.md`, not `{id}-SUMMARY.md`, so all quick tasks were flagged as "missing" at two consecutive closes.
+
+#### Key Lessons
+1. Open a milestone (or add phases to an open one) before planning new phases; standalone phases lose requirements traceability.
+2. A cached-PAT holder must tie the token to the revision it was read at, not just re-read on a bump. The render between `clear()` and the re-read is enough to send the old token.
+3. Polls that advance a cursor must page to the end of the window, and the cursor must follow server timestamps only. A capped page or a client-clock item makes the loss permanent.
+
 ---
 
 ## Cross-Milestone Trends
 
 | Metric | v1.0 | v1.1 | v1.2 | v1.3 | v1.4 | v1.5 | v1.6.3 | v1.7 | v1.8 | v1.9 | v1.10 | v1.11 | v1.12 | v1.13 | v1.14 |
 |--------|------|------|------|------|------|------|--------|------|------|------|-------|-------|-------|-------|-------|
-| Phases | 4 | 4 (5-8) | 9 (9-17) | 7 (18-24) | 6 (25-30) | 7 (31-37) | 4 (38-41) | 9 (42-49) | 9 (50-58) | 6 (59-64) | 6 (65-70) | 5 (71-75) | 5 (76-80) | 6 (81-86) | 7 (87-91.2) |
-| Plans | 20 | 24 | 29 | 27 | 21 | 25 | 10 | 23 | 45 | 20 | 15 | 22 | 19 | 23 | 49 |
-| Quick tasks | 0 | 20 | 0 | 40+ | 2 | 6 | 13 | 20+ | n/a | 10 | 17 | — | ~30 | few | ~25 |
+| Phases | 4 | 4 (5-8) | 9 (9-17) | 7 (18-24) | 6 (25-30) | 7 (31-37) | 4 (38-41) | 9 (42-49) | 9 (50-58) | 6 (59-64) | 6 (65-70) | 5 (71-75) | 5 (76-80) | 6 (81-86) | 11 (87-95) |
+| Plans | 20 | 24 | 29 | 27 | 21 | 25 | 10 | 23 | 45 | 20 | 15 | 22 | 19 | 23 | 80 |
+| Quick tasks | 0 | 20 | 0 | 40+ | 2 | 6 | 13 | 20+ | n/a | 10 | 17 | — | ~30 | few | ~25 + 143 |
 | Timeline (days) | 2 | 2 | 2 | 5 | 2 | 4 | 6 | 8 | 7 | 4 | 3 | 4 | 6 | 9 | 3‡ |
 | LOC (TypeScript) | ~11,017 | ~15,856 | ~23,607 | ~32,173 | ~37,520 | ~45k* | ~51,536 | ~57,000+ | ~68,000+ | ~73,264 | ~80,895 | ~80,895+ | ~80,895+ | ~80,895+ | ~98,000+ |
 | Gap/fix plans | 7 (35%) | 7 (29%) | 6 (21%) | 2 (7%) | 1 (5%) | 7 (28%) | 0 (0%) | 5 (22%) | n/a | 3 (15%) | 0 (0%) | 0 (0%) | 0 (0%) | 0 (0%) | 16 (33%) |
-| Requirements hit | 35/35 (100%) | 22/22 (100%) | 27/27 (100%) | 31/31 (100%) | 27/27 (100%) | 30/34 (88%)** | 15/15 (100%) | 17/17 (100%) | n/a | 19/19 (100%)*** | 27/29 (93%)**** | 17/17 (100%) | 32/32 (100%) | 17/18 (94%)***** | 31/31 (100%)****** |
+| Requirements hit | 35/35 (100%) | 22/22 (100%) | 27/27 (100%) | 31/31 (100%) | 27/27 (100%) | 30/34 (88%)** | 15/15 (100%) | 17/17 (100%) | n/a | 19/19 (100%)*** | 27/29 (93%)**** | 17/17 (100%) | 32/32 (100%) | 17/18 (94%)***** | 31/31 + 10/10 NOTIF (100%)****** |
 
 \* v1.5 LOC corrected from previous ~633k count
 \*\* 4 requirements user-deferred (bulk operations BOARD-04–07)

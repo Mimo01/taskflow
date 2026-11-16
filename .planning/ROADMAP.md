@@ -2,7 +2,7 @@
 
 ## Milestones
 
-- ✅ **v1.14 Release Management** — Phases 87-91.2 (shipped 2026-08-13)
+- ✅ **v1.14 Release Management** — Phases 87-95 (shipped 2026-08-13, extended through Phase 95 and closed 2026-11-16)
 - ✅ **v1.13 Personal Workspace** — Phases 81-86 (shipped 2026-06-16)
 - ✅ **v1.12 Jira Experience Improvements** — Phases 76-80 (shipped 2026-06-07)
 - ✅ **v1.11 GreenHopper API Migration** — Phases 71-75 (shipped 2026-06-01)
@@ -28,7 +28,7 @@
 Decimal phases appear between their surrounding integers in numeric order.
 
 <details>
-<summary>✅ v1.14 Release Management (Phases 87-91.2) — SHIPPED 2026-08-13</summary>
+<summary>✅ v1.14 Release Management (Phases 87-95) — SHIPPED 2026-08-13, closed 2026-11-16</summary>
 
 - [x] Phase 87: Release Detail Decomposition (6/6 plans) — completed 2026-08-10
 - [x] Phase 88: Release Branch & Milestone Creation (11/11 plans) — completed 2026-08-10
@@ -37,6 +37,10 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] Phase 91: Post-Release Merge-Back Verification (9/9 plans) — completed 2026-08-11
 - [x] Phase 91.1: Unified Release Detail Task Table (INSERTED) (10/10 plans) — completed 2026-08-12
 - [x] Phase 91.2: Epics Page Redesign (INSERTED) (4/4 plans) — completed 2026-08-12
+- [x] Phase 92: Advanced Global Search (6/6 plans) — completed 2026-10-16
+- [x] Phase 93: Releases List Redesign (11/11 plans) — completed 2026-10-30
+- [x] Phase 94: Release Detail Redesign (8/8 plans) — completed 2026-10-30
+- [x] Phase 95: Notifications Redesign (6/6 plans) — completed 2026-11-11
 
 See archive: `.planning/milestones/v1.14-ROADMAP.md`
 
@@ -105,7 +109,7 @@ Earlier milestones are collapsed. See per-milestone archives in `.planning/miles
 
 | Milestone | Phases | Plans | Shipped |
 |-----------|--------|-------|---------|
-| v1.14 Release Management | 7 (87-91.2) | 49 | 2026-08-13 |
+| v1.14 Release Management | 11 (87-95) | 80 | 2026-11-16 |
 | v1.13 Personal Workspace | 6 (81-86) | 23 | 2026-06-16 |
 | v1.12 Jira Experience Improvements | 5 (76-80) | 19 | 2026-06-07 |
 | v1.11 GreenHopper API Migration | 5 (71-75) | 22 | 2026-06-01 |
@@ -122,126 +126,3 @@ Earlier milestones are collapsed. See per-milestone archives in `.planning/miles
 | v1.0 MVP | 4 (1-4) | 20 | 2026-03-12 |
 
 **Next milestone:** not yet defined — run `/gsd-new-milestone`.
-
-### Phase 92: Advanced Global Search — prioritized ranking (current sprint > upcoming sprints, title > description > comments, story > subtask), cached-data index with minimal Jira load, larger search dialog, subtasks grouped under parent story, epic badges on stories, assignee display, match highlighting
-
-**Goal:** Global search (CommandPalette) returns instant, ranked issue results from the cached backlog index — sprint tier first (current > upcoming > backlog > closed), then field (title > description > comment), subtasks grouped under their parent — with compact one-line rows (epic badge, status, assignee, highlights), one debounced Jira body request per query, and a larger dialog.
-**Requirements**: TBD (contract = 92-CONTEXT.md D-01..D-21)
-**Depends on:** Phase 91
-**Plans:** 6/6 plans complete
-**Status:** ✅ Complete — 2026-10-16 (verification passed 21/21; live UAT approved)
-Plans:
-**Wave 1**
-
-- [x] 92-01-PLAN.md — fuzzysort legitimacy gate + install; pure text matching (fuzzy, highlight runs, snippets)
-- [x] 92-02-PLAN.md — searchJiraBody (injection-safe JQL, throws) + route-independent backlog source hook
-- [x] 92-03-PLAN.md — HighlightedText + compact one-line SearchResultRow
-
-**Wave 2** *(blocked on Wave 1 completion)*
-
-- [x] 92-04-PLAN.md — global-search lib: index, tiers, field tiers, grouping, ranking, caps
-
-**Wave 3** *(blocked on Wave 2 completion)*
-
-- [x] 92-05-PLAN.md — CommandPalette upgrade: ranked tiers, body/closed queries, direct match, states
-
-**Wave 4** *(blocked on Wave 3 completion)*
-
-- [x] 92-06-PLAN.md — phase gates, validation map, live-Jira + visual UAT
-
-### Phase 93: Releases list and detail redesign — fix-version-driven list (fix version, matched release management, date, status; drop milestones and branch), nicer app-consistent styling, fast loading; release detail keeps full info, restyled to match the list
-
-**Goal:** The Releases list is a fast, GitLab-free, fix-version-driven list (Upcoming/Released groups; per row version, RM package, date, one status pill and a small issue graph streamed for visible rows only; instant cached revisits), and the release detail page keeps all its information under a header that echoes the list row (pill, date, package, wide graph, Pin/Edit/Open in Jira), with each figure shown once.
-**Requirements**: TBD
-**Depends on:** Phase 92
-**Plans:** 11/11 plans complete
-
-Plans:
-
-**Wave 1**
-
-- [x] 93-01-PLAN.md — shared release model + ReleaseStatusPill / ReleaseIssueGraph / ReleasePackageCell + useReleasePackages
-- [x] 93-02-PLAN.md — batched paginated status search, chunk-per-reveal useReleaseBreakdowns, upstream-first refresh, edit invalidation
-- [x] 93-03-PLAN.md — detail trims: table done badge/progress, sidebar Status/Date; body section heading polish
-
-**Wave 2** *(blocked on Wave 1 completion)*
-
-- [x] 93-04-PLAN.md — Releases list rebuild: grouped grid, overlay rows, pill, package, streamed graph, paging, Refresh
-- [x] 93-05-PLAN.md — detail row-echo header with Pin/Edit/Open in Jira, single-source done figure, cached first paint
-
-**Wave 3** *(blocked on Wave 2 completion)*
-
-- [x] 93-06-PLAN.md — phase gates, validation map, visual + live-Jira UAT
-
-**Gap closure — sketch 002 F5 (UAT: list "too plain")**
-
-**Gap wave 1**
-
-- [x] 93-07-PLAN.md — F5 agenda model (order, countdown, stamps, summary) + assignees in the batch search + hook teams / 3-released first page
-- [x] 93-08-PLAN.md — timeline model + uncarded responsive ReleaseTimeline graph (chips, axis dots, TODAY, Today/‹ › controls)
-
-**Gap wave 2** *(blocked on 93-07)*
-
-- [x] 93-09-PLAN.md — shared AmbientCurves + ReleasesHero, agenda rail with next-release card, Released panel
-
-**Gap wave 3** *(blocked on 93-07, 93-08, 93-09)*
-
-- [x] 93-10-PLAN.md — compose F5 page in ReleasesTab, skeleton, tests, delete table files; visual comparison vs sketch F5
-
-**Gap wave 4** *(blocked on 93-10)*
-
-- [x] 93-11-PLAN.md — gap gate: suite, grep gates, validation map, live UAT of the F5 page
-
-### Phase 94: Release detail redesign — nicer professional page with more release graphs, keeps all current info, easy access to existing actions
-
-**Goal:** The release detail page gets a new design to go with the redesigned Releases list. It should be cleaner, more professional and easier to look at, with more graphs about the release. It keeps everything the page shows today, and the actions it already supports (Pin, Edit, Open in Jira, field edits) are easy to reach.
-**Requirements**: TBD
-**Depends on:** Phase 93
-**Plans:** 8/8 plans complete
-Plans:
-**Wave 1**
-
-- [x] 94-01-PLAN.md — Pure graph derivations (burnup axis/series, assignee/type buckets, MR donut counts) + additive useReleaseDetail fields
-- [x] 94-02-PLAN.md — Additive created/resolutiondate Jira fields, refreshReleaseDetail, shared primitives (SegmentedBar export, muted IssueTypeIcon, full-width done bar, GraphSlot)
-- [x] 94-03-PLAN.md — ReleaseFacts meta items (ported sidebar states, D-15 tooltip) + ReleaseDescription clamp
-
-**Wave 2** *(blocked on Wave 1 completion)*
-
-- [x] 94-04-PLAN.md — Progress burnup + Merge requests donut graphs
-- [x] 94-05-PLAN.md — By assignee rows + By type waffle graphs
-- [x] 94-06-PLAN.md — CycleHeader-style header + done bar, full-width skeleton, sticky table header, side-column headings
-
-**Wave 3** *(blocked on Wave 2 completion)*
-
-- [x] 94-07-PLAN.md — Full-width page composition + page test; remove releaseDetailPanelWidth (v32) and sidebar files
-
-**Wave 4** *(blocked on Wave 3 completion)*
-
-- [x] 94-08-PLAN.md — Visual verification against the sketch + user approval (checkpoint)
-
-### Phase 95: Notifications redesign — research-driven visual redesign, polish, and UI/UX improvements to the notifications experience
-
-**Goal:** Notifications already work; redesign them visually and polish the UI/UX. Research notification best practices (grouping, read/unread, triage, density, actions, empty states) and pick what fits taskflow's existing design language. Details are left to research/discuss — the user deferred specifics.
-**Requirements**: NOTIF-01, NOTIF-02, NOTIF-03, NOTIF-04, NOTIF-05, NOTIF-06, NOTIF-07, NOTIF-08 (reworded per D-13: full-page navigation, no peek), NOTIF-09, NOTIF-10
-**Depends on:** Phase 94
-**Plans:** 6/6 plans complete
-
-Plans:
-
-**Wave 1**
-
-- [x] 95-01-PLAN.md — Store hygiene: readIds pruning, capped dismissed tombstones, due-date id, bulk triage actions (wave 1)
-- [x] 95-02-PLAN.md — Pure view-model (entity key, time buckets, grouping, filters) + useNow (wave 1, TDD)
-
-**Wave 2** *(blocked on Wave 1 completion)*
-
-- [x] 95-03-PLAN.md — One-line NotificationRow rewrite + NotificationGroupHeader (wave 2)
-- [x] 95-04-PLAN.md — NotificationList virtualizer + popover-scoped keyboard triage (wave 2)
-
-**Wave 3** *(blocked on Wave 2 completion)*
-
-- [x] 95-05-PLAN.md — Popover shell: header, filter bar, banners, states, click wiring, settings link (wave 3)
-
-**Wave 4** *(blocked on Wave 3 completion)*
-
-- [x] 95-06-PLAN.md — Screenshot matrix via preview harness + human Tauri verification (wave 4, checkpoint)
