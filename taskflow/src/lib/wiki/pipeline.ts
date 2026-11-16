@@ -174,6 +174,34 @@ function rehypeDecodeInlineCodeEntities() {
 }
 
 /**
+ * Drops the synthetic `<thead>` that injectHeaderlessTableSeparators adds so GFM
+ * parses a header-less Jira table. Matches on the `data-wiki-headerless` marker
+ * (not on "empty thead"), so a genuine empty `|| ||` header row is kept. Runs
+ * after rehypeRaw (the marker is parsed to a property) and before sanitize, so
+ * the sanitize schema needs no change and the marker never reaches the output.
+ */
+function hasHeaderlessMarker(node: HastElement | HastText): boolean {
+  if (node.type !== 'element') return false;
+  if (node.properties && node.properties.dataWikiHeaderless !== undefined) return true;
+  return node.children.some(hasHeaderlessMarker);
+}
+
+function rehypeDropHeaderlessThead() {
+  return (tree: HastElement) => {
+    visit(
+      tree,
+      'element',
+      (node: HastElement, index: number | undefined, parent: HastElement | undefined) => {
+        if (node.tagName !== 'thead' || index === undefined || !parent) return;
+        if (!hasHeaderlessMarker(node)) return;
+        parent.children.splice(index, 1);
+        return ['skip', index];
+      },
+    );
+  };
+}
+
+/**
  * Wiki text to the markdown string react-markdown consumes: preprocess,
  * jira2md, link-underscore repair, then restore {code}/{noformat} block bodies
  * (see preprocessJiraMarkup) now that jira2md.to_markdown() has produced the
@@ -210,7 +238,8 @@ export const wikiRemarkPlugins: PluggableList = [remarkGfm, remarkBreaks];
  * Builds the rehype plugin list. T-54-07-01 mitigation: rehypeRaw passes raw
  * HTML through to the rehype tree; rehypeSanitize then strips dangerous tags
  * before render. Order matters: sanitize MUST run AFTER raw so it sees the
- * parsed HTML.
+ * parsed HTML. rehypeDropHeaderlessThead runs directly after raw (it needs the
+ * parsed marker) and before sanitize, so wikiSanitizeSchema stays unchanged.
  *
  * 260610-fnk: presentation plugins (e.g. issue-key linkification) are spliced
  * AFTER raw HTML is parsed (so text nodes are present) and BEFORE sanitize (so
@@ -219,6 +248,7 @@ export const wikiRemarkPlugins: PluggableList = [remarkGfm, remarkBreaks];
 export function wikiRehypePlugins(presentation: PluggableList = []): PluggableList {
   return [
     rehypeRaw,
+    rehypeDropHeaderlessThead,
     ...presentation,
     rehypeDecodeInlineCodeEntities,
     [rehypeSanitize, wikiSanitizeSchema],

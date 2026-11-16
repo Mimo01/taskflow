@@ -143,3 +143,45 @@ describe('D-01 mixed list nesting', () => {
     expect(ol.querySelector('ul')).toBeNull();
   });
 });
+
+describe('D-02 header-less tables', () => {
+  it('renders body rows only, no thead and no th', () => {
+    const html = wikiToHtml('|a|b|\n|c|d|');
+    const r = parseHtml(html);
+    expect(r.querySelectorAll('tbody tr').length).toBe(2);
+    expect(r.querySelector('thead')).toBeNull();
+    expect(r.querySelector('th')).toBeNull();
+  });
+
+  it('renders the headerless fixture without a thead', () => {
+    const r = parseHtml(wikiToHtml(fixtureWiki('tables/headerless.wiki')));
+    expect(r.querySelector('thead')).toBeNull();
+    expect(r.querySelectorAll('tbody tr').length).toBe(3);
+  });
+
+  it('keeps the thead of a table with a real header row', () => {
+    const r = parseHtml(wikiToHtml(fixtureWiki('tables/header-row.wiki')));
+    expect(r.querySelector('thead')).not.toBeNull();
+  });
+
+  it('keeps a genuine empty header row', () => {
+    const r = parseHtml(wikiToHtml('|| || ||\n|a|b|'));
+    expect(r.querySelector('thead')).not.toBeNull();
+  });
+
+  it('cannot be spoofed by a typed marker span', () => {
+    const r = parseHtml(wikiToHtml('||<span data-wiki-headerless></span>||b||\n|c|d|'));
+    expect(r.querySelector('thead')).not.toBeNull();
+  });
+
+  it('keeps named links in a header-less table', () => {
+    const r = parseHtml(wikiToHtml('|[x|https://example.com]|y|'));
+    expect(r.querySelector('thead')).toBeNull();
+    expect(r.querySelector('a')?.getAttribute('href')).toBe('https://example.com');
+  });
+
+  it('never leaks the marker attribute', () => {
+    expect(wikiToHtml('|a|b|\n|c|d|')).not.toContain('data-wiki-headerless');
+    expect(wikiToHtml('|a|b|\n|c|d|')).not.toContain('datawikiheaderless');
+  });
+});

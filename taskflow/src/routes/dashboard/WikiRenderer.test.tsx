@@ -2733,3 +2733,17 @@ describe('D-01 mixed nesting', () => {
     expect(container.querySelector('ol li ul li')?.textContent).toBe('b');
   });
 });
+
+describe('D-02 header-less tables', () => {
+  it('renders no thead for a header-less table', () => {
+    const { container } = render(<WikiRenderer wikiText={'|a|b|\n|c|d|'} />);
+    expect(container.querySelector('table')).not.toBeNull();
+    expect(container.querySelector('thead')).toBeNull();
+    expect(container.querySelectorAll('tbody tr').length).toBe(2);
+  });
+
+  it('still renders the thead of a table with a header row', () => {
+    const { container } = render(<WikiRenderer wikiText={'||h1||h2||\n|a|b|'} />);
+    expect(container.querySelector('thead')?.textContent).toContain('h1');
+  });
+});

@@ -363,7 +363,13 @@ export function injectHeaderlessTableSeparators(wiki: string): string {
         // First data row of a headerless table — inject synthetic header + separator.
         const cols = countJiraTableRowColumns(trimmed);
         if (cols >= 1) {
-          const emptyCells = Array(cols).fill(' ').join('|');
+          // The first cell carries a marker that rehypeDropHeaderlessThead (pipeline.ts)
+          // uses to drop the synthetic header after rehypeRaw. Raw `<` in user source is
+          // escaped earlier, so the marker cannot be typed.
+          const emptyCells = [
+            '<span data-wiki-headerless></span>',
+            ...Array(cols - 1).fill(' '),
+          ].join('|');
           const sepCells = Array(cols).fill('---').join('|');
           out.push(`|${emptyCells}|`);
           out.push(`|${sepCells}|`);
