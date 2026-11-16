@@ -69,16 +69,24 @@ describe('wikiToHtml', () => {
 });
 
 describe('lib/wiki purity guard', () => {
+  // Recursive, so future subdirectories (e.g. lib/wiki/editor/) are covered too.
+  function sourceFiles(dir: string): string[] {
+    return fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
+      const full = path.join(dir, e.name);
+      if (e.isDirectory()) return sourceFiles(full);
+      return /\.(ts|tsx)$/.test(e.name) && !e.name.includes('.test.') ? [full] : [];
+    });
+  }
+
   it('non-test files import no React/Tauri/store modules', () => {
+    // from '…', side-effect import '…', dynamic import('…') and require('…').
     const forbidden =
-      /from\s+['"](react|react-dom|react-markdown|zustand|@tauri-apps\/[^'"]*|@\/(stores|routes|services|components|hooks)[^'"]*)['"]/;
-    const files = fs
-      .readdirSync(__dirname)
-      .filter((f) => f.endsWith('.ts') && !f.includes('.test.') && f !== 'corpus.fixtures.ts');
-    expect(files.length).toBeGreaterThan(0);
+      /(?:from\s+|import\s*\(?\s*|require\s*\(\s*)['"](react|react-dom|react-markdown|zustand|@tauri-apps\/[^'"]*|@\/(stores|routes|services|components|hooks)[^'"]*)['"]/;
+    const files = sourceFiles(__dirname);
+    expect(files.map((f) => path.basename(f))).toContain('corpus.fixtures.ts');
     for (const f of files) {
-      const src = fs.readFileSync(path.join(__dirname, f), 'utf8');
-      expect(src, f).not.toMatch(forbidden);
+      const src = fs.readFileSync(f, 'utf8');
+      expect(src, path.relative(__dirname, f)).not.toMatch(forbidden);
     }
   });
 });

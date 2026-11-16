@@ -1,4 +1,4 @@
-import type { AttachmentMap, UserMap } from '@/routes/dashboard/WikiRenderer';
+import type { AttachmentMap, UserMap } from './preprocess';
 
 /**
  * Test-support only: the placeholder wiki corpus (Phase 96 D-09, D-12).
