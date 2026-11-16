@@ -35,14 +35,26 @@ function textOf(node: JSONContent): string {
   return (node.content ?? []).map(textOf).join('');
 }
 
-function nodeSegments(n: JSONContent): Segment[] {
+type InlineCtx = 'para' | 'heading' | 'item' | 'quote' | 'cell';
+
+/** Spelling of a hard break: a raw newline would split a cell, heading or quote, so those use `\\\\`. */
+function breakSpelling(n: JSONContent, ctx: InlineCtx): string {
+  const src = typeof n.attrs?.src === 'string' ? n.attrs.src : null;
+  // A recorded `\n` is a parsed continuation (open table row, multi-line quote) and stays as
+  // written; only a break with no recorded spelling is rewritten inside a line-bound block.
+  const lineBound = ctx === 'cell' || ctx === 'heading' || ctx === 'quote';
+  if (lineBound && src === null) return '\\\\';
+  return src ?? '\n';
+}
+
+function nodeSegments(n: JSONContent, ctx: InlineCtx = 'para'): Segment[] {
   const out: Segment[] = [];
   switch (n.type) {
     case 'text':
       out.push(prose(n.text ?? ''));
       break;
     case 'hardBreak':
-      out.push(prose(str(n.attrs?.src, '\n')));
+      out.push(prose(breakSpelling(n, ctx)));
       break;
     case 'rawInline':
       out.push(verbatim(str(n.attrs?.raw, '')));
@@ -112,12 +124,103 @@ function markDelims(m: MarkJSON, runText: string): [string, string] {
 }
 
 /**
+ * The canonical flank-sensitive marks: `*x*`, `_x_`, `+x+`, `-x-` are not read as
+ * marks when the text next to a delimiter is a space. Brace spellings (`{*}`,
+ * parse/marks.ts BRACE_FORMS), `^ x ^`, `~ x ~` and `{color:..}` (parse/color.ts
+ * only rejects blank bodies) accept edge spaces, so those are never rewritten.
+ */
+const HOIST_TYPES = new Set(['bold', 'italic', 'underline', 'strike']);
+
+function hoistable(m: MarkJSON): boolean {
+  if (!HOIST_TYPES.has(m.type)) return false;
+  const canon = CANONICAL_DELIMS[m.type as keyof typeof CANONICAL_DELIMS];
+  const a = m.attrs ?? {};
+  return (
+    (a.open === undefined || a.open === null || a.open === canon[0]) &&
+    (a.close === undefined || a.close === null || a.close === canon[1])
+  );
+}
+
+const withoutMark = (k: JSONContent, key: string): JSONContent => {
+  const marks = (k.marks ?? []).filter((m) => markKey(m) !== key);
+  const { marks: _old, ...rest } = k;
+  return marks.length ? { ...rest, marks } : rest;
+};
+
+/** Moves leading/trailing spaces and tabs of a hoistable mark's run outside its delimiters (copy, never mutates). */
+function hoistEdgeSpace(input: readonly JSONContent[]): JSONContent[] {
+  let kids = [...input];
+  const keys = new Map<string, MarkJSON>();
+  for (const k of kids) for (const m of k.marks ?? []) if (hoistable(m)) keys.set(markKey(m), m);
+  for (const key of keys.keys()) {
+    const has = (k: JSONContent | undefined): boolean =>
+      !!k && (k.marks ?? []).some((m) => markKey(m) === key);
+    // Only text carrying no other mark is peeled: a nested mark's own delimiter may sit between
+    // this mark's delimiter and the space (`*~ x~*`), so the space is not edge-adjacent there.
+    const onlyThis = (k: JSONContent | undefined): k is JSONContent =>
+      k?.type === 'text' && (k.marks ?? []).length === 1;
+    const next: JSONContent[] = [];
+    let i = 0;
+    while (i < kids.length) {
+      if (!has(kids[i])) {
+        next.push(kids[i] as JSONContent);
+        i++;
+        continue;
+      }
+      let e = i;
+      while (e < kids.length && has(kids[e])) e++;
+      const run = kids.slice(i, e);
+      const allText = run.every(onlyThis);
+      const wsOnly = allText && run.every((k) => /^[ \t]*$/.test(k.text ?? ''));
+      if (wsOnly) {
+        for (const k of run) next.push(withoutMark(k, key));
+        i = e;
+        continue;
+      }
+      const lead: JSONContent[] = [];
+      const trail: JSONContent[] = [];
+      let a = 0;
+      let b = run.length;
+      while (a < b && onlyThis(run[a])) {
+        const t = run[a]?.text ?? '';
+        const m = /^[ \t]+/.exec(t);
+        if (!m) break;
+        lead.push(withoutMark({ ...(run[a] as JSONContent), text: m[0] }, key));
+        if (m[0].length === t.length) a++;
+        else {
+          run[a] = { ...(run[a] as JSONContent), text: t.slice(m[0].length) };
+          break;
+        }
+      }
+      while (b > a && onlyThis(run[b - 1])) {
+        const t = run[b - 1]?.text ?? '';
+        const m = /[ \t]+$/.exec(t);
+        if (!m) break;
+        trail.unshift(withoutMark({ ...(run[b - 1] as JSONContent), text: m[0] }, key));
+        if (m[0].length === t.length) b--;
+        else {
+          run[b - 1] = { ...(run[b - 1] as JSONContent), text: t.slice(0, t.length - m[0].length) };
+          break;
+        }
+      }
+      next.push(...lead, ...run.slice(a, b), ...trail);
+      i = e;
+    }
+    kids = next;
+  }
+  return kids;
+}
+
+/**
  * Inline content with marks: delimiters are opened around maximal runs of
  * equally-marked children. Longer spans nest outside; equal extents use the
  * recorded parse order (`span`), then a fixed rank.
  */
-function markedSegments(nodes: readonly JSONContent[] | undefined): Segment[] {
-  const kids = nodes ?? [];
+function markedSegments(
+  nodes: readonly JSONContent[] | undefined,
+  ctx: InlineCtx = 'para',
+): Segment[] {
+  const kids = hoistEdgeSpace(nodes ?? []);
   const keySets = kids.map((k) => new Set((k.marks ?? []).map(markKey)));
   const stack: { mark: MarkJSON; key: string; closeAt: string }[] = [];
   const out: Segment[] = [];
@@ -159,13 +262,11 @@ function markedSegments(nodes: readonly JSONContent[] | undefined): Segment[] {
       out.push(prose(open));
       stack.push({ mark: m, key: markKey(m), closeAt: close });
     }
-    out.push(...nodeSegments(kid));
+    out.push(...nodeSegments(kid, ctx));
   });
   closeTo(0);
   return out;
 }
-
-type InlineCtx = 'para' | 'heading' | 'item' | 'quote' | 'cell';
 
 /** Source wrapped around inline text so the real block/cell parser sees its context. */
 const WRAP: Record<InlineCtx, readonly [string, string]> = {
@@ -234,7 +335,7 @@ function edge(n: JSONContent | undefined, last: boolean): string {
  */
 function inlineSegments(nodes: readonly JSONContent[] | undefined, ctx: InlineCtx): Segment[] {
   const kids = nodes ?? [];
-  const plain = markedSegments(kids);
+  const plain = markedSegments(kids, ctx);
   const risky = kids.some((n) => n.type === 'text' && /[*_\-+^~{}[\]!#|(]/.test(n.text ?? ''));
   if (!risky) return plain;
   const [pre, post] = WRAP[ctx];
@@ -247,7 +348,8 @@ function inlineSegments(nodes: readonly JSONContent[] | undefined, ctx: InlineCt
   const ctxOf = (i: number): EscapeContext => {
     const prevNode = kids[i - 1];
     return {
-      lineStart: i === 0 || (prevNode?.type === 'hardBreak' && prevNode.attrs?.src === '\n'),
+      lineStart:
+        i === 0 || (prevNode?.type === 'hardBreak' && breakSpelling(prevNode, ctx) === '\n'),
       inCell: ctx === 'cell',
       prev: edge(prevNode, true),
       next: edge(kids[i + 1], false),
@@ -264,15 +366,15 @@ function inlineSegments(nodes: readonly JSONContent[] | undefined, ctx: InlineCt
     if (n.type === 'text' && !n.marks?.some((m) => m.type === 'mono'))
       for (const ch of escapeSites(n.text ?? '', ctxOf(i)).keys()) chars.add(ch);
   });
-  const all = markedSegments(escaped(new Set()));
+  const all = markedSegments(escaped(new Set()), ctx);
   // No Jira spelling shows these characters (for example `h1. ` at a line start): leave as typed.
   if (!fits(all)) return plain;
   const keep = new Set<string>();
   for (const ch of chars) {
     keep.add(ch);
-    if (!fits(markedSegments(escaped(keep)))) keep.delete(ch);
+    if (!fits(markedSegments(escaped(keep), ctx))) keep.delete(ch);
   }
-  return markedSegments(escaped(keep));
+  return markedSegments(escaped(keep), ctx);
 }
 
 /** Marker character a list contributes to the run of its items and descendants. */
@@ -390,7 +492,14 @@ function tableSegments(table: JSONContent): Segment[] {
     for (const cell of row.content ?? []) {
       const ca = cell.attrs ?? {};
       sep = cell.type === 'tableHeader' && !headerless ? '||' : '|';
-      out.push(prose(sep + str(ca.padL, '')), ...cellSegments(cell), prose(str(ca.padR, '')));
+      const body = cellSegments(cell);
+      // An empty cell with no recorded padding would write `||`, which reads as a header separator.
+      const empty = joinText(body) === '' && !str(ca.padL, '') && !str(ca.padR, '');
+      out.push(
+        prose(sep + str(ca.padL, '')),
+        ...(empty ? [prose(' ')] : body),
+        prose(str(ca.padR, '')),
+      );
     }
     out.push(prose(str(row.attrs?.close, sep)));
   });

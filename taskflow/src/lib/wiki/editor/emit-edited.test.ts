@@ -77,3 +77,135 @@ describe('CR-03 container children', () => {
     expect(emitWiki(oneCell(panel(para(text('x')))))).toBe('|{info}\nx\n{info}|');
   });
 });
+
+const B = [{ type: 'bold' }];
+const I = [{ type: 'italic' }];
+const hb = (): JSONContent => ({ type: 'hardBreak' });
+const parsed = (s: string): JSONContent => parseWiki(s).doc;
+const heading = (...kids: JSONContent[]): JSONContent => ({
+  type: 'heading',
+  attrs: { level: 1 },
+  content: kids,
+});
+const nodeTypes = (n: JSONContent): string[] => [
+  n.type ?? '',
+  ...(n.content ?? []).flatMap(nodeTypes),
+];
+
+describe('CR-04 cells and breaks', () => {
+  it('an empty unpadded user-created cell emits a single space', () => {
+    const out = emitWiki(doc(table(true, row(cell(para()), cell(para(text('b')))))));
+    expect(out).toBe('| |b|');
+    const t = parsed(out).content?.[0];
+    expect(t?.type).toBe('table');
+    expect(t?.content?.[0]?.content).toHaveLength(2);
+  });
+
+  it('clearing a parsed cell keeps the row a table', () => {
+    const d = parsed('|a|b|c|');
+    const middle = d.content?.[0]?.content?.[0]?.content?.[1];
+    const p = middle?.content?.[0];
+    if (!p) throw new Error('no paragraph');
+    delete p.content;
+    const out = emitWiki(d);
+    expect(out).toBe('|a| |c|');
+    expect(parsed(out).content?.[0]?.content?.[0]?.content).toHaveLength(3);
+  });
+
+  it('empty header cells get a space too', () => {
+    const t = table(
+      false,
+      row(
+        { type: 'tableHeader', content: [para()] },
+        { type: 'tableHeader', content: [para(text('h'))] },
+      ),
+    );
+    expect(emitWiki(doc(t))).toBe('|| ||h||');
+  });
+
+  it('a cell with recorded padding is unchanged', () => {
+    expect(emitWiki(parsed('| a |'))).toBe('| a |');
+  });
+
+  it('hard breaks use the line-safe spelling per context', () => {
+    expect(emitWiki(oneCell(para(text('a'), hb(), text('b'))))).toBe('|a\\\\b|');
+    expect(emitWiki(doc(heading(text('a'), hb(), text('b'))))).toBe('h1. a\\\\b');
+    expect(emitWiki(doc({ type: 'blockquote', content: [para(text('a'), hb(), text('b'))] }))).toBe(
+      'bq. a\\\\b',
+    );
+    expect(emitWiki(doc(para(text('a'), hb(), text('b'))))).toBe('a\nb');
+    expect(emitWiki(doc(list(item(para(text('a'), hb(), text('b'))))))).toBe('* a\nb');
+  });
+
+  it('a parsed open-row continuation break keeps its newline spelling in a cell', () => {
+    const src = '|a\nb|';
+    expect(emitWiki(parsed(src))).toBe(src);
+  });
+
+  it('re-parses the emitted shapes with a hard break inside', () => {
+    for (const [d, outer] of [
+      [oneCell(para(text('a'), hb(), text('b'))), 'table'],
+      [doc(heading(text('a'), hb(), text('b'))), 'heading'],
+      [doc({ type: 'blockquote', content: [para(text('a'), hb(), text('b'))] }), 'blockquote'],
+    ] as [JSONContent, string][]) {
+      const back = parsed(emitWiki(d));
+      expect(back.content).toHaveLength(1);
+      expect(back.content?.[0]?.type).toBe(outer);
+      expect(nodeTypes(back)).toContain('hardBreak');
+    }
+  });
+});
+
+describe('edge whitespace outside marks', () => {
+  const marked = (d: JSONContent): string[] =>
+    (d.content?.[0]?.content ?? []).filter((n) => n.marks?.length).map((n) => n.text ?? '');
+
+  it.each([
+    [[text('hello ', B), text('world')], '*hello* world'],
+    [[text('say'), text(' hello', B)], 'say *hello*'],
+    [[text('x'), text(' a b ', I), text('y')], 'x _a b_ y'],
+    [[text('hello\t', B), text('z')], '*hello*\tz'],
+    [[text('see '), text('hello ', B)], 'see *hello*'],
+  ] as [JSONContent[], string][])('hoists spaces out of case %#', (kids, expected) => {
+    const out = emitWiki(doc(para(...kids)));
+    expect(out).toBe(expected);
+    const back = parsed(out);
+    expect(marked(back).every((t) => t === t.trim())).toBe(true);
+    expect(marked(back).length).toBeGreaterThan(0);
+  });
+
+  it('a whitespace-only canonical run emits no delimiters', () => {
+    expect(emitWiki(doc(para(text('a'), text(' ', B), text('b'))))).toBe('a b');
+  });
+
+  it('does not mutate the input document', () => {
+    const d = doc(para(text('hello ', B), text('world')));
+    const before = JSON.stringify(d);
+    emitWiki(d);
+    expect(JSON.stringify(d)).toBe(before);
+  });
+
+  it.each([
+    '{*} a {*}',
+    '{_} a {_}',
+    '{-} a {-}',
+    '{+} a {+}',
+    '^ a ^',
+    '~ a ~',
+    '{color:red} a {color}',
+  ])('keeps %s byte-identical after an unrelated edit', (first) => {
+    const d = parsed(`${first}\n\nother`);
+    const last = d.content?.[d.content.length - 1]?.content?.[0];
+    if (!last) throw new Error('no text');
+    last.text = 'otherx';
+    expect(emitWiki(d)).toBe(`${first}\n\notherx`);
+  });
+
+  it('user-created sup/sub/color over edge spaces is not hoisted', () => {
+    expect(emitWiki(doc(para(text(' a ', [{ type: 'sup' }]))))).toBe('^ a ^');
+    expect(emitWiki(doc(para(text(' a ', [{ type: 'sub' }]))))).toBe('~ a ~');
+    expect(emitWiki(doc(para(text(' a ', [{ type: 'color', attrs: { value: 'red' } }]))))).toBe(
+      '{color:red} a {color}',
+    );
+  });
+});
