@@ -1,153 +1,168 @@
-# Feature Research
+# Feature Landscape
 
-**Domain:** Release-coordination / release-train tooling for git-flow teams (Jira + GitLab)
-**Researched:** 2026-08-10
-**Confidence:** MEDIUM (grounded in GitLab's own API/docs + git-flow literature + engineering-analytics tool positioning; no direct hands-on access to Jira Release Hub/Shortcut/Sleuth UIs, so those are triangulated from public docs/marketing rather than direct inspection)
+**Domain:** WYSIWYG + source-toggle Jira wiki markup editor, and polished editor-host surfaces (Tauri desktop, Jira DC)
+**Milestone:** v1.15 Rich Wiki Editor
+**Researched:** 2026-11-16
+**Confidence:** MEDIUM. Based on well-established behaviour of Jira/Confluence/Linear/Notion/GitHub/Slack editors (training knowledge, not re-verified against live products this session). Dependencies on existing code were checked against the repo file list. Interaction details should be treated as a hypothesis, not verified fact.
 
-## Feature Landscape
+## Reference Behaviour (what "great" looks like)
 
-### Table Stakes (Users Expect These)
+| Product | Pattern worth copying | Pattern to skip |
+|---------|----------------------|-----------------|
+| Jira Cloud / Confluence | Fixed toolbar (text style dropdown, B/I, lists, link, table, mention, emoji, "+" insert menu); `/` slash menu; markdown-style input rules; `@` mention; panels as insert-menu items; Cmd+Enter / "Save" buttons; draft is kept per issue | ADF-only features (inline cards, status lozenge, decisions, layouts, extensions) have no wiki-markup equivalent |
+| Linear | Quiet UI, no permanent toolbar; bubble menu on selection; `/` menu; Cmd+Enter submits; paste URL on selection makes link; drag/drop images | Heavy reliance on markdown-only output |
+| Notion | `/` slash as primary insertion; block handles | Block drag handles, columns, databases (no wiki-markup mapping) |
+| GitHub | Persistent compact toolbar over a textarea; Write/Preview; Cmd+Enter submit; paste/drop image upload with placeholder; `@` and `#` autocomplete; saved drafts | Preview tab as the only rich view (this is what is being replaced) |
+| Slack | Composer: Enter sends or newline by setting, minimal formatting bar, Cmd+Shift+U link, emoji `:` autocomplete | Enter-to-send in a long-form editor |
 
-Features users assume exist once a tool claims to do "release coordination." Missing these makes the Releases view feel like a read-only report, not a working surface — which is exactly the gap v1.14 targets.
+Overall pattern: a hybrid of a persistent compact toolbar (discoverability, matches Jira users' muscle memory) plus slash menu and input rules (speed). Bubble menu is optional polish.
 
-| Feature | Why Expected | Complexity | Notes |
-|---------|--------------|------------|-------|
-| Release branch existence check | Any git-flow tool that talks about "this release" must know if `release/<tag>` exists — it's the substrate everything else hangs off | LOW | Single GitLab branches-API GET; render as a release-level banner, same visual language as the existing "No GitLab milestone matched" warning already in `ReleaseDetailPage.tsx` |
-| Create release branch (guarded) | Once a tool detects "branch missing," users expect a one-click fix, not manual git — but branch creation is consequential (wrong base = broken release) so a confirm step is expected, not optional | LOW-MEDIUM | GitLab `POST /repository/branches` off project default branch (`develop`, read from API per PROJECT.md decision — never hardcode); confirm dialog matches existing `Dialog` pattern already used for the Edit Release modal |
-| MR-to-release membership list, one row per MR | Every release-train tool (GitLab Release dashboard, Jira Release Hub) shows "what's in this release" as a flat, scannable list — this is the single most load-bearing view in the whole feature | LOW (data already fetched) | Already exists as `matchedRows`/`unmatchedMRs` in `ReleaseDetailPage.tsx`; v1.14 extends it to 3-channel union, not a new list |
-| Wrong-target-branch flag | GitLab's own backlog explicitly names this as a top user pain point (issue #378526: "Allow MR author to change target branch" — filed because maintainers waste time fixing mistargeted MRs across "Current-stable, Legacy-stable, Next-minor, Next-major" branches) | LOW-MEDIUM | Already partially present as "Wrong milestone" badge pattern (`wrongMilestoneByKey`); extend the same visual grammar to target-branch mismatches |
-| Missing-milestone flag | Symmetric to wrong-branch: an MR that targets the right branch but was never milestoned won't show up in milestone-based release reporting elsewhere in GitLab, so it's silently "invisible" to anyone using milestones as ground truth | LOW | Same pattern as existing "Missing MR" orange `AlertTriangle` badge |
-| Per-item fix action co-located with the flag | GitLab's `/target_branch` quick action and the MR update API (`PUT .../merge_requests/:iid` accepting `target_branch` + `milestone_id` in one call) exist precisely because users expect "flag it, then fix it inline" not "flag it, then go somewhere else to fix it" | LOW-MEDIUM | Confirmed: GitLab's MR API updates `target_branch` and `milestone_id` in the *same* PUT request — this app's "retarget + assign milestone" corrective action can be one API call per MR, matching the v1.12 bulk-subtask per-row retry pattern already in the codebase |
-| Post-release merge-back verification | The single most commonly cited git-flow failure mode across every source (git-flow docs, Runway blog, trunkbaseddevelopment.com) is fixes landing in `release/x` and never reaching `develop` — silently regressing in the next release. Tools that support git-flow either warn about this or automate the merge; silence is a known trust-breaker | LOW-MEDIUM | GitLab branch-compare API (`/repository/compare` or ahead/behind check) after `released: true`; render release as "unfinished" until merge-back confirmed — matches the milestone spirit of "surface as unresolved until proven done" |
-| Create missing GitLab milestone | Symmetric table-stakes to branch creation — if channel (B) requires a milestone and none exists, the release-level flow is dead in the water without this | LOW | `POST /milestones`; user types final name, latest milestones shown for format reference (`1.1.0`/`2.0.0`) — same "type it yourself, we don't guess" caution already chosen for release-branch naming |
+## Table Stakes
 
-### Differentiators (Competitive Advantage)
+Missing any of these and the editor feels worse than the textarea it replaces.
 
-Not required by "release coordination" in the abstract, but directly answer this team's actual git-flow pain (MRs opened against the wrong branch) better than generic tools do.
+| Feature | Why Expected | Complexity | Dependencies / Notes |
+|---------|--------------|------------|----------------------|
+| Fixed toolbar: text style dropdown (paragraph, h1-h6, quote), bold, italic, underline, strike, inline code, bullet/ordered list, link, table, code block, panel, mention, attachment, emoticon | Jira users expect it; replaces existing toolbar (bold/italic/code/list) | Med | Existing toolbar in DescriptionEditor/CommentComposer to be superseded; keep icon-button style. Compact variant for comments |
+| Keyboard shortcuts: Cmd/Ctrl+B, I, U, Shift+X (strike), E (inline code), K (link), Cmd+Alt+1..6 headings, Cmd+Shift+7/8 lists, Cmd+Alt+C code block, Tab/Shift+Tab list indent, Cmd+Z / Cmd+Shift+Z | Universal | Low | Must register with the existing shortcuts registry (Cmd+/ help panel) and respect input-suppression rules so J/K nav does not fire inside editor |
+| Cmd/Ctrl+Enter submit, Esc cancel (with dirty guard) | Standard in comment composers (GitHub, Linear, Jira) | Low | CommentComposer, InlineComment, DescriptionEditor, modals. Esc must not conflict with open mention/slash popover (popover consumes Esc first) |
+| Markdown-style input rules: `**x**`/`*x*` bold, `_x_` italic, `~~x~~` strike, `` `x` `` code, `# ` to `###### ` headings, `- `/`* ` bullet, `1. ` ordered, `> ` quote, ``` ``` ``` code block, `---` rule. Also Jira-wiki habits: `h2. ` heading, `{code}`, `{{mono}}` | Jira/Confluence/GitHub users type these reflexively; Jira users type wiki syntax | Med | Backspace right after a rule fires should undo it (standard). Do not fire inside code blocks |
+| Undo/redo that survives toolbar actions, input rules, and paste; per-document history | Basic trust | Low (library-provided) | Source toggle must not wipe history (or must clearly reset it; prefer keeping a shared history by treating source edit as a single transaction) |
+| Lists: nesting, Enter on empty item exits, Tab indent, mixed `*`/`#` nesting | Core | Med | Wiki markup `*`/`**`/`#`/`##`/`*#` mixed nesting is the hard part of round-trip |
+| Links: Cmd+K dialog (text + URL), paste URL onto selection = link, auto-link bare URLs on paste/space, edit/remove popover on click, `[text\|url]` round trip | Table stakes in all modern editors | Med | Reuse lib/internalLinks.ts so Jira issue URLs and internal links behave as WikiRenderer renders them |
+| Tables: insert (grid picker or default 3x3), header row, Tab/Shift+Tab cell navigation, Tab in last cell adds row, add/remove row/column via hover handles or context toolbar, delete table | Jira users edit tables often; textarea wiki tables are painful, which is a primary reason for this milestone | High | Wiki tables are `\|\|head\|\|` / `\|cell\|`; no colspan/rowspan. Cells that contain block content (lists, panels, code) need verbatim preservation when the editor cannot model them. Must render like WikiRenderer table |
+| Code blocks: `{code:lang}` with language selector, monospaced, Tab inserts indent, no formatting marks inside, escape to exit | Dev audience; Jira `{code}` and `{noformat}` | Med | Language list = what WikiRenderer highlights. Existing syntax highlighting reused if any. `{noformat}` as a separate/plain variant |
+| Panels and macros: insert `{panel}`, `{info}`, `{note}`, `{warning}`, `{tip}`, `{quote}`, `{color}`; edit title/colour; render identically to WikiRenderer panels | Named in milestone scope | High | Panels are block containers: need a node with attrs (title, borderColor, bgColor). Macro params preserved verbatim if unknown |
+| @mentions: `@` triggers inline popover, fuzzy search users, arrow/Enter/Tab select, Esc dismiss, inserted as chip, serialises to `[~username]` | Existing capability; must not regress | Med | MentionPopover + useMentionUserMap exist. Rework to an editor-anchored suggestion (position at caret) instead of textarea offset math; keep server-side search per PersonPicker convention |
+| Issue-key autocomplete and linking: typing `ABC-123` renders as a link (matches WikiRenderer); optional `#`/key-prefix picker with summary | Jira-wide expectation; WikiRenderer already links keys | Med | Rendering in editor via decoration only (do not write markup around a key; Jira auto-links plain text keys). Picker can reuse global search/command-palette query. Do not insert extra markup |
+| Attachments `!file.png!` and `[^file.pdf]`: toolbar picker, staged uploads, shows image inline in editor, non-images as chips | Existing capability | High | lib/attachment-markup.ts and the attachment picker/staged upload flow. Staged (not-yet-uploaded) files in create flow must resolve in the editor view |
+| Image paste / drag-drop: clipboard image becomes staged upload + `!image.png!` inserted at caret, with placeholder/progress | GitHub/Linear/Jira baseline | High | Tauri `dragDropEnabled` swallows DOM drops (existing memory: attachments DnD gotcha); must use the existing Tauri drop handling. Generic-MIME images need extension classification. Generated filenames for pasted blobs (`image-<ts>.png`) |
+| Emoticons: `:)` `:(` `;)` `(y)` etc. render as WikiRenderer shows; `:` autocomplete or picker | Existing renderer supports them; wiki-markup convert them | Med | Only the Jira emoticon set, not unicode emoji universe. Input rule converts `:)` to emoticon node on type |
+| Source toggle (WYSIWYG <-> raw wiki markup) button in toolbar; raw view is a monospace textarea/code editor | Core milestone ask; escape hatch for unsupported constructs | Med | See "Source toggle UX" below |
+| Round-trip safety: unknown/unmodelable constructs kept as verbatim "raw block/inline" nodes, shown as a labelled chip; load then save with no edit leaves text exactly untouched | Core milestone ask | High | Fixture corpus. Strongest recommendation: if the user made no edit, save the original string (do not re-serialise). Only re-serialise when dirty |
+| Paste handling: paste plain text, paste rich HTML (from browser/Confluence/Jira) converted to supported nodes, paste as plain text (Cmd+Shift+V), paste wiki markup text recognised in WYSIWYG | Everyone pastes from Jira web | Med | HTML-to-node mapping only for supported nodes; strip the rest. Pasting raw wiki markup (`h2. x`) into WYSIWYG: decide parse vs literal (recommend: parse when it clearly contains wiki syntax, offer undo) |
+| Unsaved-changes guard: dirty state on every host; confirm on close/navigate/pin-tab switch; Esc/backdrop on a dirty modal asks first | Data loss is the worst editor failure | Med | Modals, inline description edit, comment edit, peek. Reuse existing confirm dialog pattern |
+| Draft autosave for new comments and new issues (localStorage/store keyed by issue key + field), restore on reopen, cleared on submit | Jira/GitHub/Linear all keep drafts | Med | Persist wiki-markup string (not editor state). Key: `comment:<issueKey>`, `create-issue:<project>`; edit comment: `comment-edit:<id>`. Beware credential reset clearing caches (drafts should not live in React Query) |
+| Focus management: autofocus on open (title for create, editor for edit), focus returns to trigger on close, click anywhere on the editor surface focuses it, readable focus ring | Polish baseline | Low | Match existing Base UI dialog behaviour |
+| Editor sized to content with min/max height, internal scroll above max, sticky toolbar inside scroll area | Required for big modal and inline hosts | Med | Mind sr-only/relative scroller gotcha (non-positioned scroller + abspos) |
+| Disabled/readonly and saving states; errors keep content | Basic robustness | Low | Existing mutations; preserve content on failure |
+| Large Create/Edit Issue dialog: ~min(1100px, 90vw) wide, two columns: main (summary, description editor, subtasks/links) and sidebar (issue type, status/assignee/priority/labels/epic/sprint/custom fields); sticky footer with Create/Cancel and "Create another" toggle | Matches Jira Cloud create dialog and Linear's create issue | Med | CreateEditIssueModal.tsx, CustomFieldsSection, LinkRowsSection, IssueTypeSelector, SubtaskTemplateRow, useCreateEditForm. Detail-page rule from memory: no card panels; sidebar uses h3/rows/border-l, narrow layout keeps side-by-side and shrinks. Use shared PersonPicker and SearchableSelect for fields |
 
-| Feature | Value Proposition | Complexity | Notes |
-|---------|-------------------|------------|-------|
-| Three-channel union with per-channel provenance | Most release dashboards (GitLab's own, Jira Release Hub) trust exactly one source of truth (usually the milestone). This app's insight — that disagreement *between* Jira-linkage, milestone-tag, and branch-target is itself the signal — is closer to a reconciliation/audit tool than a status dashboard. No competitor researched does this three-way union explicitly | MEDIUM-HIGH | Already ~60% built: `releaseIssueKeySet` (channel A signal), `milestoneMRs` (channel B), needs channel C (`target_branch = release/<tag>` query) added and reconciled — see Q3 answer below for presentation guidance |
-| Zero-navigation corrective actions (retarget + assign, one click, one row) | GitLab itself only offers `/target_branch` as a comment quick-action (context-switch to the MR) or a full edit-form field; no GitLab-native surface offers "see the problem and fix it in the same glance" the way this app's inline row pattern (established in v1.12 bulk-subtask creation) does | LOW (pattern already proven in-app) | Reuse, don't invent: per-row status/spinner/retry chip from the bulk-subtask-creation pattern; NOT a new interaction paradigm |
-| Release-branch lifecycle awareness (missing → cut → drift → merge-back) as one continuous view | Generic tools (LinearB, Swarmia) are metrics-first and don't model git-flow branch lifecycle at all; GitLab's own release dashboard is milestone/tag-first and doesn't track branch merge-back. A single "is this release *actually* done" view spanning branch-cut through merge-back is the differentiator over both categories | MEDIUM | This is the throughline connecting branch-resolve/create through merge-back-check into one release-detail narrative rather than disconnected widgets |
+## Differentiators
 
-### Anti-Features (Commonly Requested, Often Problematic)
+Valued, not expected. Pick a few; the user asked for "everything", but order by value/cost.
 
-Explicitly rejected — either by prior milestone decisions or because they don't fit this team's already-stated constraints.
+| Feature | Value Proposition | Complexity | Dependencies / Notes |
+|---------|-------------------|------------|----------------------|
+| `/` slash menu (headings, lists, table, panel types, code block, quote, rule, image/attachment, mention, emoticon) with filter-as-you-type | Fast, matches Notion/Linear/Confluence; surfaces panels/macros without the toolbar | Med | Share the suggestion-popover infrastructure with @mention and `:` emoticon |
+| Bubble (selection) menu: B/I/U/S/code/link/heading | Linear-like polish for inline hosts where a full toolbar is too heavy | Low-Med | Use only in compact hosts (inline comment); keep the fixed toolbar on the large dialog. Avoid duplicating both in the same host |
+| Source toggle with cursor/selection preservation: map selection to source offset and back | Makes toggle feel like a lens not a mode switch | High | Needs position mapping from serializer (node to source offset). Cheap fallback: restore scroll proportion plus selecting the nearest block. Recommend fallback first |
+| Source view with Jira-wiki syntax highlighting and monospace line numbers | Power-user value in raw mode | Med | CodeMirror 6 or Monaco is heavy; a lightweight highlighted textarea overlay is enough |
+| Live "Looks like Jira" parity check: toggling shows the WikiRenderer output preview in a side pane in source mode | Confidence that save equals what Jira shows | Med | WikiRenderer already exists; cheap since it is the existing Preview, now optional in source mode |
+| Unmodelable-construct chips: click to edit raw fragment inline | Turns round-trip fallback into a feature | Med | Same machinery as the verbatim fallback |
+| Panel/macro editing popover (change type, title, colour) and `{expand}`, `{status}`, `{anchor}`, `{toc}`, `{noformat}` if time | Jira-specific completeness | Med each | Only those WikiRenderer already renders |
+| Issue picker (`#` or typed `ABC-`) showing summary/status inline | Fast cross-linking | Med | Reuse global search cache (ranked cache-backed search) |
+| Floating table toolbar (add/delete row/col, toggle header, delete table) and column handles | Makes tables pleasant | Med | Part of table work |
+| Quote/reply on comment: "Quote" action pre-fills composer with `{quote}`/`bq.` of selected text | Jira users expect | Low | ActivityTimeline, CommentComposer |
+| Saved/recoverable draft indicator ("Draft saved") and restore banner | Confidence | Low | Part of draft autosave |
+| Word/character count, max length warning (Jira description limit 32,767 chars) | Prevents failed saves | Low | Only warn near the limit |
+| Cmd+Shift+V paste as plain text, Cmd+Shift+C copy as wiki markup | Power-user | Low | Copy-as-wiki is a nice side-effect of the serializer |
+| Find-in-editor | Long descriptions | Low | Existing FindBar may be reusable; flaky test noted in memory |
+| Expand editor to full-screen / "focus mode" for long descriptions | Slack/Notion-like | Low | Mostly layout; important in the compact hosts (Edit Release) |
+| Mention chips displaying real names (resolved from useMentionUserMap) instead of usernames | Readability; matches WikiRenderer | Low | Already needed for parity |
+| Link hover preview for issue keys / MRs | Linear-like | Med | Peek highlight store exists; may be overkill, defer |
+| Per-host presets: full (create/edit modal, description), compact (comments), minimal (Bulk Create, Create Epic summary/description, Release description) | One editor, right-sized toolbars | Low-Med | Prop-driven toolbar config. Keeps adoption cheap across 8 surfaces |
 
-| Feature | Why Requested | Why Problematic | Alternative |
-|---------|---------------|------------------|-------------|
-| Historical release-cadence analytics / DORA-style dashboards (lead time, cycle time trend charts) | LinearB/Swarmia/Sleuth all lean heavily into this; feels like "what real release tools do" | Explicitly out of scope per PROJECT.md ("No analytics: Real-time/live only") and already tried-and-retired once in v1.13 Phase 85 (velocity/burndown insights built then deleted at Phase 86 for not earning daily-use place). Re-proposing this for v1.14 repeats a decision already made twice | LinearB/Swarmia exist for this per PROJECT.md's own Out-of-Scope note — don't rebuild them |
-| "Fix all" bulk corrective action across every drifted MR | Feels efficient — why click N times when one button retargets everything? | Explicitly rejected by the milestone brief itself ("no 'fix all'") and by precedent: v1.12's bulk-subtask feature deliberately kept per-row status+retry rather than an opaque batch mutation, because retargeting is consequential (wrong branch context per MR) and partial-failure needs per-row visibility, not an all-or-nothing spinner | Per-row action with per-row status/retry — already the established in-app pattern |
-| Automatic MR retargeting without confirmation (silent auto-fix on detection) | Would look "smart" — detect drift, fix it instantly | Changing an MR's target branch is a real git operation with review/diff implications for the MR author; doing it silently removes human judgment from a decision that affects what the reviewer is actually comparing against. GitLab's own community explicitly frames retargeting as author-owned, not tool-owned | Detect + flag + one-click confirm-or-not action, mirroring the existing confirm-dialog pattern for branch/milestone creation |
-| Automatic merge-back (release → develop) performed by the app | Symmetric temptation to "just do it" once detected as missing | This is a real merge that can conflict; git-flow literature (Runway, trunkbaseddevelopment.com) universally treats merge-back as a deliberate, often manually-reviewed step, and the milestone brief itself only asks for a *check*, not an automated merge | Surface as unresolved/warning until the team merges it themselves via normal git tooling; app verifies, doesn't perform |
-| Widget/grid customizable release dashboard | Feels like a natural evolution of "release readiness at a glance" | Directly re-treads the react-grid-layout widget system removed in v1.9 and the constraint restated in v1.13 ("not a return to widgets"); this team has rejected customizable-widget dashboards twice already | Curated, fixed-layout detail page — same pattern as the v1.13 Dashboard redesign |
-| Slack/email notification when drift is detected | "Real release tools" (LinearB, Sleuth) often ping channels on release events | Explicitly out of scope per PROJECT.md ("Email or Slack notifications — external service dependencies") | In-app badge/warning, checked on view load — consistent with the app's pull-not-push architecture everywhere else |
-| GitLab code-review actions (approve/request changes) surfaced from the release view | Once you're looking at "problem MRs," it's tempting to let users act on review state too | Explicitly still out of scope per PROJECT.md's v1.14-narrowed exclusion — only release-management writes (branch/milestone/retarget/assign) are in scope; review actions remain deferred to v2.0 | Deep-link to GitLab's MR page for review actions, same as today |
+## Anti-Features
+
+| Anti-Feature | Why Avoid | What to Do Instead |
+|--------------|-----------|-------------------|
+| Markdown or ADF as storage format | Jira DC stores wiki markup; any conversion risks silently changing rendering | Wiki markup is the only persisted format. Editor state is derived |
+| Byte-exact round-trip guarantee | Unachievable and not needed; the milestone defines semantic equivalence | Fixture corpus on rendered output; skip re-serialising untouched docs |
+| Dropping unknown constructs silently | Data loss in the user's Jira issues | Preserve verbatim as raw nodes |
+| Real-time collaboration / cursors / comments-on-selection | No backend; Jira DC has none | n/a |
+| Notion-style block drag handles, columns, databases, embeds | No wiki-markup mapping | Lists, tables, panels only |
+| Enter-to-send in comment composer | Long-form content; accidents | Cmd/Ctrl+Enter sends, Enter newline |
+| Full unicode emoji picker | Wiki markup renders only Jira emoticons; unicode may be mangled by Jira DC DB (utf8 issues) | Jira emoticon set only; allow pasted unicode as plain text |
+| Text colour/size/font pickers beyond `{color}` | Not Jira-standard styling; WikiRenderer parity | Provide `{color}` with a small palette only |
+| Both fixed toolbar and bubble menu in the same host | Visual noise | Toolbar in large hosts, bubble (or compact toolbar) in inline hosts |
+| Autosaving to Jira (server drafts) while typing | Creates edit history noise and conflicts | Local drafts only; explicit Save |
+| Auto-rewriting existing issue text on open (normalisation) | Triggers false "dirty" and silent history changes | Dirty only when the user edits |
+| Heavy source editor (Monaco) | Bundle size in a portable Tauri app | Lightweight highlighted textarea or CodeMirror 6 only if justified |
+| Raw-HTML paste passthrough | Wiki markup has no HTML; sanitisation risk | Convert supported nodes, drop the rest |
+| Per-surface bespoke editors | Defeats the milestone | One shared component with presets |
+| Revert of the previous TipTap attempt unexplained | Reason unrecorded; may repeat | Re-evaluate the library choice and inspect tag `backup/wiki-editor-before-revert-260531` for the failure cause before committing to the same approach |
+
+## Source Toggle UX (recommended behaviour)
+
+- Toolbar toggle (icon + label "Source"), shortcut Cmd+Shift+M or similar; the toggle state persisted per user (not per issue); default WYSIWYG.
+- Switching WYSIWYG to source: serialise once; if the doc is not dirty show the original string untouched.
+- Switching source to WYSIWYG: parse; if the parse produces unmodelable fragments show them as raw chips, never an error. Show a non-blocking warning only if parsing alters semantics (should be zero by design).
+- Cursor: fallback is preserving scroll position and selecting the block under the caret; true offset mapping is a later differentiator.
+- Toolbar actions disabled in source mode except toggle; mention/attachment inserts still work at the textarea caret (reuse the existing textarea logic, so existing attachment/mention paths remain as the source-mode implementation).
+- Drafts and dirty checks operate on the wiki string regardless of mode.
+
+## Comment Composer UX
+
+- Collapsed by default as a one-line "Add a comment..." field; expands on focus to full editor with toolbar plus Save / Cancel; Cmd+Enter saves; Esc cancels with dirty guard.
+- Quick-reply pills are optional (Jira Cloud's "Looks good", etc.). Skip.
+- Edit-in-place for existing comments uses the same compact editor with Save/Cancel; keeps scroll position in ActivityTimeline.
+- Draft per issue persists across navigation and pin-tab switching.
+- Keep Enter on empty list item exiting the list, not submitting.
+
+## Large Create/Edit Modal Layout Patterns
+
+- Two columns: left (about 65%) summary input (large, borderless), description editor (fills height), then subtasks/links; right (about 35%) fields with labelled rows, sticky; footer sticky with primary Create, Cancel, and "Create another".
+- Header: project and issue type selector left, close right; no heavy chrome.
+- Collapse to one column under about 800px by stacking sidebar below, though memory says narrow layouts prefer side-by-side shrinking; follow that unless the width is genuinely too small.
+- Required custom fields (from createmeta) go to the top of the sidebar with an indicator; optional ones fold under "More fields".
+- Esc/backdrop on a dirty form asks for confirmation.
+- Editor grows with content up to the modal height; the main column scrolls independently of the sidebar.
 
 ## Feature Dependencies
 
 ```
-Release branch resolve/detect
-    └──requires──> GitLab default-branch read (existing: activeGitlabProject config)
-Release branch create
-    └──requires──> release branch resolve/detect (must know it's missing first)
-
-Three-channel MR discovery
-    └──requires──> Channel A: existing fixVersionIssues + linkMRToTask (already built)
-    └──requires──> Channel B: existing fetchMilestoneMRs (already built)
-    └──requires──> Channel C (NEW): MRs targeting release/<tag> — new GitLab query
-    └──requires──> release branch resolve/detect (need the resolved branch name for Channel C)
-
-Drift flagging
-    └──requires──> Three-channel MR discovery (union is the input to diffing)
-
-Per-MR corrective actions
-    └──requires──> Drift flagging (must know WHAT is wrong before offering a fix)
-    └──requires──> Release branch resolve/detect + create (retarget needs the branch to exist)
-    └──requires──> Milestone creation OR existing milestone (assign-milestone needs a target)
-
-Milestone creation
-    └──enhances──> Per-MR corrective actions (assign-milestone action needs a milestone target to exist)
-
-Post-release merge-back check
-    └──requires──> Release branch resolve/detect (must know the release branch name)
-    └──requires──> version.released flag flip (existing Jira fix-version data)
-    └──independent of──> Three-channel discovery / drift flagging / per-MR actions (can ship as an isolated per-release check)
+Core editor engine + wiki parser/serializer (round-trip fixtures)
+  -> toolbar, input rules, shortcuts (need schema nodes)
+  -> source toggle (needs serializer; fallback raw nodes)
+  -> tables, panels/macros, code blocks (each needs node + serialiser + fixtures)
+  -> suggestion popover infrastructure
+       -> @mention (replaces MentionPopover internals, uses useMentionUserMap)
+       -> slash menu
+       -> emoticon ':' autocomplete
+       -> issue-key picker
+  -> attachment/image nodes (needs lib/attachment-markup.ts, staged-upload flow, Tauri DnD handling)
+  -> link handling (needs lib/internalLinks.ts)
+Editor presets (full/compact/minimal)
+  -> adoption per host: DescriptionEditor, CommentComposer/InlineComment/ActivityTimeline edit,
+     CreateEditIssueModal, CreateEpicDialog, BulkCreateSubtasksModal, EditReleaseModal
+Draft store + dirty guard (independent of engine; operate on wiki string)
+  -> every host
+Large modal layout (independent of engine; can ship with textarea first)
+WikiRenderer parity (styling of editor content shares CSS/tokens with WikiRenderer; do not refactor WikiRenderer except behind its tests)
 ```
 
-### Dependency Notes
+## MVP Recommendation
 
-- **Per-MR corrective actions require branch/milestone existence first:** retargeting to a release branch that doesn't exist, or assigning a milestone that doesn't exist, are 404s waiting to happen. Branch/milestone creation must land (or at minimum be live-checked) before the per-MR mutation fires — the row action should itself re-verify or the app should disable the action until the branch/milestone exist, matching the "confirm dialog" caution already used elsewhere.
-- **Three-channel discovery requires the resolved branch name:** Channel C literally cannot query "MRs targeting `release/<tag>`" until the branch name is deterministically known (the `release/<milestone name>` naming convention), so three-channel discovery has a hard ordering dependency on branch resolution, not just a soft one.
-- **Merge-back check is architecturally independent:** it only needs the branch name and the Jira `released` boolean flip — it does not need drift flagging or per-MR actions to exist. This means it can be built/shipped as an isolated vertical slice, which is useful roadmap-phasing information (a phase can ship branch-resolve + merge-back-check together as "release branch lifecycle bookends" while three-channel-discovery + drift-flagging + per-MR-actions form a second, larger "drift detection and fix" phase).
+Prioritise (phase order):
+1. Engine + schema + parser/serializer + fixture corpus with verbatim fallback and "untouched doc saves original string" (everything depends on this; highest risk).
+2. Core text formatting, lists, links, code blocks, toolbar, shortcuts, input rules, undo/redo, source toggle (fallback cursor behaviour).
+3. Mentions, attachments, image paste/drop, emoticons, issue-key rendering (ports of existing features).
+4. Tables and panels/macros (highest complexity; each is its own phase-sized work).
+5. Adopt in hosts with presets, Cmd+Enter, dirty guard, drafts; large Create/Edit modal and polished host surfaces.
+6. One or two differentiators: slash menu (reuses suggestion infrastructure) and bubble menu or compact toolbar for comments.
 
-## MVP Definition
+Defer: cursor-offset-preserving toggle, source syntax highlighting, issue hover previews, find-in-editor, word count, expand/focus mode, `{expand}`/`{toc}`/`{status}` macros.
 
-### Launch With (v1.14, matches committed Active requirements exactly)
+## Research Flags
 
-- [ ] Release branch resolve + existence detection + release-level warning — foundation for everything else
-- [ ] Create release branch behind confirm dialog — closes the "branch missing" dead-end
-- [ ] Three-channel MR union (Jira-linkage, milestone, branch-target) — the core reconciliation signal
-- [ ] Drift flagging (wrong branch, missing milestone, task not in fix version) — the payoff of the union
-- [ ] Per-MR retarget + assign-milestone corrective action, per-row status + retry — turns detection into action
-- [ ] Create missing GitLab milestone behind confirm dialog — closes the "milestone missing" dead-end
-- [ ] Post-release merge-back check — closes the loop after ship
-
-### Add After Validation (v1.x, not committed — flag if UAT surfaces demand)
-
-- [ ] Freeze-window awareness (warn if the release branch's base has diverged significantly since cut) — trigger: if UAT users manually check "is this branch stale" today
-- [ ] Cherry-pick visibility: which commits on `develop` post-cut are NOT yet on the release branch (freeze-violation detection, the inverse of the merge-back problem) — trigger: if the team reports fixes landing on `develop` but forgetting the release branch
-
-### Future Consideration (v2+, defer until this MVP proves the pattern)
-
-- [ ] Automated (not just checked) merge-back with conflict detection — defer: real merges are risky to automate; prove the "check" surface is trusted first
-- [ ] Multi-release-branch awareness (hotfix branches alongside a release branch) — defer: PROJECT.md constraint is "one Jira project + one GitLab project at a time," single-release-in-flight is the current scale
-
-## Feature Prioritization Matrix
-
-| Feature | User Value | Implementation Cost | Priority |
-|---------|------------|---------------------|----------|
-| Release branch resolve/detect | HIGH | LOW | P1 |
-| Release branch create | HIGH | LOW-MEDIUM | P1 |
-| Three-channel MR union | HIGH | MEDIUM-HIGH | P1 |
-| Drift flagging | HIGH | LOW (built on union) | P1 |
-| Per-MR corrective action | HIGH | LOW-MEDIUM | P1 |
-| Milestone creation | MEDIUM-HIGH | LOW | P1 |
-| Merge-back check | HIGH | LOW-MEDIUM | P1 |
-| Freeze-violation / cherry-pick visibility | MEDIUM | MEDIUM-HIGH | P3 (not committed) |
-| Automated merge-back | LOW (per git-flow literature — risky) | HIGH | P3 (anti-feature candidate, not just deferred) |
-
-## Answers to the Five Research Questions
-
-**1. Release readiness dashboards — what signals, what makes a row scannable.**
-Across GitLab's own release dashboard, Jira Release Hub-style views, and engineering-analytics tools (LinearB, Swarmia), the consistent scannable-row grammar is: **name + status badge + date/countdown + a single aggregate progress indicator + a single "problems exist" indicator**, with detail behind a click. Taskflow's `ReleasesTab.tsx` already matches this shape (name, Released/Unreleased/Overdue/Due-today badges, GitLab match link, done/total count). Swarmia's own positioning explicitly argues that "more metrics isn't more clarity" — opinionated signals beat raw charts. For v1.14, the row-level addition should be a single new badge class ("N MRs need attention") rather than expanding the row with multiple new columns — keep the row scannable by aggregating, and push the three-channel detail into the existing `ReleaseDetailPage`.
-
-**2. Drift / misconfiguration detection — visual language.**
-GitLab's own backlog (issue #378526) confirms "wrong target branch" is a recognized, named pain point industry-wide, not a Taskflow-specific quirk. The convention already adopted in this codebase — an orange `AlertTriangle` inline badge with a `title` tooltip explaining the specific mismatch (see `wrongMilestoneByKey` rendering in `ReleaseDetailPage.tsx`) — is consistent with how GitLab itself surfaces warnings (e.g., merge-train inconsistent-state warnings) and should be extended verbatim to "wrong target branch" and "missing milestone," rather than inventing a new severity system. Severity should stay single-tier (warning, not error/blocker) since these are correctable states, not hard failures — matches the existing amber/orange palette already used for "Unreleased," "No date set," and "Missing MR."
-
-**3. Reconciling three sources of truth without overwhelming the user.**
-No competitor product researched does true three-way set reconciliation (most trust one channel, usually the milestone, as ground truth). The safe pattern, and the one already partially implemented (`wrongMilestoneByKey` for the two-way Jira/milestone case), is: **don't show a Venn diagram or matrix — show one row per issue/MR with a single flag describing the specific disagreement in plain language** ("Wrong milestone", "Missing MR", extend to "Wrong branch", "No milestone"). Aggregate the *count* of disagreements at the release-row level (signal 1 in Q1's scannable row) and defer all per-item detail to the release-detail table, which is already the established drill-down pattern in this app (`ReleasesTab` → `ReleaseDetailPage`).
-
-**4. Per-item corrective actions — inline vs bulk.**
-The team's own v1.12 bulk-subtask-creation pattern (per-row progress + retry-failed-only, no bulk "fix all") is the correct precedent and the milestone brief explicitly reuses it ("no 'fix all'"). GitLab's own API confirms the mechanical shape is cheap: `PUT /projects/:id/merge_requests/:iid` accepts `target_branch` and `milestone_id` in a single call, so "retarget + assign milestone" can be one optimistic mutation per row, not two sequential ones. Expected UX per the existing app-wide pattern (`StatusPopover`, bulk-subtask rows): optimistic update with rollback on failure, inline spinner during flight, inline error + retry affordance on failure, no toast/modal for success (silent success, visible failure) — this matches the Key Decision already logged for `StatusPopover` in PROJECT.md.
-
-**5. Git-flow specific expectations — table stakes vs nice-to-have.**
-Cross-referencing git-flow's own docs, trunkbaseddevelopment.com, and Runway's cherry-pick/backmerge analysis: **cut** (branch creation) and **merge-back verification** are universally treated as mandatory lifecycle bookends — every source flags merge-back as the most common failure mode when skipped, which directly justifies the merge-back check as P1, not a nice-to-have. **Freeze enforcement** (blocking non-fix commits) and **cherry-pick tracking** (which fixes landed on develop but not the release branch, or vice versa) are treated as advanced/optional even in mature git-flow tooling — several sources note teams formalize freeze only via social process ("fix request" approval), not tooling — so these are correctly excluded from v1.14's committed scope and belong in the "Add After Validation" tier above, not as anti-features (they're real, just not MVP).
+- Library choice (TipTap/ProseMirror vs Lexical vs CodeMirror-based) is fresh-evaluate; see STACK.md. Check why the 2026-05-31 TipTap build was reverted.
+- Tables with block content in cells and nested mixed lists are the likeliest round-trip failures; need dedicated fixtures.
+- Tauri drag-drop with image drop requires phase-specific verification on a real build (WKWebView).
+- Pasting rich HTML from Jira/Confluence needs sample-driven mapping.
 
 ## Sources
 
-- [GitLab: Allow merge request author to change target branch (#378526)](https://gitlab.com/gitlab-org/gitlab/-/issues/378526) — confirms "wrong target branch" as a named, recognized industry pain point
-- [GitLab Merge Requests API docs](https://docs.gitlab.com/api/merge_requests/) — confirms single PUT updates both `target_branch` and `milestone_id`
-- [GitLab: Create merge requests docs](https://docs.gitlab.com/user/project/merge_requests/creating_merge_requests/) — `/target_branch` quick action, chained-MR auto-retargeting behavior
-- [Cherry-picks vs backmerges — Runway](https://www.runway.team/blog/cherry-picks-vs-backmerges-whats-the-right-way-to-get-fixes-into-your-release-branch) — cherry-pick discipline, tagging before cleanup
-- [git-flow 1.0 docs — Releases](https://git-flow.readthedocs.io/en/latest/releases.html) — canonical cut/finish/merge-back lifecycle description
-- [Branch for release — trunkbaseddevelopment.com](https://trunkbaseddevelopment.com/branch-for-release/) — freeze-window pitfalls, cutting too early
-- [LinearB vs Swarmia — Swarmia](https://www.swarmia.com/alternative/linearb/) — "opinionated signals vs pile of charts" positioning, directly informs Q1 scannability guidance
-- [LinearB vs Swarmia — LinearB](https://linearb.io/compare/swarmia-vs-linearb) — counter-positioning on dashboard depth
-- Taskflow codebase: `taskflow/src/routes/dashboard/ReleasesTab.tsx`, `ReleaseDetailPage.tsx` — existing visual/interaction patterns this milestone must extend, not replace
-- `.planning/PROJECT.md` — v1.14 committed scope, Out-of-Scope history (v1.9/v1.13 widget rejection, v1.13 analytics rejection), v1.12 bulk-subtask precedent
-
----
-*Feature research for: Taskflow v1.14 Release Management*
-*Researched: 2026-08-10*
+- Product behaviour of Jira Cloud, Confluence, Linear, Notion, GitHub, Slack editors: training-data knowledge, LOW-MEDIUM confidence, not re-verified live this session.
+- Repo: .planning/PROJECT.md (milestone scope), file inventory of taskflow/src/routes/dashboard (WikiRenderer, MentionPopover, DescriptionEditor, CommentComposer, InlineComment), create-edit-issue/, lib/attachment-markup.ts, lib/internalLinks.ts, hooks/useMentionUserMap.ts (existence verified; contents not read).
+- Project memory notes (Tauri dnd/MIME, shared pickers, shortcuts, detail-page layout rules).
