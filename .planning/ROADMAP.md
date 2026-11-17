@@ -249,7 +249,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 98-05-PLAN.md — Headless editor core: extension list, keymap, wiki-first input rules, safe links
+- [x] 98-05-PLAN.md — Headless editor core: extension list, keymap, wiki-first input rules, safe links
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
@@ -345,7 +345,7 @@ Plans:
 |-------|----------------|--------|-----------|
 | 96. Wiki Foundations & Equivalence Harness | 6/6 | Complete    | 2026-11-16 |
 | 97. Round-Trip Engine | 17/17 | Complete    | 2026-11-16 |
-| 98. Editor Shell | 4/13 | In Progress|  |
+| 98. Editor Shell | 5/13 | In Progress|  |
 | 99. Mentions, Media & Smart Input | 0/TBD | Not started | - |
 | 100. Host Adoption & Editing Workflow | 0/TBD | Not started | - |
 | 101. Issue Drafts & Large Create/Edit Modal | 0/TBD | Not started | - |

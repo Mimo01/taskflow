@@ -19,10 +19,10 @@
 - [ ] **EDIT-01**: User edits text in a rich view that looks like WikiRenderer output (shared prose styles)
 - [ ] **EDIT-02**: User can toggle between rich and raw Jira wiki source at any time without losing content
 - [ ] **EDIT-03**: User sees a side-by-side WikiRenderer preview while in source mode
-- [ ] **EDIT-04**: User can apply bold, italic, underline, strikethrough, monospace, sub/superscript from a toolbar and with keyboard shortcuts
-- [ ] **EDIT-05**: User can create headings, bullet/numbered lists (incl. mixed nesting), block quotes, horizontal rules and line breaks
-- [ ] **EDIT-06**: User can insert and edit links, and pasting a URL onto a selection makes it a link
-- [ ] **EDIT-07**: User can type wiki/markdown-style shortcuts (e.g. `*bold*`, `- `, `# `, `{code}`) that format in place, with IME composition respected
+- [x] **EDIT-04**: User can apply bold, italic, underline, strikethrough, monospace, sub/superscript from a toolbar and with keyboard shortcuts
+- [x] **EDIT-05**: User can create headings, bullet/numbered lists (incl. mixed nesting), block quotes, horizontal rules and line breaks
+- [x] **EDIT-06**: User can insert and edit links, and pasting a URL onto a selection makes it a link
+- [x] **EDIT-07**: User can type wiki/markdown-style shortcuts (e.g. `*bold*`, `- `, `# `, `{code}`) that format in place, with IME composition respected
 - [ ] **EDIT-08**: Undo/redo works across all edits, including mode toggles
 - [ ] **EDIT-09**: The editor loads lazily with an equal-height skeleton and never rebuilds or loses the caret while typing
 
@@ -109,10 +109,10 @@
 | EDIT-01 | Phase 98 | Pending |
 | EDIT-02 | Phase 98 | Pending |
 | EDIT-03 | Phase 98 | Pending |
-| EDIT-04 | Phase 98 | Pending |
-| EDIT-05 | Phase 98 | Pending |
-| EDIT-06 | Phase 98 | Pending |
-| EDIT-07 | Phase 98 | Pending |
+| EDIT-04 | Phase 98 | Complete |
+| EDIT-05 | Phase 98 | Complete |
+| EDIT-06 | Phase 98 | Complete |
+| EDIT-07 | Phase 98 | Complete |
 | EDIT-08 | Phase 98 | Pending |
 | EDIT-09 | Phase 98 | Pending |
 | BLOCK-01 | Phase 98 | Pending |
