@@ -2299,6 +2299,28 @@ export async function fetchJiraIssueByKey(
   return response.json() as Promise<JiraIssue>;
 }
 
+/** Live description read for the draft stale check; null when the issue 404s. */
+export async function fetchIssueDescription(
+  baseUrl: string,
+  token: string,
+  issueKey: string,
+): Promise<{ description: string; updated: string } | null> {
+  const base = baseUrl.replace(/\/$/, '');
+  const url = `${base}/rest/api/2/issue/${issueKey}?fields=description,updated`;
+  const response = await apiFetch(
+    'jira',
+    url,
+    { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } },
+    'Load Issue Description',
+  );
+  if (response.status === 404) return null;
+  if (!response.ok) throw new Error(`Failed to load issue description: ${response.status}`);
+  const data = (await response.json()) as {
+    fields?: { description?: string | null; updated?: string };
+  };
+  return { description: data.fields?.description ?? '', updated: data.fields?.updated ?? '' };
+}
+
 export async function updateIssueField(
   baseUrl: string,
   token: string,
@@ -2872,7 +2894,8 @@ export async function fetchStoriesWithPackage(
   const jql =
     `project = "${projectKey}" AND issuetype in (${PACKAGE_ISSUE_TYPES.join(', ')}) ` +
     `AND cf[15725] in (${keys.map((k) => `"${k}"`).join(', ')})`;
-  const fields = 'summary,issuetype,project,status,fixVersions,customfield_15725,assignee,reporter,priority';
+  const fields =
+    'summary,issuetype,project,status,fixVersions,customfield_15725,assignee,reporter,priority';
   try {
     return await fetchAllSearchPagesConcurrent(
       `${base}/rest/api/2/search?jql=${encodeURIComponent(jql)}&fields=${fields}`,

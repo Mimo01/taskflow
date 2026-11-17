@@ -4,6 +4,8 @@ import { Loader2, Paperclip, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import { Button } from '@/components/ui/button';
+import { DiscardChangesDialog } from '@/components/ui/discard-changes-dialog';
+import { DraftNote } from '@/components/ui/draft-note';
 import { EpicPicker } from '@/components/ui/epic-picker';
 import { Input } from '@/components/ui/input';
 import { Keycap } from '@/components/ui/keycap';
@@ -18,10 +20,18 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import type { WikiEditorHandle, WikiEditorHost } from '@/components/wiki-editor/types';
 import { WikiEditorLazy } from '@/components/wiki-editor/WikiEditorLazy';
+import { useEditorDraft } from '@/hooks/useEditorDraft';
 import { useMentionUserMap } from '@/hooks/useMentionUserMap';
-import { fetchIssuePriorityOptions, fetchPriorities, type JiraPriority } from '@/services/jira';
+import { draftKey } from '@/lib/draft-keys';
+import {
+  fetchIssueDescription,
+  fetchIssuePriorityOptions,
+  fetchPriorities,
+  type JiraPriority,
+} from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
+import { useDraftsStore } from '@/stores/drafts.store';
 import { useSettingsStore } from '@/stores/settings.store';
 import { useIssueEditorHost } from '../issue-detail/useIssueEditorHost';
 import { StagedFilesStrip } from '../StagedFilesStrip';
@@ -62,6 +72,10 @@ export function CreateEditIssueModal({
   const { epicLinkFieldKey, storyPointsFieldKey } = useSettingsStore();
   const projectKey = activeJiraProject ?? '';
 
+  // Edit mode only: create/clone never read or write a description draft (Phase 101).
+  const editIssueKey = mode === 'edit' ? initialValues?.issueKey : undefined;
+  const descriptionKey = editIssueKey ? draftKey.description(editIssueKey) : null;
+
   const { state, dispatch, isSubtask } = useCreateEditForm({
     open,
     mode,
@@ -69,6 +83,8 @@ export function CreateEditIssueModal({
     defaultIssueType,
     defaultParentKey,
     defaultEpicLinkKey,
+    getDescriptionOverride: () =>
+      descriptionKey ? useDraftsStore.getState().drafts[descriptionKey]?.text : undefined,
   });
 
   // ── Description attachments: create mode stages files, edit mode uploads live ──
@@ -99,7 +115,96 @@ export function CreateEditIssueModal({
     setHasCreatedWithError(false);
   }, [open]);
 
-  const editIssueKey = mode === 'edit' ? initialValues?.issueKey : undefined;
+  // ── Description draft (edit mode): base, live stale check, restore ────────
+  const [descriptionBase, setDescriptionBase] = useState(initialValues?.description ?? '');
+  const [discardOpen, setDiscardOpen] = useState(false);
+  const hydratedAtOpenRef = useRef(false);
+  const descriptionRef = useRef(state.description);
+  descriptionRef.current = state.description;
+  const descriptionBaseRef = useRef(descriptionBase);
+  descriptionBaseRef.current = descriptionBase;
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: runs once per open
+  useEffect(() => {
+    if (!open) return;
+    setDiscardOpen(false);
+    hydratedAtOpenRef.current = useDraftsStore.persist.hasHydrated();
+    const stored =
+      descriptionKey && hydratedAtOpenRef.current
+        ? useDraftsStore.getState().drafts[descriptionKey]
+        : undefined;
+    setDescriptionBase(stored?.base ?? initialValues?.description ?? '');
+  }, [open, initialValues]);
+
+  const liveDescription = useQuery({
+    queryKey: ['jira-issue-description', editIssueKey, jiraBaseUrl],
+    queryFn: async () => {
+      const token = await readSecret('jira-pat').catch(() => null);
+      if (!token || !jiraBaseUrl || !editIssueKey) return null;
+      return fetchIssueDescription(jiraBaseUrl, token, editIssueKey);
+    },
+    staleTime: 0,
+    enabled: open && mode === 'edit' && !!editIssueKey && !!jiraBaseUrl,
+  });
+
+  const draft = useEditorDraft({
+    key: descriptionKey,
+    kind: 'description',
+    issueKey: editIssueKey ?? '',
+    base: descriptionBase,
+    liveBase: liveDescription.data?.description ?? null,
+  });
+  const draftHydrated = draft.hydrated;
+
+  // Drafts hydrated after the modal opened and the user has not typed: restore once.
+  useEffect(() => {
+    if (!open || !descriptionKey || !draftHydrated || hydratedAtOpenRef.current) return;
+    hydratedAtOpenRef.current = true;
+    const stored = useDraftsStore.getState().drafts[descriptionKey];
+    if (!stored || descriptionRef.current !== descriptionBaseRef.current) return;
+    dispatch({ type: 'SET_FIELD', field: 'description', value: stored.text });
+    setDescriptionBase(stored.base ?? descriptionBaseRef.current);
+  }, [open, descriptionKey, draftHydrated, dispatch]);
+
+  // Issue no longer reachable (404): its drafts must not linger (D-06, T-100-24).
+  useEffect(() => {
+    if (liveDescription.isSuccess && liveDescription.data === null && editIssueKey) {
+      useDraftsStore.getState().clearIssue(editIssueKey);
+    }
+  }, [liveDescription.data, liveDescription.isSuccess, editIssueKey]);
+
+  const dirty = mode === 'edit' && state.description !== descriptionBase;
+
+  function handleDescriptionChange(v: string) {
+    dispatch({ type: 'SET_FIELD', field: 'description', value: v });
+    draft.schedule(v);
+  }
+
+  function handleDiscardDraft() {
+    draft.discard();
+    dispatch({ type: 'SET_FIELD', field: 'description', value: descriptionBase });
+    editorRef.current?.focus({ toEnd: true });
+  }
+
+  function handleUseJiraVersion() {
+    const live = liveDescription.data?.description ?? '';
+    draft.discard();
+    setDescriptionBase(live);
+    dispatch({ type: 'SET_FIELD', field: 'description', value: live });
+  }
+
+  function closeSilently() {
+    draft.flush();
+    onClose();
+  }
+
+  function requestCancel() {
+    if (dirty) {
+      setDiscardOpen(true);
+      return;
+    }
+    closeSilently();
+  }
 
   const initialUserMap = useMemo(() => {
     const map: Record<string, string> = {};
@@ -284,6 +389,7 @@ export function CreateEditIssueModal({
     },
     onSuccess: () => {
       dispatch({ type: 'SET_FIELD', field: 'apiError', value: null });
+      if (mode === 'edit') draft.discard();
       // If a staged-file upload failed post-create, the issue was still created
       // successfully (locked decision: never roll back). Keep the modal open so the
       // failure message stays visible instead of auto-closing over it — there is no
@@ -296,7 +402,17 @@ export function CreateEditIssueModal({
       }
       onClose();
     },
-    onError: (msg) => dispatch({ type: 'SET_FIELD', field: 'apiError', value: msg || null }),
+    onError: (msg) => {
+      draft.flush();
+      dispatch({
+        type: 'SET_FIELD',
+        field: 'apiError',
+        value:
+          msg && dirty
+            ? "Couldn't save your changes. Your text is kept as a draft, try again."
+            : msg || null,
+      });
+    },
   });
 
   const canSubmit =
@@ -316,8 +432,17 @@ export function CreateEditIssueModal({
   return (
     <Dialog.Root
       open={open}
-      onOpenChange={(o) => {
-        if (!o) onClose();
+      onOpenChange={(o, details) => {
+        if (o) return;
+        if (details.reason === 'escape-key') {
+          details.cancel();
+          // The editor's own Esc (onCancel) already handled this keypress.
+          if (details.event?.defaultPrevented) return;
+          requestCancel();
+          return;
+        }
+        // X and backdrop close silently; the draft stays stored (D-13).
+        closeSilently();
       }}
     >
       <Dialog.Portal>
@@ -392,20 +517,31 @@ export function CreateEditIssueModal({
                   onChange={handleFileInputChange}
                 />
               </div>
-              <WikiEditorLazy
-                ref={editorRef}
-                value={state.description}
-                onChange={(v) => dispatch({ type: 'SET_FIELD', field: 'description', value: v })}
-                preset="full"
-                aria-label="Description"
-                host={host}
-                onSubmit={(text) => {
-                  flushSync(() =>
-                    dispatch({ type: 'SET_FIELD', field: 'description', value: text }),
-                  );
-                  trySubmit();
-                }}
-              />
+              {/* biome-ignore lint/a11y/noStaticElementInteractions: focusout flushes the draft */}
+              <div onBlur={draft.flush}>
+                <WikiEditorLazy
+                  ref={editorRef}
+                  value={state.description}
+                  onChange={handleDescriptionChange}
+                  onCancel={mode === 'edit' ? requestCancel : undefined}
+                  preset="full"
+                  aria-label="Description"
+                  host={host}
+                  onSubmit={(text) => {
+                    flushSync(() =>
+                      dispatch({ type: 'SET_FIELD', field: 'description', value: text }),
+                    );
+                    trySubmit();
+                  }}
+                />
+              </div>
+              {mode === 'edit' && (
+                <DraftNote
+                  state={draft.state}
+                  onDiscard={handleDiscardDraft}
+                  onUseJira={handleUseJiraVersion}
+                />
+              )}
               <StagedFilesStrip
                 files={stagedFiles}
                 onRemove={handleRemoveStagedFile}
@@ -574,9 +710,26 @@ export function CreateEditIssueModal({
             )}
 
             <div className="flex justify-end gap-2 border-t pt-4">
-              <Button type="button" variant="outline" onClick={onClose} disabled={isPending}>
-                Cancel
-              </Button>
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={requestCancel}
+                      disabled={isPending}
+                    />
+                  }
+                >
+                  Cancel
+                </TooltipTrigger>
+                <TooltipContent>
+                  <span className="flex items-center gap-2">
+                    <span className="font-medium">Cancel</span>
+                    <Keycap>Esc</Keycap>
+                  </span>
+                </TooltipContent>
+              </Tooltip>
               <Tooltip>
                 <TooltipTrigger
                   render={<Button type="submit" disabled={!canSubmit} className="gap-1.5" />}
@@ -602,6 +755,18 @@ export function CreateEditIssueModal({
               </Tooltip>
             </div>
           </form>
+          <DiscardChangesDialog
+            open={discardOpen}
+            onKeepEditing={() => {
+              setDiscardOpen(false);
+              editorRef.current?.focus({ toEnd: true });
+            }}
+            onDiscard={() => {
+              setDiscardOpen(false);
+              draft.discard();
+              onClose();
+            }}
+          />
         </Dialog.Popup>
       </Dialog.Portal>
     </Dialog.Root>

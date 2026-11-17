@@ -21,8 +21,8 @@ export interface EditInitialValues {
    *  pre-fill required custom fields (e.g. Account). The value shape mirrors what Jira
    *  returns in issue.fields — objects, arrays, primitives. */
   customFields?: Record<string, unknown>;
-  /** Issue's existing attachments (edit mode) — threaded to DescriptionEditor so its
-   *  paperclip picker and Preview tab can resolve references. Not applicable to create
+  /** Issue's existing attachments (edit mode) — threaded to the editor host so its
+   *  paperclip picker and reference resolution work. Not applicable to create
    *  mode (no attachments exist yet); Clone intentionally omits this too. */
   attachments?: JiraAttachment[];
 }
@@ -65,6 +65,8 @@ export type FormAction =
       defaultParentKey?: string | null;
       initialValues?: EditInitialValues;
       defaultEpicLinkKey?: string | null;
+      /** Restored description draft; replaces initialValues.description in the same RESET. */
+      descriptionOverride?: string;
     }
   | { type: 'ASSIGNEE_PICK'; user: PersonValue }
   | { type: 'ASSIGNEE_PICK_UNASSIGNED' }
@@ -113,6 +115,7 @@ function buildInitialState(
   defaultParentKey?: string | null,
   initialValues?: EditInitialValues,
   defaultEpicLinkKey?: string | null,
+  descriptionOverride?: string,
 ): FormState {
   const customFieldValues: Record<string, string> = {};
   const customFieldInputValues: Record<string, string> = {};
@@ -127,7 +130,7 @@ function buildInitialState(
   return {
     selectedIssueType: defaultIssueType ?? 'Story',
     summary: initialValues?.summary ?? '',
-    description: initialValues?.description ?? '',
+    description: descriptionOverride ?? initialValues?.description ?? '',
     selectedAssignee: initialValues?.assigneeName
       ? {
           name: initialValues.assigneeName,
@@ -164,6 +167,7 @@ function formReducer(state: FormState, action: FormAction): FormState {
         action.defaultParentKey,
         action.initialValues,
         action.defaultEpicLinkKey,
+        action.descriptionOverride,
       );
 
     case 'ASSIGNEE_PICK':
@@ -248,6 +252,8 @@ interface UseCreateEditFormOptions {
   defaultIssueType?: IssueType;
   defaultParentKey?: string;
   defaultEpicLinkKey?: string;
+  /** Read inside the open effect (non-reactive) to seed RESET with a stored draft. */
+  getDescriptionOverride?: () => string | undefined;
 }
 
 export function useCreateEditForm({
@@ -257,6 +263,7 @@ export function useCreateEditForm({
   defaultIssueType,
   defaultParentKey,
   defaultEpicLinkKey,
+  getDescriptionOverride,
 }: UseCreateEditFormOptions) {
   const [state, dispatch] = useReducer(
     formReducer,
@@ -266,6 +273,8 @@ export function useCreateEditForm({
   // Reset form state on each open — the component stays mounted in AppLayout
   // between opens; useReducer initializers only run once, so we must re-sync
   // from props whenever the modal opens.
+  // getDescriptionOverride is read non-reactively on purpose: draft writes must not re-RESET.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: see above
   useEffect(() => {
     if (!open) return;
     dispatch({
@@ -274,6 +283,7 @@ export function useCreateEditForm({
       defaultParentKey: defaultParentKey ?? null,
       initialValues,
       defaultEpicLinkKey: defaultEpicLinkKey ?? null,
+      descriptionOverride: getDescriptionOverride?.(),
     });
   }, [open, defaultIssueType, defaultParentKey, defaultEpicLinkKey, initialValues]);
 
