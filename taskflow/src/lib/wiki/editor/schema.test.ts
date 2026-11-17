@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { wikiSchema } from './schema';
+import { Color, Panel, RawBlock, STARTER_KIT_OPTIONS, wikiExtensions, wikiSchema } from './schema';
 
 const NODES = [
   'doc',
@@ -162,5 +162,46 @@ describe('wikiSchema', () => {
   it('is a module-scope singleton', async () => {
     const again = await import('./schema');
     expect(again.wikiSchema).toBe(wikiSchema);
+  });
+});
+
+describe('schema exports', () => {
+  it('exports the starter-kit options and node consts', () => {
+    expect(STARTER_KIT_OPTIONS).toEqual({
+      code: false,
+      link: { openOnClick: false, autolink: false, linkOnPaste: false },
+      undoRedo: false,
+      dropcursor: false,
+      gapcursor: false,
+      trailingNode: false,
+      listKeymap: false,
+    });
+    expect(Panel.name).toBe('panel');
+    expect(RawBlock.name).toBe('rawBlock');
+    expect(Color.name).toBe('color');
+  });
+
+  it('keeps the wikiExtensions order', () => {
+    expect(wikiExtensions.map((e) => e.name)).toEqual([
+      'starterKit',
+      'table',
+      'tableRow',
+      'tableCell',
+      'tableHeader',
+      'wikiSpelling',
+      'panel',
+      'rawBlock',
+      'rawInline',
+      'emoticon',
+      'mention',
+      'escape',
+      'image',
+      'attachment',
+      'sup',
+      'sub',
+      'cite',
+      'mono',
+      'color',
+    ]);
   });
 });

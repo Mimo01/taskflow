@@ -115,16 +115,14 @@ describe('typed text renders as typed (97 gaps 1+2)', () => {
     });
   }
 
-  // Known limitation (97-16 deviation 4): parseCell treats any cell containing
-  // {code}/{noformat} as a raw table, escaped or not, so it cannot be spelled
-  // safely. The save check must refuse rather than write text that renders a block.
+  // 98-01: an escaped opener in a cell is modelled (parseCell is escape-aware), so
+  // typed {code}/{noformat} in a cell saves and renders as typed.
   for (const typed of ['a {code}x{code} b', 'a {noformat}x{noformat} b']) {
-    it(`table cell fails closed: ${typed}`, () => {
-      const r = saveWiki(
-        load('seed'),
-        wikiSchema.nodeFromJSON(doc(table([cell(p(t(typed))), cell(p(t('z')))])) as never),
-      );
-      expect(r.kind).toBe('failed');
+    it(`table cell saves and renders as typed: ${typed}`, () => {
+      const { html, visible } = roundTrip(doc(table([cell(p(t(typed))), cell(p(t('z')))])));
+      expect(visible).toBe(`${typed}z`);
+      expect(html.match(/<td/g)?.length).toBe(2);
+      expectNoGenerated(html);
     });
   }
 

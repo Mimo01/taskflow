@@ -1,7 +1,9 @@
 import type { JSONContent } from '@tiptap/core';
 import { describe, expect, it } from 'vitest';
 import { WIKI_CORPUS } from '../corpus.fixtures';
+import { wikiToHtml } from '../pipeline';
 import { emitWiki } from './emit';
+import { loadWiki, saveWiki } from './engine';
 import { parseWiki } from './parse/blocks';
 import { wikiSchema } from './schema';
 
@@ -126,5 +128,50 @@ describe('tables', () => {
       ],
     };
     expect(emitWiki(doc)).toBe('||h1||h2||\n|c1|c2|');
+  });
+});
+
+describe('escape-aware cell openers (98-01)', () => {
+  it('models a cell with an escaped {code} and round-trips it', () => {
+    const wiki = '|a \\{code}x\\{code} b|';
+    const doc = parse(wiki);
+    expect(kinds(doc.content)).toEqual(['table']);
+    expect(emitWiki(doc)).toBe(wiki);
+  });
+
+  it('keeps an unescaped {code} cell raw (D-10)', () => {
+    expect(kinds(blocks('|a {code}x{code} b|'))).toEqual(['rawBlock']);
+  });
+
+  it('treats escaped and unescaped {noformat} the same way', () => {
+    expect(kinds(blocks('|a \\{noformat}x\\{noformat} b|'))).toEqual(['table']);
+    expect(kinds(blocks('|a {noformat}x{noformat} b|'))).toEqual(['rawBlock']);
+  });
+
+  it('WR-02: an even backslash run before {panel} is a real opener, odd is escaped', () => {
+    const hasPanel = (wiki: string): boolean =>
+      JSON.stringify(parse(wiki)).includes('"type":"panel"');
+    const hasCallout = (wiki: string): boolean => wikiToHtml(wiki).includes('data-callout');
+    expect(hasPanel('|a \\\\{panel}x{panel} b|')).toBe(true);
+    expect(hasPanel('|a \\{panel}x{panel} b|')).toBe(false);
+    expect(hasCallout('|a \\\\{panel}x{panel} b|')).toBe(hasPanel('|a \\\\{panel}x{panel} b|'));
+    expect(hasCallout('|a \\{panel}x{panel} b|')).toBe(hasPanel('|a \\{panel}x{panel} b|'));
+  });
+
+  it('saves a user-typed {code} cell instead of failing closed', () => {
+    const load = loadWiki('|a|b|');
+    if (load.kind === 'failed') throw new Error('load failed');
+    const doc = wikiSchema.nodeFromJSON(load.doc).toJSON();
+    const cell = doc.content[0].content[0].content[0];
+    cell.content = [{ type: 'paragraph', content: [{ type: 'text', text: '{code}x{code}' }] }];
+    const res = saveWiki(load, wikiSchema.nodeFromJSON(doc));
+    expect(res.kind).toBe('saved');
+    if (res.kind !== 'saved') return;
+    // The emitter escapes the opener, so the text reads back as a modelled table.
+    expect(res.text).toContain('\\{code}');
+    const again = loadWiki(res.text);
+    expect(again.kind).toBe('rich');
+    expect(kinds(blocks(res.text))).toEqual(['table']);
+    expect(emitWiki(parse(res.text))).toBe(res.text);
   });
 });

@@ -7,7 +7,7 @@ import { isBlankLine } from './source';
  * Table run parser (Phase 97, Plan 06). Mirrors the renderer's row rules
  * (open-row merge with the same 50 line cap and even panel-tag count). Every
  * form the renderer handles heuristically is returned as null, which the
- * caller keeps as a rawBlock (D-10): mixed `||`/`|` rows, `{code}` in a cell,
+ * caller keeps as a rawBlock (D-10): mixed `||`/`|` rows, unescaped `{code}` in a cell,
  * indented rows, rows that never close, trailing whitespace after a row.
  * Single pass per row; no regex with nested quantifiers (T-97-18).
  */
@@ -16,6 +16,9 @@ type Block = { end: number; node: JSONContent };
 
 const PANEL_TAG_RE = /\{(?:panel|info|note|warning|tip)(?::[^}]*)?\}/g;
 const MAX_LOOKAHEAD = 50;
+/** Opener not preceded by an odd backslash run (same rule as preprocess.ts). */
+const CELL_PANEL_OPENER = /(?<!(?<!\\)(?:\\\\)*\\)\{(panel|info|note|warning|tip)(?::([^}]*))?\}/g;
+const UNESCAPED_CODE_OPENER = /(?<!(?<!\\)(?:\\\\)*\\)\{(?:code|noformat)/;
 
 function trimEnd(s: string): string {
   let e = s.length;
@@ -131,8 +134,8 @@ function cellBlocks(content: string): JSONContent[] | null {
   const out: JSONContent[] = [];
   let pos = 0;
   // A backslash-escaped `\{` is text, not a cell panel opener (97-16, SAFE-06).
-  const re = /(?<!\\)\{(panel|info|note|warning|tip)(?::([^}]*))?\}/g;
-  for (const m of content.matchAll(re)) {
+  // Only an ODD backslash run escapes the opener; an even run is a real opener (WR-02).
+  for (const m of content.matchAll(CELL_PANEL_OPENER)) {
     const at = m.index ?? 0;
     if (at < pos) continue;
     const name = m[1] as string;
@@ -151,7 +154,7 @@ function cellBlocks(content: string): JSONContent[] | null {
 }
 
 function parseCell(raw: string, header: boolean): JSONContent | null {
-  if (raw.includes('{code') || raw.includes('{noformat') || /[ \t]\n/.test(raw)) return null;
+  if (UNESCAPED_CODE_OPENER.test(raw) || /[ \t]\n/.test(raw)) return null;
   let a = 0;
   while (a < raw.length && (raw[a] === ' ' || raw[a] === '\t')) a++;
   let b = raw.length;

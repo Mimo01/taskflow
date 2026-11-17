@@ -1,9 +1,10 @@
+import { Editor } from '@tiptap/core';
 import { describe, expect, it } from 'vitest';
 import { HARNESS_ATTACHMENTS, HARNESS_USERS, WIKI_CORPUS } from '../corpus.fixtures';
 import { emitWiki } from './emit';
 import { type EngineDeps, loadWiki, saveWiki } from './engine';
 import { parseWiki } from './parse/blocks';
-import { wikiSchema } from './schema';
+import { wikiExtensions, wikiSchema } from './schema';
 
 const MAPS = { attachments: HARNESS_ATTACHMENTS, users: HARNESS_USERS };
 
@@ -77,5 +78,48 @@ describe('loadWiki / saveWiki', () => {
       emit: emitWiki,
     };
     expect(loadWiki('x', MAPS, boom)).toEqual({ kind: 'failed', original: 'x', reason: 'boom' });
+  });
+});
+
+describe('saveWiki with a TipTap Editor doc (foreign Schema instance)', () => {
+  const mount = (text: string) => {
+    const load = loadWiki(text);
+    if (load.kind === 'failed') throw new Error('load failed');
+    const editor = new Editor({ extensions: wikiExtensions, content: load.doc });
+    return { load, editor };
+  };
+
+  it('returns unchanged with the original bytes when not edited', () => {
+    const { load, editor } = mount('Hello *bold* text');
+    expect(editor.state.doc.type.schema).not.toBe(wikiSchema);
+    expect(saveWiki(load, editor.state.doc)).toEqual({ kind: 'unchanged', text: load.original });
+    editor.destroy();
+  });
+
+  it('returns saved after an edit', () => {
+    const { load, editor } = mount('Hello *bold* text');
+    editor.commands.insertContentAt(1, 'X');
+    const res = saveWiki(load, editor.state.doc);
+    expect(res.kind).toBe('saved');
+    expect(res.kind === 'saved' && res.text.startsWith('XHello')).toBe(true);
+    editor.destroy();
+  });
+
+  it('keeps CRLF bytes when unedited', () => {
+    const { load, editor } = mount('a\r\nb');
+    expect(saveWiki(load, editor.state.doc)).toEqual({ kind: 'unchanged', text: 'a\r\nb' });
+    editor.destroy();
+  });
+
+  it('never throws on a doc that cannot be rebuilt', () => {
+    const load = loadWiki('x');
+    if (load.kind === 'failed') throw new Error('load failed');
+    const bad = {
+      type: { schema: {} },
+      toJSON: () => ({ type: 'nope' }),
+    } as unknown as Parameters<typeof saveWiki>[1];
+    const res = saveWiki(load, bad);
+    expect(res.kind).toBe('failed');
+    expect(res.kind === 'failed' && typeof res.reason).toBe('string');
   });
 });

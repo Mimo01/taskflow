@@ -91,15 +91,19 @@ function demote(
  * D-04: structural equality decides no-op, never a dirty flag. Otherwise the
  * edited doc is emitted and the emitted text re-parsed (WR-01): if it does not
  * read back as the edited structure, or the emitter cannot spell a shape, the
- * result is `failed` and no text is produced. Never throws.
+ * result is `failed` and no text is produced. Never throws. Docs from any
+ * Schema instance with the same spec are accepted: TipTap's `getSchema` builds
+ * a new Schema per editor, and ProseMirror `Node.eq` compares types by identity.
  */
 export function saveWiki(loaded: Extract<WikiLoad, { doc: unknown }>, current: PMNode): WikiSave {
-  if (current.eq(wikiSchema.nodeFromJSON(loaded.doc))) {
-    return { kind: 'unchanged', text: loaded.original };
-  }
   try {
-    const emitted = emitWiki(current);
-    const reason = checkSaved(current.toJSON(), emitted);
+    const cur =
+      current.type.schema === wikiSchema ? current : wikiSchema.nodeFromJSON(current.toJSON());
+    if (cur.eq(wikiSchema.nodeFromJSON(loaded.doc))) {
+      return { kind: 'unchanged', text: loaded.original };
+    }
+    const emitted = emitWiki(cur);
+    const reason = checkSaved(cur.toJSON(), emitted);
     return reason === null ? { kind: 'saved', text: emitted } : { kind: 'failed', reason };
   } catch (err) {
     return { kind: 'failed', reason: errorMessage(err) };

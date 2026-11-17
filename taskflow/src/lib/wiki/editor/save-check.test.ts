@@ -316,9 +316,9 @@ describe('live macro look-alikes (gap 1)', () => {
     expect(checkSaved(d, 'a {info}x{info} b')).not.toBeNull();
   });
 
-  it('a typed {code} in a table cell fails closed (cell code is raw per D-10)', () => {
+  it('a typed {code} in a table cell saves escaped (98-01)', () => {
     const d = doc(table([cell(p(t('a {code}x{code} b')))]));
-    expect(check(d)).not.toBeNull();
+    expect(check(d)).toBeNull();
   });
 
   it('a typed {code} paragraph saves escaped', () => {

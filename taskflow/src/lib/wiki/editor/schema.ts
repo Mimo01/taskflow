@@ -25,7 +25,7 @@ const BLOCK_TYPES = [
 ] as const;
 
 /** Spelling attributes added to StarterKit/table nodes and marks (D-05). */
-const WikiSpelling = Extension.create({
+export const WikiSpelling = Extension.create({
   name: 'wikiSpelling',
   addGlobalAttributes() {
     return [
@@ -76,7 +76,7 @@ const WikiSpelling = Extension.create({
 });
 
 /** Panel family: panel / info / note / warning / tip. */
-const Panel = Node.create({
+export const Panel = Node.create({
   name: 'panel',
   group: 'block',
   content: 'block+',
@@ -92,7 +92,7 @@ const Panel = Node.create({
 });
 
 /** Unmodelled block, emitted verbatim. */
-const RawBlock = Node.create({
+export const RawBlock = Node.create({
   name: 'rawBlock',
   group: 'block',
   atom: true,
@@ -103,7 +103,7 @@ const RawBlock = Node.create({
 });
 
 /** Unmodelled inline token (for example `{status:...}`), emitted verbatim. */
-const RawInline = Node.create({
+export const RawInline = Node.create({
   name: 'rawInline',
   group: 'inline',
   inline: true,
@@ -114,7 +114,7 @@ const RawInline = Node.create({
   },
 });
 
-const Emoticon = Node.create({
+export const Emoticon = Node.create({
   name: 'emoticon',
   group: 'inline',
   inline: true,
@@ -125,7 +125,7 @@ const Emoticon = Node.create({
 });
 
 /** Mentions are modelled as a username; `src` null emits `[~id]` (D-08). */
-const Mention = Node.create({
+export const Mention = Node.create({
   name: 'mention',
   group: 'inline',
   inline: true,
@@ -135,7 +135,7 @@ const Mention = Node.create({
   },
 });
 
-const Escape = Node.create({
+export const Escape = Node.create({
   name: 'escape',
   group: 'inline',
   inline: true,
@@ -145,7 +145,7 @@ const Escape = Node.create({
   },
 });
 
-const Image = Node.create({
+export const Image = Node.create({
   name: 'image',
   group: 'inline',
   inline: true,
@@ -155,7 +155,7 @@ const Image = Node.create({
   },
 });
 
-const Attachment = Node.create({
+export const Attachment = Node.create({
   name: 'attachment',
   group: 'inline',
   inline: true,
@@ -165,29 +165,31 @@ const Attachment = Node.create({
   },
 });
 
-const Sup = Mark.create({ name: 'sup' });
-const Sub = Mark.create({ name: 'sub' });
-const Cite = Mark.create({ name: 'cite' });
-const Mono = Mark.create({ name: 'mono' });
+export const Sup = Mark.create({ name: 'sup' });
+export const Sub = Mark.create({ name: 'sub' });
+export const Cite = Mark.create({ name: 'cite' });
+export const Mono = Mark.create({ name: 'mono' });
 
 /** `{color:x}` span; `span` ties together per-block marks of one multi-block span. */
-const Color = Mark.create({
+export const Color = Mark.create({
   name: 'color',
   addAttributes() {
     return { value: { default: '' }, open: { default: null }, span: { default: null } };
   },
 });
 
+export const STARTER_KIT_OPTIONS = {
+  code: false,
+  link: { openOnClick: false, autolink: false, linkOnPaste: false },
+  undoRedo: false,
+  dropcursor: false,
+  gapcursor: false,
+  trailingNode: false,
+  listKeymap: false,
+} as const;
+
 export const wikiExtensions = [
-  StarterKit.configure({
-    code: false,
-    link: { openOnClick: false, autolink: false, linkOnPaste: false },
-    undoRedo: false,
-    dropcursor: false,
-    gapcursor: false,
-    trailingNode: false,
-    listKeymap: false,
-  }),
+  StarterKit.configure(STARTER_KIT_OPTIONS),
   Table,
   TableRow,
   TableCell,
