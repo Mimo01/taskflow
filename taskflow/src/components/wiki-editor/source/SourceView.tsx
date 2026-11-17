@@ -1,6 +1,8 @@
+import type { Editor } from '@tiptap/core';
 import { useEffect, useImperativeHandle, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { WikiRenderer } from '@/routes/dashboard/WikiRenderer';
+import { SourceSuggest } from './SourceSuggest';
 import { applyInsert } from './source-edits';
 
 export interface SourceHandle {
@@ -17,6 +19,10 @@ export interface SourceViewProps {
   minHeightClass: string;
   maxHeightClass: string;
   'aria-label'?: string;
+  /** Enables @mention / :emoticon autocomplete. */
+  editor?: Editor;
+  /** Paste/drop files; return true when handled. */
+  onFiles?: (files: File[]) => boolean;
 }
 
 /** Source mode: monospace textarea with a live WikiRenderer preview on the right. */
@@ -28,6 +34,8 @@ export function SourceView({
   minHeightClass,
   maxHeightClass,
   'aria-label': ariaLabel,
+  editor,
+  onFiles,
 }: SourceViewProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -66,6 +74,19 @@ export function SourceView({
     },
   }));
 
+  const replaceRange = (from: number, to: number, text: string) => {
+    const el = textareaRef.current;
+    onChange(value.slice(0, from) + text + value.slice(to));
+    if (!el) return;
+    const caret = from + text.length;
+    requestAnimationFrame(() => {
+      el.focus();
+      el.setSelectionRange(caret, caret);
+    });
+  };
+
+  const filesOf = (list: FileList | undefined | null) => Array.from(list ?? []);
+
   return (
     <div className={cn('flex overflow-y-auto', minHeightClass, maxHeightClass)}>
       <textarea
@@ -74,11 +95,36 @@ export function SourceView({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         spellCheck={false}
+        onPaste={(e) => {
+          const files = filesOf(e.clipboardData?.files);
+          if (files.length > 0 && onFiles?.(files)) e.preventDefault();
+        }}
+        onDragOver={(e) => {
+          if (onFiles && Array.from(e.dataTransfer?.types ?? []).includes('Files')) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'copy';
+          }
+        }}
+        onDrop={(e) => {
+          const files = filesOf(e.dataTransfer?.files);
+          if (files.length > 0 && onFiles?.(files)) {
+            e.preventDefault();
+            e.stopPropagation();
+          }
+        }}
         className={cn(
           'min-w-[240px] w-full flex-1 resize-none bg-background p-4 font-mono text-sm outline-none',
           minHeightClass,
         )}
       />
+      {editor ? (
+        <SourceSuggest
+          editor={editor}
+          textareaRef={textareaRef}
+          value={value}
+          onReplace={replaceRange}
+        />
+      ) : null}
       <div
         className={cn(
           'min-w-0 flex-1 border-l border-border p-4',

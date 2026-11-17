@@ -25,6 +25,7 @@ import { insertEmbed } from './media/embed';
 import { EDIT_IN_SOURCE_EVENT, WIKI_OPEN_ATTACH_EVENT } from './nodeviews/events';
 import { richExtensions } from './rich-extensions';
 import { type SourceHandle, SourceView } from './source/SourceView';
+import { uploadIntoSource } from './source/source-uploads';
 import { exitAllSuggestions } from './suggestion/create-suggestion';
 import { BubbleToolbar } from './toolbar/BubbleToolbar';
 import { CompactFooter } from './toolbar/CompactFooter';
@@ -412,9 +413,13 @@ export default function WikiEditor({
               minHeightClass={sizes.min}
               maxHeightClass={maxClass}
               aria-label={ariaLabel}
+              editor={editor}
+              onFiles={(files) =>
+                uploadIntoSource(editor, files, (m) => sourceRef.current?.insert(m))
+              }
             />
           ) : null}
-          {mode === 'rich' ? <EditorMessages editor={editor} /> : null}
+          <EditorMessages editor={editor} />
           {mode === 'rich' ? <TableToolbar editor={editor} /> : null}
         </div>
         {preset === 'compact' ? (
