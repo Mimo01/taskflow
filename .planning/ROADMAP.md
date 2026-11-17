@@ -242,10 +242,10 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 98-01-PLAN.md — Engine fixes: saveWiki schema identity, schema exports, table-cell {code} escape, WR-02, IN-01
-- [ ] 98-02-PLAN.md — WR-01 bare-URL escaping (Jira UAT checkpoint, then fix; closes folded todo)
-- [ ] 98-03-PLAN.md — Install @tiptap/react + extensions, shared prose classes, wikiEditorMode setting, bundle guard
-- [ ] 98-04-PLAN.md — FLOW-04 typing-target guards, Editor shortcut category, Keycap, ToolbarButton
+- [x] 98-01-PLAN.md — Engine fixes: saveWiki schema identity, schema exports, table-cell {code} escape, WR-02, IN-01
+- [x] 98-02-PLAN.md — WR-01 bare-URL escaping (Jira UAT checkpoint, then fix; closes folded todo)
+- [x] 98-03-PLAN.md — Install @tiptap/react + extensions, shared prose classes, wikiEditorMode setting, bundle guard
+- [x] 98-04-PLAN.md — FLOW-04 typing-target guards, Editor shortcut category, Keycap, ToolbarButton
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -345,7 +345,7 @@ Plans:
 |-------|----------------|--------|-----------|
 | 96. Wiki Foundations & Equivalence Harness | 6/6 | Complete    | 2026-11-16 |
 | 97. Round-Trip Engine | 17/17 | Complete    | 2026-11-16 |
-| 98. Editor Shell | 0/TBD | Not started | - |
+| 98. Editor Shell | 4/13 | In Progress|  |
 | 99. Mentions, Media & Smart Input | 0/TBD | Not started | - |
 | 100. Host Adoption & Editing Workflow | 0/TBD | Not started | - |
 | 101. Issue Drafts & Large Create/Edit Modal | 0/TBD | Not started | - |
