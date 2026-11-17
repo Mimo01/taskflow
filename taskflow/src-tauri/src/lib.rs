@@ -18,9 +18,6 @@ fn paste_as_plain_text(app: &tauri::AppHandle) {
     }
 }
 
-#[cfg(not(target_os = "macos"))]
-fn paste_as_plain_text(_app: &tauri::AppHandle) {}
-
 struct DebugMenuState {
     submenu: Submenu<tauri::Wry>,
     visible: Mutex<bool>,
@@ -370,14 +367,6 @@ pub fn run() {
                 ],
             )?;
 
-            // Cmd+Shift+V: WebKit binds nothing to it, so without this item the wiki editor's
-            // plain paste never receives a paste event (phase 99 UAT). The handler sends
-            // pasteAsPlainText: to the webview, which fires a text/plain-only paste.
-            let paste_plain_item = MenuItemBuilder::new("Paste and Match Style")
-                .id("menu-paste-plain")
-                .accelerator("CmdOrCtrl+Shift+V")
-                .build(handle)?;
-
             // --- Edit menu (required on macOS for Cmd+V/C/X/A/Z to reach the webview) ---
             let edit_menu = Submenu::with_items(
                 handle,
@@ -390,12 +379,25 @@ pub fn run() {
                     &PredefinedMenuItem::cut(handle, None)?,
                     &PredefinedMenuItem::copy(handle, None)?,
                     &PredefinedMenuItem::paste(handle, None)?,
-                    &paste_plain_item,
                     &PredefinedMenuItem::select_all(handle, None)?,
                     &PredefinedMenuItem::separator(handle)?,
                     &find_item,
                 ],
             )?;
+
+            // Cmd+Shift+V: WebKit binds nothing to it, so without this item the wiki editor's
+            // plain paste never receives a paste event (phase 99 UAT). The handler sends
+            // pasteAsPlainText: to the webview, which fires a text/plain-only paste. macOS only:
+            // elsewhere the webview handles Ctrl+Shift+V natively and the accelerator would eat it.
+            #[cfg(target_os = "macos")]
+            {
+                let paste_plain_item = MenuItemBuilder::new("Paste and Match Style")
+                    .id("menu-paste-plain")
+                    .accelerator("Cmd+Shift+V")
+                    .build(handle)?;
+                // After Undo, Redo, separator, Cut, Copy, Paste.
+                edit_menu.insert(&paste_plain_item, 6)?;
+            }
 
             // Build full menu bar
             let menu = Menu::with_items(handle, &[&app_menu, &edit_menu, &go_menu, &help_menu])?;
@@ -425,6 +427,7 @@ pub fn run() {
                 | "menu-nav-worklogs" => {
                     let _ = app.emit(id, ());
                 }
+                #[cfg(target_os = "macos")]
                 "menu-paste-plain" => paste_as_plain_text(app),
                 _ => {}
             }
