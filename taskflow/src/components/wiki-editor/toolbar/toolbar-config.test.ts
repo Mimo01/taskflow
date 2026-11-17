@@ -28,10 +28,24 @@ describe('toolbar-config', () => {
     expect(splitToolbar('full', 800).overflow).toEqual([]);
     expect(splitToolbar('full', 600).overflow[0]).toBe('subsup');
     const small = splitToolbar('full', 360);
-    expect(small.overflow).toEqual(['subsup', 'strike', 'mono', 'quote', 'colour', 'link']);
-    for (const id of ['text-style', 'bold', 'italic', 'insert'] as const) {
-      expect(small.inline).toContain(id);
-    }
+    expect(small.overflow).toEqual([
+      'subsup',
+      'strike',
+      'mono',
+      'quote',
+      'colour',
+      'link',
+      'numbered',
+      'bullet',
+      'underline',
+    ]);
+    expect(small.inline).toEqual(['text-style', 'bold', 'italic', 'insert']);
+    const mid = splitToolbar('full', 410).overflow;
+    expect(mid).toContain('numbered');
+    expect(mid).toContain('bullet');
+    expect(mid).not.toContain('underline');
+    const wide = splitToolbar('full', 430).overflow;
+    expect(wide[wide.length - 1]).toBe('link');
   });
 
   it('splits compact preset', () => {
