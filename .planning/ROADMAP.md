@@ -238,7 +238,7 @@ Plans:
   4. A text that fails the round-trip check opens in source mode with a quiet notice, so rich editing can't corrupt it
   5. Typing never loses the caret or rebuilds the editor, wiki/markdown shortcuts and IME composition behave on macOS WKWebView (manual check), and app shortcuts are suppressed while typing
 
-**Plans**: 13 plans
+**Plans**: 16 plans
 Plans:
 **Wave 1**
 
@@ -273,6 +273,12 @@ Plans:
 **Wave 7** *(blocked on Wave 6 completion)*
 
 - [ ] 98-13-PLAN.md — Manual macOS WKWebView UAT (IME, caret, input rules, visual pass)
+
+**Gap closure (UAT 98-13)** *(wave 1, parallel)*
+
+- [ ] 98-14-PLAN.md — Enter keeps blank-line gaps; empty list items are transient (no false save failure)
+- [ ] 98-15-PLAN.md — Mode toggle moves focus, hidden rich editor read-only, Cmd+Left/Right line boundary
+- [ ] 98-16-PLAN.md — Narrow Full toolbar: list/underline overflow, More and Rich|Source never clipped
 
 **UI hint**: yes
 
