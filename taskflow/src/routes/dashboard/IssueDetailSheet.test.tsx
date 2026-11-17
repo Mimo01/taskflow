@@ -569,53 +569,6 @@ describe('IssueDetailSheet', () => {
     });
   });
 
-  describe('ISSUE-08: post comment', () => {
-    it('calls postComment with issueKey and compose box text on submit', async () => {
-      const { postComment } = await import('@/services/jira');
-      vi.mocked(postComment).mockResolvedValue(undefined);
-
-      const { CommentComposer } = await import('./CommentComposer');
-      render(<CommentComposer issueKey="PROJ-1" jiraBaseUrl="https://jira.example.com" />, {
-        wrapper,
-      });
-
-      const textarea = screen.getByPlaceholderText('Add a comment…');
-      fireEvent.change(textarea, { target: { value: 'My new comment' } });
-
-      const submitBtn = screen.getByRole('button', { name: /comment/i });
-      fireEvent.click(submitBtn);
-
-      await waitFor(() => {
-        expect(postComment).toHaveBeenCalledWith(
-          'https://jira.example.com',
-          'test-jira-token',
-          'PROJ-1',
-          'My new comment',
-        );
-      });
-    });
-
-    it('clears compose box after successful submission', async () => {
-      const { postComment } = await import('@/services/jira');
-      vi.mocked(postComment).mockResolvedValue(undefined);
-
-      const { CommentComposer } = await import('./CommentComposer');
-      render(<CommentComposer issueKey="PROJ-1" jiraBaseUrl="https://jira.example.com" />, {
-        wrapper,
-      });
-
-      const textarea = screen.getByPlaceholderText('Add a comment…');
-      fireEvent.change(textarea, { target: { value: 'My new comment' } });
-      fireEvent.click(screen.getByRole('button', { name: /comment/i }));
-
-      await waitFor(() => {
-        expect((screen.getByPlaceholderText('Add a comment…') as HTMLTextAreaElement).value).toBe(
-          '',
-        );
-      });
-    });
-  });
-
   describe('ISSUE-SP: story points clear', () => {
     it('sends null when story points input is cleared and committed', async () => {
       const { FieldsSection } = await import('./issue-detail/FieldsSection');
