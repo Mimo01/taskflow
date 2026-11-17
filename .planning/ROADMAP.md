@@ -358,9 +358,9 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 100-04-PLAN.md — Host 1: Create Epic on WikiEditor with staging (D-20) and Cmd+Enter
-- [ ] 100-05-PLAN.md — Host 2: Create/Edit Issue description on WikiEditor + form Cmd+Enter
-- [ ] 100-06-PLAN.md — Host 3: comment edit on WikiEditor with drafts, discard guard, keys
+- [x] 100-04-PLAN.md — Host 1: Create Epic on WikiEditor with staging (D-20) and Cmd+Enter
+- [x] 100-05-PLAN.md — Host 2: Create/Edit Issue description on WikiEditor + form Cmd+Enter
+- [x] 100-06-PLAN.md — Host 3: comment edit on WikiEditor with drafts, discard guard, keys
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
@@ -410,7 +410,7 @@ Plans:
 | 97. Round-Trip Engine | 17/17 | Complete    | 2026-11-16 |
 | 98. Editor Shell | 15/16 | In Progress|  |
 | 99. Mentions, Media & Smart Input | 14/14 | Complete    | 2026-11-17 |
-| 100. Host Adoption & Editing Workflow | 3/9 | In Progress|  |
+| 100. Host Adoption & Editing Workflow | 6/9 | In Progress|  |
 | 101. Issue Drafts & Large Create/Edit Modal | 0/TBD | Not started | - |
 | 102. Polished Surfaces | 0/TBD | Not started | - |
 
