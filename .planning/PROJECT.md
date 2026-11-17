@@ -209,6 +209,8 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 
 ## Current State
 
+**Phase 99 complete 2026-11-17** (v1.15 Rich Wiki Editor). The editor gained @mentions with server-side search, attachment embeds from a picker, paste and drop uploads (staged on create), rich paste from web, Word and Jira through an allowlist normaliser, issue-key and emoticon autocomplete, a `/` slash menu, and a bubble menu for compact hosts (INPUT-01..07, BLOCK-05). The code review found 4 blockers and 7 warnings, all fixed with failing-first tests. In-app checks in the running Tauri app passed for plain paste (Cmd+Shift+V and Edit > Paste and Match Style), a real Finder drag, and a real Jira copy. The Jira copy exposed dropped `{{monospace}}` (Jira renders `<tt>`), fixed in adcba3ea. Word paste was not run because Word isn't installed. Follow-up: WKWebView's paste sanitiser can drop a space after an inline element; the fix would read raw HTML from the native clipboard. The editor is reachable only from Dev tools until Phase 100 wires it into issue pages.
+
 **Phase 97 complete 2026-11-16** (v1.15 Rich Wiki Editor). The round-trip engine parses wiki text into a TipTap document and emits it back. An unedited text saves byte-identical. Constructs the editor can't model are kept as read-only raw atoms and saved verbatim. Typed look-alikes of macros and markup are escaped, and the renderer shows Jira backslash escapes literally (SAFE-03, SAFE-04, SAFE-06). Jira-side parity checks are pending in 97-HUMAN-UAT.md. Follow-ups for Phase 98: escaped bare URLs, typed `{code}` in table cells, cell-panel backslash parity.
 
 **Phase 96 complete 2026-11-16** (v1.15 Rich Wiki Editor). The wiki pipeline now lives in `lib/wiki`, and the extraction caused zero render change (SAFE-01). A 37-fixture placeholder corpus and the `isEquivalent` harness run on every commit through the pre-commit hook (SAFE-02). The spike chose TipTap. The live Jira probe found that mixed `*#` list nesting renders flat, which Phase 97 will fix. Mentions on DC use `[~username]`.
@@ -446,4 +448,4 @@ This document evolves at phase transitions and milestone boundaries.
 | `fetchEpicsBasic` ordering is a per-caller parameter, in the query key (v1.14 Phase 91.2) | The fetcher is shared with the Sidebar, Backlog and Sprint Board pickers under one cache key — this phase's `created ASC` was silently reordering all of them | ✓ Good — defaults to the original `updated DESC`; the two orderings cannot serve each other's cache |
 
 ---
-*Last updated: 2026-11-16 after Phase 97 completion*
+*Last updated: 2026-11-17 after Phase 99 completion*

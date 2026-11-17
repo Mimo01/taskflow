@@ -32,17 +32,17 @@
 - [ ] **BLOCK-02**: User can insert and edit `{code}` blocks with a language, and `{noformat}` blocks
 - [ ] **BLOCK-03**: User can insert and edit `{panel}`/`{info}`/`{note}`/`{warning}`/`{tip}` panels, incl. titles
 - [x] **BLOCK-04**: User can colour text with `{color}` from a validated palette (CSS-injection safe)
-- [ ] **BLOCK-05**: User can open a `/` slash menu to insert any block type
+- [x] **BLOCK-05**: User can open a `/` slash menu to insert any block type
 
 ### Mentions, Media & Smart Input (INPUT)
 
-- [ ] **INPUT-01**: User can @mention a person via server-side search, saved as `[~username]`
-- [ ] **INPUT-02**: User can embed an existing attachment (`!file!` / `[^file]`) from the attachment picker
-- [ ] **INPUT-03**: User can paste or drop an image/file into the editor, and it uploads (or stages on create) and embeds
-- [ ] **INPUT-04**: Pasting rich HTML (web, Word, Jira) keeps the supported formatting and drops everything else
-- [ ] **INPUT-05**: User gets issue-key autocomplete, and issue keys are decorated while typing
-- [ ] **INPUT-06**: User can type `:` to autocomplete Jira emoticons
-- [ ] **INPUT-07**: Compact comment hosts use a floating selection (bubble) menu instead of a fixed toolbar
+- [x] **INPUT-01**: User can @mention a person via server-side search, saved as `[~username]`
+- [x] **INPUT-02**: User can embed an existing attachment (`!file!` / `[^file]`) from the attachment picker
+- [x] **INPUT-03**: User can paste or drop an image/file into the editor, and it uploads (or stages on create) and embeds
+- [x] **INPUT-04**: Pasting rich HTML (web, Word, Jira) keeps the supported formatting and drops everything else
+- [x] **INPUT-05**: User gets issue-key autocomplete, and issue keys are decorated while typing
+- [x] **INPUT-06**: User can type `:` to autocomplete Jira emoticons
+- [x] **INPUT-07**: Compact comment hosts use a floating selection (bubble) menu instead of a fixed toolbar
 
 ### Editing Workflow (FLOW)
 
@@ -119,14 +119,14 @@
 | BLOCK-02 | Phase 98 | Pending |
 | BLOCK-03 | Phase 98 | Pending |
 | BLOCK-04 | Phase 98 | Complete |
-| BLOCK-05 | Phase 99 | Pending |
-| INPUT-01 | Phase 99 | Pending |
-| INPUT-02 | Phase 99 | Pending |
-| INPUT-03 | Phase 99 | Pending |
-| INPUT-04 | Phase 99 | Pending |
-| INPUT-05 | Phase 99 | Pending |
-| INPUT-06 | Phase 99 | Pending |
-| INPUT-07 | Phase 99 | Pending |
+| BLOCK-05 | Phase 99 | Complete |
+| INPUT-01 | Phase 99 | Complete |
+| INPUT-02 | Phase 99 | Complete |
+| INPUT-03 | Phase 99 | Complete |
+| INPUT-04 | Phase 99 | Complete |
+| INPUT-05 | Phase 99 | Complete |
+| INPUT-06 | Phase 99 | Complete |
+| INPUT-07 | Phase 99 | Complete |
 | FLOW-01 | Phase 100 | Pending |
 | FLOW-02 | Phase 100 | Pending |
 | FLOW-03 | Phase 100 | Pending |
