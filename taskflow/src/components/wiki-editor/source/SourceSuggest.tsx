@@ -41,9 +41,18 @@ function insideCodeBlock(before: string): boolean {
 export function detectSourceTrigger(
   value: string,
   caret: number,
+  forcedEmoticonAt: number | null = null,
 ): { kind: Kind; start: number; query: string } | null {
   const before = value.slice(0, caret);
   if (insideCodeBlock(before)) return null;
+  // A `:` from the footer Emoticon button opens the full list before any letter is typed.
+  if (
+    forcedEmoticonAt !== null &&
+    forcedEmoticonAt === caret - 1 &&
+    value[forcedEmoticonAt] === ':'
+  ) {
+    return { kind: 'emoticon', start: forcedEmoticonAt, query: '' };
+  }
   const mention = MENTION_RE.exec(before);
   if (mention) {
     return {
@@ -84,10 +93,18 @@ export interface SourceSuggestProps {
   textareaRef: RefObject<HTMLTextAreaElement | null>;
   value: string;
   onReplace(from: number, to: number, text: string): void;
+  /** Offset of a footer-inserted `:` (owned by SourceView); cleared once its trigger closes. */
+  forcedEmoticonRef?: RefObject<number | null>;
 }
 
 /** @mention and :emoticon autocomplete for the source textarea (same popover and data as rich). */
-export function SourceSuggest({ editor, textareaRef, value, onReplace }: SourceSuggestProps) {
+export function SourceSuggest({
+  editor,
+  textareaRef,
+  value,
+  onReplace,
+  forcedEmoticonRef,
+}: SourceSuggestProps) {
   const [trigger, setTrigger] = useState<Trigger | null>(null);
   const [people, setPeople] = useState<SuggestionRow[]>([]);
   const [loading, setLoading] = useState(false);
@@ -101,9 +118,10 @@ export function SourceSuggest({ editor, textareaRef, value, onReplace }: SourceS
     if (!el) return;
     const found =
       el.selectionStart === el.selectionEnd
-        ? detectSourceTrigger(el.value, el.selectionStart)
+        ? detectSourceTrigger(el.value, el.selectionStart, forcedEmoticonRef?.current ?? null)
         : null;
     if (!found) {
+      if (forcedEmoticonRef) forcedEmoticonRef.current = null;
       dismissed.current = null;
       setTrigger(null);
       return;
@@ -122,7 +140,7 @@ export function SourceSuggest({ editor, textareaRef, value, onReplace }: SourceS
         ? prev
         : { ...found, container },
     );
-  }, [textareaRef]);
+  }, [textareaRef, forcedEmoticonRef]);
 
   // Re-evaluate on every text change and on caret moves.
   // biome-ignore lint/correctness/useExhaustiveDependencies: value is the trigger for re-evaluation

@@ -29,7 +29,7 @@ export function CompactFooter({
 }: CompactFooterProps) {
   const mention = () => {
     if (mode === 'source') {
-      source.current?.insert('@');
+      source.current?.insertTrigger('@');
       return;
     }
     const { $from } = editor.state.selection;
@@ -42,7 +42,7 @@ export function CompactFooter({
   };
   const emoticon = () => {
     if (mode === 'source') {
-      source.current?.insert(':');
+      source.current?.insertTrigger(':');
       return;
     }
     editor.commands.focus();

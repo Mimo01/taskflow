@@ -27,7 +27,9 @@ afterEach(() => vi.unstubAllGlobals());
 function setup(overrides: Partial<ToolbarProps> = {}, text = 'x') {
   const { editor }: { editor: Editor } = makeEditor(text);
   const insert = vi.fn();
-  const source = { current: { insert, focus: vi.fn(), focusAt: vi.fn() } as SourceHandle };
+  const source = {
+    current: { insert, insertTrigger: vi.fn(), focus: vi.fn(), focusAt: vi.fn() } as SourceHandle,
+  };
   const frame = document.createElement('div');
   const props: ToolbarProps = {
     editor,

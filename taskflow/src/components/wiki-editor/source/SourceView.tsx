@@ -7,6 +7,8 @@ import { applyInsert } from './source-edits';
 
 export interface SourceHandle {
   insert(before: string, after?: string): void;
+  /** Footer Mention/Emoticon: insert `@`/`:` (space-separated from a word) and open its list. */
+  insertTrigger(char: '@' | ':'): void;
   focus(): void;
   focusAt(offset: number): void;
 }
@@ -43,6 +45,8 @@ export function SourceView({
   const pendingRef = useRef<{ base: string; value: string; selStart: number; selEnd: number }>(
     null,
   );
+  // Offset of a `:` inserted by the footer Emoticon button: opens the list before any letter.
+  const forcedEmoticonRef = useRef<number | null>(null);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: resize whenever the text changes
   useEffect(() => {
@@ -51,6 +55,49 @@ export function SourceView({
     el.style.height = 'auto';
     el.style.height = `${el.scrollHeight}px`;
   }, [value]);
+
+  const insert = (before: string, after = '') => {
+    const el = textareaRef.current;
+    const pending = pendingRef.current?.base === value ? pendingRef.current : null;
+    const text = pending?.value ?? value;
+    if (!el) {
+      const joined = text ? `${text}\n${before}${after}` : `${before}${after}`;
+      pendingRef.current = {
+        base: value,
+        value: joined,
+        selStart: joined.length,
+        selEnd: joined.length,
+      };
+      onChange(joined);
+      return;
+    }
+    const next = applyInsert(
+      text,
+      pending?.selStart ?? el.selectionStart,
+      pending?.selEnd ?? el.selectionEnd,
+      before,
+      after,
+    );
+    pendingRef.current = { base: value, ...next };
+    onChange(next.value);
+    requestAnimationFrame(() => {
+      el.focus();
+      el.selectionStart = next.selStart;
+      el.selectionEnd = next.selEnd;
+    });
+  };
+
+  const insertTrigger = (char: '@' | ':') => {
+    const el = textareaRef.current;
+    const pending = pendingRef.current?.base === value ? pendingRef.current : null;
+    const text = pending?.value ?? value;
+    const at = pending?.selStart ?? el?.selectionStart ?? text.length;
+    const lead = at > 0 && !/\s/.test(text[at - 1]) ? ' ' : '';
+    if (char === ':') forcedEmoticonRef.current = at + lead.length;
+    insert(lead + char);
+    // insert() restores the caret in a frame; re-run trigger detection once it has.
+    requestAnimationFrame(() => el?.dispatchEvent(new Event('select')));
+  };
 
   useImperativeHandle(ref, () => ({
     focus() {
@@ -63,36 +110,8 @@ export function SourceView({
       const at = Math.max(0, Math.min(offset, el.value.length));
       el.setSelectionRange(at, at);
     },
-    insert(before, after = '') {
-      const el = textareaRef.current;
-      const pending = pendingRef.current?.base === value ? pendingRef.current : null;
-      const text = pending?.value ?? value;
-      if (!el) {
-        const joined = text ? `${text}\n${before}${after}` : `${before}${after}`;
-        pendingRef.current = {
-          base: value,
-          value: joined,
-          selStart: joined.length,
-          selEnd: joined.length,
-        };
-        onChange(joined);
-        return;
-      }
-      const next = applyInsert(
-        text,
-        pending?.selStart ?? el.selectionStart,
-        pending?.selEnd ?? el.selectionEnd,
-        before,
-        after,
-      );
-      pendingRef.current = { base: value, ...next };
-      onChange(next.value);
-      requestAnimationFrame(() => {
-        el.focus();
-        el.selectionStart = next.selStart;
-        el.selectionEnd = next.selEnd;
-      });
-    },
+    insert,
+    insertTrigger,
   }));
 
   const replaceRange = (from: number, to: number, text: string) => {
@@ -144,6 +163,7 @@ export function SourceView({
           textareaRef={textareaRef}
           value={value}
           onReplace={replaceRange}
+          forcedEmoticonRef={forcedEmoticonRef}
         />
       ) : null}
       <div

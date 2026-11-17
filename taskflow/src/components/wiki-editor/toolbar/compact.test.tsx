@@ -106,7 +106,10 @@ describe('CompactFooter', () => {
   function setup(mode: 'rich' | 'source') {
     const { editor } = makeEditor('hello');
     const insert = vi.fn();
-    const source = { current: { insert, focus: vi.fn(), focusAt: vi.fn() } as SourceHandle };
+    const insertTrigger = vi.fn();
+    const source = {
+      current: { insert, insertTrigger, focus: vi.fn(), focusAt: vi.fn() } as SourceHandle,
+    };
     const onAttach = vi.fn();
     render(
       <CompactFooter
@@ -118,7 +121,7 @@ describe('CompactFooter', () => {
         source={{ current: source.current }}
       />,
     );
-    return { editor, insert, onAttach };
+    return { editor, insert, insertTrigger, onAttach };
   }
 
   it('renders actions and wires Attach', async () => {
@@ -136,12 +139,12 @@ describe('CompactFooter', () => {
     expect(editor.getText()).toBe('hello @');
   });
 
-  it('source mode inserts @ and :', async () => {
-    const { insert } = setup('source');
+  it('source mode inserts @ and : as triggers', async () => {
+    const { insertTrigger } = setup('source');
     await userEvent.click(screen.getByRole('button', { name: 'Mention someone' }));
     await userEvent.click(screen.getByRole('button', { name: 'Emoticon' }));
-    expect(insert).toHaveBeenNthCalledWith(1, '@');
-    expect(insert).toHaveBeenNthCalledWith(2, ':');
+    expect(insertTrigger).toHaveBeenNthCalledWith(1, '@');
+    expect(insertTrigger).toHaveBeenNthCalledWith(2, ':');
   });
 
   it('hides Emoticon and Mention at narrow container widths', () => {

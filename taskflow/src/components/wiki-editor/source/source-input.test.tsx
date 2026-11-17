@@ -103,6 +103,33 @@ describe('source mode inputs', () => {
     await waitFor(() => expect(screen.getAllByRole('option').length).toBeGreaterThan(0));
   });
 
+  it('WR-06: compact footer Mention mid-text adds a leading space and opens the people list', async () => {
+    mount({ value: 'foo bar', preset: 'compact' });
+    const ta = textarea();
+    act(() => {
+      ta.focus();
+      ta.setSelectionRange(3, 3);
+    });
+    fireEvent.mouseDown(screen.getByRole('button', { name: 'Mention someone' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Mention someone' }));
+    await waitFor(() => expect(textarea().value).toBe('foo @ bar'));
+    await waitFor(() => expect(screen.getAllByRole('option')).toHaveLength(1));
+  });
+
+  it('WR-06: compact footer Emoticon opens the emoticon list', async () => {
+    mount({ value: 'ok', preset: 'compact' });
+    act(() => {
+      textarea().focus();
+      textarea().setSelectionRange(2, 2);
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Emoticon' }));
+    await waitFor(() => expect(textarea().value).toBe('ok :'));
+    await waitFor(() => expect(screen.getAllByRole('option').length).toBeGreaterThan(0));
+    fireEvent.keyDown(textarea(), { key: 'Enter' });
+    await waitFor(() => expect(textarea().value).not.toBe('ok :'));
+    expect(textarea().value).toMatch(/^ok \S+$/);
+  });
+
   it('never opens for 10:30', async () => {
     mount();
     typeInto(textarea(), 'at 10:30');
