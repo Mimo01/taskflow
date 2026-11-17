@@ -32,12 +32,12 @@ export function InsertMenu({ items, onInsert, disabled }: InsertMenuProps) {
             aria-label="Insert"
             disabled={disabled}
             onMouseDown={(e) => e.preventDefault()}
-            className="gap-1 text-xs"
+            className="flex-none gap-1 text-xs"
           />
         }
       >
         <Plus className="size-4" />
-        Insert
+        <span className="hidden @[25rem]:inline">Insert</span>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start">
         {items.map((item) => {

@@ -43,13 +43,13 @@ export const TOOLBAR_ITEMS: readonly ToolbarItemConfig[] = [
 
 /** Overflow order (first leaves first) per preset. The rule lives only in Insert. */
 const OVERFLOW_ORDER: Record<ToolbarPreset, readonly ToolbarItemId[]> = {
-  full: ['subsup', 'strike', 'mono', 'quote', 'colour', 'link'],
+  full: ['subsup', 'strike', 'mono', 'quote', 'colour', 'link', 'numbered', 'bullet', 'underline'],
   compact: ['strike', 'mono', 'bullet', 'numbered'],
 };
 
 /** Minimum frame width (px) at which the item stays inline. Must match INLINE_CLASS. */
 export const OVERFLOW_BREAKPOINTS: Record<ToolbarPreset, Partial<Record<ToolbarItemId, number>>> = {
-  full: { subsup: 640, strike: 600, mono: 560, quote: 520, colour: 480, link: 440 },
+  full: { subsup: 640, strike: 600, mono: 560, quote: 520, colour: 480, link: 440, numbered: 420, bullet: 420, underline: 400 },
   compact: { strike: 420, mono: 400, bullet: 380, numbered: 380 },
 };
 
@@ -62,6 +62,9 @@ export const INLINE_CLASS: Record<ToolbarPreset, Partial<Record<ToolbarItemId, s
     quote: 'hidden @[32.5rem]:inline-flex',
     colour: 'hidden @[30rem]:inline-flex',
     link: 'hidden @[27.5rem]:inline-flex',
+    numbered: 'hidden @[26.25rem]:inline-flex',
+    bullet: 'hidden @[26.25rem]:inline-flex',
+    underline: 'hidden @[25rem]:inline-flex',
   },
   compact: {
     strike: 'hidden @[26.25rem]:inline-flex',
