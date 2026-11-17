@@ -11,19 +11,19 @@
 - [x] **SAFE-02**: A placeholder-only fixture corpus asserts in CI that every fixture renders identically through WikiRenderer after load → save (semantic equivalence)
 - [x] **SAFE-03**: Opening text in the editor and saving without edits writes it back byte-identical
 - [x] **SAFE-04**: Constructs the editor can't model (unknown macros, unparseable spans) are shown read-only as rendered blocks and saved verbatim
-- [ ] **SAFE-05**: If a text fails the round-trip check on load, the editor opens it in source mode with a quiet notice, so no rich edit can corrupt it
+- [x] **SAFE-05**: If a text fails the round-trip check on load, the editor opens it in source mode with a quiet notice, so no rich edit can corrupt it
 - [x] **SAFE-06**: Emoticons, `[~username]` mentions, escaping, `\\` line breaks and CRLF/trailing whitespace survive round-trip with their original spelling
 
 ### Editor Core (EDIT)
 
-- [ ] **EDIT-01**: User edits text in a rich view that looks like WikiRenderer output (shared prose styles)
-- [ ] **EDIT-02**: User can toggle between rich and raw Jira wiki source at any time without losing content
-- [ ] **EDIT-03**: User sees a side-by-side WikiRenderer preview while in source mode
+- [x] **EDIT-01**: User edits text in a rich view that looks like WikiRenderer output (shared prose styles)
+- [x] **EDIT-02**: User can toggle between rich and raw Jira wiki source at any time without losing content
+- [x] **EDIT-03**: User sees a side-by-side WikiRenderer preview while in source mode
 - [x] **EDIT-04**: User can apply bold, italic, underline, strikethrough, monospace, sub/superscript from a toolbar and with keyboard shortcuts
 - [x] **EDIT-05**: User can create headings, bullet/numbered lists (incl. mixed nesting), block quotes, horizontal rules and line breaks
 - [x] **EDIT-06**: User can insert and edit links, and pasting a URL onto a selection makes it a link
 - [x] **EDIT-07**: User can type wiki/markdown-style shortcuts (e.g. `*bold*`, `- `, `# `, `{code}`) that format in place, with IME composition respected
-- [ ] **EDIT-08**: Undo/redo works across all edits, including mode toggles
+- [x] **EDIT-08**: Undo/redo works across all edits, including mode toggles
 - [x] **EDIT-09**: The editor loads lazily with an equal-height skeleton and never rebuilds or loses the caret while typing
 
 ### Rich Blocks (BLOCK)
@@ -49,7 +49,7 @@
 - [ ] **FLOW-01**: An unsent comment or description edit is kept as a local draft across closing the peek or modal and restarting the app
 - [ ] **FLOW-02**: User is warned before unsaved edits are discarded (Esc, close, navigate away). The Create Issue modal is the exception: it auto-saves a draft (DRAFT-01)
 - [ ] **FLOW-03**: Cmd+Enter submits and Esc cancels in every editor host, deferring to open popovers
-- [ ] **FLOW-04**: Global keyboard shortcuts are suppressed while typing in the editor (contenteditable)
+- [x] **FLOW-04**: Global keyboard shortcuts are suppressed while typing in the editor (contenteditable)
 
 ### Issue Drafts (DRAFT)
 
@@ -104,16 +104,16 @@
 | SAFE-02 | Phase 96 | Complete |
 | SAFE-03 | Phase 97 | Complete |
 | SAFE-04 | Phase 97 | Complete |
-| SAFE-05 | Phase 98 | Pending |
+| SAFE-05 | Phase 98 | Complete |
 | SAFE-06 | Phase 97 | Complete |
-| EDIT-01 | Phase 98 | Pending |
-| EDIT-02 | Phase 98 | Pending |
-| EDIT-03 | Phase 98 | Pending |
+| EDIT-01 | Phase 98 | Complete |
+| EDIT-02 | Phase 98 | Complete |
+| EDIT-03 | Phase 98 | Complete |
 | EDIT-04 | Phase 98 | Complete |
 | EDIT-05 | Phase 98 | Complete |
 | EDIT-06 | Phase 98 | Complete |
 | EDIT-07 | Phase 98 | Complete |
-| EDIT-08 | Phase 98 | Pending |
+| EDIT-08 | Phase 98 | Complete |
 | EDIT-09 | Phase 98 | Complete |
 | BLOCK-01 | Phase 98 | Pending |
 | BLOCK-02 | Phase 98 | Pending |
@@ -130,7 +130,7 @@
 | FLOW-01 | Phase 100 | Pending |
 | FLOW-02 | Phase 100 | Pending |
 | FLOW-03 | Phase 100 | Pending |
-| FLOW-04 | Phase 98 | Pending |
+| FLOW-04 | Phase 98 | Complete |
 | DRAFT-01 | Phase 101 | Pending |
 | DRAFT-02 | Phase 101 | Pending |
 | DRAFT-03 | Phase 101 | Pending |
