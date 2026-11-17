@@ -6,6 +6,7 @@ import { applyInsert } from './source-edits';
 export interface SourceHandle {
   insert(before: string, after?: string): void;
   focus(): void;
+  focusAt(offset: number): void;
 }
 
 export interface SourceViewProps {
@@ -41,6 +42,13 @@ export function SourceView({
   useImperativeHandle(ref, () => ({
     focus() {
       textareaRef.current?.focus();
+    },
+    focusAt(offset) {
+      const el = textareaRef.current;
+      if (!el) return;
+      el.focus();
+      const at = Math.max(0, Math.min(offset, el.value.length));
+      el.setSelectionRange(at, at);
     },
     insert(before, after = '') {
       const el = textareaRef.current;
