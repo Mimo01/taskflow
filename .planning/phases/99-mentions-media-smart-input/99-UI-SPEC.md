@@ -1,7 +1,8 @@
 ---
 phase: 99
 slug: mentions-media-smart-input
-status: draft
+status: approved
+reviewed_at: 2026-11-17
 shadcn_initialized: true
 preset: base-nova (neutral, cssVariables, lucide)
 created: 2026-11-17
@@ -100,7 +101,7 @@ Content colours:
 - Lifecycle: on unmount, blur, mode switch to source, doc replace or editor destroy the popover DOM node is removed (no leaked portal; test asserts `document.body` has no residual `[data-suggestion]` nodes).
 - Highlight is `bg-accent`; first item highlighted on open; no mouse-hover highlight change while the pointer is stationary (prevents the stale-hover jump).
 - Loading: first query shows 3 `Skeleton` rows (32px); subsequent queries keep the previous results visible (no blink) until new ones arrive. Empty and error states below.
-- Max 8 visible rows before scroll (mentions, keys, emoticons); slash menu max 10.
+- Max 8 visible rows before scroll (mentions, keys); emoticons max 6; slash menu max 10.
 
 ### `@` mention (INPUT-01, D-01..D-03)
 - Trigger: `@` at start of line or after whitespace/open punctuation; not mid-word (`a@b.com`). Query debounced 250ms, server-side `fetchAssignableUsers` for the issue's project.
@@ -208,11 +209,11 @@ Dependencies: `@tiptap/suggestion` at the installed `^3.34.x` minor is permitted
 
 ## Checker Sign-Off
 
-- [ ] Dimension 1 Copywriting: PASS
-- [ ] Dimension 2 Visuals: PASS
-- [ ] Dimension 3 Color: PASS
-- [ ] Dimension 4 Typography: PASS
-- [ ] Dimension 5 Spacing: PASS
-- [ ] Dimension 6 Registry Safety: PASS
+- [x] Dimension 1 Copywriting: FLAG (non-blocking)
+- [x] Dimension 2 Visuals: FLAG (non-blocking)
+- [x] Dimension 3 Color: PASS
+- [x] Dimension 4 Typography: FLAG (non-blocking; pill weight 500 is read-view parity only, not for new chrome)
+- [x] Dimension 5 Spacing: FLAG (non-blocking; 2px drop cursor + pill padding are accepted exceptions)
+- [x] Dimension 6 Registry Safety: PASS
 
-**Approval:** pending
+**Approval:** approved 2026-11-17. Planner note: icon-only bubble/footer buttons need `aria-label` as well as tooltips.
