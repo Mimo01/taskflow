@@ -21,6 +21,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import { TokenLinkHint } from '@/components/ui/token-link-hint';
+import { draftOwnerFrom } from '@/hooks/useDraftsAccountGuard';
 import { gitlabTokenUrl, jiraTokenUrl } from '@/lib/token-links';
 import type { GitLabProject } from '@/services/gitlab';
 import { listGitLabProjects, validateGitLab } from '@/services/gitlab';
@@ -29,6 +30,7 @@ import { listJiraProjects, validateJira } from '@/services/jira';
 import { type JiraBoard, listProjectBoards } from '@/services/jira/sprints';
 import { readSecret, storeSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
+import { useDraftsStore } from '@/stores/drafts.store';
 
 type TestStatus = 'idle' | 'pending' | 'success' | 'error';
 
@@ -527,6 +529,10 @@ export default function ConnectionsSection() {
         onConnected={(url) => {
           setJiraConnected(true, url);
           resetAfterCredentialSave();
+          // D-21: drafts are cleared only if the Jira account differs; replacing
+          // the token for the same account keeps them.
+          const owner = draftOwnerFrom(useAuthStore.getState());
+          if (owner) useDraftsStore.getState().reconcileOwner(owner);
         }}
         onProjectSelected={(key) => setActiveJiraProject(key)}
         onBoardSelected={(key, boardId, boardName) => {

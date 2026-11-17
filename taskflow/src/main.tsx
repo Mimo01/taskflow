@@ -32,6 +32,7 @@ import { HardMinimumOverlay } from './components/update/HardMinimumOverlay';
 import { SoftMinimumBanner } from './components/update/SoftMinimumBanner';
 import { UpdateDialog } from './components/update/UpdateDialog';
 import { WhatsNewDialog } from './components/update/WhatsNewDialog';
+import { useDraftsAccountGuard } from './hooks/useDraftsAccountGuard';
 import { useNotificationPolling } from './hooks/useNotificationPolling';
 import { useUpdatePolling } from './hooks/useUpdatePolling';
 import { useVersionPolicyCheck } from './hooks/useVersionPolicyCheck';
@@ -693,6 +694,7 @@ function AppLayout() {
   useUpdatePolling();
   useWizardRerunCheck();
   useCustomFieldDiscovery();
+  useDraftsAccountGuard();
 
   if (!onboardingComplete || rerunActive) {
     // During onboarding, no sidebar
