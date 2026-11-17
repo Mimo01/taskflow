@@ -333,3 +333,12 @@ export const WikiUpload = Extension.create({
     ];
   },
 });
+
+/** Records a failed upload that happened outside the rich doc (source mode) in the shared list. */
+export function recordUploadFailure(editor: Editor, name: string): void {
+  if (editor.isDestroyed) return;
+  const meta: UploadMeta = { fail: name };
+  editor.view.dispatch(
+    editor.state.tr.setMeta(uploadPluginKey, meta).setMeta('addToHistory', false),
+  );
+}
