@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { uploadStagedFiles } from '@/lib/upload-staged-files';
 import {
   assignIssue,
   bulkUpdateIssue,
@@ -6,7 +7,6 @@ import {
   invalidateGhBacklogData,
   wrapCustomFieldValue,
 } from '@/services/jira';
-import { uploadAttachment } from '@/services/jira/attachments';
 import { createIssueLink } from '@/services/jira/links';
 import type { CreatemetaField } from '@/services/jira/types';
 import { readSecret } from '@/services/stronghold';
@@ -129,15 +129,7 @@ export function useIssueMutations({
       // failure must never roll back or fail issue creation (locked decision) --
       // failures are collected and surfaced separately via onStagedUploadError.
       if (stagedFiles && stagedFiles.length > 0) {
-        const failedNames: string[] = [];
-        for (const file of stagedFiles) {
-          try {
-            await uploadAttachment(jiraBaseUrl, token, newIssue.key, file);
-          } catch (e) {
-            console.error('Failed to upload staged attachment:', e);
-            failedNames.push(file.name);
-          }
-        }
+        const failedNames = await uploadStagedFiles(jiraBaseUrl, token, newIssue.key, stagedFiles);
         if (failedNames.length > 0) {
           onStagedUploadError?.(failedNames);
         }

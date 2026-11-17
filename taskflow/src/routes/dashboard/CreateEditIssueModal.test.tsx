@@ -5,8 +5,14 @@ import { act, fireEvent, render, renderHook, screen, waitFor } from '@testing-li
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as apiFetchModule from '@/lib/apiFetch';
 import * as jiraService from '@/services/jira';
+import { lastStubProps } from '@/test/wiki-editor-stub';
 import { CreateEditIssueModal } from './CreateEditIssueModal';
 import { useCreateEditForm } from './create-edit-issue/useCreateEditForm';
+
+vi.mock(
+  '@/components/wiki-editor/WikiEditorLazy',
+  async () => (await import('@/test/wiki-editor-stub')).wikiEditorLazyMock,
+);
 
 vi.mock('@/services/stronghold', () => ({
   readSecret: vi.fn().mockResolvedValue('test-pat'),
@@ -463,5 +469,128 @@ describe('defaultEpicLinkKey (epic Add story flow)', () => {
     expect(result.current.state.epicLinkKey).toBe('PROJ-1');
     act(() => result.current.dispatch({ type: 'SET_ISSUE_TYPE', issueType: 'Subtask' }));
     expect(result.current.state.epicLinkKey).toBeNull();
+  });
+});
+
+describe('D-14/D-15: Cmd+Enter submit', () => {
+  const editValues = {
+    issueKey: 'PROJ-42',
+    summary: 'Existing',
+    description: 'old text',
+    assigneeName: null,
+    priority: null,
+    storyPoints: null,
+    epicLinkKey: null,
+  };
+
+  beforeEach(() => {
+    vi.mocked(jiraService.createIssue).mockClear();
+    vi.mocked(jiraService.bulkUpdateIssue).mockClear();
+  });
+
+  function summary() {
+    return screen.getByPlaceholderText('Issue summary') as HTMLInputElement;
+  }
+
+  it('Cmd+Enter in the summary creates the issue once', async () => {
+    render(<CreateEditIssueModal open={true} onClose={vi.fn()} mode="create" />, { wrapper });
+    fireEvent.change(summary(), { target: { value: 'New one' } });
+    fireEvent.keyDown(summary(), { key: 'Enter', metaKey: true });
+    await waitFor(() => expect(jiraService.createIssue).toHaveBeenCalledTimes(1));
+  });
+
+  it('Ctrl+Enter in edit mode saves once', async () => {
+    render(
+      <CreateEditIssueModal open={true} onClose={vi.fn()} mode="edit" initialValues={editValues} />,
+      { wrapper },
+    );
+    fireEvent.keyDown(summary(), { key: 'Enter', ctrlKey: true });
+    await waitFor(() => expect(jiraService.bulkUpdateIssue).toHaveBeenCalledTimes(1));
+  });
+
+  it('Cmd+Enter from the editor submits with the editor text as description', async () => {
+    render(<CreateEditIssueModal open={true} onClose={vi.fn()} mode="create" />, { wrapper });
+    fireEvent.change(summary(), { target: { value: 'New one' } });
+    const editor = screen.getByRole('textbox', { name: 'Description' });
+    fireEvent.change(editor, { target: { value: 'h1. typed' } });
+    fireEvent.keyDown(editor, { key: 'Enter', metaKey: true });
+    await waitFor(() => expect(jiraService.createIssue).toHaveBeenCalledTimes(1));
+    expect(JSON.stringify(vi.mocked(jiraService.createIssue).mock.calls[0])).toContain('h1. typed');
+  });
+
+  it('plain Enter in the editor never submits', async () => {
+    render(<CreateEditIssueModal open={true} onClose={vi.fn()} mode="create" />, { wrapper });
+    fireEvent.change(summary(), { target: { value: 'New one' } });
+    fireEvent.keyDown(screen.getByRole('textbox', { name: 'Description' }), { key: 'Enter' });
+    await new Promise((r) => setTimeout(r, 30));
+    expect(jiraService.createIssue).not.toHaveBeenCalled();
+  });
+
+  it('empty summary does not submit and focuses the summary', async () => {
+    render(<CreateEditIssueModal open={true} onClose={vi.fn()} mode="create" />, { wrapper });
+    const editor = screen.getByRole('textbox', { name: 'Description' });
+    editor.focus();
+    fireEvent.keyDown(editor, { key: 'Enter', metaKey: true });
+    await waitFor(() => expect(document.activeElement).toBe(summary()));
+    expect(jiraService.createIssue).not.toHaveBeenCalled();
+  });
+
+  it('missing required custom fields do not submit', async () => {
+    vi.mocked(apiFetchModule.apiFetch).mockImplementation(async (_service, url: string) => {
+      if ((url as string).includes('/issuetypes') && !(url as string).includes('createmeta?')) {
+        return {
+          ok: true,
+          json: async () => ({ values: [{ id: '10001', name: 'Story', subtask: false }] }),
+        } as Response;
+      }
+      return { ok: true, json: async () => ({ values: [] }) } as Response;
+    });
+    vi.mocked(jiraService.fetchCreatemeta).mockResolvedValue([
+      { fieldId: 'customfield_10100', name: 'Account', required: true, schema: { type: 'string' } },
+    ]);
+    render(<CreateEditIssueModal open={true} onClose={vi.fn()} mode="create" />, { wrapper });
+    fireEvent.change(summary(), { target: { value: 'New one' } });
+    await waitFor(() => expect(screen.getByText('Account')).toBeInTheDocument());
+    fireEvent.keyDown(summary(), { key: 'Enter', metaKey: true });
+    await new Promise((r) => setTimeout(r, 30));
+    expect(jiraService.createIssue).not.toHaveBeenCalled();
+    vi.mocked(jiraService.fetchCreatemeta).mockResolvedValue([]);
+    vi.mocked(apiFetchModule.apiFetch).mockResolvedValue({
+      ok: true,
+      json: async () => ({ values: [] }),
+    } as Response);
+  });
+
+  it('does not submit twice while pending', async () => {
+    let resolve: (v: { id: string; key: string }) => void = () => {};
+    vi.mocked(jiraService.createIssue).mockImplementationOnce(
+      () =>
+        new Promise((r) => {
+          resolve = r;
+        }),
+    );
+    render(<CreateEditIssueModal open={true} onClose={vi.fn()} mode="create" />, { wrapper });
+    fireEvent.change(summary(), { target: { value: 'New one' } });
+    fireEvent.keyDown(summary(), { key: 'Enter', metaKey: true });
+    await waitFor(() => expect(jiraService.createIssue).toHaveBeenCalledTimes(1));
+    fireEvent.keyDown(summary(), { key: 'Enter', metaKey: true });
+    await new Promise((r) => setTimeout(r, 30));
+    expect(jiraService.createIssue).toHaveBeenCalledTimes(1);
+    resolve({ id: '1', key: 'PROJ-1' });
+  });
+
+  it('primary button tooltip shows its label with keycaps', async () => {
+    render(<CreateEditIssueModal open={true} onClose={vi.fn()} mode="create" />, { wrapper });
+    fireEvent.change(summary(), { target: { value: 'New one' } });
+    const btn = screen.getByRole('button', { name: /^create$/i });
+    fireEvent.mouseEnter(btn);
+    fireEvent.focus(btn);
+    await waitFor(() => expect(screen.getByText('⌘')).toBeInTheDocument());
+    expect(screen.getByText('↵')).toBeInTheDocument();
+  });
+
+  it('create mode passes no onCancel to the editor', () => {
+    render(<CreateEditIssueModal open={true} onClose={vi.fn()} mode="create" />, { wrapper });
+    expect(lastStubProps.current?.onCancel).toBeUndefined();
   });
 });

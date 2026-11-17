@@ -5,6 +5,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import { lastStubProps } from '@/test/wiki-editor-stub';
 import * as jiraService from '@/services/jira';
 import { CreateEditIssueModal } from './CreateEditIssueModal';
 
@@ -12,9 +13,18 @@ vi.mock('@/services/stronghold', () => ({
   readSecret: vi.fn().mockResolvedValue('test-pat'),
 }));
 
-vi.mock('@/stores/auth.store', () => ({
-  useAuthStore: () => ({ jiraBaseUrl: 'https://jira.example.com', activeJiraProject: 'PROJ' }),
-}));
+vi.mock(
+  '@/components/wiki-editor/WikiEditorLazy',
+  async () => (await import('@/test/wiki-editor-stub')).wikiEditorLazyMock,
+);
+
+vi.mock('@/stores/auth.store', () => {
+  const state = { jiraBaseUrl: 'https://jira.example.com', activeJiraProject: 'PROJ' };
+  // Supports both `useAuthStore()` and `useAuthStore(selector)`.
+  return {
+    useAuthStore: (selector?: (s: typeof state) => unknown) => (selector ? selector(state) : state),
+  };
+});
 
 vi.mock('@/stores/settings.store', () => ({
   useSettingsStore: () => ({
@@ -46,11 +56,17 @@ vi.mock('@/lib/apiFetch', () => ({
 
 vi.mock('@/services/jira/attachments', () => ({
   uploadAttachment: vi.fn(),
+  deleteAttachment: vi.fn(),
 }));
 
 function wrapper({ children }: { children: React.ReactNode }) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return <QueryClientProvider client={qc}>{children}</QueryClientProvider>;
+}
+
+function attachViaInput(...files: File[]) {
+  const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+  fireEvent.change(input, { target: { files } });
 }
 
 async function fillSummary(value = 'My test issue') {
@@ -60,33 +76,67 @@ async function fillSummary(value = 'My test issue') {
 
 describe('CreateEditIssueModal attachments', () => {
   describe('create mode', () => {
-    it('dropping a file inserts its staged ref into the description and does not call uploadAttachment', async () => {
+    it('uses the staged host: attaching a file stages a chip and never calls uploadAttachment', async () => {
       const { uploadAttachment } = await import('@/services/jira/attachments');
 
       render(<CreateEditIssueModal open={true} onClose={vi.fn()} mode="create" />, { wrapper });
 
-      const textarea = screen.getByPlaceholderText('Describe the issue...') as HTMLTextAreaElement;
-      const file = new File(['data'], 'shot.png', { type: 'image/png' });
-      fireEvent.drop(textarea, { dataTransfer: { files: [file] } });
+      expect(lastStubProps.current?.host?.staged).toBe(true);
+      expect(lastStubProps.current?.host?.projectKey).toBe('PROJ');
+      expect(lastStubProps.current?.host?.uploadFile).toBeUndefined();
+      expect(lastStubProps.current?.preset).toBe('full');
+      attachViaInput(new File(['data'], 'shot.png', { type: 'image/png' }));
 
-      await waitFor(() => expect(textarea.value).toBe('!shot.png!'));
+      await waitFor(() => expect(screen.getByText('shot.png')).toBeInTheDocument());
+      expect(uploadAttachment).not.toHaveBeenCalled();
+    });
+
+    it('renders no Preview tab and no textarea toolbar', () => {
+      render(<CreateEditIssueModal open={true} onClose={vi.fn()} mode="create" />, { wrapper });
+      expect(screen.queryByRole('button', { name: /preview/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('tab')).not.toBeInTheDocument();
+    });
+
+    it('clone (create mode with initialValues) stages and never uploads live', async () => {
+      const { uploadAttachment } = await import('@/services/jira/attachments');
+      render(
+        <CreateEditIssueModal
+          open={true}
+          onClose={vi.fn()}
+          mode="create"
+          initialValues={{
+            issueKey: 'PROJ-1',
+            summary: 'Cloned',
+            description: '',
+            assigneeName: null,
+            priority: null,
+            storyPoints: null,
+            epicLinkKey: null,
+            attachments: [],
+          }}
+        />,
+        { wrapper },
+      );
+      expect(lastStubProps.current?.host?.staged).toBe(true);
+      attachViaInput(new File(['d'], 'c.png', { type: 'image/png' }));
+      await waitFor(() => expect(screen.getByText('c.png')).toBeInTheDocument());
       expect(uploadAttachment).not.toHaveBeenCalled();
     });
 
     it('staged chip is rendered and removing it leaves the description text untouched', async () => {
       render(<CreateEditIssueModal open={true} onClose={vi.fn()} mode="create" />, { wrapper });
 
-      const textarea = screen.getByPlaceholderText('Describe the issue...') as HTMLTextAreaElement;
       const file = new File(['data'], 'shot.png', { type: 'image/png' });
-      fireEvent.drop(textarea, { dataTransfer: { files: [file] } });
+      attachViaInput(file);
 
       await waitFor(() => expect(screen.getByText('shot.png')).toBeInTheDocument());
-      const descriptionAfterStage = textarea.value;
+      const textarea = screen.getByRole('textbox', { name: 'Description' }) as HTMLTextAreaElement;
+      fireEvent.change(textarea, { target: { value: 'keep me' } });
 
       fireEvent.click(screen.getByLabelText('Remove shot.png'));
 
       expect(screen.queryByText('shot.png')).not.toBeInTheDocument();
-      expect(textarea.value).toBe(descriptionAfterStage);
+      expect(textarea.value).toBe('keep me');
     });
 
     it('after createIssue resolves, uploadAttachment is called once per staged file with the new issue key', async () => {
@@ -98,9 +148,8 @@ describe('CreateEditIssueModal attachments', () => {
 
       render(<CreateEditIssueModal open={true} onClose={onClose} mode="create" />, { wrapper });
 
-      const textarea = screen.getByPlaceholderText('Describe the issue...') as HTMLTextAreaElement;
       const file = new File(['data'], 'shot.png', { type: 'image/png' });
-      fireEvent.drop(textarea, { dataTransfer: { files: [file] } });
+      attachViaInput(file);
       await waitFor(() => expect(screen.getByText('shot.png')).toBeInTheDocument());
 
       await fillSummary();
@@ -124,9 +173,8 @@ describe('CreateEditIssueModal attachments', () => {
 
       render(<CreateEditIssueModal open={true} onClose={onClose} mode="create" />, { wrapper });
 
-      const textarea = screen.getByPlaceholderText('Describe the issue...') as HTMLTextAreaElement;
       const file = new File(['data'], 'shot.png', { type: 'image/png' });
-      fireEvent.drop(textarea, { dataTransfer: { files: [file] } });
+      attachViaInput(file);
       await waitFor(() => expect(screen.getByText('shot.png')).toBeInTheDocument());
 
       await fillSummary();
@@ -153,7 +201,7 @@ describe('CreateEditIssueModal attachments', () => {
       attachments: [],
     };
 
-    it('pasting a file calls uploadAttachment immediately with the issue key and inserts the returned ref', async () => {
+    it('attaching a file uploads immediately to the issue key (live host)', async () => {
       const { uploadAttachment } = await import('@/services/jira/attachments');
       vi.mocked(uploadAttachment).mockResolvedValue([
         {
@@ -174,9 +222,10 @@ describe('CreateEditIssueModal attachments', () => {
         { wrapper },
       );
 
-      const textarea = screen.getByPlaceholderText('Describe the issue...') as HTMLTextAreaElement;
+      expect(lastStubProps.current?.host?.staged).toBeFalsy();
+      expect(lastStubProps.current?.host?.issueKey).toBe('PROJ-42');
       const file = new File(['data'], 'note.pdf', { type: 'application/pdf' });
-      fireEvent.paste(textarea, { clipboardData: { files: [file] } });
+      attachViaInput(file);
 
       await waitFor(() => {
         expect(uploadAttachment).toHaveBeenCalledWith(
@@ -186,31 +235,6 @@ describe('CreateEditIssueModal attachments', () => {
           file,
         );
       });
-      await waitFor(() => expect(textarea.value).toBe('[^note.pdf]'));
-    });
-
-    it('an uploadAttachment rejection shows an inline error and inserts nothing', async () => {
-      const { uploadAttachment } = await import('@/services/jira/attachments');
-      vi.mocked(uploadAttachment).mockRejectedValue(new Error('upload failed'));
-
-      render(
-        <CreateEditIssueModal
-          open={true}
-          onClose={vi.fn()}
-          mode="edit"
-          initialValues={editInitialValues}
-        />,
-        { wrapper },
-      );
-
-      const textarea = screen.getByPlaceholderText('Describe the issue...') as HTMLTextAreaElement;
-      const file = new File(['data'], 'broken.pdf', { type: 'application/pdf' });
-      fireEvent.paste(textarea, { clipboardData: { files: [file] } });
-
-      await waitFor(() => {
-        expect(screen.getByText(/failed to upload broken\.pdf/i)).toBeInTheDocument();
-      });
-      expect(textarea.value).toBe('');
     });
   });
 });
