@@ -415,7 +415,11 @@ export default function WikiEditor({
               aria-label={ariaLabel}
               editor={editor}
               onFiles={(files) =>
-                uploadIntoSource(editor, files, (m) => sourceRef.current?.insert(m))
+                uploadIntoSource(editor, files, (m) => {
+                  if (!sourceRef.current) return false;
+                  sourceRef.current.insert(m);
+                  return true;
+                })
               }
             />
           ) : null}

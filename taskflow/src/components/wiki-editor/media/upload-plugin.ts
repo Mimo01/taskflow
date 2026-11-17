@@ -7,6 +7,7 @@ import {
   type Transaction,
 } from '@tiptap/pm/state';
 import { Decoration, DecorationSet } from '@tiptap/pm/view';
+import { WIKI_TOGGLE_META } from '../editor-session';
 import { getHost, setLocalPreview } from '../host';
 import { embedContentFor } from './embed';
 import {
@@ -132,9 +133,13 @@ function dispatchResolution(
   const ph = uploadPluginKey.getState(editor.state)?.placeholders.find((p) => p.id === id);
   if (!ph) return;
   const tr = editor.state.tr;
-  const node = content ? nodeFor(editor, content) : null;
+  // Source mode hides this doc and never emits it: report the file instead of losing it (WR-01).
+  const detached = !editor.isEditable;
+  const node = content && !detached ? nodeFor(editor, content) : null;
   if (node) tr.insert(ph.pos, node);
-  const meta: UploadMeta = { ...patch, remove: id, insertAt: { pos: ph.pos, seq: ph.seq } };
+  const meta: UploadMeta = detached
+    ? { fail: ph.name, remove: id }
+    : { ...patch, remove: id, insertAt: { pos: ph.pos, seq: ph.seq } };
   tr.setMeta(uploadPluginKey, meta);
   if (!node) tr.setMeta('addToHistory', false);
   editor.view.dispatch(tr);
@@ -295,14 +300,25 @@ export const WikiUpload = Extension.create({
                 return { ...p, pos };
               });
             }
-            if (!meta) return placeholders === prev.placeholders ? prev : { ...prev, placeholders };
-            if (meta.remove) placeholders = placeholders.filter((p) => p.id !== meta.remove);
-            if (meta.add?.length) placeholders = [...placeholders, ...meta.add];
+            // A whole-doc replace (mode toggle, external value reset) orphans every pending
+            // upload: drop the placeholders and report the files rather than misplace them (WR-01).
+            const dropped =
+              tr.getMeta(WIKI_TOGGLE_META) && placeholders.length
+                ? placeholders.map((p) => p.name)
+                : [];
+            if (dropped.length) placeholders = [];
+            if (!meta && !dropped.length) {
+              return placeholders === prev.placeholders ? prev : { ...prev, placeholders };
+            }
+            if (meta?.remove) placeholders = placeholders.filter((p) => p.id !== meta.remove);
+            if (meta?.add?.length) placeholders = [...placeholders, ...meta.add];
             let failures = prev.failures;
-            if (meta.clearFailures) failures = [];
-            if (meta.fail && !failures.includes(meta.fail)) failures = [...failures, meta.fail];
+            if (meta?.clearFailures) failures = [];
+            for (const name of [...dropped, ...(meta?.fail ? [meta.fail] : [])]) {
+              if (!failures.includes(name)) failures = [...failures, name];
+            }
             let session = prev.session;
-            if (meta.session) session = new Map(session).set(meta.session[0], meta.session[1]);
+            if (meta?.session) session = new Map(session).set(meta.session[0], meta.session[1]);
             return { placeholders, failures, session };
           },
         },

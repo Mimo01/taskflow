@@ -18,7 +18,8 @@ import {
 export function uploadIntoSource(
   editor: Editor,
   files: File[],
-  insert: (markup: string) => void,
+  /** Returns false when the markup could not be inserted (source view gone). */
+  insert: (markup: string) => boolean | undefined,
 ): boolean {
   const host = getHost(editor);
   const staging = Boolean(host.staged && host.stageFile);
@@ -41,7 +42,10 @@ export function uploadIntoSource(
     file = renameFile(file, uniqueFileName(file.name, taken));
     taken.add(file.name);
     host.uploadFile?.(file).then(
-      (att) => insert(attachmentRef(att)),
+      (att) => {
+        // The user left source mode meanwhile: report it rather than drop it silently (WR-01).
+        if (insert(attachmentRef(att)) === false) recordUploadFailure(editor, original.name);
+      },
       () => recordUploadFailure(editor, original.name),
     );
   }
