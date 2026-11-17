@@ -7,8 +7,9 @@ import { uploadAttachment } from '@/services/jira/attachments';
 import { useAuthStore } from '@/stores/auth.store';
 import { lastStubProps } from '@/test/wiki-editor-stub';
 
-vi.mock('@/components/wiki-editor/WikiEditorLazy', async () =>
-  (await import('@/test/wiki-editor-stub')).wikiEditorLazyMock,
+vi.mock(
+  '@/components/wiki-editor/WikiEditorLazy',
+  async () => (await import('@/test/wiki-editor-stub')).wikiEditorLazyMock,
 );
 
 vi.mock('@/services/stronghold', () => ({

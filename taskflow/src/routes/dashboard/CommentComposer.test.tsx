@@ -11,8 +11,9 @@ vi.mock('@/services/stronghold', () => ({
   readSecret: vi.fn().mockResolvedValue('mock-token'),
 }));
 
-vi.mock('@/components/wiki-editor/WikiEditorLazy', async () =>
-  (await import('@/test/wiki-editor-stub')).wikiEditorLazyMock,
+vi.mock(
+  '@/components/wiki-editor/WikiEditorLazy',
+  async () => (await import('@/test/wiki-editor-stub')).wikiEditorLazyMock,
 );
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -142,7 +143,9 @@ describe('CommentComposer — post mutation', () => {
     const qc = makeQueryClient();
     const spy = vi.spyOn(qc, 'invalidateQueries');
     useDraftsStore.setState({
-      drafts: { [DRAFT_KEY]: { kind: 'comment-new', issueKey: ISSUE_KEY, text: 'x', updatedAt: 1 } },
+      drafts: {
+        [DRAFT_KEY]: { kind: 'comment-new', issueKey: ISSUE_KEY, text: 'x', updatedAt: 1 },
+      },
     });
     renderComposer(qc);
     fireEvent.change(editor(), { target: { value: 'Posting' } });
@@ -251,12 +254,10 @@ describe('CommentComposer — draft', () => {
   it('seeds the draft once when hydration finishes after mount', () => {
     hydratedSpy.mockReturnValue(false);
     let finish: (() => void) | undefined;
-    const unsub = vi
-      .spyOn(useDraftsStore.persist, 'onFinishHydration')
-      .mockImplementation((fn) => {
-        finish = () => fn(useDraftsStore.getState());
-        return () => {};
-      });
+    const unsub = vi.spyOn(useDraftsStore.persist, 'onFinishHydration').mockImplementation((fn) => {
+      finish = () => fn(useDraftsStore.getState());
+      return () => {};
+    });
     renderComposer();
     expect(editor().value).toBe('');
     useDraftsStore.setState({
@@ -273,12 +274,10 @@ describe('CommentComposer — draft', () => {
   it('does not overwrite text the user typed before hydration finished', () => {
     hydratedSpy.mockReturnValue(false);
     let finish: (() => void) | undefined;
-    const unsub = vi
-      .spyOn(useDraftsStore.persist, 'onFinishHydration')
-      .mockImplementation((fn) => {
-        finish = () => fn(useDraftsStore.getState());
-        return () => {};
-      });
+    const unsub = vi.spyOn(useDraftsStore.persist, 'onFinishHydration').mockImplementation((fn) => {
+      finish = () => fn(useDraftsStore.getState());
+      return () => {};
+    });
     renderComposer();
     fireEvent.change(editor(), { target: { value: 'typed first' } });
     useDraftsStore.setState({
