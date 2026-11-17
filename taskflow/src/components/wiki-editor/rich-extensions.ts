@@ -1,5 +1,6 @@
 import { ReactNodeViewRenderer } from '@tiptap/react';
 import { buildEditorExtensions } from './extensions';
+import { WIKI_INPUT_EXTENSIONS } from './input-extensions';
 import { WikiEmbedRemoval } from './media/embed-removal';
 import { WikiUpload } from './media/upload-plugin';
 import { AttachmentChip } from './nodeviews/AttachmentChip';
@@ -25,4 +26,5 @@ export const richExtensions = [
   }),
   WikiUpload,
   WikiEmbedRemoval,
+  ...WIKI_INPUT_EXTENSIONS,
 ];
