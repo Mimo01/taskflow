@@ -1,6 +1,10 @@
 import { ReactNodeViewRenderer } from '@tiptap/react';
 import { buildEditorExtensions } from './extensions';
+import { AttachmentChip } from './nodeviews/AttachmentChip';
 import { CodeBlockView } from './nodeviews/CodeBlockView';
+import { EmoticonView } from './nodeviews/EmoticonView';
+import { ImageView } from './nodeviews/ImageView';
+import { MentionView } from './nodeviews/MentionView';
 import { PanelView } from './nodeviews/PanelView';
 import { RawBlockView } from './nodeviews/RawBlockView';
 import { RawInlineChip } from './nodeviews/RawInlineChip';
@@ -11,4 +15,8 @@ export const richExtensions = buildEditorExtensions({
   codeBlock: ReactNodeViewRenderer(CodeBlockView),
   rawBlock: ReactNodeViewRenderer(RawBlockView),
   rawInline: ReactNodeViewRenderer(RawInlineChip),
+  mention: ReactNodeViewRenderer(MentionView, { as: 'span' }),
+  image: ReactNodeViewRenderer(ImageView, { as: 'span' }),
+  attachment: ReactNodeViewRenderer(AttachmentChip, { as: 'span' }),
+  emoticon: ReactNodeViewRenderer(EmoticonView, { as: 'span' }),
 });
