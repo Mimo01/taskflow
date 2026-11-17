@@ -72,4 +72,42 @@ describe('wiki input rules', () => {
     expect(type('*x* ', true).editor.getHTML()).not.toContain('<strong>');
     expect(type('h1. ', true).editor.getJSON().content?.[0]?.type).toBe('paragraph');
   });
+
+  describe('Jira emoticon tokens', () => {
+    const emoticons = (editor: ReturnType<typeof type>['editor']) => {
+      const out: string[] = [];
+      editor.state.doc.descendants((n) => {
+        if (n.type.name === 'emoticon') out.push(n.attrs.src);
+      });
+      return out;
+    };
+
+    it.each([
+      '(/)',
+      '(on)',
+      '(flagoff)',
+      '(*y)',
+      '(*)',
+      '(x)',
+    ])('%s converts on the closing paren', (tok) => {
+      const { editor, text } = type(`go ${tok}`);
+      expect(emoticons(editor)).toEqual([tok]);
+      expect(text.trim()).toBe(`go ${tok}`);
+    });
+
+    it.each(['(y)', ':)', '(flagon'])('%s does not convert (not a Jira token)', (typed) => {
+      const { editor } = type(typed);
+      expect(emoticons(editor)).toEqual([]);
+    });
+
+    it('does not convert inside a code block', () => {
+      const { editor, load } = makeEditor('');
+      editor.commands.focus('end');
+      typeText(editor, '{code}');
+      typeText(editor, '(/)');
+      expect(editor.state.doc.firstChild?.type.name).toBe('codeBlock');
+      expect(emoticons(editor)).toEqual([]);
+      expect(saveText(editor, load).kind).toBeDefined();
+    });
+  });
 });
