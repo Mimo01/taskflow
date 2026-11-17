@@ -35,6 +35,7 @@ const initialSettings = {
   accountFieldKey: null as string | null,
   devToolsEnabled: false,
   wikiEditorMode: 'rich' as 'rich' | 'source',
+  recentSlashItems: [] as string[],
   requestLogging: false,
   responseBodyCapture: false,
   operationProfiling: false,
@@ -112,6 +113,9 @@ interface SettingsState {
   devToolsEnabled: boolean;
   /** Wiki editor view: rich (WYSIWYG) or source (markup). One global preference. Default: 'rich'. */
   wikiEditorMode: 'rich' | 'source';
+  /** Last used wiki slash-menu item ids, most recent first (max 3). */
+  recentSlashItems: string[];
+  pushRecentSlashItem: (id: string) => void;
   /** Enable request/response logging to debug log store. Default: false. */
   requestLogging: boolean;
   /** Enable response body capture (clones response). Default: false. */
@@ -325,6 +329,10 @@ export const useSettingsStore = create<SettingsState>()(
       setNotifDueDateReminderEnabled: (v) => set({ notifDueDateReminderEnabled: v }),
       setDevToolsEnabled: (v) => set({ devToolsEnabled: v }),
       setWikiEditorMode: (v) => set({ wikiEditorMode: v }),
+      pushRecentSlashItem: (id) =>
+        set((s) => ({
+          recentSlashItems: [id, ...s.recentSlashItems.filter((x) => x !== id)].slice(0, 3),
+        })),
       setRequestLogging: (v) => set({ requestLogging: v }),
       setResponseBodyCapture: (v) => set({ responseBodyCapture: v }),
       setOperationProfiling: (v) => set({ operationProfiling: v }),
@@ -384,7 +392,7 @@ export const useSettingsStore = create<SettingsState>()(
     {
       name: 'settings-store',
       storage: createTauriStorage('settings.json'),
-      version: 38,
+      version: 39,
       migrate: (persisted, version) => {
         const s = persisted as Record<string, unknown>;
         if (version < 1) {
@@ -547,6 +555,9 @@ export const useSettingsStore = create<SettingsState>()(
         }
         if (version < 38) {
           if (s.wikiEditorMode === undefined) s.wikiEditorMode = 'rich';
+        }
+        if (version < 39) {
+          if (s.recentSlashItems === undefined) s.recentSlashItems = [];
         }
         return persisted as SettingsState;
       },
