@@ -38,6 +38,11 @@ export function SourceView({
   onFiles,
 }: SourceViewProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  // Result of the last insert() while `value` hasn't caught up yet: several inserts in one tick
+  // (multi-file drop, uploads resolving together) chain instead of overwriting each other.
+  const pendingRef = useRef<{ base: string; value: string; selStart: number; selEnd: number }>(
+    null,
+  );
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: resize whenever the text changes
   useEffect(() => {
@@ -60,11 +65,27 @@ export function SourceView({
     },
     insert(before, after = '') {
       const el = textareaRef.current;
+      const pending = pendingRef.current?.base === value ? pendingRef.current : null;
+      const text = pending?.value ?? value;
       if (!el) {
-        onChange(value ? `${value}\n${before}${after}` : `${before}${after}`);
+        const joined = text ? `${text}\n${before}${after}` : `${before}${after}`;
+        pendingRef.current = {
+          base: value,
+          value: joined,
+          selStart: joined.length,
+          selEnd: joined.length,
+        };
+        onChange(joined);
         return;
       }
-      const next = applyInsert(value, el.selectionStart, el.selectionEnd, before, after);
+      const next = applyInsert(
+        text,
+        pending?.selStart ?? el.selectionStart,
+        pending?.selEnd ?? el.selectionEnd,
+        before,
+        after,
+      );
+      pendingRef.current = { base: value, ...next };
       onChange(next.value);
       requestAnimationFrame(() => {
         el.focus();
