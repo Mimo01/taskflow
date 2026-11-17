@@ -297,22 +297,42 @@ Plans:
   5. Compact comment hosts show a floating selection menu instead of a toolbar, and popovers inside dialogs close with Esc before the dialog does (manual WKWebView drag/drop and caret check)
 
 **Plans**: 14 plans in 7 waves
-
 Plans:
+**Wave 1**
+
 - [ ] 99-01-PLAN.md — Package legitimacy gate + install, WikiEditorHost contract and host storage bridge
 - [ ] 99-02-PLAN.md — Pure paste layer: allowlist HTML normaliser (web/Word/Docs/Jira) and wiki-text heuristic
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 99-03-PLAN.md — Shared suggestion popover + factory, leak and Esc-in-Dialog tests
 - [ ] 99-04-PLAN.md — Mention/image/attachment/emoticon node views matching WikiRenderer
 - [ ] 99-05-PLAN.md — Upload engine: placeholder decorations, staged mode, naming, picker embed
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 99-06-PLAN.md — @ mention and : emoticon autocompletes, emoticon token input rule
 - [ ] 99-07-PLAN.md — Shared issue-key module, key decoration and KEY- autocomplete
-- [ ] 99-08-PLAN.md — / slash menu with Recent (settings v39)
 - [ ] 99-09-PLAN.md — D-10 removal notice and upload error line in the live editor
 - [ ] 99-10-PLAN.md — Smart paste plugin (HTML, HTML images, wiki text, Cmd+Shift+V) + shortcut rows
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
+- [ ] 99-08-PLAN.md — / slash menu with Recent (settings v39)
+
+**Wave 5** *(blocked on Wave 4 completion)*
+
 - [ ] 99-11-PLAN.md — Compact bubble menu + footer, attachment picker mount
 - [ ] 99-12-PLAN.md — Register input extensions, end-to-end tests, dev-tools host/paste/dialog harness
+
+**Wave 6** *(blocked on Wave 5 completion)*
+
 - [ ] 99-13-PLAN.md — Source-mode mentions, emoticons and file paste/drop
+
+**Wave 7** *(blocked on Wave 6 completion)*
+
 - [ ] 99-14-PLAN.md — Gate run and manual WKWebView UAT
+
 **UI hint**: yes
 
 ### Phase 100: Host Adoption & Editing Workflow
