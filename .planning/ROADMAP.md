@@ -34,7 +34,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 99: Mentions, Media & Smart Input** - @mentions, attachments, image paste/drop, rich-HTML paste, issue keys, emoticons, slash menu, bubble menu (completed 2026-11-17)
 - [ ] **Phase 100: Host Adoption & Editing Workflow** - Swap every wiki host to the new editor one at a time, add local drafts, dirty guards and Cmd+Enter/Esc, delete the textarea code
 - [ ] **Phase 101: Issue Drafts & Large Create/Edit Modal** - Two-column Create/Edit Issue modal with Create another, plus auto-saved multi-draft issue creation with a header Drafts chip
-- [ ] **Phase 102: Polished Surfaces** - Comment hosts, inline description, Create Epic, Bulk Subtasks and Edit Release restyled to match
+- [ ] **Phase 102: Polished Surfaces** - Comment hosts, Create Epic, Bulk Subtasks and Edit Release restyled to match
 
 <details>
 <summary>✅ v1.14 Release Management (Phases 87-95) — SHIPPED 2026-08-13, closed 2026-11-16</summary>
@@ -342,9 +342,9 @@ Plans:
 **Requirements**: HOST-01, HOST-02, HOST-03, HOST-04, HOST-05, FLOW-01, FLOW-02, FLOW-03
 **Success Criteria** (what must be TRUE):
 
-  1. Create Epic, Create/Edit Issue description, inline description (detail and peek), comment composer, inline comment and comment edit all use the new editor, adopted one host at a time
+  1. Create Epic, Create/Edit Issue description, comment composer and comment edit all use the new editor, adopted one host at a time (inline description editing on detail and peek is dropped by decision D-01; the description stays read-only there)
   2. An unsent comment or description edit survives closing the peek or modal and restarting the app
-  3. User is warned before unsaved edits are discarded by Esc, close or navigation (Create Issue modal excepted)
+  3. User is warned before unsaved edits are discarded by an explicit Cancel or Esc in a comment edit or the Edit Issue modal; closing the peek, X/backdrop, navigation and quitting keep the text as a draft silently (Create Issue modal excepted)
   4. Cmd+Enter submits and Esc cancels in every editor host, deferring to open popovers
   5. The old textarea toolbar and Preview-tab code no longer exists in the codebase
 
@@ -393,12 +393,11 @@ Plans:
 
 **Goal**: The remaining editing surfaces look and behave consistently with the new modal
 **Depends on**: Phase 101
-**Requirements**: UI-03, UI-04, UI-05
+**Requirements**: UI-03, UI-05 (UI-04 dropped, Phase 100 D-01)
 **Success Criteria** (what must be TRUE):
 
   1. Comment hosts have an expanding editor and a consistent, clean action row
-  2. Inline description editing happens in place, larger, with sticky Save/Cancel
-  3. Create Epic, Bulk Create Subtasks and Edit Release modals are larger and visually consistent with the Create/Edit Issue modal, and Edit Release keeps its plain-text/Markdown fields
+  2. Create Epic, Bulk Create Subtasks and Edit Release modals are larger and visually consistent with the Create/Edit Issue modal, and Edit Release keeps its plain-text/Markdown fields
 
 **Plans**: TBD
 **UI hint**: yes
