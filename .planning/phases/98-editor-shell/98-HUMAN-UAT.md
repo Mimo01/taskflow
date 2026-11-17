@@ -1,14 +1,18 @@
 ---
 status: diagnosed
 phase: 98-editor-shell
-source: [98-13-PLAN.md]
+source: [98-13-PLAN.md, 98-14-SUMMARY.md, 98-15-SUMMARY.md, 98-16-SUMMARY.md]
 started: 2026-11-17
 updated: 2026-11-17
 ---
 
 ## Current Test
 
-[testing complete — automated WKWebView pass, 1 test partly pending human check]
+[testing complete — round 2: WKWebView re-test of the 98-14..16 fixes, 2026-11-17]
+
+Round 2 method: same approach as round 1; the harness was rebuilt and deleted afterwards. Native NSEvent keys and mouse clicks (Base UI popovers open with native clicks). Synthetic mouse moves produce no pointer events in WKWebView, so tooltips were checked via keyboard focus.
+
+Round 1 method:
 
 Method: Claude ran the tests in a real macOS WKWebView (the Tauri engine), not jsdom. A throwaway page mounted the dev-tools EditorTab from the running Vite server (React Compiler active). A compiled Swift driver sent native NSEvent keystrokes, used NSTextInputClient `setMarkedText`/`insertText` for IME and dead keys, ran JS probes and took `takeSnapshot` screenshots. The harness was deleted afterwards. Hover tooltips, sticky scroll, Base UI popovers that need real pointer events, and Tauri-only behaviour (system browser) could not be driven this way.
 
@@ -17,9 +21,8 @@ Method: Claude ran the tests in a real macOS WKWebView (the Tauri engine), not j
 ### 1. Caret and rebuild
 Blank doc, type 100+ characters including Enter and Backspace.
 expected: created stays 1, render commits stay bounded, the caret never jumps.
-result: issue
-reported: "Caret never jumps (text exact after 130 keystrokes with Enter/Backspace), created stays 1, render commits ~1 per keystroke. BUT the save fails as soon as the doc has 2+ paragraphs typed with Enter: 'the saved text has 1 top-level blocks, the edit has 3'. Every new paragraph carries gap=0."
-severity: blocker
+result: pass
+retest: "Re-test after 98-14: 4 paragraphs typed with Enter and Backspace in real WebKit; save `saved` with blank lines between blocks; text exact; created 1; 130 render commits for ~120 keys."
 
 ### 2. IME
 Japanese `nihon` → 日本, Pinyin `zhongwen` → 中文, dead key `option+e e` → é, in a paragraph, a bullet list item and a table cell.
@@ -37,34 +40,33 @@ note: "Marked `# `, `h1. ` and `*` stay plain text while composing; `# ` and `h1
 Type `*bold* `, `_it_ `, `* `, `- `, `# `, `1. `, `h2. `, `## `, `{code}`, `{code:java}`, `{noformat}`.
 expected: each formats in place and the verdict panel emits canonical wiki ("wiki wins": `*x*` is bold, `# ` is a numbered list).
 result: pass
-note: "All formatted in place and saved canonical wiki (`- `→`* `, `1. `→`# `, `## `→`h2. `, `{code:java}` picks Java). Also `-strike- ` and `+under+ ` work. Side note, not phase 98 code: the WikiRenderer preview of `{noformat}\ntail\n{noformat}` shows a stray ``` after the text."
+retest: "Re-test after 98-14: `* `, Enter in a bullet list, Enter twice to exit, then `# ` keep the save at unchanged/saved; no Couldn't save banner."
 
 ### 5. Cmd+Left/Right after programmatic focus
 Focus the editor programmatically (Phase 96 note), then press Cmd+Left and Cmd+Right.
 expected: the caret moves to line start/end on the first press; a first Cmd+Left no-op is an issue.
-result: issue
-reported: "After switching Source → Rich (WikiEditor calls editor.commands.focus()), the first Cmd+Left is a no-op (caret stays at 2). `editor.commands.focus()` also leaves document.activeElement on BODY in WKWebView. keymap.ts binds no Mod-ArrowLeft/Right although Phase 96 SPIKE-FINDINGS recommended it. With a DOM `.focus()` both keys work on the first press."
-severity: major
+result: pass
+retest: "Re-test after 98-15: after Source → Rich activeElement is the ProseMirror; the first Cmd+Left from mid-line goes to the line start and the first Cmd+Right to the line end, also right after a ⌘⇧M round trip."
 
 ### 6. App shortcuts while typing (FLOW-04)
 In the editor: ⌘⇧M, ⌘B, J/K, ⌘⇧B. Then click outside the editor and press ⌘⇧M.
 expected: ⌘⇧M toggles source (no Merge Requests navigation), ⌘B bolds (sidebar does not toggle), J/K type letters, ⌘⇧B makes a quote (no Backlog navigation); outside the editor ⌘⇧M navigates as usual.
-result: issue
-reported: "⌘B bolds, J/K type, ⌘⇧B makes a quote, ⌘⇧M switches to source, and no app shortcut fires; outside the editor ⌘⇧M/J/⌘B reach the app. BUT after ⌘⇧M switches to source, focus is on BODY (the source textarea is not focused), so the next ⌘⇧M navigates to Merge Requests instead of switching back."
-severity: major
+result: pass
+retest: "Re-test after 98-15: ⌘⇧M focuses the source textarea, a second ⌘⇧M returns to rich, no app shortcut fired. Outside the editor ⌘⇧M, J and ⌘B reach the app."
 
 ### 7. Toolbar
 Full and Compact presets; Narrow width; hover tooltips; scroll a long fixture.
 expected: Narrow keeps one row with low-priority items in the ⋯ More menu; tooltips show label + keycaps; the toolbar stays sticky while scrolling.
 result: issue
-reported: "Full preset at Narrow (360px): the toolbar stays one row (40px) but is clipped after 'Insert'; there is no ⋯ More button and the Rich/Source toggle is pushed out of view. Compact preset shows Bold, Italic, Underline, Link, Insert, More, Rich, Source. Tooltips and sticky scroll not checked (needs real hover/scroll)."
+reported: "Re-test after 98-16: at Narrow 360px the Full toolbar is one 40px row and More + Rich|Source are visible, BUT Italic is clipped by the overflow-hidden items region (region 144px wide, content 175px) and is not in the More menu, so it is unreachable except by ⌘I. Compact is fine (Bold, Italic, Underline, Link, Insert, More, Rich, Source). Tooltip shows 'Bold ⌘ B' (checked via keyboard focus; synthetic hover doesn't reach WebKit). Sticky works while scrolling, BUT the toolbar background is bg-muted/40, so scrolled text shows through it."
 severity: major
 
 ### 8. Blocks
 Insert a 3×4 table, Tab/Shift+Tab, Tab in the last cell, floating table toolbar actions incl. header toggle, delete table + ⌘Z; insert a code block and change its language; noformat; panels of each type with a title, switch type, remove panel + ⌘Z; colour from the palette, remove colour; a fixture with an off-palette colour.
 expected: Tab in the last cell adds a row; every action works and undoes; the off-palette colour shows "Custom (kept)".
-result: [pending]
-note: "Checked: Tab in the last cell adds a row (3→4); the floating table toolbar shows all 9 actions incl. header toggles; Delete table then ⌘Z restores it; `{code:java}` shows the Java language picker; `{noformat}` inserts. Still for a human: colour popover and 'Custom (kept)' (scripted click doesn't open Base UI popovers), panel type switch/remove."
+result: issue
+reported: "Colour popover opens, off-palette #123456 shows 'Custom (kept)', Blue applies, Remove colour works, two ⌘Z restore #123456 (save unchanged). Panels: Insert → Info, title, switch to Warning, Remove panel (keeps content) all emit correct wiki, and ⌘Z undoes once the editor has focus. BUT after any Panel options action focus leaves ProseMirror (type switch → wrapper div, Remove → BODY), so the next ⌘Z or typing does nothing in the editor (in the app, J/K would then reach app shortcuts)."
+severity: major
 
 ### 9. Links
 ⌘K and the toolbar link popover, paste a URL over a selection, try `javascript:`, use Open.
@@ -75,9 +77,8 @@ note: "⌘K opens the popover with the URL field focused; https applies; `javasc
 ### 10. Source mode
 Toggle with preview on, hide preview, Narrow width, edit in source and toggle back, then ⌘Z once.
 expected: Narrow width auto-hides the preview; a single ⌘Z reverts the whole source session.
-result: issue
-reported: "Preview shows beside source and a single ⌘Z reverts the whole source session. BUT after ⌘⇧M (or clicking Source) focus stays on the hidden rich editor: typed 'QQ' went into the invisible rich doc, the source pane still showed the old text, and the emitted value became 'QQHello…' while the user sees 'Hello…'. Saved text differs from what is on screen."
-severity: blocker
+result: pass
+retest: "Re-test after 98-15: after ⌘⇧M, typed QQ + Enter + text land in the textarea; the preview beside source updates; back to rich, a single ⌘Z reverts the whole source session."
 
 ### 11. Forced source and failed save (SAFE-05 / D-08)
 Load a fixture or paste text that fails to load; in rich, type an unspellable token.
@@ -100,50 +101,42 @@ note: "inline/formatting: rich view matches the source-mode WikiRenderer preview
 ## Summary
 
 total: 13
-passed: 7
-issues: 5
-pending: 1
+passed: 11
+issues: 2
+pending: 0
 skipped: 0
 blocked: 0
 
 ## Gaps
 
-- truth: "Typing paragraphs with Enter in rich mode saves (test 1)"
-  status: failed
-  reason: "Enter copies the first block's gap=0 onto the new paragraph (gap global attr in src/lib/wiki/editor/schema.ts:33 keeps TipTap's default keepOnSplit), so the emit joins paragraphs and the save check fails. Likely fix: keepOnSplit: false on the gap attribute. Also resolves the logged 'Enter at the start of the first block copies gap 0' limitation."
-  severity: blocker
-  test: 1
-  artifacts: [src/lib/wiki/editor/schema.ts, src/components/wiki-editor/gap-keeper.ts]
-  missing: ["keepOnSplit: false on gap", "test: split a gap-0 paragraph via real splitBlock, then saveWiki → saved"]
+<!-- Round 1 gaps (Enter gap, mode-toggle focus, Cmd+Arrow, narrow toolbar More/mode toggle, empty list banner) were closed by 98-14..16 and re-verified in WKWebView on 2026-11-17. -->
 
-- truth: "Switching to source moves focus to the source textarea; keystrokes never edit the hidden rich doc (tests 6, 10)"
+- truth: "Narrow width keeps every inline Full toolbar item visible or in ⋯ More (test 7)"
   status: failed
-  reason: "Mode toggle (⌘⇧M or the Source radio) leaves focus on the hidden ProseMirror or BODY. Typing edits the invisible rich doc and changes the emitted value; a second ⌘⇧M navigates away."
-  severity: blocker
-  test: 10
-  artifacts: [src/components/wiki-editor/WikiEditor.tsx, src/components/wiki-editor/source/]
-  missing: ["focus the source textarea on toRich→source", "rich editor not editable/focusable while hidden"]
-
-- truth: "Programmatic focus leaves a working caret and Cmd+Left/Right move on the first press (test 5)"
-  status: failed
-  reason: "editor.commands.focus() doesn't focus the DOM in WKWebView; the first Cmd+Left after Source→Rich is a no-op. Phase 96 recommended binding Mod-ArrowLeft/Right; keymap.ts has none."
-  severity: major
-  test: 5
-  artifacts: [src/components/wiki-editor/WikiEditor.tsx, src/components/wiki-editor/keymap.ts]
-  missing: ["Mod-ArrowLeft/Right bindings (selectTextblockStart/End)", "DOM focus when switching back to rich"]
-
-- truth: "Narrow width keeps the Full toolbar on one row with overflow in ⋯ More and the mode toggle visible (test 7)"
-  status: failed
-  reason: "At 360px the Full preset clips after Insert; no More button; the Rich/Source toggle is off-screen."
+  reason: "User reported (re-test): at 360px Italic is clipped by the overflow-hidden data-toolbar-items region and is not in More."
   severity: major
   test: 7
-  artifacts: [src/components/wiki-editor/toolbar/Toolbar.tsx, src/components/wiki-editor/toolbar/toolbar-config.ts]
-  missing: ["overflow measurement/container query that moves items to More at narrow width"]
+  root_cause: "Pinned controls (Insert, More, Rich|Source ~214px) leave the items region 144px; text style (98) + divider + Bold + Italic need 175. The Full breakpoints in toolbar-config.ts keep italic inline at 360 and give it no overflow entry."
+  artifacts: [taskflow/src/components/wiki-editor/toolbar/toolbar-config.ts, taskflow/src/components/wiki-editor/toolbar/Toolbar.tsx]
+  missing: ["italic in the Full overflow order with a breakpoint above 360 (or reclaim width so it fits)", "test: the 360 inline set fits its measured width"]
+  debug_session: "inline WKWebView probe"
 
-- truth: "An empty list item doesn't show a save error (typing `# ` or Enter in a list)"
+- truth: "The sticky toolbar is opaque while content scrolls under it (test 7)"
   status: failed
-  reason: "An empty list item emits `# ` / `* `, which reads back as a paragraph, so a red 'Couldn't save safely' banner flashes on every new bullet until the first character."
+  reason: "User reported (re-test): the toolbar uses bg-muted/40, so scrolled paragraphs show through it."
+  severity: cosmetic
+  test: 7
+  root_cause: "Toolbar.tsx:328 uses bg-muted/40, which is translucent; a sticky bar needs an opaque ground."
+  artifacts: [taskflow/src/components/wiki-editor/toolbar/Toolbar.tsx]
+  missing: ["opaque background (bg-background under the muted tint)"]
+  debug_session: "inline WKWebView probe"
+
+- truth: "Panel options actions (switch type, Remove panel) return focus to the editor (test 8)"
+  status: failed
+  reason: "User reported (re-test): after a Panel options action focus is on a wrapper div or BODY; ⌘Z and typing do nothing until the user clicks back in."
   severity: major
-  test: 4
-  artifacts: [src/lib/wiki/editor/engine.ts, src/components/wiki-editor/WikiEditor.tsx]
-  missing: ["treat a transient empty list item as no-op/hold the last good save instead of a failure banner"]
+  test: 8
+  root_cause: "The DropdownMenu in PanelView.tsx restores focus to its trigger, which sits in the contenteditable=false header (or is deleted with the panel, so focus falls to BODY); the handlers never call editor.view.focus()."
+  artifacts: [taskflow/src/components/wiki-editor/nodeviews/PanelView.tsx]
+  missing: ["focus the editor after the action (Base UI finalFocus or editor.view.focus())", "check the same for the code-block language picker and the table toolbar"]
+  debug_session: "inline WKWebView probe"
