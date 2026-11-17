@@ -102,6 +102,11 @@ Issue-creation drafts, the Drafts chip and the large two-column modal stay in Ph
   Verify with grep that nothing in prod imports them before deleting.
 - **D-18:** Success criterion 5 must be provable: no `insertAtCursor`, no Preview `TabsTrigger` and no textarea toolbar remain in `src/`. A guard test, like the StatTile/ChartWrapper deletion guard, is welcome.
 
+### Planning-time decisions (2026-11-17, from research open questions)
+- **D-19:** The composer button keeps its current label **"Comment"**. The tooltip is "Comment ⌘↵". Where the UI-SPEC and D-14 say "Send" for the composer, read "Comment".
+- **D-20:** **Create Epic gets attachment staging like Create Issue.** Pasted or dropped files are staged in the editor and uploaded to the new epic after `createIssue` succeeds, reusing the Create Issue staging and upload path.
+- **D-21:** **Drafts are cleared on credential change.** Hook the drafts store into the existing credential-save reset (the `queryClient.clear()` / `credentialsRevision` flow) so drafts never carry across Jira accounts.
+
 ### Claude's Discretion
 - **Adoption order:** the user said "you decide". Suggested order, lowest risk first, each step shippable:
   1. Create Epic;
