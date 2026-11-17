@@ -16,6 +16,9 @@ export interface ToolbarButtonProps {
   children?: React.ReactNode;
 }
 
+/** Props injected by a wrapping Popover/Menu trigger are forwarded onto the button. */
+type TriggerProps = Omit<React.ComponentProps<'button'>, keyof ToolbarButtonProps>;
+
 /** Icon button for the editor toolbar: tooltip with label + keycaps, keeps editor focus. */
 export function ToolbarButton({
   label,
@@ -26,13 +29,15 @@ export function ToolbarButton({
   disabled,
   className,
   children,
-}: ToolbarButtonProps) {
+  ...rest
+}: ToolbarButtonProps & TriggerProps) {
   return (
     <Tooltip>
       <TooltipTrigger
         delay={300}
         render={
           <Button
+            {...rest}
             type="button"
             variant="ghost"
             size="icon-sm"

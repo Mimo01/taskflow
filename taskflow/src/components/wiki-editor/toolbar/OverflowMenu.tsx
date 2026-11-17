@@ -5,6 +5,9 @@ import {
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -17,6 +20,8 @@ export interface OverflowItem {
   onSelect: () => void;
   pressed?: boolean;
   disabled?: boolean;
+  /** Nested content (e.g. the colour palette); renders the item as a submenu. */
+  submenu?: React.ReactNode;
 }
 
 export interface OverflowMenuProps {
@@ -55,7 +60,15 @@ export function OverflowMenu({ items }: OverflowMenuProps) {
       </Tooltip>
       <DropdownMenuContent align="end">
         {items.map((item) =>
-          item.pressed === undefined ? (
+          item.submenu ? (
+            <DropdownMenuSub key={item.id}>
+              <DropdownMenuSubTrigger disabled={item.disabled}>
+                {item.icon}
+                {item.label}
+              </DropdownMenuSubTrigger>
+              <DropdownMenuSubContent>{item.submenu}</DropdownMenuSubContent>
+            </DropdownMenuSub>
+          ) : item.pressed === undefined ? (
             <DropdownMenuItem key={item.id} disabled={item.disabled} onClick={item.onSelect}>
               {item.icon}
               {item.label}
