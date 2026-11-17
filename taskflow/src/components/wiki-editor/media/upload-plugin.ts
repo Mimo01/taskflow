@@ -9,7 +9,13 @@ import {
 import { Decoration, DecorationSet } from '@tiptap/pm/view';
 import { getHost, setLocalPreview } from '../host';
 import { embedContentFor } from './embed';
-import { classifyFile, clipboardImageName, renameFile, stagedFileName } from './upload-state';
+import {
+  classifyFile,
+  clipboardImageName,
+  renameFile,
+  stagedFileName,
+  uniqueFileName,
+} from './upload-state';
 
 /*
  * Upload placeholders are widget decorations held in plugin state, never document nodes, so a
@@ -98,6 +104,13 @@ function docNames(editor: Editor): Set<string> {
     }
   });
   for (const a of getHost(editor).attachments) names.add(a.filename);
+  return names;
+}
+
+/** Names a new upload must not reuse: doc embeds, issue attachments and in-flight uploads. */
+export function takenNames(editor: Editor): Set<string> {
+  const names = docNames(editor);
+  for (const p of uploadPluginKey.getState(editor.state)?.placeholders ?? []) names.add(p.name);
   return names;
 }
 
@@ -215,10 +228,11 @@ function canHandle(editor: Editor): boolean {
 /** Replace [from,to] with files: staged -> embeds at once; otherwise placeholders. */
 function ingest(editor: Editor, files: File[], from: number, to: number): void {
   const host = getHost(editor);
-  const taken = docNames(editor);
+  const taken = takenNames(editor);
   const prepared = files.map((f) => {
-    const named =
+    const base =
       classifyFile(f) === 'image' ? renameFile(f, clipboardImageName(f, new Date(), taken)) : f;
+    const named = renameFile(base, uniqueFileName(base.name, taken));
     taken.add(named.name);
     return named;
   });

@@ -43,6 +43,25 @@ describe('uploadIntoSource', () => {
     expect(insert).toHaveBeenCalledWith('!a(1).png!');
   });
 
+  it('WR-03: an upload named like an existing attachment gets a unique name', async () => {
+    const uploadFile = vi.fn(async (f: File) => att(f.name, f.type));
+    const editor = setup({ uploadFile, attachments: [att('screenshot.png', 'image/png')] });
+    const insert = vi.fn();
+    uploadIntoSource(
+      editor,
+      [
+        new File(['x'], 'screenshot.png', { type: 'image/png' }),
+        new File(['x'], 'r.pdf', { type: 'application/pdf' }),
+        new File(['x'], 'r.pdf', { type: 'application/pdf' }),
+      ],
+      insert,
+    );
+    await flush();
+    const names = uploadFile.mock.calls.map(([f]) => f.name);
+    expect(names).toHaveLength(3);
+    expect(new Set([...names, 'screenshot.png']).size).toBe(4);
+  });
+
   it('inserts a file link for non-images', async () => {
     const editor = setup({
       uploadFile: vi.fn().mockResolvedValue(att('report.pdf', 'application/pdf')),

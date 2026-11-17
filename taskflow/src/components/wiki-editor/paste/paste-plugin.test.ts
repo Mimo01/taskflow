@@ -169,6 +169,32 @@ describe('HTML images', () => {
     expect(images(editor).sort()).toEqual([...uploaded].sort());
   });
 
+  it('WR-03: pasted images sharing an alt name upload under distinct names', async () => {
+    vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:x');
+    const uploadFile = vi.fn(
+      async (f: File): Promise<JiraAttachment> => ({
+        id: f.name,
+        filename: f.name,
+        mimeType: 'image/png',
+        content: `https://j/${f.name}`,
+      }),
+    );
+    const { editor } = setup('x', {
+      uploadFile,
+      attachments: [
+        { id: '9', filename: 'logo.png', mimeType: 'image/png', content: 'https://j/9' },
+      ],
+    });
+    const img = '<img src="data:image/png;base64,AAAA" alt="logo.png">';
+    expect(paste(editor, { 'text/html': `<p>a${img}b${img}c</p>`, 'text/plain': 'abc' })).toBe(
+      true,
+    );
+    for (let i = 0; i < 6; i++) await flush();
+    const uploaded = uploadFile.mock.calls.map(([f]) => f.name);
+    expect(uploaded).toHaveLength(2);
+    expect(new Set([...uploaded, 'logo.png']).size).toBe(3);
+  });
+
   it('fetchPastedImage uses a 5000ms timeout signal', async () => {
     const spy = vi.spyOn(AbortSignal, 'timeout');
     vi.stubGlobal(

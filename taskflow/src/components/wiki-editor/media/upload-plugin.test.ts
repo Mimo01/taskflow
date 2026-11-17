@@ -208,6 +208,23 @@ describe('paste and drop handlers', () => {
     expect(seen[0]).toMatch(/^image-\d{8}-\d{6}\.png$/);
   });
 
+  it('WR-03: a file named like an existing attachment, or twice in one paste, gets a unique name', async () => {
+    const seen: string[] = [];
+    const { editor } = setup('hello', {
+      attachments: [created('screenshot.png'), created('notes.pdf')],
+      uploadFile: (f) => {
+        seen.push(f.name);
+        return Promise.resolve(created(f.name));
+      },
+    });
+    editor.commands.setTextSelection(3);
+    callPaste(editor, pasteEvent([png('screenshot.png'), png('logo.png'), png('logo.png')]));
+    callPaste(editor, pasteEvent([pdf('notes.pdf')]));
+    await flush();
+    expect(seen).toHaveLength(4);
+    expect(new Set([...seen, 'screenshot.png', 'notes.pdf']).size).toBe(6);
+  });
+
   it('leaves mixed text+image html to the html paste path', () => {
     const { editor } = setup('hello', { uploadFile: () => new Promise(() => {}) });
     const ev = pasteEvent([png('a.png')], '<p>some text</p><img src="x">');

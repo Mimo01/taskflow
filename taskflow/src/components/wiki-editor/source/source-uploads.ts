@@ -7,6 +7,7 @@ import {
   clipboardImageName,
   renameFile,
   stagedFileName,
+  uniqueFileName,
 } from '../media/upload-state';
 
 /**
@@ -37,6 +38,7 @@ export function uploadIntoSource(
       insert(stagedAttachmentRef(renamed));
       continue;
     }
+    file = renameFile(file, uniqueFileName(file.name, taken));
     taken.add(file.name);
     host.uploadFile?.(file).then(
       (att) => insert(attachmentRef(att)),

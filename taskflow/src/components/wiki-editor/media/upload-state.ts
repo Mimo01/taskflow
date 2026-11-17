@@ -65,6 +65,13 @@ export function stagedFileName(file: Pick<File, 'name'>, taken: ReadonlySet<stri
   return dedupe(base, ext, taken);
 }
 
+/** `name`, or `name-2.ext`, `name-3.ext`… when it is already taken (WR-03). */
+export function uniqueFileName(name: string, taken: ReadonlySet<string>): string {
+  if (!taken.has(name)) return name;
+  const ext = extOf(name);
+  return dedupe(ext ? name.slice(0, name.length - ext.length - 1) : name, ext, taken);
+}
+
 export function renameFile(file: File, name: string): File {
   if (file.name === name) return file;
   return new File([file], name, { type: file.type, lastModified: file.lastModified });

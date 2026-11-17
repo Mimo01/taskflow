@@ -7,8 +7,8 @@ import { loadWiki } from '@/lib/wiki/editor';
 import { useAuthStore } from '@/stores/auth.store';
 import { getHost } from '../host';
 import { isSafeLinkUrl } from '../link-url';
-import { type UploadEntry, withUploads } from '../media/upload-plugin';
-import { clipboardImageName, renameFile } from '../media/upload-state';
+import { takenNames, type UploadEntry, withUploads } from '../media/upload-plugin';
+import { clipboardImageName, renameFile, uniqueFileName } from '../media/upload-state';
 import { normalisePastedHtml, PASTE_IMAGE_MARKER_PREFIX } from './html-normalise';
 import { looksLikeWiki } from './wiki-text';
 
@@ -99,7 +99,7 @@ function handleHtml(editor: Editor, view: Editor['view'], html: string, text: st
   });
   const byMarker = new Map(images.map((i) => [i.marker, i]));
   const uploading = canUpload(editor);
-  const taken = new Set<string>(host.attachments.map((a) => a.filename));
+  const taken = takenNames(editor);
   const entries: UploadEntry[] = [];
   const items = found.map((f, i) => {
     const img = byMarker.get(f.marker);
@@ -127,7 +127,10 @@ function handleHtml(editor: Editor, view: Editor['view'], html: string, text: st
         taken,
       );
       const urlName = src.startsWith('data:') ? null : nameFromUrl(src);
-      const name = img.alt && /\.\w{2,5}$/.test(img.alt) ? img.alt : (urlName ?? generic);
+      const name = uniqueFileName(
+        img.alt && /\.\w{2,5}$/.test(img.alt) ? img.alt : (urlName ?? generic),
+        taken,
+      );
       taken.add(name);
       entries.push({
         name,
