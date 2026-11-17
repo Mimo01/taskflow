@@ -24,8 +24,10 @@ import type { WikiEditorHandle, WikiEditorHost } from '@/components/wiki-editor/
 import { WikiEditorLazy } from '@/components/wiki-editor/WikiEditorLazy';
 import { useCompactOnScroll } from '@/hooks/useCompactOnScroll';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
+import { useEditorDraft } from '@/hooks/useEditorDraft';
 import { useMentionUserMap } from '@/hooks/useMentionUserMap';
 import { useResizable } from '@/hooks/useResizable';
+import { draftKey } from '@/lib/draft-keys';
 import { refreshIssueDetail } from '@/lib/issue-detail-refresh';
 import type { JiraComment, JiraIssue, TimelineFilter } from '@/services/jira';
 import {
@@ -43,6 +45,7 @@ import type { JiraWorklog } from '@/services/jira/types';
 import { deleteWorklog, fetchFullWorklogs, updateWorklog } from '@/services/jira/worklogs';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
+import { commentEditDraftsFor, useDraftsStore } from '@/stores/drafts.store';
 import { usePinnedTabsStore } from '@/stores/pinned-tabs.store';
 import { useRecentItemsStore } from '@/stores/recent-items.store';
 import { useSettingsStore } from '@/stores/settings.store';
@@ -348,6 +351,14 @@ export function IssueDetailView({
   const [editBase, setEditBase] = useState('');
   const [discardOpen, setDiscardOpen] = useState(false);
   const commentEditorRef = useRef<WikiEditorHandle>(null);
+  const draft = useEditorDraft({
+    key: editingCommentId ? draftKey.commentEdit(editingCommentId) : null,
+    kind: 'comment-edit',
+    issueKey: issueKey ?? '',
+    base: editBase,
+    liveBase: comments.find((c) => c.id === editingCommentId)?.body ?? null,
+  });
+  const allDrafts = useDraftsStore((s) => s.drafts);
   const [editError, setEditError] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
@@ -357,9 +368,11 @@ export function IssueDetailView({
       if (!token) throw new Error('No token');
       return updateComment(jiraBaseUrl ?? '', token, issueKey ?? '', commentId, body);
     },
-    onSuccess: () => {
+    onSuccess: (_data, { commentId }) => {
+      useDraftsStore.getState().clearDraft(draftKey.commentEdit(commentId));
       setEditingCommentId(null);
       setEditText('');
+      setEditBase('');
       setEditError(null);
       queryClient.invalidateQueries({ queryKey: ['jira-issue-detail', issueKey, jiraBaseUrl] });
       queryClient.invalidateQueries({ queryKey: ['jira-issue-comments', issueKey, jiraBaseUrl] });
@@ -415,9 +428,12 @@ export function IssueDetailView({
   const [handleHovered, setHandleHovered] = useState(false);
 
   const handleEdit = (comment: JiraComment) => {
+    // Switching comments (D-07): persist the one being left before the hook's key changes.
+    draft.flush();
+    const stored = useDraftsStore.getState().drafts[draftKey.commentEdit(comment.id)];
     setEditingCommentId(comment.id);
-    setEditBase(comment.body);
-    setEditText(comment.body);
+    setEditBase(stored?.base ?? comment.body);
+    setEditText(stored?.text ?? comment.body);
     setEditError(null);
   };
 
@@ -425,6 +441,25 @@ export function IssueDetailView({
     if (!window.confirm('Delete this comment? This cannot be undone.')) return;
     setDeleteError(null);
     deleteMutateRef.current(comment.id);
+  };
+
+  const handleEditTextChange = (text: string) => {
+    setEditText(text);
+    draft.schedule(text);
+  };
+
+  const liveEditBody = comments.find((c) => c.id === editingCommentId)?.body ?? null;
+  const handleDiscardDraft = () => {
+    draft.discard();
+    setEditText(editBase);
+    commentEditorRef.current?.focus({ toEnd: true });
+  };
+  const handleUseJiraVersion = () => {
+    if (liveEditBody === null) return;
+    setEditText(liveEditBody);
+    setEditBase(liveEditBody);
+    draft.discard();
+    commentEditorRef.current?.focus({ toEnd: true });
   };
 
   const handleSaveEdit = (commentId: string, submitted?: string) => {
@@ -453,6 +488,48 @@ export function IssueDetailView({
     referenceTexts: [issue?.fields.description ?? '', ...commentTexts],
     onOpenIssue,
   });
+
+  // D-04: reopen the most recent comment-edit draft once per issue, scrolled into view.
+  const reopenedForRef = useRef<string | null>(null);
+  const commentsLoaded = commentsQuery.isSuccess;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: allDrafts/comments read once per issue
+  useEffect(() => {
+    if (!issueKey || reopenedForRef.current === issueKey) return;
+    if (!draft.hydrated || !commentsLoaded || editingCommentId !== null) return;
+    reopenedForRef.current = issueKey;
+    const [match] = commentEditDraftsFor(allDrafts, issueKey)
+      .filter(([id]) => comments.some((c) => c.id === id))
+      .sort((x, y) => y[1].updatedAt - x[1].updatedAt);
+    if (!match) return;
+    const [id, stored] = match;
+    const live = comments.find((c) => c.id === id);
+    setEditingCommentId(id);
+    setEditBase(stored.base ?? live?.body ?? '');
+    setEditText(stored.text);
+    requestAnimationFrame(() => {
+      Array.from(document.querySelectorAll<HTMLElement>('[data-comment-id]'))
+        .find((el) => el.dataset.commentId === id)
+        ?.scrollIntoView({ block: 'nearest' });
+    });
+  }, [issueKey, draft.hydrated, commentsLoaded, editingCommentId]);
+
+  // D-06: drop drafts for deleted comments (the comment endpoint returns the full list).
+  const commentIdsSignature = commentsQuery.isSuccess ? comments.map((c) => c.id).join(',') : null;
+  useEffect(() => {
+    if (!issueKey || commentIdsSignature === null) return;
+    useDraftsStore
+      .getState()
+      .pruneCommentEdits(
+        issueKey,
+        commentIdsSignature === '' ? [] : commentIdsSignature.split(','),
+      );
+  }, [issueKey, commentIdsSignature]);
+
+  // D-06: the issue is gone (404) -> its drafts can never be used again.
+  const issueGone = !!issueError && getIssueUnavailableInfo(issueError).status === 404;
+  useEffect(() => {
+    if (issueKey && issueGone) useDraftsStore.getState().clearIssue(issueKey);
+  }, [issueKey, issueGone]);
 
   // ─── Worklog data + CRUD ──────────────────────────────────────────────────────
   const worklogsQuery = useQuery({
@@ -655,14 +732,15 @@ export function IssueDetailView({
           editingCommentId={editingCommentId}
           editText={editText}
           onEditStart={handleEdit}
-          onEditChange={setEditText}
+          onEditChange={handleEditTextChange}
           onEditSave={handleSaveEdit}
           onEditCancel={requestCancelEdit}
           editorHost={editorHost}
           editorRef={commentEditorRef}
-          editDraftState={null}
-          onEditDiscardDraft={() => {}}
-          onEditUseJira={() => {}}
+          editDraftState={draft.state}
+          onEditDiscardDraft={handleDiscardDraft}
+          onEditUseJira={handleUseJiraVersion}
+          onEditBlur={draft.flush}
           onDelete={handleDelete}
           editError={editError}
           deleteError={deleteError}
@@ -692,6 +770,7 @@ export function IssueDetailView({
         }}
         onDiscard={() => {
           setDiscardOpen(false);
+          draft.discard();
           handleCancelEdit();
         }}
       />
@@ -885,6 +964,7 @@ interface CommentCardProps {
   editDraftState?: 'draft' | 'stale' | null;
   onEditDiscardDraft?: () => void;
   onEditUseJira?: () => void;
+  onEditBlur?: () => void;
 }
 
 function CommentCard({
@@ -908,6 +988,7 @@ function CommentCard({
   editDraftState = null,
   onEditDiscardDraft,
   onEditUseJira,
+  onEditBlur,
 }: CommentCardProps) {
   const [showMenu, setShowMenu] = useState(false);
   const [menuPosition, setMenuPosition] = useState<{ top: number; right: number } | null>(null);
@@ -927,7 +1008,10 @@ function CommentCard({
   }, [showMenu]);
 
   return (
-    <div className="rounded-lg border bg-card p-3 density-compact:p-2 density-comfortable:p-4 space-y-2 density-compact:space-y-1 density-comfortable:space-y-3">
+    <div
+      data-comment-id={comment.id}
+      className="rounded-lg border bg-card p-3 density-compact:p-2 density-comfortable:p-4 space-y-2 density-compact:space-y-1 density-comfortable:space-y-3"
+    >
       {/* Card header */}
       <div className="flex items-center gap-2 text-xs">
         <span className="font-medium text-sm">{comment.author.displayName}</span>
@@ -1000,7 +1084,8 @@ function CommentCard({
 
       {/* Card body */}
       {isEditing ? (
-        <div className="space-y-2">
+        // biome-ignore lint/a11y/noStaticElementInteractions: focusout bubbling only (draft flush)
+        <div className="space-y-2" onBlur={onEditBlur}>
           <WikiEditorLazy
             ref={editorRef}
             value={editText}

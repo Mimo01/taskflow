@@ -41,6 +41,7 @@ interface ActivityTimelineProps {
   editDraftState?: 'draft' | 'stale' | null;
   onEditDiscardDraft?: () => void;
   onEditUseJira?: () => void;
+  onEditBlur?: () => void;
   onDelete: (comment: JiraComment) => void;
   editError: string | null;
   deleteError: string | null;
@@ -70,6 +71,7 @@ interface ActivityTimelineProps {
     editDraftState?: 'draft' | 'stale' | null;
     onEditDiscardDraft?: () => void;
     onEditUseJira?: () => void;
+    onEditBlur?: () => void;
   }>;
   /** Worklog edit/delete wiring */
   editingWorklogId: string | null;
@@ -104,6 +106,7 @@ export function ActivityTimeline({
   editDraftState,
   onEditDiscardDraft,
   onEditUseJira,
+  onEditBlur,
   onDelete,
   editError,
   deleteError,
@@ -256,6 +259,7 @@ export function ActivityTimeline({
                   editDraftState={isEditing ? editDraftState : null}
                   onEditDiscardDraft={isEditing ? onEditDiscardDraft : undefined}
                   onEditUseJira={isEditing ? onEditUseJira : undefined}
+                  onEditBlur={isEditing ? onEditBlur : undefined}
                 />
               </li>
             );

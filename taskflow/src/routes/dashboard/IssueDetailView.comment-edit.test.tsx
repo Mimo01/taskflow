@@ -201,6 +201,7 @@ import { useDraftsStore } from '@/stores/drafts.store';
 import { usePinnedTabsStore } from '@/stores/pinned-tabs.store';
 import { useRecentItemsStore } from '@/stores/recent-items.store';
 import { useSettingsStore } from '@/stores/settings.store';
+import { ApiError } from '@/lib/api-error';
 import { lastStubProps } from '@/test/wiki-editor-stub';
 
 import { IssueDetailView } from './IssueDetailView';
@@ -285,10 +286,10 @@ function renderView() {
   );
 }
 
-async function startEdit(commentId = 'c1') {
+/** Opens the first available Edit (the card already being edited hides its menu). */
+async function startEdit() {
   const buttons = await screen.findAllByLabelText('Comment actions');
-  const idx = commentId === 'c1' ? 0 : Number(commentId.slice(1)) - 1;
-  fireEvent.click(buttons[idx] as HTMLElement);
+  fireEvent.click(buttons[0] as HTMLElement);
   const menuContainer = (await screen.findByText('Delete')).closest('.fixed') as HTMLElement;
   fireEvent.click(menuContainer.querySelector('button') as HTMLElement);
   return (await screen.findByLabelText('Edit comment')) as HTMLTextAreaElement;
@@ -410,5 +411,137 @@ describe('comment edit host (Task 1)', () => {
     ).toBeTruthy();
     expect(screen.queryByText(/boom secret detail/)).toBeNull();
     expect(screen.getByLabelText('Edit comment')).toBeTruthy();
+  });
+});
+
+const K1 = 'comment:edit:c1';
+const stored = (key: string) => useDraftsStore.getState().drafts[key];
+const seed = (id: string, text: string, base: string, issueKey = ISSUE_KEY, updatedAt = 1) =>
+  useDraftsStore.setState((st) => ({
+    drafts: {
+      ...st.drafts,
+      [`comment:edit:${id}`]: { kind: 'comment-edit', issueKey, text, base, updatedAt },
+    },
+  }));
+
+describe('comment edit drafts (Task 2)', () => {
+  it('writes the draft after 500 ms and shows Draft saved', async () => {
+    renderView();
+    const editor = await startEdit();
+    fireEvent.change(editor, { target: { value: 'My draft' } });
+    expect(stored(K1)).toBeUndefined();
+    await waitFor(() => expect(stored(K1)?.text).toBe('My draft'), { timeout: 3000 });
+    expect(stored(K1)?.base).toBe('Hello world');
+    expect(stored(K1)?.kind).toBe('comment-edit');
+    expect(await screen.findByText('Draft saved')).toBeTruthy();
+  });
+
+  it('reopens the comment in edit mode with the draft and scrolls it into view', async () => {
+    seed('c1', 'Half typed', 'Hello world');
+    renderView();
+    const editor = (await screen.findByLabelText('Edit comment')) as HTMLTextAreaElement;
+    expect(editor.value).toBe('Half typed');
+    await waitFor(() => expect(Element.prototype.scrollIntoView).toHaveBeenCalled());
+    expect(screen.getByText('Draft saved')).toBeTruthy();
+  });
+
+  it('shows the stale note and Use Jira version takes the live body', async () => {
+    seed('c1', 'Half typed', 'Old Jira text');
+    renderView();
+    await screen.findByLabelText('Edit comment');
+    expect(await screen.findByText('Changed in Jira since your draft')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Use Jira version' }));
+    await waitFor(() =>
+      expect((screen.getByLabelText('Edit comment') as HTMLTextAreaElement).value).toBe(
+        'Hello world',
+      ),
+    );
+    expect(stored(K1)).toBeUndefined();
+    expect(screen.queryByText('Changed in Jira since your draft')).toBeNull();
+  });
+
+  it('the note Discard clears the draft, resets text to base and focuses, no dialog', async () => {
+    seed('c1', 'Half typed', 'Hello world');
+    renderView();
+    await screen.findByLabelText('Edit comment');
+    fireEvent.click(await screen.findByRole('button', { name: 'Discard' }));
+    const editor = screen.getByLabelText('Edit comment') as HTMLTextAreaElement;
+    await waitFor(() => expect(editor.value).toBe('Hello world'));
+    expect(stored(K1)).toBeUndefined();
+    expect(screen.queryByText('Discard changes?')).toBeNull();
+    await waitFor(() => expect(document.activeElement).toBe(editor));
+  });
+
+  it('switching to another comment keeps the first one as a draft', async () => {
+    mockFetchComments.mockResolvedValue([comment('c1', 'First'), comment('c2', 'Second')] as never);
+    renderView();
+    const editor = await startEdit();
+    expect(editor.value).toBe('First');
+    fireEvent.change(editor, { target: { value: 'First changed' } });
+    // Open the other comment's menu right away (before the debounce fires).
+    const second = await startEdit();
+    await waitFor(() => expect(second.value).toBe('Second'));
+    expect(stored(K1)?.text).toBe('First changed');
+    expect(stored('comment:edit:c2')).toBeUndefined();
+  });
+
+  it('a successful save clears the draft; a failed save keeps it', async () => {
+    mockUpdateComment.mockRejectedValueOnce(new Error('nope'));
+    renderView();
+    const editor = await startEdit();
+    fireEvent.change(editor, { target: { value: 'Changed' } });
+    await waitFor(() => expect(stored(K1)?.text).toBe('Changed'), { timeout: 3000 });
+    fireEvent.keyDown(editor, { key: 'Enter', metaKey: true });
+    await screen.findByText(/Couldn't save your changes/);
+    expect(stored(K1)?.text).toBe('Changed');
+    fireEvent.keyDown(screen.getByLabelText('Edit comment'), { key: 'Enter', metaKey: true });
+    await waitFor(() => expect(screen.queryByLabelText('Edit comment')).toBeNull());
+    expect(stored(K1)).toBeUndefined();
+  });
+
+  it('Discard in the dialog clears the draft', async () => {
+    renderView();
+    const editor = await startEdit();
+    fireEvent.change(editor, { target: { value: 'Changed' } });
+    await waitFor(() => expect(stored(K1)).toBeDefined(), { timeout: 3000 });
+    fireEvent.keyDown(editor, { key: 'Escape' });
+    await screen.findByText('Discard changes?');
+    fireEvent.click(screen.getByRole('button', { name: 'Discard' }));
+    await waitFor(() => expect(screen.queryByLabelText('Edit comment')).toBeNull());
+    expect(stored(K1)).toBeUndefined();
+  });
+
+  it('a complete comment list prunes drafts of missing comments (this issue only)', async () => {
+    seed('c3', 'Orphan', 'x');
+    seed('c9', 'Other issue', 'x', 'OTHER-1');
+    renderView();
+    await waitFor(() => expect(stored('comment:edit:c3')).toBeUndefined());
+    expect(stored('comment:edit:c9')).toBeDefined();
+  });
+
+  it('a comments query error removes nothing', async () => {
+    seed('c3', 'Orphan', 'x');
+    mockFetchComments.mockRejectedValue(new Error('network'));
+    renderView();
+    await screen.findByRole('heading', { level: 2, name: 'Test issue title' });
+    await new Promise((r) => setTimeout(r, 100));
+    expect(stored('comment:edit:c3')).toBeDefined();
+  });
+
+  it('an issue 404 clears the drafts for the issue', async () => {
+    seed('c1', 'Draft', 'Hello world');
+    seed('c9', 'Other issue', 'x', 'OTHER-1');
+    mockFetchIssueDetail.mockRejectedValue(new ApiError('gone', 404, 'jira'));
+    renderView();
+    await waitFor(() => expect(stored(K1)).toBeUndefined());
+    expect(stored('comment:edit:c9')).toBeDefined();
+  });
+
+  it.each([401, 403])('an issue %i clears nothing', async (status) => {
+    seed('c1', 'Draft', 'Hello world');
+    mockFetchIssueDetail.mockRejectedValue(new ApiError('denied', status, 'jira'));
+    renderView();
+    await new Promise((r) => setTimeout(r, 200));
+    expect(stored(K1)).toBeDefined();
   });
 });
