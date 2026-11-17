@@ -156,3 +156,30 @@ describe('typed text renders as typed (97 gaps 1+2)', () => {
     expect(preprocess.JIRA_ESCAPE_CHARS).toEqual(ESCAPABLE_CHARS);
   });
 });
+
+describe('typed bare URLs with underscores (WR-01)', () => {
+  const typed = 'see http://a.com/_a_ and _b_';
+
+  it('saves to text that renders a working link with the typed href', () => {
+    const { html, visible } = roundTrip(doc(p(t(typed))));
+    const el = document.createElement('div');
+    el.innerHTML = html;
+    expect(el.querySelector('a')?.getAttribute('href')).toBe('http://a.com/_a_');
+    expect(visible).toBe(typed);
+    expect(el.querySelector('em')).toBeNull();
+  });
+
+  it('reloads as the same rich paragraph', () => {
+    const r = saveWiki(load('seed'), wikiSchema.nodeFromJSON(doc(p(t(typed))) as never));
+    expect(r.kind).toBe('saved');
+    if (r.kind !== 'saved') return;
+    expect(loadWiki(r.text, MAPS).kind).toBe('rich');
+  });
+
+  it('keeps trailing sentence punctuation outside the link', () => {
+    const el = document.createElement('div');
+    el.innerHTML = wikiToHtml('go to http://a.com/\\_a\\_.');
+    expect(el.querySelector('a')?.getAttribute('href')).toBe('http://a.com/_a_');
+    expect(el.textContent?.trim()).toBe('go to http://a.com/_a_.');
+  });
+});

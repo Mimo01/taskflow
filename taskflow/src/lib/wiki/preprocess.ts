@@ -751,6 +751,17 @@ export function preprocessJiraMarkup(
   // cross-cell <ins> tags in tables). A `\\` pair is the Jira hard break: returned
   // unchanged, consumed by the later hard-break passes. Runs after the `& < >` escape
   // (else the entity would become `&amp;#42;`) and after code extraction (code is content).
+  // WR-01: Jira drops the backslashes inside a bare URL (verified in 97-HUMAN-UAT test 1:
+  // `http://a.com/\_a\_` links to `http://a.com/_a_`), so the editor's escaped `_` must
+  // become a literal URL character, not an entity (which breaks the href). An underscore
+  // is hidden behind the USCORE sentinel so jira2md's italic pass cannot pair it;
+  // fixMarkdownLinkUnderscores restores it. Only http(s) tokens are touched.
+  result = result.replace(/\bhttps?:\/\/[^\s|\]]+/g, (url: string) =>
+    // Wrap in `<…>` so GFM does not drop a trailing `_` from the autolink.
+    /\\_/.test(url)
+      ? `<${url.replace(/[.,;:!?)]+$/, '').replace(/\\_/g, '\x00USCORE\x00')}>${url.match(/[.,;:!?)]+$/)?.[0] ?? ''}`
+      : url,
+  );
   result = result.replace(JIRA_ESCAPE_RE, (m: string) =>
     m === '\\\\' ? m : `&#${m.charCodeAt(1)};`,
   );
