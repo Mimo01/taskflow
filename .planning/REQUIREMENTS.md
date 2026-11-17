@@ -46,9 +46,9 @@
 
 ### Editing Workflow (FLOW)
 
-- [ ] **FLOW-01**: An unsent comment or description edit is kept as a local draft across closing the peek or modal and restarting the app
-- [ ] **FLOW-02**: User is warned before unsaved edits are discarded by an explicit Cancel or Esc in a comment edit or the Edit Issue modal; closing the peek or modal (X/backdrop), navigating away or quitting keeps the text as a local draft silently. The Create Issue modal is the exception: it auto-saves a draft (DRAFT-01)
-- [ ] **FLOW-03**: Cmd+Enter submits and Esc cancels in every editor host, deferring to open popovers
+- [x] **FLOW-01**: An unsent comment or description edit is kept as a local draft across closing the peek or modal and restarting the app
+- [x] **FLOW-02**: User is warned before unsaved edits are discarded by an explicit Cancel or Esc in a comment edit or the Edit Issue modal; closing the peek or modal (X/backdrop), navigating away or quitting keeps the text as a local draft silently. The Create Issue modal is the exception: it auto-saves a draft (DRAFT-01)
+- [x] **FLOW-03**: Cmd+Enter submits and Esc cancels in every editor host, deferring to open popovers
 - [x] **FLOW-04**: Global keyboard shortcuts are suppressed while typing in the editor (contenteditable)
 
 ### Issue Drafts (DRAFT)
@@ -63,11 +63,11 @@
 
 ### Host Adoption (HOST)
 
-- [ ] **HOST-01**: The Create/Edit Issue description uses the new editor
+- [x] **HOST-01**: The Create/Edit Issue description uses the new editor
 - [~] **HOST-02**: ~~Inline description edit on issue detail and peek uses the new editor~~ — Dropped by user decision 2026-11-17 (Phase 100 D-01): the description is edited only in the Edit Issue modal.
-- [ ] **HOST-03**: The comment composer and comment edit use the new editor (the unused InlineComment component is deleted under HOST-05)
-- [ ] **HOST-04**: The Create Epic description uses the new editor
-- [ ] **HOST-05**: The old textarea editing code (insertAtCursor toolbar, Preview tabs) is deleted
+- [x] **HOST-03**: The comment composer and comment edit use the new editor (the unused InlineComment component is deleted under HOST-05)
+- [x] **HOST-04**: The Create Epic description uses the new editor
+- [x] **HOST-05**: The old textarea editing code (insertAtCursor toolbar, Preview tabs) is deleted
 
 ### Polished Surfaces (UI)
 
@@ -127,9 +127,9 @@
 | INPUT-05 | Phase 99 | Complete |
 | INPUT-06 | Phase 99 | Complete |
 | INPUT-07 | Phase 99 | Complete |
-| FLOW-01 | Phase 100 | Pending |
-| FLOW-02 | Phase 100 | Pending |
-| FLOW-03 | Phase 100 | Pending |
+| FLOW-01 | Phase 100 | Complete |
+| FLOW-02 | Phase 100 | Complete |
+| FLOW-03 | Phase 100 | Complete |
 | FLOW-04 | Phase 98 | Complete |
 | DRAFT-01 | Phase 101 | Pending |
 | DRAFT-02 | Phase 101 | Pending |
@@ -138,11 +138,11 @@
 | DRAFT-05 | Phase 101 | Pending |
 | DRAFT-06 | Phase 101 | Pending |
 | DRAFT-07 | Phase 101 | Pending |
-| HOST-01 | Phase 100 | Pending |
+| HOST-01 | Phase 100 | Complete |
 | HOST-02 | Phase 100 | Dropped |
-| HOST-03 | Phase 100 | Pending |
-| HOST-04 | Phase 100 | Pending |
-| HOST-05 | Phase 100 | Pending |
+| HOST-03 | Phase 100 | Complete |
+| HOST-04 | Phase 100 | Complete |
+| HOST-05 | Phase 100 | Complete |
 | UI-01 | Phase 101 | Pending |
 | UI-02 | Phase 101 | Pending |
 | UI-03 | Phase 102 | Pending |
