@@ -238,7 +238,23 @@ Plans:
   4. A text that fails the round-trip check opens in source mode with a quiet notice, so rich editing can't corrupt it
   5. Typing never loses the caret or rebuilds the editor, wiki/markdown shortcuts and IME composition behave on macOS WKWebView (manual check), and app shortcuts are suppressed while typing
 
-**Plans**: TBD
+**Plans**: 13 plans
+
+Plans:
+- [ ] 98-01-PLAN.md — Engine fixes: saveWiki schema identity, schema exports, table-cell {code} escape, WR-02, IN-01
+- [ ] 98-02-PLAN.md — WR-01 bare-URL escaping (Jira UAT checkpoint, then fix; closes folded todo)
+- [ ] 98-03-PLAN.md — Install @tiptap/react + extensions, shared prose classes, wikiEditorMode setting, bundle guard
+- [ ] 98-04-PLAN.md — FLOW-04 typing-target guards, Editor shortcut category, Keycap, ToolbarButton
+- [ ] 98-05-PLAN.md — Headless editor core: extension list, keymap, wiki-first input rules, safe links
+- [ ] 98-06-PLAN.md — Session logic (undo-safe toggle, forced source, failed-save text), SourceView, ModeToggle
+- [ ] 98-07-PLAN.md — Panel/code/raw node views, Jira languages, panel commands, richExtensions
+- [ ] 98-08-PLAN.md — Insert list, text styles, InsertMenu, TableGridPicker, TextStyleMenu
+- [ ] 98-09-PLAN.md — Palette colour, link and table commands; ColourPopover, LinkPopover, TableToolbar
+- [ ] 98-10-PLAN.md — Toolbar composition: presets, one-row overflow, source-mode actions
+- [ ] 98-11-PLAN.md — WikiEditor shell (value binding, modes, notices, shortcuts) and lazy wrapper
+- [ ] 98-12-PLAN.md — Dev-tools Editor tab, React Compiler acceptance test, async chunk check
+- [ ] 98-13-PLAN.md — Manual macOS WKWebView UAT (IME, caret, input rules, visual pass)
+
 **UI hint**: yes
 
 ### Phase 99: Mentions, Media & Smart Input
