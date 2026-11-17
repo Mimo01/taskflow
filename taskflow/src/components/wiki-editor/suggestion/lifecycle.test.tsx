@@ -73,6 +73,21 @@ afterEach(() => {
 });
 
 describe('suggestion lifecycle', () => {
+  it('never opens in an unfocused editor after a programmatic content reset (99 UAT gap)', async () => {
+    render(<Harness />);
+    await waitFor(() => expect(current).not.toBeNull());
+    const editor = current as Editor;
+    act(() => {
+      (document.activeElement as HTMLElement | null)?.blur();
+      editor.commands.setContent('<p>a #q</p>', { emitUpdate: false });
+      editor.commands.setTextSelection(editor.state.doc.content.size - 1);
+    });
+    expect(editor.isFocused).toBe(false);
+    await new Promise((r) => setTimeout(r, 50));
+    expect(popovers().length).toBe(0);
+    expect(isAnySuggestionActive(editor.state)).toBe(false);
+  });
+
   it('opens on the trigger, closes on Esc and leaves the trigger text', async () => {
     render(<Harness />);
     await waitFor(() => expect(current).not.toBeNull());

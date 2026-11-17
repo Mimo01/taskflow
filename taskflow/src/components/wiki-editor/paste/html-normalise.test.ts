@@ -129,6 +129,16 @@ describe('normalisePastedHtml Google Docs', () => {
     const text = savedText(save);
     expect(text).toContain('Plain docs text with *bold* and {color:#0052cc}blue{color} words.');
   });
+
+  it('does not bold a heading from its font-weight style (99 UAT gap)', () => {
+    const { save } = pasteInto(googleDocs);
+    expect(savedText(save)).toMatch(/^h2\. Docs heading$/m);
+  });
+
+  it('keeps explicit <strong> inside a heading', () => {
+    const { save } = pasteInto('<h2>Plain <strong>loud</strong></h2>');
+    expect(savedText(save)).toContain('h2. Plain *loud*');
+  });
 });
 
 describe('normalisePastedHtml Jira rendered HTML', () => {

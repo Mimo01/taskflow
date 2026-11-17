@@ -76,7 +76,10 @@ export function createSuggestionExtension(spec: SuggestionSpec) {
           debounce: spec.debounce ?? 0,
           dismissOnOutsideClick: true,
           findSuggestionMatch: spec.findSuggestionMatch,
+          // Only a focused editor offers suggestions: a programmatic doc reset of an unfocused
+          // editor (shared value, external update) must not open a popover nobody can dismiss.
           allow: (props) =>
+            props.editor.isFocused &&
             !insideProtectedContext(props.state, props.range) &&
             (spec.allow ? spec.allow(props) : true),
           items: ({ query, editor, signal }) => spec.items({ query, editor, signal }),

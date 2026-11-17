@@ -157,7 +157,14 @@ function isBoldWeight(w: string | undefined): boolean {
 function styleMarks(el: Element, tag: string): MarkSpec[] {
   const style = styleMap(el);
   const marks: MarkSpec[] = [];
-  if (isBoldWeight(style.get('font-weight')) && tag !== 'b' && tag !== 'strong') {
+  // Docs/Word style every heading run font-weight:700; a heading is already bold, so only an
+  // explicit <b>/<strong> inside one becomes a bold mark.
+  if (
+    isBoldWeight(style.get('font-weight')) &&
+    tag !== 'b' &&
+    tag !== 'strong' &&
+    !el.closest('h1,h2,h3,h4,h5,h6')
+  ) {
     marks.push({ tag: 'strong' });
   }
   if (/italic|oblique/i.test(style.get('font-style') ?? '') && tag !== 'i' && tag !== 'em') {

@@ -30,5 +30,8 @@ tauri-plugin-updater = "2"
 tauri-plugin-process = "2"
 dirs = "5"
 
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = "0.6"
+
 [profile.dev.package.scrypt]
 opt-level = 3

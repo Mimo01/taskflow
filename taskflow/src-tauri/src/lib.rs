@@ -3,6 +3,24 @@ use std::sync::Mutex;
 use tauri::menu::{Menu, MenuItemBuilder, PredefinedMenuItem, Submenu};
 use tauri::{Emitter, Manager};
 
+/// Sends the native `pasteAsPlainText:` action to the focused window's WKWebView.
+#[cfg(target_os = "macos")]
+fn paste_as_plain_text(app: &tauri::AppHandle) {
+    for window in app.webview_windows().values() {
+        if !window.is_focused().unwrap_or(false) {
+            continue;
+        }
+        let _ = window.with_webview(|webview| unsafe {
+            let view = webview.inner() as *mut objc2::runtime::AnyObject;
+            let sender: *mut objc2::runtime::AnyObject = std::ptr::null_mut();
+            let _: () = objc2::msg_send![view, pasteAsPlainText: sender];
+        });
+    }
+}
+
+#[cfg(not(target_os = "macos"))]
+fn paste_as_plain_text(_app: &tauri::AppHandle) {}
+
 struct DebugMenuState {
     submenu: Submenu<tauri::Wry>,
     visible: Mutex<bool>,
@@ -352,6 +370,14 @@ pub fn run() {
                 ],
             )?;
 
+            // Cmd+Shift+V: WebKit binds nothing to it, so without this item the wiki editor's
+            // plain paste never receives a paste event (phase 99 UAT). The handler sends
+            // pasteAsPlainText: to the webview, which fires a text/plain-only paste.
+            let paste_plain_item = MenuItemBuilder::new("Paste and Match Style")
+                .id("menu-paste-plain")
+                .accelerator("CmdOrCtrl+Shift+V")
+                .build(handle)?;
+
             // --- Edit menu (required on macOS for Cmd+V/C/X/A/Z to reach the webview) ---
             let edit_menu = Submenu::with_items(
                 handle,
@@ -364,6 +390,7 @@ pub fn run() {
                     &PredefinedMenuItem::cut(handle, None)?,
                     &PredefinedMenuItem::copy(handle, None)?,
                     &PredefinedMenuItem::paste(handle, None)?,
+                    &paste_plain_item,
                     &PredefinedMenuItem::select_all(handle, None)?,
                     &PredefinedMenuItem::separator(handle)?,
                     &find_item,
@@ -398,6 +425,7 @@ pub fn run() {
                 | "menu-nav-worklogs" => {
                     let _ = app.emit(id, ());
                 }
+                "menu-paste-plain" => paste_as_plain_text(app),
                 _ => {}
             }
         })
