@@ -217,6 +217,39 @@ describe('wiki text paste', () => {
   });
 });
 
+describe('code context (CR-03)', () => {
+  const caretInside = (editor: Ed, text: string) => {
+    let at = -1;
+    editor.state.doc.descendants((n, pos) => {
+      if (at < 0 && n.isText && n.text?.includes(text)) at = pos + n.text.indexOf(text) + 1;
+    });
+    editor.commands.setTextSelection(at);
+  };
+
+  it('wiki text pasted into a code block stays literal code', () => {
+    const { editor, load } = setup('{code}\nfoo\n{code}');
+    caretInside(editor, 'foo');
+    const handled = paste(editor, { 'text/plain': 'h1. Title\n{panel}x{panel}' });
+    if (!handled) editor.commands.insertContent('h1. Title\n{panel}x{panel}');
+    expect(types(editor)).not.toContain('heading');
+    expect(types(editor)).not.toContain('panel');
+    expect(types(editor).filter((t) => t === 'codeBlock')).toHaveLength(1);
+    expect(saveText(editor, load).kind).toBe('saved');
+  });
+
+  it('HTML pasted into a code block is left to the default paste', () => {
+    const { editor } = setup('{code}\nfoo\n{code}');
+    caretInside(editor, 'foo');
+    expect(paste(editor, { 'text/html': '<h1>Head</h1>', 'text/plain': 'Head' })).toBe(false);
+  });
+
+  it('wiki text pasted inside monospace is left to the default paste', () => {
+    const { editor } = setup('a {{mono}} b');
+    caretInside(editor, 'ono');
+    expect(paste(editor, { 'text/plain': 'h2. Title\n* a\n* b' })).toBe(false);
+  });
+});
+
 describe('plain paste mode', () => {
   it('Cmd+Shift+V skips both paths once', () => {
     const { editor } = setup('x');

@@ -185,6 +185,11 @@ export const WikiSmartPaste = Extension.create({
             const plain = plainNext;
             plainNext = false;
             if (plain) return false;
+            // Code and monospace keep pasted text literal: never convert wiki/HTML there.
+            const { $from } = view.state.selection;
+            if ($from.parent.type.spec.code || $from.marks().some((m) => m.type.name === 'mono')) {
+              return false;
+            }
             const data = event.clipboardData;
             const html = data?.getData('text/html') ?? '';
             const text = data?.getData('text/plain') ?? '';
