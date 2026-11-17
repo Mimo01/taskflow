@@ -71,10 +71,29 @@ function collectStaticImports(
 
 const FORBIDDEN_BARE = /^(@tiptap\/|prosemirror)/;
 
-function violations(result: ReturnType<typeof collectStaticImports>): string[] {
+/**
+ * The only editor-chunk files an eager entry may reach: the lazy wrapper and the
+ * types module. Everything else under components/wiki-editor/ must stay behind
+ * a dynamic import().
+ */
+const ALLOWED_EDITOR_ENTRY_FILES = [
+  'components/wiki-editor/WikiEditorLazy.tsx',
+  'components/wiki-editor/types.ts',
+].map((f) => path.join(SRC_ROOT, f));
+const EDITOR_COMPONENTS_DIR = path.join(SRC_ROOT, 'components/wiki-editor') + path.sep;
+
+function violations(
+  result: ReturnType<typeof collectStaticImports>,
+  opts: { allowEditorEntryFiles?: boolean } = {},
+): string[] {
   const hits = [
     ...result.bare.filter((b) => FORBIDDEN_BARE.test(b)),
     ...result.files.filter((f) => f.startsWith(EDITOR_DIR)),
+    ...(opts.allowEditorEntryFiles
+      ? result.files.filter(
+          (f) => f.startsWith(EDITOR_COMPONENTS_DIR) && !ALLOWED_EDITOR_ENTRY_FILES.includes(f),
+        )
+      : []),
   ];
   return hits.map((h) =>
     (result.chains.get(h) ?? [h]).map((c) => path.relative(SRC_ROOT, c)).join(' -> '),
@@ -111,6 +130,36 @@ describe('WikiRenderer bundle isolation', () => {
       const text = fs.readFileSync(path.join(SRC_ROOT, 'lib/wiki', f), 'utf8');
       expect(/from\s+['"]\.\/editor/.test(text), f).toBe(false);
     }
+  });
+});
+
+// routes/dev-tools/EditorTab.tsx is reached only through lazy(() => import('./EditorTab'))
+// (98-12), which specifiersOf ignores by design, so it is not part of these eager graphs.
+describe.each([
+  'main.tsx',
+  'routes/dev-tools/index.tsx',
+  'routes/dev-tools/DevToolsPage.tsx',
+])('eager entry %s bundle isolation', (rel) => {
+  const entry = path.join(SRC_ROOT, rel);
+
+  it('entry file exists', () => {
+    expect(fs.existsSync(entry), rel).toBe(true);
+  });
+
+  it('reaches no tiptap/prosemirror, no lib/wiki/editor, and only the lazy wrapper/types of wiki-editor', () => {
+    const result = collectStaticImports(entry, SRC_ROOT);
+    const v = violations(result, { allowEditorEntryFiles: true });
+    expect(v, v.join('\n')).toEqual([]);
+  });
+});
+
+describe('lib/wiki/prose.ts bundle isolation', () => {
+  it('reaches nothing under lib/wiki/editor or @tiptap/', () => {
+    const entry = path.join(SRC_ROOT, 'lib/wiki/prose.ts');
+    expect(fs.existsSync(entry)).toBe(true);
+    const result = collectStaticImports(entry, SRC_ROOT);
+    const v = violations(result);
+    expect(v, v.join('\n')).toEqual([]);
   });
 });
 

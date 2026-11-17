@@ -34,6 +34,7 @@ const initialSettings = {
   flaggedFieldKey: 'customfield_10021',
   accountFieldKey: null as string | null,
   devToolsEnabled: false,
+  wikiEditorMode: 'rich' as 'rich' | 'source',
   requestLogging: false,
   responseBodyCapture: false,
   operationProfiling: false,
@@ -109,6 +110,8 @@ interface SettingsState {
   setExternalBrowser: (path: string | null) => void;
   /** Master toggle for developer tools. Default: false. */
   devToolsEnabled: boolean;
+  /** Wiki editor view: rich (WYSIWYG) or source (markup). One global preference. Default: 'rich'. */
+  wikiEditorMode: 'rich' | 'source';
   /** Enable request/response logging to debug log store. Default: false. */
   requestLogging: boolean;
   /** Enable response body capture (clones response). Default: false. */
@@ -202,6 +205,7 @@ interface SettingsState {
   setNotifIssueAssignmentEnabled: (v: boolean) => void;
   setNotifDueDateReminderEnabled: (v: boolean) => void;
   setDevToolsEnabled: (v: boolean) => void;
+  setWikiEditorMode: (v: 'rich' | 'source') => void;
   setRequestLogging: (v: boolean) => void;
   setResponseBodyCapture: (v: boolean) => void;
   setOperationProfiling: (v: boolean) => void;
@@ -320,6 +324,7 @@ export const useSettingsStore = create<SettingsState>()(
       setNotifIssueAssignmentEnabled: (v) => set({ notifIssueAssignmentEnabled: v }),
       setNotifDueDateReminderEnabled: (v) => set({ notifDueDateReminderEnabled: v }),
       setDevToolsEnabled: (v) => set({ devToolsEnabled: v }),
+      setWikiEditorMode: (v) => set({ wikiEditorMode: v }),
       setRequestLogging: (v) => set({ requestLogging: v }),
       setResponseBodyCapture: (v) => set({ responseBodyCapture: v }),
       setOperationProfiling: (v) => set({ operationProfiling: v }),
@@ -379,7 +384,7 @@ export const useSettingsStore = create<SettingsState>()(
     {
       name: 'settings-store',
       storage: createTauriStorage('settings.json'),
-      version: 37,
+      version: 38,
       migrate: (persisted, version) => {
         const s = persisted as Record<string, unknown>;
         if (version < 1) {
@@ -539,6 +544,9 @@ export const useSettingsStore = create<SettingsState>()(
           if (s.onboardingVersion === undefined) {
             s.onboardingVersion = s.onboardingComplete === true ? 1 : 0;
           }
+        }
+        if (version < 38) {
+          if (s.wikiEditorMode === undefined) s.wikiEditorMode = 'rich';
         }
         return persisted as SettingsState;
       },
