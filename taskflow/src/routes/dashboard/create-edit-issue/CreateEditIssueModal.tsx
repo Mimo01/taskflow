@@ -1,10 +1,12 @@
 import { Dialog } from '@base-ui/react/dialog';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { Loader2, Paperclip, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 import { Button } from '@/components/ui/button';
 import { EpicPicker } from '@/components/ui/epic-picker';
 import { Input } from '@/components/ui/input';
+import { Keycap } from '@/components/ui/keycap';
 import { PersonPicker, toPersonValue } from '@/components/ui/person-picker';
 import {
   Select,
@@ -13,13 +15,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { attachmentRef, stagedAttachmentRef } from '@/lib/attachment-markup';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import type { WikiEditorHandle, WikiEditorHost } from '@/components/wiki-editor/types';
+import { WikiEditorLazy } from '@/components/wiki-editor/WikiEditorLazy';
+import { useMentionUserMap } from '@/hooks/useMentionUserMap';
 import { fetchIssuePriorityOptions, fetchPriorities, type JiraPriority } from '@/services/jira';
-import { uploadAttachment } from '@/services/jira/attachments';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useSettingsStore } from '@/stores/settings.store';
-import { DescriptionEditor, type DescriptionEditorHandle } from '../DescriptionEditor';
+import { useIssueEditorHost } from '../issue-detail/useIssueEditorHost';
+import { StagedFilesStrip } from '../StagedFilesStrip';
 import { CustomFieldsSection } from './CustomFieldsSection';
 import { IssueTypeSelector } from './IssueTypeSelector';
 import { LinkRowsSection } from './LinkRowsSection';
@@ -56,7 +61,6 @@ export function CreateEditIssueModal({
   const { jiraBaseUrl, activeJiraProject } = useAuthStore();
   const { epicLinkFieldKey, storyPointsFieldKey } = useSettingsStore();
   const projectKey = activeJiraProject ?? '';
-  const queryClient = useQueryClient();
 
   const { state, dispatch, isSubtask } = useCreateEditForm({
     open,
@@ -67,12 +71,12 @@ export function CreateEditIssueModal({
     defaultEpicLinkKey,
   });
 
-  // ── Description attachments (Task 2: create-mode staging + edit-mode immediate upload) ──
-  const descriptionRef = useRef<DescriptionEditorHandle>(null);
+  // ── Description attachments: create mode stages files, edit mode uploads live ──
+  const editorRef = useRef<WikiEditorHandle>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+  const summaryRef = useRef<HTMLInputElement>(null);
   const [stagedFiles, setStagedFiles] = useState<File[]>([]);
-  const [uploadingName, setUploadingName] = useState<string | null>(null);
-  const [uploadError, setUploadError] = useState<string | null>(null);
   const [stagedUploadError, setStagedUploadError] = useState<string | null>(null);
   // Set when create succeeds but a staged attachment failed to upload, so the modal
   // stays open with the error visible (locked decision: never roll back the created
@@ -90,8 +94,6 @@ export function CreateEditIssueModal({
   useEffect(() => {
     if (!open) return;
     setStagedFiles([]);
-    setUploadingName(null);
-    setUploadError(null);
     setStagedUploadError(null);
     stagedUploadErrorRef.current = null;
     setHasCreatedWithError(false);
@@ -99,51 +101,42 @@ export function CreateEditIssueModal({
 
   const editIssueKey = mode === 'edit' ? initialValues?.issueKey : undefined;
 
-  // Edit mode: upload immediately against the existing issue key (mirrors
-  // CommentComposer.tsx's uploadMutation pattern).
-  const uploadMutation = useMutation({
-    mutationFn: async (file: File) => {
-      const token = await readSecret('jira-pat').catch(() => null);
-      if (!token || !jiraBaseUrl || !editIssueKey) throw new Error('No Jira credentials');
-      return uploadAttachment(jiraBaseUrl, token, editIssueKey, file);
-    },
-    onSuccess: (created) => {
-      setUploadingName(null);
-      setUploadError(null);
-      if (jiraBaseUrl && editIssueKey) {
-        queryClient.invalidateQueries({
-          queryKey: ['jira-issue-detail', editIssueKey, jiraBaseUrl],
-        });
-      }
-      const att = created[0];
-      if (att) descriptionRef.current?.insertRef(attachmentRef(att));
-    },
-    onError: (_err, file) => {
-      setUploadError(`Failed to upload ${file.name}. Check file size and try again.`);
-      setUploadingName(null);
-    },
-  });
+  const initialUserMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    if (state.selectedAssignee)
+      map[state.selectedAssignee.name] = state.selectedAssignee.displayName;
+    return map;
+  }, [state.selectedAssignee]);
+  const descriptionTexts = useMemo(() => [state.description], [state.description]);
+  const userMap = useMentionUserMap(initialUserMap, descriptionTexts, jiraBaseUrl ?? '');
 
-  function handleFileSelected(file: File) {
-    if (mode === 'edit' && editIssueKey) {
-      setUploadError(null);
-      setUploadingName(file.name);
-      uploadMutation.mutate(file);
-    } else {
-      // Create mode: stage locally (no issue key yet) and insert the ref immediately
-      // so the description submitted to createIssue already contains it.
-      setStagedFiles((prev) => [...prev, file]);
-      descriptionRef.current?.insertRef(stagedAttachmentRef(file));
-    }
-  }
+  // Edit mode uploads live to the existing issue; create (and clone) always stage, so a
+  // file can never land on the wrong issue (T-100-16).
+  const liveHost = useIssueEditorHost({
+    issueKey: editIssueKey ?? null,
+    projectKey,
+    attachments: initialValues?.attachments ?? [],
+    userMap,
+    referenceTexts: [],
+  });
+  const stagedHost = useMemo<WikiEditorHost>(
+    () => ({
+      projectKey,
+      userMap,
+      staged: true,
+      stageFile: (f) => setStagedFiles((p) => [...p, f]),
+    }),
+    [projectKey, userMap],
+  );
+  const host = mode === 'edit' && editIssueKey ? liveHost : stagedHost;
 
   function handleRemoveStagedFile(index: number) {
     setStagedFiles((prev) => prev.filter((_, i) => i !== index));
   }
 
   function handleFileInputChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (file) handleFileSelected(file);
+    const files = Array.from(e.target.files ?? []);
+    if (files.length > 0) editorRef.current?.insertFiles(files);
     e.target.value = '';
   }
 
@@ -306,6 +299,18 @@ export function CreateEditIssueModal({
     onError: (msg) => dispatch({ type: 'SET_FIELD', field: 'apiError', value: msg || null }),
   });
 
+  const canSubmit =
+    !!state.summary.trim() && requiredCustomFieldsFilled && !isPending && !hasCreatedWithError;
+
+  // Cmd+Enter from any field: same guard as the primary button (T-100-15).
+  function trySubmit() {
+    if (!canSubmit) {
+      if (!state.summary.trim()) summaryRef.current?.focus();
+      return;
+    }
+    formRef.current?.requestSubmit();
+  }
+
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
@@ -331,7 +336,17 @@ export function CreateEditIssueModal({
             />
           </div>
 
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4 px-6 py-4">
+          <form
+            ref={formRef}
+            onSubmit={handleSubmit}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && !e.nativeEvent.isComposing) {
+                e.preventDefault();
+                trySubmit();
+              }
+            }}
+            className="flex flex-col gap-4 px-6 py-4"
+          >
             {mode === 'create' && (
               <IssueTypeSelector
                 selectedIssueType={state.selectedIssueType}
@@ -345,6 +360,7 @@ export function CreateEditIssueModal({
                 Summary <span className="text-destructive">*</span>
               </label>
               <Input
+                ref={summaryRef}
                 id="issue-summary"
                 value={state.summary}
                 onChange={(e) =>
@@ -358,9 +374,7 @@ export function CreateEditIssueModal({
 
             <div className="flex flex-col gap-1">
               <div className="flex items-center justify-between">
-                <label htmlFor="issue-description" className="text-sm font-medium">
-                  Description
-                </label>
+                <span className="text-sm font-medium">Description</span>
                 <button
                   type="button"
                   disabled={isPending}
@@ -373,22 +387,29 @@ export function CreateEditIssueModal({
                 <input
                   ref={fileInputRef}
                   type="file"
+                  multiple
                   className="hidden"
                   onChange={handleFileInputChange}
                 />
               </div>
-              <DescriptionEditor
-                ref={descriptionRef}
-                id="issue-description"
+              <WikiEditorLazy
+                ref={editorRef}
                 value={state.description}
                 onChange={(v) => dispatch({ type: 'SET_FIELD', field: 'description', value: v })}
+                preset="full"
+                aria-label="Description"
+                host={host}
+                onSubmit={(text) => {
+                  flushSync(() =>
+                    dispatch({ type: 'SET_FIELD', field: 'description', value: text }),
+                  );
+                  trySubmit();
+                }}
+              />
+              <StagedFilesStrip
+                files={stagedFiles}
+                onRemove={handleRemoveStagedFile}
                 disabled={isPending}
-                attachments={initialValues?.attachments ?? []}
-                stagedFiles={stagedFiles}
-                onFileSelected={handleFileSelected}
-                onRemoveStagedFile={handleRemoveStagedFile}
-                uploadingName={uploadingName}
-                uploadError={uploadError}
               />
               {stagedUploadError && (
                 <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
@@ -556,25 +577,29 @@ export function CreateEditIssueModal({
               <Button type="button" variant="outline" onClick={onClose} disabled={isPending}>
                 Cancel
               </Button>
-              <Button
-                type="submit"
-                disabled={
-                  !state.summary.trim() ||
-                  !requiredCustomFieldsFilled ||
-                  isPending ||
-                  hasCreatedWithError
-                }
-                className="gap-1.5"
-              >
-                {isPending && <Loader2 className="size-3.5 animate-spin" />}
-                {isPending
-                  ? mode === 'create'
-                    ? 'Creating...'
-                    : 'Saving...'
-                  : mode === 'create'
-                    ? 'Create'
-                    : 'Save'}
-              </Button>
+              <Tooltip>
+                <TooltipTrigger
+                  render={<Button type="submit" disabled={!canSubmit} className="gap-1.5" />}
+                >
+                  {isPending && <Loader2 className="size-3.5 animate-spin" />}
+                  {isPending
+                    ? mode === 'create'
+                      ? 'Creating...'
+                      : 'Saving...'
+                    : mode === 'create'
+                      ? 'Create'
+                      : 'Save'}
+                </TooltipTrigger>
+                <TooltipContent>
+                  <span className="flex items-center gap-2">
+                    <span className="font-medium">{mode === 'create' ? 'Create' : 'Save'}</span>
+                    <span className="flex items-center gap-1">
+                      <Keycap>⌘</Keycap>
+                      <Keycap>↵</Keycap>
+                    </span>
+                  </span>
+                </TooltipContent>
+              </Tooltip>
             </div>
           </form>
         </Dialog.Popup>
