@@ -191,6 +191,7 @@ export const SHORTCUTS: ShortcutEntry[] = [
     displayKeys: ['Enter'],
   },
   // Editor shortcuts: documentation only (defaultKey is prefixed 'editor:' to stay unique), handled by the editor's own keymap while it has focus.
+  // The editor-trigger-* rows (@, /, :) are informational: the suggestion plugins own those characters.
   // Never bound as global hotkeys. Cmd+B / Cmd+Shift+B / Cmd+Shift+M equal global chords and are
   // safe only because react-hotkeys-hook ignores contenteditable and textarea targets (no
   // enableOnContentEditable anywhere in src). Sub/superscript use Cmd+Shift+, and Cmd+Shift+.
@@ -292,6 +293,34 @@ export const SHORTCUTS: ShortcutEntry[] = [
     description: 'Redo while editing',
     category: 'Editor',
     displayKeys: ['⌘', '⇧', 'Z'],
+  },
+  {
+    id: 'editor-paste-plain',
+    defaultKey: 'editor:⌘⇧V',
+    description: 'Paste as plain text',
+    category: 'Editor',
+    displayKeys: ['⌘', '⇧', 'V'],
+  },
+  {
+    id: 'editor-trigger-mention',
+    defaultKey: 'editor:@',
+    description: 'Mention @',
+    category: 'Editor',
+    displayKeys: ['@'],
+  },
+  {
+    id: 'editor-trigger-slash',
+    defaultKey: 'editor:/',
+    description: 'Insert menu /',
+    category: 'Editor',
+    displayKeys: ['/'],
+  },
+  {
+    id: 'editor-trigger-emoticon',
+    defaultKey: 'editor::',
+    description: 'Emoticon :',
+    category: 'Editor',
+    displayKeys: [':'],
   },
 ];
 
