@@ -37,6 +37,7 @@ import { useUpdatePolling } from './hooks/useUpdatePolling';
 import { useVersionPolicyCheck } from './hooks/useVersionPolicyCheck';
 import { useWizardRerunCheck } from './hooks/useWizardRerunCheck';
 import { type FindScopeKind, resolveFindScope } from './lib/find-in-page';
+import { onMenuPastePlain } from './lib/plain-paste';
 import { ParentCompletionHost } from './routes/dashboard/CompleteParentDialog';
 import {
   CreateEditIssueModal,
@@ -364,6 +365,8 @@ function AppLayout() {
       listen('menu-nav-releases', () => navigate('/releases')),
       listen('menu-nav-worklogs', () => navigate('/worklogs')),
       listen('menu-about', () => setAboutOpen(true)),
+      // macOS Edit > Paste and Match Style: flag the paste as plain, then paste natively.
+      listen('menu-paste-plain', () => onMenuPastePlain()),
     ];
     return () => {
       listeners.forEach((p) => {

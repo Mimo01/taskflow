@@ -3,20 +3,36 @@ use std::sync::Mutex;
 use tauri::menu::{Menu, MenuItemBuilder, PredefinedMenuItem, Submenu};
 use tauri::{Emitter, Manager};
 
-/// Sends the native `pasteAsPlainText:` action to the focused window's WKWebView.
+/// Edit > Paste and Match Style: tell the focused window's frontend, which flags the coming
+/// paste as plain and then invokes `paste_as_plain_text`. The native paste carries only
+/// text/plain, so without the flag the wiki editor would convert it like a normal paste.
 #[cfg(target_os = "macos")]
-fn paste_as_plain_text(app: &tauri::AppHandle) {
+fn request_paste_as_plain_text(app: &tauri::AppHandle) {
     for window in app.webview_windows().values() {
-        if !window.is_focused().unwrap_or(false) {
-            continue;
+        if window.is_focused().unwrap_or(false) {
+            let _ = app.emit_to(window.label(), "menu-paste-plain", ());
         }
-        let _ = window.with_webview(|webview| unsafe {
-            let view = webview.inner() as *mut objc2::runtime::AnyObject;
-            let sender: *mut objc2::runtime::AnyObject = std::ptr::null_mut();
-            let _: () = objc2::msg_send![view, pasteAsPlainText: sender];
-        });
     }
 }
+
+/// Sends the native `pasteAsPlainText:` action to the calling window's WKWebView.
+#[cfg(target_os = "macos")]
+#[tauri::command]
+fn paste_as_plain_text(window: tauri::WebviewWindow) {
+    if !window.is_focused().unwrap_or(false) {
+        return;
+    }
+    let _ = window.with_webview(|webview| unsafe {
+        let view = webview.inner() as *mut objc2::runtime::AnyObject;
+        let sender: *mut objc2::runtime::AnyObject = std::ptr::null_mut();
+        let _: () = objc2::msg_send![view, pasteAsPlainText: sender];
+    });
+}
+
+/// No menu item outside macOS; the webview handles Ctrl+Shift+V natively.
+#[cfg(not(target_os = "macos"))]
+#[tauri::command]
+fn paste_as_plain_text() {}
 
 struct DebugMenuState {
     submenu: Submenu<tauri::Wry>,
@@ -428,7 +444,7 @@ pub fn run() {
                     let _ = app.emit(id, ());
                 }
                 #[cfg(target_os = "macos")]
-                "menu-paste-plain" => paste_as_plain_text(app),
+                "menu-paste-plain" => request_paste_as_plain_text(app),
                 _ => {}
             }
         })
@@ -436,7 +452,8 @@ pub fn run() {
             greet,
             toggle_debug_menu,
             save_attachment,
-            list_browsers
+            list_browsers,
+            paste_as_plain_text
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

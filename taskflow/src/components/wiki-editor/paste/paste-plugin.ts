@@ -3,6 +3,7 @@ import { closeHistory } from '@tiptap/pm/history';
 import { type Node as PMNode, type ResolvedPos, Slice } from '@tiptap/pm/model';
 import { Plugin, PluginKey } from '@tiptap/pm/state';
 import * as pmView from '@tiptap/pm/view';
+import { armPlainPaste, consumePlainPaste, disarmPlainPaste } from '@/lib/plain-paste';
 import { loadWiki } from '@/lib/wiki/editor';
 import { useAuthStore } from '@/stores/auth.store';
 import { getHost } from '../host';
@@ -25,6 +26,7 @@ const parseFromClipboard = (
   }
 ).__parseFromClipboard;
 
+const MODIFIER_KEYS = new Set(['Shift', 'Meta', 'Control', 'Alt']);
 const BLOCK_HTML = /<(h[1-6]|ul|ol|table|pre|blockquote|hr)\b/i;
 const FETCH_TIMEOUT_MS = 5000;
 
@@ -175,19 +177,22 @@ export const WikiSmartPaste = Extension.create({
   name: 'wikiSmartPaste',
   addProseMirrorPlugins() {
     const editor = this.editor;
-    let plainNext = false;
     return [
       new Plugin({
         key: new PluginKey('wikiSmartPaste'),
         props: {
           handleKeyDown: (_view, e) => {
-            if (e.key.toLowerCase() === 'v' && (e.metaKey || e.ctrlKey)) plainNext = e.shiftKey;
+            if (e.key.toLowerCase() === 'v' && (e.metaKey || e.ctrlKey)) {
+              if (e.shiftKey) armPlainPaste();
+              else disarmPlainPaste();
+            } else if (!MODIFIER_KEYS.has(e.key)) {
+              // Cmd+Shift+V with nothing to paste fires no paste event: don't let it linger.
+              disarmPlainPaste();
+            }
             return false;
           },
           handlePaste: (view, event) => {
-            const plain = plainNext;
-            plainNext = false;
-            if (plain) return false;
+            if (consumePlainPaste()) return false;
             // Code and monospace keep pasted text literal: never convert wiki/HTML there.
             const { $from } = view.state.selection;
             if ($from.parent.type.spec.code || $from.marks().some((m) => m.type.name === 'mono')) {
