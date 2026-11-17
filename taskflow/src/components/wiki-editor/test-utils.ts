@@ -1,9 +1,21 @@
 import { Editor } from '@tiptap/core';
+import { afterEach } from 'vitest';
 import type { WikiLoad, WikiSave } from '@/lib/wiki/editor';
 import { loadWiki, saveWiki } from '@/lib/wiki/editor';
 import { EDITOR_RULE_OPTIONS, editorExtensions } from './extensions';
 
 type RichLoad = Extract<WikiLoad, { doc: unknown }>;
+
+/*
+ * Every editor made here is destroyed after each test. A live ProseMirror view keeps a
+ * DOMObserver timer that can fire after jsdom tears down ("document is not defined"),
+ * which vitest reports as an unhandled error and fails the whole run.
+ */
+const liveEditors = new Set<Editor>();
+afterEach(() => {
+  for (const editor of liveEditors) if (!editor.isDestroyed) editor.destroy();
+  liveEditors.clear();
+});
 
 /** Test helper: headless editor over wiki text. Not imported by app code. */
 export function makeEditor(text: string, extensions: typeof editorExtensions = editorExtensions) {
@@ -15,6 +27,7 @@ export function makeEditor(text: string, extensions: typeof editorExtensions = e
     content: load.doc,
     ...EDITOR_RULE_OPTIONS,
   });
+  liveEditors.add(editor);
   return { editor, load: load as RichLoad };
 }
 
