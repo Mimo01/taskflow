@@ -2,9 +2,10 @@
  * DevToolsPage — Developer Tools page shell.
  *
  * Provides header with Clear Logs button, collapsible settings panel,
- * and four tabs: Logs, Operations, Waterfall, Notifications.
+ * and five tabs: Logs, Operations, Waterfall, Notifications, Editor.
  */
 
+import { lazy, Suspense } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 import { useDebugLogStore } from '../../stores/debug-log.store';
 import { useNotificationDispatchLogStore } from '../../stores/notification-dispatch-log.store';
@@ -13,6 +14,8 @@ import LogsTab from './LogsTab';
 import NotificationsTab from './NotificationsTab';
 import OperationsTab from './OperationsTab';
 import WaterfallTab from './WaterfallTab';
+
+const EditorTab = lazy(() => import('./EditorTab'));
 
 export default function DevToolsPage() {
   const entries = useDebugLogStore((s) => s.entries);
@@ -33,7 +36,8 @@ export default function DevToolsPage() {
         <div>
           <h1 className="text-3xl font-semibold">Developer Tools</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            API debugging, operation profiling, performance analysis, and desktop notifications.
+            API debugging, operation profiling, performance analysis, and desktop notifications, and
+            the wiki editor preview.
           </p>
         </div>
         <button
@@ -58,6 +62,7 @@ export default function DevToolsPage() {
           <TabsTrigger value="operations">Operations</TabsTrigger>
           <TabsTrigger value="waterfall">Waterfall</TabsTrigger>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
+          <TabsTrigger value="editor">Editor</TabsTrigger>
         </TabsList>
         <TabsContent value="logs">
           <LogsTab />
@@ -70,6 +75,11 @@ export default function DevToolsPage() {
         </TabsContent>
         <TabsContent value="notifications">
           <NotificationsTab />
+        </TabsContent>
+        <TabsContent value="editor">
+          <Suspense fallback={null}>
+            <EditorTab />
+          </Suspense>
         </TabsContent>
       </Tabs>
     </div>
