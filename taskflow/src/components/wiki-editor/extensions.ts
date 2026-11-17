@@ -23,6 +23,7 @@ import {
 } from '@/lib/wiki/editor/schema';
 import { WIKI_PROSE_CLASSES } from '@/lib/wiki/prose';
 import { WikiGapKeeper } from './gap-keeper';
+import { WikiHostBridge } from './host';
 import { WikiInputRules } from './input-rules';
 import { WikiKeymap } from './keymap';
 import { WikiLinkPaste } from './link-paste';
@@ -151,6 +152,7 @@ export function buildEditorExtensions(views: WikiNodeViews = {}) {
     WikiInputRules,
     WikiLinkPaste,
     WikiGapKeeper,
+    WikiHostBridge,
   ];
 }
 

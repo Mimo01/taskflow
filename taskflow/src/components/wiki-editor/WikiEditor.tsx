@@ -1,6 +1,7 @@
+import { QueryClientContext } from '@tanstack/react-query';
 import { Selection } from '@tiptap/pm/state';
 import { EditorContent, useEditor } from '@tiptap/react';
-import { useEffect, useRef, useState } from 'react';
+import { useContext, useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { loadWiki, type WikiLoad } from '@/lib/wiki/editor';
 import { useSettingsStore } from '@/stores/settings.store';
@@ -52,6 +53,7 @@ export default function WikiEditor({
   className,
   'aria-label': ariaLabel,
   onVerdict,
+  host,
 }: WikiEditorProps) {
   const [initial] = useState(() => {
     const load = loadWiki(value);
@@ -89,6 +91,8 @@ export default function WikiEditor({
     cbRef.current = { onChange, onVerdict };
     stateRef.current = { mode, forced };
   });
+
+  const queryClient = useContext(QueryClientContext);
 
   const report = () => {
     cbRef.current.onVerdict?.({
@@ -140,6 +144,12 @@ export default function WikiEditor({
       };
       report();
     },
+  });
+
+  // Push host + queryClient into per-editor storage so module-scope extensions and node
+  // views read them at call time (never through closures over props).
+  useEffect(() => {
+    editor?.storage.wikiHost.set(host, queryClient);
   });
 
   // Report on mount and on every mode change (dev tools only).
