@@ -139,6 +139,36 @@ describe('HTML images', () => {
     expect(fetchMock.mock.calls[0][1].signal).toBeInstanceOf(AbortSignal);
   });
 
+  it('CR-04: extension-less remote images upload under distinct names', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        async () =>
+          new Response(new Blob(['x'], { type: 'image/png' }), {
+            headers: { 'content-type': 'image/png' },
+          }),
+      ),
+    );
+    vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:x');
+    const uploadFile = vi.fn(
+      async (f: File): Promise<JiraAttachment> => ({
+        id: f.name,
+        filename: f.name,
+        mimeType: 'image/png',
+        content: `https://j/${f.name}`,
+      }),
+    );
+    const { editor } = setup('x', { uploadFile });
+    const html =
+      '<p>a<img src="https://cdn.example.invalid/abc">b<img src="https://cdn.example.invalid/def">c</p>';
+    expect(paste(editor, { 'text/html': html, 'text/plain': 'abc' })).toBe(true);
+    for (let i = 0; i < 6; i++) await flush();
+    const uploaded = uploadFile.mock.calls.map(([f]) => f.name);
+    expect(uploaded).toHaveLength(2);
+    expect(new Set(uploaded).size).toBe(2);
+    expect(images(editor).sort()).toEqual([...uploaded].sort());
+  });
+
   it('fetchPastedImage uses a 5000ms timeout signal', async () => {
     const spy = vi.spyOn(AbortSignal, 'timeout');
     vi.stubGlobal(

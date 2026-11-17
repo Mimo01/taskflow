@@ -135,7 +135,7 @@ function handleHtml(editor: Editor, view: Editor['view'], html: string, text: st
         load: () =>
           src.startsWith('data:')
             ? Promise.resolve(decodeDataUrl(src, name))
-            : fetchPastedImage(src).then((f) => renameFile(f, f.name)),
+            : fetchPastedImage(src).then((f) => renameFile(f, name)),
         fallback: src.startsWith('data:') ? null : linkFallback(src),
       });
     }
