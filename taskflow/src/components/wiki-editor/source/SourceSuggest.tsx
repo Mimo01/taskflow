@@ -25,12 +25,25 @@ interface Trigger {
 const MENTION_RE = /(^|[\s([])@([\w.@-]*)$/;
 const EMOTICON_RE = /(^|[\s([]):([A-Za-z][\w-]*)$/;
 
+const CODE_FENCE_RE = /\{(code|noformat)(?::[^}]*)?\}/g;
+
+/** True when `before` ends inside an unclosed {code…} or {noformat} block (literal text). */
+function insideCodeBlock(before: string): boolean {
+  let open: string | null = null;
+  for (const m of before.matchAll(CODE_FENCE_RE)) {
+    if (!open) open = m[1];
+    else if (m[1] === open) open = null;
+  }
+  return open !== null;
+}
+
 /** Trigger (if any) that ends at `caret`; the prefix class keeps "a@b" and "10:30" from matching. */
 export function detectSourceTrigger(
   value: string,
   caret: number,
 ): { kind: Kind; start: number; query: string } | null {
   const before = value.slice(0, caret);
+  if (insideCodeBlock(before)) return null;
   const mention = MENTION_RE.exec(before);
   if (mention) {
     return {

@@ -88,6 +88,21 @@ describe('source mode inputs', () => {
     await waitFor(() => expect(textarea().value).toBe('ok (/)'));
   });
 
+  it('WR-05: no popover inside an open {code} or {noformat} block', async () => {
+    mount();
+    const ta = textarea();
+    typeInto(ta, '{code:ruby}\nvalidates :id');
+    await new Promise((r) => setTimeout(r, 50));
+    expect(popovers()).toHaveLength(0);
+    typeInto(ta, '{noformat}\n@Override');
+    await new Promise((r) => setTimeout(r, 300));
+    expect(popovers()).toHaveLength(0);
+    expect(fetchAssignableUsers).not.toHaveBeenCalled();
+    // Closed blocks no longer suppress triggers.
+    typeInto(ta, '{code}x{code} ok :ch');
+    await waitFor(() => expect(screen.getAllByRole('option').length).toBeGreaterThan(0));
+  });
+
   it('never opens for 10:30', async () => {
     mount();
     typeInto(textarea(), 'at 10:30');
