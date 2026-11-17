@@ -2,8 +2,11 @@ import { QueryClientContext } from '@tanstack/react-query';
 import { Selection } from '@tiptap/pm/state';
 import { EditorContent, useEditor } from '@tiptap/react';
 import { useContext, useEffect, useRef, useState } from 'react';
+import { attachmentRef } from '@/lib/attachment-markup';
 import { cn } from '@/lib/utils';
 import { loadWiki, type WikiLoad } from '@/lib/wiki/editor';
+import { AttachmentPickerModal } from '@/routes/dashboard/issue-detail/AttachmentPickerModal';
+import type { JiraAttachment } from '@/services/jira';
 import { useSettingsStore } from '@/stores/settings.store';
 import {
   canLoadRich,
@@ -16,11 +19,15 @@ import {
   WIKI_TOGGLE_META,
 } from './editor-session';
 import { EDITOR_ATTRIBUTES, EDITOR_RULE_OPTIONS } from './extensions';
+import { useHost } from './host';
 import { EditorMessages } from './media/EditorMessages';
-import { EDIT_IN_SOURCE_EVENT } from './nodeviews/events';
+import { insertEmbed } from './media/embed';
+import { EDIT_IN_SOURCE_EVENT, WIKI_OPEN_ATTACH_EVENT } from './nodeviews/events';
 import { richExtensions } from './rich-extensions';
 import { type SourceHandle, SourceView } from './source/SourceView';
 import { exitAllSuggestions } from './suggestion/create-suggestion';
+import { BubbleToolbar } from './toolbar/BubbleToolbar';
+import { CompactFooter } from './toolbar/CompactFooter';
 import { TableToolbar } from './toolbar/TableToolbar';
 import { Toolbar } from './toolbar/Toolbar';
 import type { WikiEditorProps, WikiEditorVerdict } from './types';
@@ -71,6 +78,7 @@ export default function WikiEditor({
   const [saveError, setSaveError] = useState<string | null>(null);
   const [previewVisible, setPreviewVisible] = useState(true);
   const [linkOpen, setLinkOpen] = useState(false);
+  const [attachOpen, setAttachOpen] = useState(false);
 
   const frameRef = useRef<HTMLDivElement>(null);
   const sourceRef = useRef<SourceHandle>(null);
@@ -309,6 +317,24 @@ export default function WikiEditor({
     return () => el.removeEventListener(EDIT_IN_SOURCE_EVENT, handler);
   }, []);
 
+  useEffect(() => {
+    const el = frameRef.current;
+    if (!el) return;
+    const handler = () => setAttachOpen(true);
+    el.addEventListener(WIKI_OPEN_ATTACH_EVENT, handler);
+    return () => el.removeEventListener(WIKI_OPEN_ATTACH_EVENT, handler);
+  }, []);
+
+  const { attachments } = useHost(editor);
+  const onPickAttachment = (att: JiraAttachment) => {
+    if (stateRef.current.mode === 'rich') {
+      insertEmbed(editor, att);
+      editor.view.focus();
+    } else {
+      sourceRef.current?.insert(attachmentRef(att));
+    }
+  };
+
   const onKeyDownCapture = (e: React.KeyboardEvent) => {
     if (!(e.metaKey || e.ctrlKey)) return;
     const key = e.key.toLowerCase();
@@ -334,19 +360,25 @@ export default function WikiEditor({
         className="rounded-lg border border-input bg-background focus-within:ring-1 focus-within:ring-ring"
       >
         <div className={cn('relative overflow-auto', maxClass)}>
-          <Toolbar
-            editor={editor}
-            preset={preset}
-            mode={mode}
-            richDisabled={richDisabled}
-            onModeChange={userToggle}
-            previewVisible={previewVisible}
-            onPreviewToggle={() => setPreviewVisible((v) => !v)}
-            linkOpen={linkOpen}
-            onLinkOpenChange={setLinkOpen}
-            source={sourceRef}
-            frameRef={frameRef}
-          />
+          {preset === 'compact' ? (
+            mode === 'rich' ? (
+              <BubbleToolbar editor={editor} linkOpen={linkOpen} onLinkOpenChange={setLinkOpen} />
+            ) : null
+          ) : (
+            <Toolbar
+              editor={editor}
+              preset={preset}
+              mode={mode}
+              richDisabled={richDisabled}
+              onModeChange={userToggle}
+              previewVisible={previewVisible}
+              onPreviewToggle={() => setPreviewVisible((v) => !v)}
+              linkOpen={linkOpen}
+              onLinkOpenChange={setLinkOpen}
+              source={sourceRef}
+              frameRef={frameRef}
+            />
+          )}
           {saveError ? (
             <div className="flex items-center gap-2 border-b border-border px-3 py-1 text-xs">
               <span className="min-w-0 flex-1 truncate text-destructive" title={saveError}>
@@ -385,6 +417,23 @@ export default function WikiEditor({
           {mode === 'rich' ? <EditorMessages editor={editor} /> : null}
           {mode === 'rich' ? <TableToolbar editor={editor} /> : null}
         </div>
+        {preset === 'compact' ? (
+          <CompactFooter
+            editor={editor}
+            mode={mode}
+            richDisabled={richDisabled}
+            onModeChange={userToggle}
+            onAttach={() => setAttachOpen(true)}
+            source={sourceRef}
+          />
+        ) : null}
+        <AttachmentPickerModal
+          open={attachOpen}
+          onOpenChange={setAttachOpen}
+          attachments={[...attachments]}
+          description="Select an attachment to embed it here."
+          onSelect={onPickAttachment}
+        />
       </div>
     </div>
   );
