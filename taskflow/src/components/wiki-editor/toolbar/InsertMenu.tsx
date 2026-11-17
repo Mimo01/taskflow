@@ -16,10 +16,17 @@ export interface InsertMenuProps {
   items: readonly InsertItem[];
   onInsert: (item: InsertItem, opts?: { rows: number; cols: number }) => void;
   disabled?: boolean;
+  /** Container-query class for the "Insert" word; defaults to always hidden below 25rem. */
+  labelClassName?: string;
 }
 
 /** "+ Insert" dropdown over the shared INSERT_ITEMS list; Table opens a size grid. */
-export function InsertMenu({ items, onInsert, disabled }: InsertMenuProps) {
+export function InsertMenu({
+  items,
+  onInsert,
+  disabled,
+  labelClassName = 'hidden @[25rem]:inline',
+}: InsertMenuProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
@@ -37,7 +44,7 @@ export function InsertMenu({ items, onInsert, disabled }: InsertMenuProps) {
         }
       >
         <Plus className="size-4" />
-        <span className="hidden @[25rem]:inline">Insert</span>
+        <span className={labelClassName}>Insert</span>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start">
         {items.map((item) => {

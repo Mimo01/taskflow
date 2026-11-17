@@ -55,4 +55,26 @@ describe('panel commands', () => {
     editor.commands.undo();
     expect(editor.state.doc.firstChild?.type.name).toBe('panel');
   });
+
+  it('removing a loaded panel after a paragraph still saves (lifted gap 0)', () => {
+    const { editor, load } = makeEditor('Intro\n\n{info}\nfirst\nsecond\n{info}');
+    let pos = -1;
+    editor.state.doc.forEach((n, offset) => {
+      if (n.type.name === 'panel') pos = offset;
+    });
+    removePanel(editor, pos);
+    const r = saveText(editor, load);
+    expect(r.kind).toBe('saved');
+    expect(r.kind === 'saved' && r.text).toBe('Intro\n\nfirst\nsecond');
+  });
+
+  it('removing a panel whose inner list follows its paragraph on the next line still saves', () => {
+    const { editor, load } = makeEditor('Intro\n\n{info}\npara\n* item\n{info}');
+    let pos = -1;
+    editor.state.doc.forEach((n, offset) => {
+      if (n.type.name === 'panel') pos = offset;
+    });
+    removePanel(editor, pos);
+    expect(saveText(editor, load).kind).toBe('saved');
+  });
 });

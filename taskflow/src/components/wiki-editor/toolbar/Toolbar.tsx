@@ -39,6 +39,7 @@ import { TextStyleMenu } from './TextStyleMenu';
 import { ToolbarButton } from './ToolbarButton';
 import {
   INLINE_CLASS,
+  INSERT_LABEL_CLASS,
   splitToolbar,
   TOOLBAR_ITEMS,
   type ToolbarItemId,
@@ -325,7 +326,7 @@ export function Toolbar({
     <div
       role="toolbar"
       aria-label="Formatting"
-      className="sticky top-0 z-10 flex h-10 flex-nowrap items-center gap-1 border-b border-border bg-muted/40 px-2"
+      className="sticky top-0 z-10 flex h-10 flex-nowrap items-center gap-1 border-b border-border bg-[color-mix(in_oklab,var(--color-muted)_40%,var(--color-background))] px-2"
     >
       <div data-toolbar-items className="flex min-w-0 shrink items-center gap-1 overflow-hidden">
         {isRich && show('text-style') ? (
@@ -382,7 +383,11 @@ export function Toolbar({
           />
         ) : null}
       </div>
-      <InsertMenu items={INSERT_ITEMS} onInsert={insert} />
+      <InsertMenu
+        items={INSERT_ITEMS}
+        onInsert={insert}
+        labelClassName={INSERT_LABEL_CLASS[preset]}
+      />
       {showLink && linkOverflowed ? (
         <LinkPopover
           open={linkOpen}

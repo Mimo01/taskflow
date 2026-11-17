@@ -1,3 +1,4 @@
+import type { Popover as PopoverPrimitive } from '@base-ui/react/popover';
 import { Command as CommandPrimitive } from 'cmdk';
 import { Check, ChevronDown, SearchIcon } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
@@ -31,6 +32,8 @@ export interface SearchableSelectProps {
   'aria-label'?: string;
   testIdPrefix?: string;
   className?: string;
+  /** Where focus goes when the popup closes (Base UI `finalFocus`); defaults to the trigger. */
+  finalFocus?: PopoverPrimitive.Popup.Props['finalFocus'];
 }
 
 const ROW_CLASS =
@@ -78,6 +81,7 @@ export function SearchableSelect({
   'aria-label': ariaLabel,
   testIdPrefix = 'searchable-select',
   className,
+  finalFocus,
 }: SearchableSelectProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -126,6 +130,7 @@ export function SearchableSelect({
       <PopoverContent
         align="start"
         sideOffset={4}
+        finalFocus={finalFocus}
         className="w-[max(20rem,var(--anchor-width))] max-w-(--available-width) gap-0 overflow-hidden p-0"
       >
         {/* Remounts on every open: highlight starts on the selected row. */}

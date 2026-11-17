@@ -33,6 +33,7 @@ export function CodeBlockView({ node, editor, getPos }: NodeViewProps) {
             pinnedOption={NONE_OPTION}
             searchPlaceholder="Search languages…"
             className="h-6 text-xs"
+            finalFocus={() => editor.view.dom}
             onValueChange={(v) => {
               const pos = getPos();
               if (typeof pos === 'number') setCodeLanguage(editor, pos, v === NONE ? null : v);

@@ -185,7 +185,7 @@ describe('Toolbar', () => {
     }
   });
 
-  it('Full at 360 keeps only text style, Bold, Italic inline and the rest in More', async () => {
+  it('Full at 360 keeps only text style and Bold inline and the rest in More', async () => {
     const user = userEvent.setup();
     setup();
     at360();
@@ -193,19 +193,19 @@ describe('Toolbar', () => {
     const names = Array.from(items.querySelectorAll('button')).map((b) =>
       b.getAttribute('aria-label'),
     );
-    expect(names).toEqual(['Text style', 'Bold', 'Italic']);
+    expect(names).toEqual(['Text style', 'Bold']);
     expect(items.querySelectorAll('[aria-hidden="true"].w-px').length).toBeLessThanOrEqual(1);
     await user.click(screen.getByRole('button', { name: 'More' }));
-    for (const n of ['Underline', 'Bullet list', 'Numbered list']) {
+    for (const n of ['Italic', 'Underline', 'Bullet list', 'Numbered list']) {
       expect(await screen.findByText(n)).toBeTruthy();
     }
   });
 
-  it('hides the Insert label at narrow container widths but keeps aria-label', () => {
+  it('shows the Insert label only from the widest breakpoint but keeps aria-label', () => {
     setup();
     const btn = screen.getByRole('button', { name: 'Insert' });
     const label = Array.from(btn.querySelectorAll('span')).find((e) => e.textContent === 'Insert');
-    expect(label?.className).toContain('hidden @[25rem]:inline');
+    expect(label?.className).toContain('hidden @[45.75rem]:inline');
   });
 
   it('source-mode preview toggle collapses below 35rem and sits outside the items region', () => {

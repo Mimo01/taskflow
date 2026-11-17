@@ -54,13 +54,14 @@ export function PanelView({ node, updateAttributes, editor, getPos }: NodeViewPr
           >
             <MoreHorizontal className="size-4" />
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
+          {/* The trigger sits outside the editable text (or is removed with the panel), so focus returns to the editor. */}
+          <DropdownMenuContent align="end" finalFocus={() => editor.view.dom}>
             <DropdownMenuRadioGroup
               value={type}
               onValueChange={(v) => updateAttributes({ type: v })}
             >
               {TYPES.map((t) => (
-                <DropdownMenuRadioItem key={t.value} value={t.value}>
+                <DropdownMenuRadioItem key={t.value} value={t.value} closeOnClick>
                   {t.label}
                 </DropdownMenuRadioItem>
               ))}

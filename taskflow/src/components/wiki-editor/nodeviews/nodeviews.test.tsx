@@ -1,6 +1,6 @@
 import { getSchema } from '@tiptap/core';
 import { EditorContent, useEditor } from '@tiptap/react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { loadWiki, wikiSchema } from '@/lib/wiki/editor';
@@ -81,6 +81,19 @@ describe('PanelView', () => {
     expect(screen.getByText('Remove panel')).toBeTruthy();
     fireEvent.click(screen.getByText('Warning'));
     expect(current?.state.doc.firstChild?.attrs.type).toBe('warning');
+  });
+
+  it.each([
+    ['Note', 'switching type'],
+    ['Remove panel', 'removing the panel'],
+  ])('closes the menu and returns focus to the editor after %s (%s)', async (item) => {
+    render(<Harness content={wikiDoc('Intro\n\n{info}\nx\n{info}')} />);
+    const trigger = await screen.findByLabelText('Panel options');
+    fireEvent.pointerDown(trigger, { button: 0 });
+    fireEvent.click(trigger);
+    fireEvent.click(await screen.findByText(item));
+    await waitFor(() => expect(screen.queryByRole('menu')).toBeNull());
+    await waitFor(() => expect(document.activeElement).toBe(current?.view.dom));
   });
 });
 
