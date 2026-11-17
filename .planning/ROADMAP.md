@@ -300,8 +300,8 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 99-01-PLAN.md — Package legitimacy gate + install, WikiEditorHost contract and host storage bridge
-- [ ] 99-02-PLAN.md — Pure paste layer: allowlist HTML normaliser (web/Word/Docs/Jira) and wiki-text heuristic
+- [x] 99-01-PLAN.md — Package legitimacy gate + install, WikiEditorHost contract and host storage bridge
+- [x] 99-02-PLAN.md — Pure paste layer: allowlist HTML normaliser (web/Word/Docs/Jira) and wiki-text heuristic
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -388,7 +388,7 @@ Plans:
 | 96. Wiki Foundations & Equivalence Harness | 6/6 | Complete    | 2026-11-16 |
 | 97. Round-Trip Engine | 17/17 | Complete    | 2026-11-16 |
 | 98. Editor Shell | 15/16 | In Progress|  |
-| 99. Mentions, Media & Smart Input | 0/TBD | Not started | - |
+| 99. Mentions, Media & Smart Input | 2/14 | In Progress|  |
 | 100. Host Adoption & Editing Workflow | 0/TBD | Not started | - |
 | 101. Issue Drafts & Large Create/Edit Modal | 0/TBD | Not started | - |
 | 102. Polished Surfaces | 0/TBD | Not started | - |

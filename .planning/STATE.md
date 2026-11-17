@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.15
 milestone_name: Rich Wiki Editor
 status: executing
-last_updated: "2026-11-17T14:27:23.424Z"
-last_activity: 2026-11-17 -- Phase 99 planning complete
+last_updated: "2026-11-17T14:40:29.691Z"
+last_activity: 2026-11-17
 progress:
   total_phases: 7
   completed_phases: 2
   total_plans: 53
-  completed_plans: 38
+  completed_plans: 40
   percent: 29
 ---
 
@@ -20,14 +20,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-11-16)
 
 **Core value:** Developers and PMs can see everything they need — tasks, MRs, sprint state, notifications, and test execution health — in one place, without switching between Jira, GitLab, and AIO.
-**Current focus:** Phase 98 — editor-shell
+**Current focus:** Phase 99 — mentions-media-smart-input
 
 ## Current Position
 
-Phase: 98 (editor-shell) — EXECUTING
-Plan: 15 of 16 (98-13 UAT re-run pending)
+Phase: 99 (mentions-media-smart-input) — EXECUTING
+Plan: 3 of 14
 Status: Ready to execute
-Last activity: 2026-11-17 -- Phase 99 planning complete
+Last activity: 2026-11-17
 
 Progress: [██████████] 97%
 
