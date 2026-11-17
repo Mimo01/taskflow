@@ -44,6 +44,7 @@ export function OverflowMenu({ items }: OverflowMenuProps) {
                   variant="ghost"
                   size="icon-sm"
                   aria-label="More"
+                  className="flex-none"
                   onMouseDown={(e) => e.preventDefault()}
                 />
               }

@@ -161,6 +161,61 @@ describe('Toolbar', () => {
     }
   });
 
+  const at360 = () =>
+    act(() => {
+      roCallback?.([{ contentRect: { width: 360 } } as ResizeObserverEntry], {} as ResizeObserver);
+    });
+
+  it('keeps Insert, More and the mode toggle outside the shrinking items region', () => {
+    setup();
+    at360();
+    const region = screen.getByRole('toolbar').querySelectorAll('[data-toolbar-items]');
+    expect(region).toHaveLength(1);
+    const items = region[0] as HTMLElement;
+    expect(items.className).toContain('min-w-0');
+    expect(items.className).toContain('overflow-hidden');
+    expect(items.className).toContain('shrink');
+    for (const el of [
+      screen.getByRole('button', { name: 'Insert' }),
+      screen.getByRole('button', { name: 'More' }),
+      screen.getByRole('radiogroup', { name: 'Editor mode' }),
+    ]) {
+      expect(items.contains(el)).toBe(false);
+      expect(el.closest('.flex-none')).not.toBeNull();
+    }
+  });
+
+  it('Full at 360 keeps only text style, Bold, Italic inline and the rest in More', async () => {
+    const user = userEvent.setup();
+    setup();
+    at360();
+    const items = screen.getByRole('toolbar').querySelector('[data-toolbar-items]') as HTMLElement;
+    const names = Array.from(items.querySelectorAll('button')).map((b) =>
+      b.getAttribute('aria-label'),
+    );
+    expect(names).toEqual(['Text style', 'Bold', 'Italic']);
+    expect(items.querySelectorAll('[aria-hidden="true"].w-px').length).toBeLessThanOrEqual(1);
+    await user.click(screen.getByRole('button', { name: 'More' }));
+    for (const n of ['Underline', 'Bullet list', 'Numbered list']) {
+      expect(await screen.findByText(n)).toBeTruthy();
+    }
+  });
+
+  it('hides the Insert label at narrow container widths but keeps aria-label', () => {
+    setup();
+    const btn = screen.getByRole('button', { name: 'Insert' });
+    const label = Array.from(btn.querySelectorAll('span')).find((e) => e.textContent === 'Insert');
+    expect(label?.className).toContain('hidden @[25rem]:inline');
+  });
+
+  it('source-mode preview toggle collapses below 35rem and sits outside the items region', () => {
+    setup({ mode: 'source' });
+    const btn = screen.getByRole('button', { name: 'Hide preview' });
+    expect(btn.className).toContain('hidden @[35rem]:inline-flex');
+    const items = screen.getByRole('toolbar').querySelector('[data-toolbar-items]') as HTMLElement;
+    expect(items.contains(btn)).toBe(false);
+  });
+
   it('disables the Rich segment when richDisabled', () => {
     setup({ richDisabled: true, mode: 'source' });
     expect(screen.getByRole('radio', { name: 'Rich' })).toBeDisabled();

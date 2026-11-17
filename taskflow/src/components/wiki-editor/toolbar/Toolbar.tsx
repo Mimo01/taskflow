@@ -318,6 +318,8 @@ export function Toolbar({
 
   const linkOverflowed = overflow.includes('link');
   const showLink = preset === 'full' || preset === 'compact';
+  const listGroupVisible =
+    show('bullet') || show('numbered') || show('quote') || (showLink && !linkOverflowed);
 
   return (
     <div
@@ -325,59 +327,61 @@ export function Toolbar({
       aria-label="Formatting"
       className="sticky top-0 z-10 flex h-10 flex-nowrap items-center gap-1 border-b border-border bg-muted/40 px-2"
     >
-      {isRich && show('text-style') ? (
-        <>
-          <TextStyleMenu current={st.textStyle} onSelect={(id) => applyTextStyle(editor, id)} />
-          <Divider />
-        </>
-      ) : null}
-      {show('bold') ? renderSimple('bold') : null}
-      {show('italic') ? renderSimple('italic') : null}
-      {show('underline') ? renderSimple('underline') : null}
-      {show('strike') ? renderSimple('strike') : null}
-      {show('mono') ? renderSimple('mono') : null}
-      {show('subsup') ? (
-        <>
-          <ToolbarButton
-            label="Superscript"
-            keys={['⌘', '⇧', '.']}
-            icon={<Superscript className={ICON} />}
-            onClick={run('sup')}
-            pressed={pressedOf('sup')}
-            className={cls('subsup')}
+      <div data-toolbar-items className="flex min-w-0 shrink items-center gap-1 overflow-hidden">
+        {isRich && show('text-style') ? (
+          <>
+            <TextStyleMenu current={st.textStyle} onSelect={(id) => applyTextStyle(editor, id)} />
+            <Divider />
+          </>
+        ) : null}
+        {show('bold') ? renderSimple('bold') : null}
+        {show('italic') ? renderSimple('italic') : null}
+        {show('underline') ? renderSimple('underline') : null}
+        {show('strike') ? renderSimple('strike') : null}
+        {show('mono') ? renderSimple('mono') : null}
+        {show('subsup') ? (
+          <>
+            <ToolbarButton
+              label="Superscript"
+              keys={['⌘', '⇧', '.']}
+              icon={<Superscript className={ICON} />}
+              onClick={run('sup')}
+              pressed={pressedOf('sup')}
+              className={cls('subsup')}
+            />
+            <ToolbarButton
+              label="Subscript"
+              keys={['⌘', '⇧', ',']}
+              icon={<Subscript className={ICON} />}
+              onClick={run('sub')}
+              pressed={pressedOf('sub')}
+              className={cls('subsup')}
+            />
+          </>
+        ) : null}
+        {isRich && show('colour') ? (
+          <ColourPopover
+            current={st.colour}
+            onPick={(v) => applyColour(editor, v)}
+            onRemove={() => removeColour(editor)}
+            trigger={colourTrigger}
           />
-          <ToolbarButton
-            label="Subscript"
-            keys={['⌘', '⇧', ',']}
-            icon={<Subscript className={ICON} />}
-            onClick={run('sub')}
-            pressed={pressedOf('sub')}
-            className={cls('subsup')}
+        ) : null}
+        {listGroupVisible ? <Divider /> : null}
+        {show('bullet') ? renderSimple('bullet') : null}
+        {show('numbered') ? renderSimple('numbered') : null}
+        {show('quote') ? renderSimple('quote') : null}
+        {showLink && !linkOverflowed ? (
+          <LinkPopover
+            open={linkOpen}
+            onOpenChange={onLinkOpenChange}
+            trigger={linkTrigger}
+            currentUrl={isRich ? st.link : null}
+            onApply={applyLinkUrl}
+            onRemove={removeLinkUrl}
           />
-        </>
-      ) : null}
-      {isRich && show('colour') ? (
-        <ColourPopover
-          current={st.colour}
-          onPick={(v) => applyColour(editor, v)}
-          onRemove={() => removeColour(editor)}
-          trigger={colourTrigger}
-        />
-      ) : null}
-      {preset === 'full' || show('bullet') ? <Divider /> : null}
-      {show('bullet') ? renderSimple('bullet') : null}
-      {show('numbered') ? renderSimple('numbered') : null}
-      {show('quote') ? renderSimple('quote') : null}
-      {showLink && !linkOverflowed ? (
-        <LinkPopover
-          open={linkOpen}
-          onOpenChange={onLinkOpenChange}
-          trigger={linkTrigger}
-          currentUrl={isRich ? st.link : null}
-          onApply={applyLinkUrl}
-          onRemove={removeLinkUrl}
-        />
-      ) : null}
+        ) : null}
+      </div>
       <InsertMenu items={INSERT_ITEMS} onInsert={insert} />
       {showLink && linkOverflowed ? (
         <LinkPopover
@@ -397,7 +401,7 @@ export function Toolbar({
           icon={<PanelRight className={ICON} />}
           onClick={onPreviewToggle}
           pressed={previewVisible}
-          className={cn('flex-none')}
+          className={cn('flex-none', 'hidden @[35rem]:inline-flex')}
         />
       ) : null}
       <ModeToggle mode={mode} onChange={onModeChange} richDisabled={richDisabled} />
