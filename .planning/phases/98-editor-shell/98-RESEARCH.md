@@ -453,12 +453,12 @@ Not a rename/migration phase, except the settings key: new persisted key `wikiEd
 | A7 | WKWebView lookbehind availability by macOS version | Folded todo IN-01 | None practical; shipped code already relies on it |
 | A8 | Popover with `anchor` + `initialFocus={false}` does not steal editor focus | Pattern 6 | Fallback to BubbleMenu |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **WR-01 direction (needs a human with Jira access).** Test 1 of 97-HUMAN-UAT is still pending. Recommendation: a `checkpoint:human-verify` at the start of the plan that closes WR-01; default per A5.
-2. **Per-transaction `saveWiki` cost.** Unmeasured on the largest fixture. Recommendation: measure in the dev tab first; debounce only if needed.
-3. **Does `Mod-Shift-B` have a TipTap blockquote default?** Not found in a grep of installed extension sources; bind explicitly regardless.
-4. **Jira palette hexes.** Need either the user's Jira instance render or an accepted constant set; tests will validate any chosen values through `isSafeColor`.
+1. **WR-01 direction (needs a human with Jira access).** Test 1 of 97-HUMAN-UAT is still pending. Recommendation: a `checkpoint:human-verify` at the start of the plan that closes WR-01; default per A5. RESOLVED: 98-02 Task 1 human checkpoint, A5 default if Jira is unavailable.
+2. **Per-transaction `saveWiki` cost.** Unmeasured on the largest fixture. Recommendation: measure in the dev tab first; debounce only if needed. RESOLVED: measured in the 98-12 dev tab; 98-11 debounces only if measurement demands it.
+3. **Does `Mod-Shift-B` have a TipTap blockquote default?** Not found in a grep of installed extension sources; bind explicitly regardless. RESOLVED: 98-05 keymap binds it explicitly.
+4. **Jira palette hexes.** Need either the user's Jira instance render or an accepted constant set; tests will validate any chosen values through `isSafeColor`. RESOLVED: 98-09 `palette.ts` constant set, every entry tested through `isSafeColor`.
 
 ## Environment Availability
 
