@@ -1,3 +1,4 @@
+import { Selection } from '@tiptap/pm/state';
 import { EditorContent, useEditor } from '@tiptap/react';
 import { useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
@@ -81,6 +82,7 @@ export default function WikiEditor({
     save: null,
   });
   const stateRef = useRef({ mode, forced });
+  const pendingFocusRef = useRef<{ mode: Mode; resetCaret: boolean } | null>(null);
   const cbRef = useRef({ onChange, onVerdict });
 
   useEffect(() => {
@@ -101,6 +103,7 @@ export default function WikiEditor({
     extensions: richExtensions,
     content: initial.load.kind === 'failed' ? EMPTY_DOC : initial.load.doc,
     immediatelyRender: true,
+    editable: mode === 'rich',
     shouldRerenderOnTransaction: false,
     editorProps: { attributes: { ...EDITOR_ATTRIBUTES[preset] } },
     ...EDITOR_RULE_OPTIONS,
@@ -110,6 +113,8 @@ export default function WikiEditor({
     },
     onUpdate: ({ editor: e, transaction }) => {
       if (transaction.getMeta(WIKI_TOGGLE_META)) return;
+      // The hidden rich doc (source mode) must never emit.
+      if (!e.isEditable) return;
       const load = loadedRef.current;
       if (!load) return;
       const t0 = performance.now();
@@ -142,6 +147,24 @@ export default function WikiEditor({
   useEffect(() => {
     report();
   }, [mode, forced]);
+
+  // After the commit: sync editability to the mode, then move focus to the visible surface.
+  // (Focusing inside toRich/toSource would hit the still-hidden element: UAT gap 2.)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: runs only on mode change
+  useEffect(() => {
+    editor.setEditable(mode === 'rich', false);
+    const pending = pendingFocusRef.current;
+    pendingFocusRef.current = null;
+    if (!pending || pending.mode !== mode) return;
+    if (mode === 'source') {
+      sourceRef.current?.focusAt(0);
+    } else {
+      if (pending.resetCaret) {
+        editor.view.dispatch(editor.state.tr.setSelection(Selection.atStart(editor.state.doc)));
+      }
+      editor.view.focus();
+    }
+  }, [mode]);
 
   // External value changes: reset, never echo.
   // biome-ignore lint/correctness/useExhaustiveDependencies: only react to value
@@ -186,6 +209,8 @@ export default function WikiEditor({
 
   const toSource = () => {
     if (stateRef.current.mode !== 'rich') return;
+    editor.setEditable(false, false);
+    pendingFocusRef.current = { mode: 'source', resetCaret: false };
     const load = loadedRef.current;
     if (!load) {
       setMode('source');
@@ -210,6 +235,8 @@ export default function WikiEditor({
       textAtToggleRef.current === NO_TOGGLE_TEXT ? '\u0000' : (textAtToggleRef.current as string),
     );
     if (res.kind === 'same' && loadedRef.current) {
+      editor.setEditable(true, false);
+      pendingFocusRef.current = { mode: 'rich', resetCaret: false };
       setMode('rich');
       return;
     }
@@ -227,8 +254,9 @@ export default function WikiEditor({
     setForced(false);
     setNotice(null);
     setSaveError(null);
+    editor.setEditable(true, false);
+    pendingFocusRef.current = { mode: 'rich', resetCaret: true };
     setMode('rich');
-    editor.commands.focus();
   };
 
   const richDisabled = mode === 'source' && forced && !richAllowed;
