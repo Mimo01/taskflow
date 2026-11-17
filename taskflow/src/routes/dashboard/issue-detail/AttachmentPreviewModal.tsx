@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/button';
 import { DEFAULT_FONT_SIZE, FONT_SIZES, nextFontSize, prevFontSize } from '@/lib/image-viewer';
+import { isTypingTarget } from '@/lib/typing-target';
 import { REVEALED_MESSAGE } from '@/lib/save-attachment';
 import type { JiraAttachment } from '@/services/jira';
 import { ImageViewer } from '../ImageViewer';
@@ -400,16 +401,11 @@ export function AttachmentPreviewModal({
 
   useEffect(() => {
     if (!open) return;
-    function isEditable(t: EventTarget | null) {
-      return (
-        t instanceof HTMLElement &&
-        (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)
-      );
-    }
     function handleKeyDown(e: KeyboardEvent) {
       // The image viewer prevents arrows while zoomed (they pan instead).
       if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && e.defaultPrevented) return;
-      if (fontZoomActive && !isEditable(e.target)) {
+      if (isTypingTarget(e.target)) return;
+      if (fontZoomActive) {
         if (e.key === '+' || e.key === '=') {
           e.preventDefault();
           setFontSize(nextFontSize);

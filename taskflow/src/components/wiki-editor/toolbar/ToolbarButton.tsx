@@ -1,0 +1,68 @@
+import { Button } from '@/components/ui/button';
+import { Keycap } from '@/components/ui/keycap';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { TooltipBody } from '@/components/ui/tooltip-body';
+import { cn } from '@/lib/utils';
+
+export interface ToolbarButtonProps {
+  label: string;
+  /** Individual keycaps shown in the tooltip, e.g. ['⌘', 'B']. */
+  keys?: string[];
+  icon: React.ReactNode;
+  onClick: () => void;
+  pressed?: boolean;
+  disabled?: boolean;
+  className?: string;
+  children?: React.ReactNode;
+}
+
+/** Icon button for the editor toolbar: tooltip with label + keycaps, keeps editor focus. */
+export function ToolbarButton({
+  label,
+  keys,
+  icon,
+  onClick,
+  pressed,
+  disabled,
+  className,
+  children,
+}: ToolbarButtonProps) {
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        delay={300}
+        render={
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            aria-label={label}
+            aria-pressed={pressed}
+            disabled={disabled}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={onClick}
+            className={cn(pressed && 'bg-accent text-accent-foreground', className)}
+          />
+        }
+      >
+        {icon}
+        {children}
+      </TooltipTrigger>
+      <TooltipContent>
+        <TooltipBody>
+          <div className="flex items-center gap-2">
+            <span className="font-medium">{label}</span>
+            {keys && keys.length > 0 ? (
+              <span className="flex items-center gap-1">
+                {keys.map((k, i) => (
+                  // biome-ignore lint/suspicious/noArrayIndexKey: static key list, no reorder
+                  <Keycap key={i}>{k}</Keycap>
+                ))}
+              </span>
+            ) : null}
+          </div>
+        </TooltipBody>
+      </TooltipContent>
+    </Tooltip>
+  );
+}

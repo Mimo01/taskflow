@@ -24,6 +24,12 @@ describe('KeyboardShortcutsPanel', () => {
     expect(screen.getByText('Keyboard Shortcuts')).toBeInTheDocument();
   });
 
+  it('renders an Editor section listing editor shortcuts', () => {
+    render(<KeyboardShortcutsPanel open={true} onClose={vi.fn()} />);
+    expect(screen.getByText('Editor')).toBeInTheDocument();
+    expect(screen.getByText('Bold while editing')).toBeInTheDocument();
+  });
+
   it('KEYS-01: does not render dialog title when open=false', () => {
     render(<KeyboardShortcutsPanel open={false} onClose={vi.fn()} />);
     expect(screen.queryByText('Keyboard Shortcuts')).not.toBeInTheDocument();

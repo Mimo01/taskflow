@@ -11,7 +11,7 @@
  * Only categories with at least one entry are rendered in the panel.
  */
 
-export type ShortcutCategory = 'Navigation' | 'Lists' | 'Actions' | 'General';
+export type ShortcutCategory = 'Navigation' | 'Lists' | 'Actions' | 'General' | 'Editor';
 
 export interface NavMeta {
   /** The label shown in the command palette (e.g., "Sprint Board") */
@@ -189,6 +189,109 @@ export const SHORTCUTS: ShortcutEntry[] = [
     description: 'Open item',
     category: 'Lists',
     displayKeys: ['Enter'],
+  },
+  // Editor shortcuts: documentation only (defaultKey is prefixed 'editor:' to stay unique), handled by the editor's own keymap while it has focus.
+  // Never bound as global hotkeys. Cmd+B / Cmd+Shift+B / Cmd+Shift+M equal global chords and are
+  // safe only because react-hotkeys-hook ignores contenteditable and textarea targets (no
+  // enableOnContentEditable anywhere in src). Sub/superscript use Cmd+Shift+, and Cmd+Shift+.
+  // because Cmd+, opens Settings.
+  {
+    id: 'editor-bold',
+    defaultKey: 'editor:⌘B',
+    description: 'Bold while editing',
+    category: 'Editor',
+    displayKeys: ['⌘', 'B'],
+  },
+  {
+    id: 'editor-italic',
+    defaultKey: 'editor:⌘I',
+    description: 'Italic while editing',
+    category: 'Editor',
+    displayKeys: ['⌘', 'I'],
+  },
+  {
+    id: 'editor-underline',
+    defaultKey: 'editor:⌘U',
+    description: 'Underline while editing',
+    category: 'Editor',
+    displayKeys: ['⌘', 'U'],
+  },
+  {
+    id: 'editor-strike',
+    defaultKey: 'editor:⌘⇧X',
+    description: 'Strikethrough while editing',
+    category: 'Editor',
+    displayKeys: ['⌘', '⇧', 'X'],
+  },
+  {
+    id: 'editor-mono',
+    defaultKey: 'editor:⌘E',
+    description: 'Monospace while editing',
+    category: 'Editor',
+    displayKeys: ['⌘', 'E'],
+  },
+  {
+    id: 'editor-superscript',
+    defaultKey: 'editor:⌘⇧.',
+    description: 'Superscript while editing',
+    category: 'Editor',
+    displayKeys: ['⌘', '⇧', '.'],
+  },
+  {
+    id: 'editor-subscript',
+    defaultKey: 'editor:⌘⇧,',
+    description: 'Subscript while editing',
+    category: 'Editor',
+    displayKeys: ['⌘', '⇧', ','],
+  },
+  {
+    id: 'editor-link',
+    defaultKey: 'editor:⌘K',
+    description: 'Insert link while editing',
+    category: 'Editor',
+    displayKeys: ['⌘', 'K'],
+  },
+  {
+    id: 'editor-bullet-list',
+    defaultKey: 'editor:⌘⇧8',
+    description: 'Bulleted list while editing',
+    category: 'Editor',
+    displayKeys: ['⌘', '⇧', '8'],
+  },
+  {
+    id: 'editor-numbered-list',
+    defaultKey: 'editor:⌘⇧7',
+    description: 'Numbered list while editing',
+    category: 'Editor',
+    displayKeys: ['⌘', '⇧', '7'],
+  },
+  {
+    id: 'editor-quote',
+    defaultKey: 'editor:⌘⇧B',
+    description: 'Quote while editing',
+    category: 'Editor',
+    displayKeys: ['⌘', '⇧', 'B'],
+  },
+  {
+    id: 'editor-toggle-source',
+    defaultKey: 'editor:⌘⇧M',
+    description: 'Toggle source view while editing',
+    category: 'Editor',
+    displayKeys: ['⌘', '⇧', 'M'],
+  },
+  {
+    id: 'editor-undo',
+    defaultKey: 'editor:⌘Z',
+    description: 'Undo while editing',
+    category: 'Editor',
+    displayKeys: ['⌘', 'Z'],
+  },
+  {
+    id: 'editor-redo',
+    defaultKey: 'editor:⌘⇧Z',
+    description: 'Redo while editing',
+    category: 'Editor',
+    displayKeys: ['⌘', '⇧', 'Z'],
   },
 ];
 

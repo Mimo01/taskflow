@@ -10,8 +10,9 @@
  */
 
 import { Dialog } from '@base-ui/react/dialog';
-import { Compass, Keyboard, List, Zap } from 'lucide-react';
+import { Compass, Keyboard, List, PenLine, Zap } from 'lucide-react';
 import { useState } from 'react';
+import { Keycap } from '@/components/ui/keycap';
 import { SHORTCUTS, type ShortcutCategory } from '@/lib/shortcuts';
 
 const CATEGORIES: { key: ShortcutCategory; icon: React.ReactNode }[] = [
@@ -19,14 +20,8 @@ const CATEGORIES: { key: ShortcutCategory; icon: React.ReactNode }[] = [
   { key: 'Navigation', icon: <Compass className="h-3.5 w-3.5" /> },
   { key: 'Lists', icon: <List className="h-3.5 w-3.5" /> },
   { key: 'Actions', icon: <Zap className="h-3.5 w-3.5" /> },
+  { key: 'Editor', icon: <PenLine className="h-3.5 w-3.5" /> },
 ];
-
-const keycapClass =
-  'inline-flex items-center justify-center min-w-[24px] h-[22px] px-1.5 text-[11px] font-medium font-mono bg-gradient-to-b from-muted to-muted/80 text-muted-foreground border border-border/80 rounded-[4px] shadow-[0_1px_0_1px_rgba(0,0,0,0.05)]';
-
-function Keycap({ children }: { children: React.ReactNode }) {
-  return <kbd className={keycapClass}>{children}</kbd>;
-}
 
 export interface KeyboardShortcutsPanelProps {
   open: boolean;
