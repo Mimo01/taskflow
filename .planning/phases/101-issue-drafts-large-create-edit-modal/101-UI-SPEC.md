@@ -1,7 +1,8 @@
 ---
 phase: 101
 slug: issue-drafts-large-create-edit-modal
-status: draft
+status: approved
+reviewed_at: 2026-11-17
 shadcn_initialized: true
 preset: base-nova (neutral, cssVariables, lucide)
 created: 2026-11-17
@@ -51,7 +52,7 @@ Component sizing:
 - Drafts chip: height 32px (`h-8`), `px-3`, `gap-1` between icon and text; matches the neighbouring TopBar controls' height.
 - Drafts popover: width 360px, `p-1`, rows `px-2 py-2` min-height 40px, one line per row (no second line, per the one-row-one-line preference); max-height 360px, inner scroll.
 
-Exceptions: 300px / 240px sidebar width, 360px popover width and 1080px dialog width are layout dimensions (D-01, discretion), not spacing tokens.
+Exceptions: the italic `Untitled` draft summary adds `pr-0.5` (2px) to avoid glyph clipping under `truncate`; 300px / 240px sidebar width, 360px popover width and 1080px dialog width are layout dimensions (D-01, discretion), not spacing tokens.
 
 ---
 
@@ -78,7 +79,7 @@ Sidebar and main-column field labels: 12px / 600 label above the control (D-04),
 | Accent (10%) | `--primary` / `--ring` | See list below |
 | Destructive | `--destructive` | Required `*`, error message block (existing `bg-destructive/10`), the confirm button of the Discard dialog only |
 
-Accent reserved for: the primary Create / Save button (existing `Button` default); focus rings on inputs, editor frame and checkbox; the keyboard-highlighted row in the drafts popover (existing `accent` hover/active row style).
+Accent reserved for: the primary Create Issue / Save Changes button (existing `Button` default); focus rings on inputs, editor frame and checkbox; the keyboard-highlighted row in the drafts popover (existing `accent` hover/active row style).
 
 No status colour, no warning colour: stale-field notes, "Draft saved", "Created ABC-123" and the chip are muted neutral. The chip is distinguished from `PinnedTabStrip` by shape and fill (rounded-full, `bg-muted`, `border`), not by colour. Type icons keep their existing issue-type colours (`IssueTypeIcon`).
 
@@ -88,10 +89,11 @@ No status colour, no warning colour: stale-field notes, "Draft saved", "Created 
 
 ### Modal shell (D-01, D-02, D-04, D-05)
 - Header (left to right): `IssueTypeSelector` (Story / Subtask / Bug, plus Epic is not offered here, Epics keep `CreateEpicDialog`), title text, then a trailing X close button (existing `rounded p-1 hover:bg-accent`, `aria-label="Close"`). In Edit mode the type selector is replaced by the key + `IssueTypeIcon` and the title reads `Edit {KEY}`.
+- Focal point: Summary (autofocused in Create) then the flexing Description editor lead the main column; everything else is visually secondary.
 - Main column, top to bottom: Summary (full-width `Input`, autofocus in Create), Description (`full` preset editor, flexes to fill), `StagedFilesStrip` (attach button in the Description label row stays as today), Links (`LinkRowsSection`, own `h3`-style label "Links", no card panel). Error block (`bg-destructive/10`) sits above Links, never in the footer.
 - Sidebar: label above a full-width control, no cards, no collapsible groups. Order (resolved): Assignee, Priority, Epic / Parent, Labels, Fix version (only if present in createmeta), Story points, Estimate, then remaining `CustomFieldsSection` fields in createmeta order. Parent (subtask) replaces Epic and is read-only text when set from context (as today). Labels use the existing custom-field input if createmeta exposes `labels` there; otherwise a single multi-value token input of the same height as other controls.
 - Required fields marked with `*`; the sidebar scrolls on its own if it overflows.
-- Footer: left, "Create another" checkbox (Create only) then the status line; right, `Cancel` (outline) then primary (`Create` / `Save`), each with the existing tooltip + keycap (`Create  ⌘ ↵`, `Cancel  Esc`). The status line is a single 12px `truncate min-w-0` line, reserved 24px, never wraps.
+- Footer: left, "Create another" checkbox (Create only) then the status line; right, `Cancel` (outline) then primary (`Create Issue` / `Save Changes`), each with the existing tooltip + keycap (`Create Issue  ⌘ ↵`, `Save Changes  ⌘ ↵`, `Cancel  Esc`). The status line is a single 12px `truncate min-w-0` line, reserved 24px, never wraps.
 - Loading: `WikiEditorLazy` skeleton at the equal final height; sidebar controls render as `Skeleton` of control height while createmeta loads. No spinner.
 - One row = one line: sidebar rows never stack a second line; long values truncate.
 
@@ -129,7 +131,7 @@ No status colour, no warning colour: stale-field notes, "Draft saved", "Created 
 - Empty state: not reachable in normal use (chip hidden when no drafts). If the popover is open when the last draft expires, it closes; no empty copy.
 
 ### Edit mode (UI-01)
-- Same shell as Create. No "Create another", no draft note in the footer, no drafts. Primary `Save`. The Edit modal's initial values come from Jira; the Phase 100 description draft behaviour and Discard changes dialog are unchanged.
+- Same shell as Create. No "Create another", no draft note in the footer, no drafts. Primary `Save Changes`. The Edit modal's initial values come from Jira; the Phase 100 description draft behaviour and Discard changes dialog are unchanged.
 
 ### Accessibility
 - Dialog traps focus and returns it to the opener (resume: to the chip's former position is gone, so return to `body`/main). Sidebar controls have programmatic labels (`htmlFor`/`id`). Chip, X and Open actions are real buttons. Contrast follows existing muted tokens (no new colours).
@@ -140,8 +142,8 @@ No status colour, no warning colour: stale-field notes, "Draft saved", "Created 
 
 | Element | Copy |
 |---------|------|
-| Primary CTA (Create) | `Create` (existing label, tooltip `Create  ⌘ ↵`) |
-| Primary CTA (Edit) | `Save` (tooltip `Save  ⌘ ↵`) |
+| Primary CTA (Create) | `Create Issue` (tooltip `Create Issue  ⌘ ↵`). Changed from Phase 100's `Create`: the Phase 100 label/tooltip tests must be updated to match |
+| Primary CTA (Edit) | `Save Changes` (tooltip `Save Changes  ⌘ ↵`). Changed from Phase 100's `Save`: the Phase 100 label/tooltip tests must be updated to match |
 | Secondary | `Cancel` (tooltip `Cancel  Esc`) |
 | Modal title | `Create issue` / `Edit {KEY}` |
 | Create another | `Create another` |
@@ -169,7 +171,7 @@ No status colour, no warning colour: stale-field notes, "Draft saved", "Created 
 
 | Registry | Blocks Used | Safety Gate |
 |----------|-------------|-------------|
-| shadcn official | existing `dialog`, `button`, `popover`, `tooltip`, `input`, `select`, `skeleton` (no new blocks; a `checkbox` is not in `components/ui`: use a native `<input type="checkbox">` styled with `accent` tokens, or add shadcn official `checkbox` via the CLI) | not required |
+| shadcn official | existing `dialog`, `button`, `popover`, `tooltip`, `input`, `select`, `skeleton` (no new blocks). Checkbox: native `<input type="checkbox">` styled with tokens (`accent-primary`, focus ring), matching existing app usage in `AioBlock.tsx`, `IntegrationsSection.tsx` and `DebugModeSection.tsx`; do not add the shadcn `checkbox` | not required |
 | Third-party | none | not applicable |
 
 ---
