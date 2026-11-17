@@ -4,6 +4,7 @@ import { emitBlockNode, emitWiki } from './emit';
 import { parseWiki } from './parse/blocks';
 import { blockSource, checkSaved } from './save-check';
 import { wikiSchema } from './schema';
+import { withoutEmptyListItems } from './transient';
 import type { WikiDocJSON, WikiLoad, WikiSave } from './types';
 
 /**
@@ -94,16 +95,18 @@ function demote(
  * result is `failed` and no text is produced. Never throws. Docs from any
  * Schema instance with the same spec are accepted: TipTap's `getSchema` builds
  * a new Schema per editor, and ProseMirror `Node.eq` compares types by identity.
+ * Empty list items are pruned first (the transient rule, see transient.ts).
  */
 export function saveWiki(loaded: Extract<WikiLoad, { doc: unknown }>, current: PMNode): WikiSave {
   try {
     const cur =
       current.type.schema === wikiSchema ? current : wikiSchema.nodeFromJSON(current.toJSON());
-    if (cur.eq(wikiSchema.nodeFromJSON(loaded.doc))) {
+    const pruned = withoutEmptyListItems(cur);
+    if (pruned.eq(wikiSchema.nodeFromJSON(loaded.doc))) {
       return { kind: 'unchanged', text: loaded.original };
     }
-    const emitted = emitWiki(cur);
-    const reason = checkSaved(cur.toJSON(), emitted);
+    const emitted = emitWiki(pruned);
+    const reason = checkSaved(pruned.toJSON(), emitted);
     return reason === null ? { kind: 'saved', text: emitted } : { kind: 'failed', reason };
   } catch (err) {
     return { kind: 'failed', reason: errorMessage(err) };
