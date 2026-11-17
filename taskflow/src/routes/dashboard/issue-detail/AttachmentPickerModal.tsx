@@ -17,6 +17,7 @@ interface AttachmentPickerModalProps {
   onOpenChange: (open: boolean) => void;
   attachments: JiraAttachment[];
   onSelect: (attachment: JiraAttachment) => void;
+  description?: string;
 }
 
 export function AttachmentPickerModal({
@@ -24,6 +25,7 @@ export function AttachmentPickerModal({
   onOpenChange,
   attachments,
   onSelect,
+  description = 'Select an attachment to reference it in your comment.',
 }: AttachmentPickerModalProps) {
   const [filter, setFilter] = useState('');
 
@@ -44,9 +46,7 @@ export function AttachmentPickerModal({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Insert attachment</DialogTitle>
-          <DialogDescription>
-            Select an attachment to reference it in your comment.
-          </DialogDescription>
+          <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
         <Input
           placeholder="Filter attachments…"
