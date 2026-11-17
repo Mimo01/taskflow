@@ -369,7 +369,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 100-09-PLAN.md — Delete textarea editing code and dead components + removal guard test
+- [x] 100-09-PLAN.md — Delete textarea editing code and dead components + removal guard test
 
 **UI hint**: yes
 
@@ -410,7 +410,7 @@ Plans:
 | 97. Round-Trip Engine | 17/17 | Complete    | 2026-11-16 |
 | 98. Editor Shell | 15/16 | In Progress|  |
 | 99. Mentions, Media & Smart Input | 14/14 | Complete    | 2026-11-17 |
-| 100. Host Adoption & Editing Workflow | 8/9 | In Progress|  |
+| 100. Host Adoption & Editing Workflow | 9/9 | Complete   | 2026-11-17 |
 | 101. Issue Drafts & Large Create/Edit Modal | 0/TBD | Not started | - |
 | 102. Polished Surfaces | 0/TBD | Not started | - |
 
