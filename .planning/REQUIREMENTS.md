@@ -24,14 +24,14 @@
 - [x] **EDIT-06**: User can insert and edit links, and pasting a URL onto a selection makes it a link
 - [x] **EDIT-07**: User can type wiki/markdown-style shortcuts (e.g. `*bold*`, `- `, `# `, `{code}`) that format in place, with IME composition respected
 - [ ] **EDIT-08**: Undo/redo works across all edits, including mode toggles
-- [ ] **EDIT-09**: The editor loads lazily with an equal-height skeleton and never rebuilds or loses the caret while typing
+- [x] **EDIT-09**: The editor loads lazily with an equal-height skeleton and never rebuilds or loses the caret while typing
 
 ### Rich Blocks (BLOCK)
 
 - [ ] **BLOCK-01**: User can insert a table and add/remove rows, columns and header cells
 - [ ] **BLOCK-02**: User can insert and edit `{code}` blocks with a language, and `{noformat}` blocks
 - [ ] **BLOCK-03**: User can insert and edit `{panel}`/`{info}`/`{note}`/`{warning}`/`{tip}` panels, incl. titles
-- [ ] **BLOCK-04**: User can colour text with `{color}` from a validated palette (CSS-injection safe)
+- [x] **BLOCK-04**: User can colour text with `{color}` from a validated palette (CSS-injection safe)
 - [ ] **BLOCK-05**: User can open a `/` slash menu to insert any block type
 
 ### Mentions, Media & Smart Input (INPUT)
@@ -114,11 +114,11 @@
 | EDIT-06 | Phase 98 | Complete |
 | EDIT-07 | Phase 98 | Complete |
 | EDIT-08 | Phase 98 | Pending |
-| EDIT-09 | Phase 98 | Pending |
+| EDIT-09 | Phase 98 | Complete |
 | BLOCK-01 | Phase 98 | Pending |
 | BLOCK-02 | Phase 98 | Pending |
 | BLOCK-03 | Phase 98 | Pending |
-| BLOCK-04 | Phase 98 | Pending |
+| BLOCK-04 | Phase 98 | Complete |
 | BLOCK-05 | Phase 99 | Pending |
 | INPUT-01 | Phase 99 | Pending |
 | INPUT-02 | Phase 99 | Pending |

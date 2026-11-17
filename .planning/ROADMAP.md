@@ -260,7 +260,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 98-10-PLAN.md — Toolbar composition: presets, one-row overflow, source-mode actions
+- [x] 98-10-PLAN.md — Toolbar composition: presets, one-row overflow, source-mode actions
 
 **Wave 5** *(blocked on Wave 4 completion)*
 
@@ -345,7 +345,7 @@ Plans:
 |-------|----------------|--------|-----------|
 | 96. Wiki Foundations & Equivalence Harness | 6/6 | Complete    | 2026-11-16 |
 | 97. Round-Trip Engine | 17/17 | Complete    | 2026-11-16 |
-| 98. Editor Shell | 9/13 | In Progress|  |
+| 98. Editor Shell | 10/13 | In Progress|  |
 | 99. Mentions, Media & Smart Input | 0/TBD | Not started | - |
 | 100. Host Adoption & Editing Workflow | 0/TBD | Not started | - |
 | 101. Issue Drafts & Large Create/Edit Modal | 0/TBD | Not started | - |
