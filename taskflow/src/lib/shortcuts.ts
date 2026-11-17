@@ -322,6 +322,20 @@ export const SHORTCUTS: ShortcutEntry[] = [
     category: 'Editor',
     displayKeys: [':'],
   },
+  {
+    id: 'editor-submit',
+    defaultKey: 'editor:⌘↵',
+    description: 'Submit editor or form',
+    category: 'Editor',
+    displayKeys: ['⌘', '↵'],
+  },
+  {
+    id: 'editor-cancel',
+    defaultKey: 'editor:Esc',
+    description: 'Cancel editing / leave editor',
+    category: 'Editor',
+    displayKeys: ['Esc'],
+  },
 ];
 
 /** Navigation shortcuts with navMeta guaranteed present -- used by CommandPalette */

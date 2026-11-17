@@ -15,6 +15,8 @@ describe('shortcut registry: editor paste and trigger rows', () => {
       ['editor-trigger-mention', 'Mention @', ['@']],
       ['editor-trigger-slash', 'Insert menu /', ['/']],
       ['editor-trigger-emoticon', 'Emoticon :', [':']],
+      ['editor-submit', 'Submit editor or form', ['⌘', '↵']],
+      ['editor-cancel', 'Cancel editing / leave editor', ['Esc']],
     ] as const;
     for (const [id, description, keys] of rows) {
       const e = SHORTCUTS.find((s) => s.id === id);

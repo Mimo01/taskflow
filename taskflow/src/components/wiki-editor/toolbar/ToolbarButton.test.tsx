@@ -38,7 +38,7 @@ describe('ToolbarButton', () => {
 describe('Editor shortcut registry', () => {
   const editor = SHORTCUTS.filter((s) => s.category === 'Editor');
 
-  it('lists the 18 editor shortcuts, none navigational', () => {
+  it('lists the 20 editor shortcuts, none navigational', () => {
     expect(editor.map((s) => s.id)).toEqual([
       'editor-bold',
       'editor-italic',
@@ -58,10 +58,15 @@ describe('Editor shortcut registry', () => {
       'editor-trigger-mention',
       'editor-trigger-slash',
       'editor-trigger-emoticon',
+      'editor-submit',
+      'editor-cancel',
     ]);
     for (const s of editor) {
       expect(s.navMeta).toBeUndefined();
-      if (!s.id.startsWith('editor-trigger-') && s.id !== 'editor-paste-plain') {
+      if (
+        !s.id.startsWith('editor-trigger-') &&
+        !['editor-paste-plain', 'editor-submit', 'editor-cancel'].includes(s.id)
+      ) {
         expect(s.description).toContain('while editing');
       }
     }
