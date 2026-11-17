@@ -1,5 +1,5 @@
 ---
-status: gaps-found
+status: complete
 phase: 99-mentions-media-smart-input
 source: [99-14-PLAN.md, 99-11-SUMMARY.md, 99-12-SUMMARY.md, 99-13-SUMMARY.md]
 started: 2026-11-17
@@ -8,7 +8,7 @@ updated: 2026-11-17
 
 ## Current Test
 
-[testing complete — run by Claude on 2026-11-17 at the user's request; 3 gaps recorded]
+[testing complete — run by Claude on 2026-11-17 at the user's request; 3 gaps found, fixed inline in 41dd7b80 and re-verified (Cmd+Shift+V natively in WKWebView with a Tauri-equivalent menu item)]
 
 Method: a throwaway page mounted the dev-tools EditorTab from the running Vite server (React Compiler active, MemoryRouter + QueryClient; people/issue search stubbed in the query client with placeholder DEMO users and issues). It was driven two ways and deleted afterwards:
 - Playwright WebKit 27.2 (the engine behind WKWebView) for all 12 tests, using synthetic DOM drop/paste events with real File objects and real keyboard input.
@@ -90,8 +90,11 @@ pending: 0
 
 ## Gaps
 
+<!-- All three closed in 41dd7b80. Re-verified: native WKWebView Cmd+Shift+V → menu item → pasteAsPlainText: → plain paste, next Cmd+V rich; dialog shows one popover and Esc 1 closes it; Docs heading saves `h2. Docs heading`. Tests 10-12 re-run with no regressions. -->
+
 - truth: "Cmd+Shift+V pastes as plain text in the app (test 7)"
-  status: failed
+  status: resolved
+  resolved_by: 41dd7b80
   reason: "Native WKWebView with the app's Edit menu: Cmd+Shift+V fires a keydown but no paste event, so nothing is pasted."
   severity: major
   test: 7
@@ -101,7 +104,8 @@ pending: 0
   debug_session: "inline WKWebView probe"
 
 - truth: "Only the focused editor shows a suggestion popover (test 9)"
-  status: failed
+  status: resolved
+  resolved_by: 41dd7b80
   reason: "Typing @ja in the dialog editor also opens a mention popover in the unfocused main editor behind it; Esc does not close it."
   severity: minor
   test: 9
@@ -111,7 +115,8 @@ pending: 0
   debug_session: "inline WKWebView probe"
 
 - truth: "Google Docs headings paste as plain headings (test 8)"
-  status: failed
+  status: resolved
+  resolved_by: 41dd7b80
   reason: "google-docs.html heading saves as `h2. *Docs heading*`."
   severity: cosmetic
   test: 8
