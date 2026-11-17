@@ -2,7 +2,7 @@
  * EpicDetailSheet behavioral tests — EPIC-03
  *
  * Architecture deviation (approved): EpicDetailSheet.tsx was NOT created as a
- * standalone component. Epic detail view is implemented via IssueDetailSheet /
+ * standalone component. Epic detail view is implemented via
  * IssueDetailContent with the isEpic=true branch. These tests verify the
  * EPIC-03 requirements against the actual implementation.
  *

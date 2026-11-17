@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import type React from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -155,44 +155,7 @@ function wrapper({ children }: { children: React.ReactNode }) {
   return <QueryClientProvider client={qc}>{children}</QueryClientProvider>;
 }
 
-describe('IssueDetailSheet', () => {
-  describe('ISSUE-01: open/close', () => {
-    it('renders sheet open when issueKey is a non-null string', async () => {
-      const { fetchIssueDetail } = await import('@/services/jira');
-      vi.mocked(fetchIssueDetail).mockResolvedValue(makeIssueDetail() as never);
-
-      const { IssueDetailSheet } = await import('./IssueDetailSheet');
-      render(<IssueDetailSheet issueKey="PROJ-1" onClose={vi.fn()} />, { wrapper });
-
-      // When open, the skeleton or body is rendered (skeleton initially while loading)
-      // The Sheet is open when issueKey is non-null — verify by finding skeleton or content
-      const skeleton = await screen.findByTestId('issue-detail-skeleton');
-      expect(skeleton).toBeTruthy();
-    });
-
-    it('renders sheet closed when issueKey is null', async () => {
-      const { IssueDetailSheet } = await import('./IssueDetailSheet');
-      render(<IssueDetailSheet issueKey={null} onClose={vi.fn()} />, { wrapper });
-      // When issueKey is null, no body or skeleton is rendered inside the sheet
-      expect(screen.queryByTestId('issue-detail-body')).toBeNull();
-      expect(screen.queryByTestId('issue-detail-skeleton')).toBeNull();
-    });
-
-    it('calls onClose when Sheet onOpenChange fires with false', async () => {
-      const { fetchIssueDetail } = await import('@/services/jira');
-      vi.mocked(fetchIssueDetail).mockResolvedValue(makeIssueDetail() as never);
-
-      const { IssueDetailSheet } = await import('./IssueDetailSheet');
-      const onClose = vi.fn();
-      render(<IssueDetailSheet issueKey="PROJ-1" onClose={onClose} />, { wrapper });
-
-      // Find and click the close button (SheetContent renders one by default)
-      const closeBtn = await screen.findByRole('button', { name: /close/i });
-      fireEvent.click(closeBtn);
-      await waitFor(() => expect(onClose).toHaveBeenCalled());
-    });
-  });
-
+describe('Issue detail sidebar, content and fields', () => {
   describe('ISSUE-04: optimistic field update', () => {
     // Tests validate the mutation hook behavior: onMutate optimistically updates the cache,
     // onError rolls back, onSettled invalidates the relevant query keys.
@@ -466,106 +429,6 @@ describe('IssueDetailSheet', () => {
       // outward link: type.outward = 'blocks' + PROJ-45
       expect(screen.getByText('blocks')).toBeTruthy();
       expect(screen.getByText('PROJ-45')).toBeTruthy();
-    });
-  });
-
-  describe('ISSUE-07: comment thread', () => {
-    it('renders comments ordered newest-first', async () => {
-      const { default: InlineComment } = await import('./InlineComment');
-      const comments = [
-        {
-          id: 'c1',
-          author: { displayName: 'Alice' },
-          body: 'First comment',
-          created: '2026-01-01T10:00:00.000Z',
-          updated: '2026-01-01T10:00:00.000Z',
-        },
-        {
-          id: 'c2',
-          author: { displayName: 'Bob' },
-          body: 'Second comment',
-          created: '2026-01-02T10:00:00.000Z',
-          updated: '2026-01-02T10:00:00.000Z',
-        },
-      ];
-
-      render(
-        <InlineComment
-          issueKey="PROJ-1"
-          jiraBaseUrl="https://jira.example.com"
-          isOpen={true}
-          onCancel={vi.fn()}
-          onSubmit={vi.fn()}
-          isSubmitting={false}
-          existingComments={comments as never[]}
-        />,
-        { wrapper },
-      );
-
-      const authorElements = screen.getAllByText(/Alice|Bob/);
-      // Bob's comment (newest) should appear before Alice's (oldest)
-      const bobIndex = authorElements.findIndex((el) => el.textContent === 'Bob');
-      const aliceIndex = authorElements.findIndex((el) => el.textContent === 'Alice');
-      expect(bobIndex).toBeLessThan(aliceIndex);
-    });
-
-    it('each comment shows author displayName and relative timestamp', async () => {
-      const { default: InlineComment } = await import('./InlineComment');
-      const comments = [
-        {
-          id: 'c1',
-          author: { displayName: 'Alice' },
-          body: 'Hello world',
-          created: '2026-01-01T10:00:00.000Z',
-          updated: '2026-01-01T10:00:00.000Z',
-        },
-      ];
-
-      render(
-        <InlineComment
-          issueKey="PROJ-1"
-          jiraBaseUrl="https://jira.example.com"
-          isOpen={true}
-          onCancel={vi.fn()}
-          onSubmit={vi.fn()}
-          isSubmitting={false}
-          existingComments={comments as never[]}
-        />,
-        { wrapper },
-      );
-
-      expect(screen.getByText('Alice')).toBeTruthy();
-    });
-
-    it('renders comment body through WikiRenderer (wiki markup converted)', async () => {
-      const { default: InlineComment } = await import('./InlineComment');
-      const comments = [
-        {
-          id: 'c1',
-          author: { displayName: 'Alice' },
-          body: '*bold text*',
-          created: '2026-01-01T10:00:00.000Z',
-          updated: '2026-01-01T10:00:00.000Z',
-        },
-      ];
-
-      render(
-        <InlineComment
-          issueKey="PROJ-1"
-          jiraBaseUrl="https://jira.example.com"
-          isOpen={true}
-          onCancel={vi.fn()}
-          onSubmit={vi.fn()}
-          isSubmitting={false}
-          existingComments={comments as never[]}
-        />,
-        { wrapper },
-      );
-
-      // WikiRenderer is mocked — check it receives the raw comment body
-      const wikiRenderers = screen.getAllByTestId('wiki-renderer');
-      const commentRenderer = wikiRenderers.find((el) => el.textContent === '*bold text*');
-      expect(commentRenderer).toBeTruthy();
     });
   });
 

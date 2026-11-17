@@ -1,4 +1,4 @@
-/** Pure text edit for source-mode toolbar inserts (mirrors DescriptionEditor's insertAtCursor). */
+/** Pure text edit for source-mode toolbar inserts. */
 export function applyInsert(
   value: string,
   selStart: number,

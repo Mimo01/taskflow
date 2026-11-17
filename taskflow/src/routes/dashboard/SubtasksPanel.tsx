@@ -28,7 +28,7 @@ interface SubtasksPanelProps {
   jiraToken: string;
   activeJiraProject: string;
   /** Called with issue key when a subtask row is clicked. When provided,
-   *  opens the IssueDetailSheet instead of the browser. */
+   *  opens the issue peek instead of the browser. */
   onIssueClick?: (issueKey: string) => void;
 }
 

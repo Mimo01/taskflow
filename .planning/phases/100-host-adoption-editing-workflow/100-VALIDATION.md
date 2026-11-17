@@ -1,9 +1,9 @@
 ---
 phase: 100
 slug: host-adoption-editing-workflow
-status: draft
-nyquist_compliant: false
-wave_0_complete: false
+status: approved
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-11-17
 ---
 
@@ -38,26 +38,26 @@ created: 2026-11-17
 
 | Req | Behavior | Test Type | Automated Command | File Exists | Status |
 |-----|----------|-----------|-------------------|-------------|--------|
-| HOST-01 | Create/Edit modal uses WikiEditor; description round-trips; staged files uploaded | integration | `npx vitest run src/routes/dashboard/CreateEditIssueModal.test.tsx src/routes/dashboard/create-edit-issue` | rewrite W0 | ⬜ pending |
-| HOST-03 | Composer posts, clears, keeps focus; comment edit saves | integration | `npx vitest run src/routes/dashboard/CommentComposer.test.tsx src/routes/dashboard/CommentComposer.attachments.test.tsx` | rewrite W0 | ⬜ pending |
-| HOST-04 | Create Epic submits description from editor; Cmd+Enter submits | integration | `npx vitest run src/routes/dashboard/CreateEpicDialog.test.tsx` | rewrite | ⬜ pending |
-| HOST-05 | Old toolbar/Preview tab and deleted files absent | guard (fs) | `npx vitest run src/routes/dashboard/editor-removal.guard.test.ts` | ❌ W0 | ⬜ pending |
-| FLOW-01 | Draft debounce/flush/restore/clear; stale-base notice | unit + integration | `npx vitest run src/stores/drafts.store.test.ts src/hooks/useEditorDraft.test.tsx` | ❌ W0 | ⬜ pending |
-| FLOW-02 | Dirty Cancel/Esc → Discard dialog; clean closes; Create Issue never warns | integration | `npx vitest run src/components/ui/discard-changes-dialog.test.tsx src/routes/dashboard/CreateEditIssueModal.test.tsx` | ❌ W0 | ⬜ pending |
-| FLOW-03 | Mod-Enter submits (not IME/popover); Esc order popover > host | unit (real editor) | `npx vitest run src/components/wiki-editor/host-keys.test.tsx` | ❌ W0 | ⬜ pending |
+| HOST-01 | Create/Edit modal uses WikiEditor; description round-trips; staged files uploaded | integration | `npx vitest run src/routes/dashboard/CreateEditIssueModal.test.tsx src/routes/dashboard/create-edit-issue` | rewrite W0 | ✅ green |
+| HOST-03 | Composer posts, clears, keeps focus; comment edit saves | integration | `npx vitest run src/routes/dashboard/CommentComposer.test.tsx src/routes/dashboard/CommentComposer.attachments.test.tsx` | rewrite W0 | ✅ green |
+| HOST-04 | Create Epic submits description from editor; Cmd+Enter submits | integration | `npx vitest run src/routes/dashboard/CreateEpicDialog.test.tsx` | rewrite | ✅ green |
+| HOST-05 | Old toolbar/Preview tab and deleted files absent | guard (fs) | `npx vitest run src/routes/dashboard/editor-removal.guard.test.ts` | ❌ W0 | ✅ green |
+| FLOW-01 | Draft debounce/flush/restore/clear; stale-base notice | unit + integration | `npx vitest run src/stores/drafts.store.test.ts src/hooks/useEditorDraft.test.tsx` | ❌ W0 | ✅ green |
+| FLOW-02 | Dirty Cancel/Esc → Discard dialog; clean closes; Create Issue never warns | integration | `npx vitest run src/components/ui/discard-changes-dialog.test.tsx src/routes/dashboard/CreateEditIssueModal.test.tsx` | ❌ W0 | ✅ green |
+| FLOW-03 | Mod-Enter submits (not IME/popover); Esc order popover > host | unit (real editor) | `npx vitest run src/components/wiki-editor/host-keys.test.tsx` | ❌ W0 | ✅ green |
 
-*Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
+*Status: ✅ green · ✅ green · ❌ red · ⚠️ flaky*
 
 ---
 
 ## Wave 0 Requirements
 
-- [ ] `src/stores/drafts.store.test.ts`, `src/hooks/useEditorDraft.test.tsx`: FLOW-01
-- [ ] `src/components/ui/discard-changes-dialog.test.tsx`: FLOW-02
-- [ ] `src/components/wiki-editor/host-keys.test.tsx`: FLOW-03 (ref handle, placeholder, autoFocus)
-- [ ] `src/routes/dashboard/editor-removal.guard.test.ts`: HOST-05
-- [ ] Shared `WikiEditorLazy` stub for host tests (`src/test/wiki-editor-stub.tsx`)
-- [ ] Move `CommentComposer` cases out of `IssueDetailSheet.test.tsx` before deleting it
+- [x] `src/stores/drafts.store.test.ts`, `src/hooks/useEditorDraft.test.tsx`: FLOW-01
+- [x] `src/components/ui/discard-changes-dialog.test.tsx`: FLOW-02
+- [x] `src/components/wiki-editor/host-keys.test.tsx`: FLOW-03 (ref handle, placeholder, autoFocus)
+- [x] `src/routes/dashboard/editor-removal.guard.test.ts`: HOST-05
+- [x] Shared `WikiEditorLazy` stub for host tests (`src/test/wiki-editor-stub.tsx`)
+- [x] Move `CommentComposer` cases out of `IssueDetailSheet.test.tsx` before deleting it
 
 ---
 
@@ -73,11 +73,11 @@ created: 2026-11-17
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 120s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references
+- [x] No watch-mode flags
+- [x] Feedback latency < 120s
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** approved 2026-11-17

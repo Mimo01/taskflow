@@ -308,7 +308,7 @@ describe('CommentComposer — post-mutation invalidation (PERF-DETAIL-03)', () =
   });
 });
 
-describe('CommentComposer — ported from IssueDetailSheet (ISSUE-08)', () => {
+describe('CommentComposer — ported from the old issue sheet (ISSUE-08)', () => {
   it('calls postComment with issueKey and compose box text on submit', async () => {
     mockPostComment.mockResolvedValue(undefined as never);
     render(
