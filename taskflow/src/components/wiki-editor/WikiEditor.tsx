@@ -19,6 +19,7 @@ import { EDITOR_ATTRIBUTES, EDITOR_RULE_OPTIONS } from './extensions';
 import { EDIT_IN_SOURCE_EVENT } from './nodeviews/events';
 import { richExtensions } from './rich-extensions';
 import { type SourceHandle, SourceView } from './source/SourceView';
+import { exitAllSuggestions } from './suggestion/create-suggestion';
 import { TableToolbar } from './toolbar/TableToolbar';
 import { Toolbar } from './toolbar/Toolbar';
 import type { WikiEditorProps, WikiEditorVerdict } from './types';
@@ -196,6 +197,7 @@ export default function WikiEditor({
       } else {
         loadedRef.current = load;
         textAtToggleRef.current = value;
+        exitAllSuggestions(editor);
         resetDoc(editor, load.doc);
       }
     } else {
@@ -219,6 +221,7 @@ export default function WikiEditor({
 
   const toSource = () => {
     if (stateRef.current.mode !== 'rich') return;
+    exitAllSuggestions(editor);
     editor.setEditable(false, false);
     pendingFocusRef.current = { mode: 'source', resetCaret: false };
     const load = loadedRef.current;
@@ -240,6 +243,7 @@ export default function WikiEditor({
   };
 
   const toRich = () => {
+    exitAllSuggestions(editor);
     const res = sourceToRich(
       sourceText,
       textAtToggleRef.current === NO_TOGGLE_TEXT ? '\u0000' : (textAtToggleRef.current as string),
