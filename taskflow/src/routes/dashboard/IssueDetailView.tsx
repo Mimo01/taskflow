@@ -783,6 +783,9 @@ export function IssueDetailView({
             issueKey={issueKey}
             jiraBaseUrl={jiraBaseUrl ?? ''}
             attachments={issue?.fields.attachment ?? []}
+            userMap={userMap}
+            referenceTexts={[issue?.fields.description ?? '', ...commentTexts]}
+            onOpenIssue={onOpenIssue}
           />
         </div>
       )}
