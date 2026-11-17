@@ -1,7 +1,8 @@
 ---
 phase: 98
 slug: editor-shell
-status: draft
+status: approved
+reviewed_at: 2026-11-17
 shadcn_initialized: true
 preset: base-nova (neutral, cssVariables, lucide)
 created: 2026-11-17
