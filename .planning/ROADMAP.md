@@ -364,8 +364,8 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 100-07-PLAN.md — Edit Issue modal drafts, stale base, Cancel/Esc discard guard
-- [ ] 100-08-PLAN.md — Host 4: comment composer on WikiEditor with draft, send, Esc blur, Reply focus
+- [x] 100-07-PLAN.md — Edit Issue modal drafts, stale base, Cancel/Esc discard guard
+- [x] 100-08-PLAN.md — Host 4: comment composer on WikiEditor with draft, send, Esc blur, Reply focus
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
@@ -410,7 +410,7 @@ Plans:
 | 97. Round-Trip Engine | 17/17 | Complete    | 2026-11-16 |
 | 98. Editor Shell | 15/16 | In Progress|  |
 | 99. Mentions, Media & Smart Input | 14/14 | Complete    | 2026-11-17 |
-| 100. Host Adoption & Editing Workflow | 6/9 | In Progress|  |
+| 100. Host Adoption & Editing Workflow | 8/9 | In Progress|  |
 | 101. Issue Drafts & Large Create/Edit Modal | 0/TBD | Not started | - |
 | 102. Polished Surfaces | 0/TBD | Not started | - |
 
