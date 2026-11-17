@@ -2,7 +2,7 @@
 phase: 99
 slug: mentions-media-smart-input
 status: draft
-nyquist_compliant: false
+nyquist_compliant: true
 wave_0_complete: false
 created: 2026-11-17
 ---
@@ -36,22 +36,44 @@ created: 2026-11-17
 
 ## Per-Task Verification Map
 
-Filled in by the planner per task; the requirement → test map from RESEARCH.md is the baseline:
+Commands run from `taskflow/` (inner app dir). Each tdd task writes its test first and commits RED+GREEN together (pre-commit runs the full suite).
 
-| Requirement | Behavior | Test Type | Automated Command | File Exists | Status |
-|-------------|----------|-----------|-------------------|-------------|--------|
-| INPUT-01 | `@` trigger rules, insert mention, save emits `[~name]`, server-side per-query search | unit + component | `npx vitest run src/components/wiki-editor/suggestion/mention` | ❌ W0 | ⬜ pending |
-| INPUT-02 | picker inserts `image`/`attachment` node, caret after, hazardous names | unit | `npx vitest run src/components/wiki-editor/media/embed.test.ts` | ❌ W0 | ⬜ pending |
-| INPUT-03 | paste/drop upload placeholders (decorations, never saved), staged mode, removal notice, `posAtCoords` drop | unit | `npx vitest run src/components/wiki-editor/media` | ❌ W0 | ⬜ pending |
-| INPUT-04 | HTML normaliser fixtures (web/Word/GDocs/Jira) → allowed nodes, `saveWiki` kind `saved`; wiki-text heuristic; plain paste shortcut | unit | `npx vitest run src/components/wiki-editor/paste src/lib/shortcuts` | ❌ W0 | ⬜ pending |
-| INPUT-05 | issue-key decoration + `ABC-` autocomplete, no markup emitted | unit | `npx vitest run src/components/wiki-editor/issue-key.test.ts` | ❌ W0 | ⬜ pending |
-| INPUT-06 | `:` emoticon trigger rules, emoticon node insert, token emit | unit | `npx vitest run src/components/wiki-editor/suggestion/emoticon.test.ts` | ❌ W0 | ⬜ pending |
-| INPUT-07 | compact host: bubble menu instead of toolbar; Esc hides first | component | `npx vitest run src/components/wiki-editor/toolbar/compact.test.tsx` | ❌ W0 | ⬜ pending |
-| BLOCK-05 | `/` slash menu trigger, filter, Recent, single-undo insert | unit | `npx vitest run src/components/wiki-editor/suggestion/slash.test.ts` | ❌ W0 | ⬜ pending |
-| D-19/D-20 | popover lifecycle cleanup; Esc consumed before enclosing Dialog | component | `npx vitest run src/components/wiki-editor/suggestion/lifecycle.test.tsx` | ❌ W0 | ⬜ pending |
-| Guards | schema parity, bundle guard, compiler compat stay green | unit | `npx vitest run src/components/wiki-editor/schema-parity.test.ts src/lib/wiki/editor/bundle-guard.test.ts` | ✅ | ⬜ pending |
+| Task | Plan | Wave | Requirement | Behavior | Test Type | Automated Command | File Exists | Status |
+|------|------|------|-------------|----------|-----------|-------------------|-------------|--------|
+| 99-01-1 | 01 | 1 | INPUT-01..05 | package legitimacy gate | manual (blocking) | n/a (checkpoint) | n/a | ⬜ pending |
+| 99-01-2 | 01 | 1 | — | deps installed, chunk stays lazy | unit | `npx vitest run src/lib/wiki/editor/bundle-guard.test.ts src/components/wiki-editor` | ✅ | ⬜ pending |
+| 99-01-3 | 01 | 1 | INPUT-01/02/03/05 | host contract + storage bridge | unit | `npx vitest run src/components/wiki-editor/host.test.ts` | ❌ W0 (created in task) | ⬜ pending |
+| 99-02-1 | 02 | 1 | INPUT-04 | HTML normaliser fixtures save 'saved'; hostile input inert | unit | `npx vitest run src/components/wiki-editor/paste/html-normalise.test.ts` | ❌ W0 | ⬜ pending |
+| 99-02-2 | 02 | 1 | INPUT-04 | looksLikeWiki true/false tables | unit | `npx vitest run src/components/wiki-editor/paste/wiki-text.test.ts` | ❌ W0 | ⬜ pending |
+| 99-03-1 | 03 | 2 | D-19 | popover keyboard/loading/empty | component | `npx vitest run src/components/wiki-editor/suggestion/popover.test.tsx` | ❌ W0 | ⬜ pending |
+| 99-03-2 | 03 | 2 | D-19/D-20 | no leak; Esc inside Base UI Dialog | component | `npx vitest run src/components/wiki-editor/suggestion/lifecycle.test.tsx` | ❌ W0 | ⬜ pending |
+| 99-04-1 | 04 | 2 | INPUT-06 | emoticon table | unit | `npx vitest run src/components/wiki-editor/suggestion/emoticon-data.test.ts` | ❌ W0 | ⬜ pending |
+| 99-04-2 | 04 | 2 | INPUT-01/02 | mention pill, image parity, emoticon glyph, schema parity | component | `npx vitest run src/components/wiki-editor/nodeviews src/components/wiki-editor/schema-parity.test.ts` | ❌ W0 | ⬜ pending |
+| 99-05-1 | 05 | 2 | INPUT-02 | naming, classification, picker embed | unit | `npx vitest run src/components/wiki-editor/media/upload-state.test.ts src/components/wiki-editor/media/embed.test.ts` | ❌ W0 | ⬜ pending |
+| 99-05-2 | 05 | 2 | INPUT-03 | placeholders, ordering, failure, staged, drop | unit | `npx vitest run src/components/wiki-editor/media/upload-plugin.test.ts` | ❌ W0 | ⬜ pending |
+| 99-06-1 | 06 | 3 | INPUT-01 | @ trigger, server search key, [~name] save | unit | `npx vitest run src/components/wiki-editor/suggestion/mention.test.ts src/components/wiki-editor/suggestion/mention-search.test.ts` | ❌ W0 | ⬜ pending |
+| 99-06-2 | 06 | 3 | INPUT-06 | : trigger rules, token input rule | unit | `npx vitest run src/components/wiki-editor/suggestion/emoticon.test.ts src/components/wiki-editor/input-rules.test.ts` | partial | ⬜ pending |
+| 99-07-1 | 07 | 3 | INPUT-05 | shared issue-key module, WikiRenderer unchanged | unit | `npx vitest run src/lib/issue-key.test.ts src/routes/dashboard` | ❌ W0 | ⬜ pending |
+| 99-07-2 | 07 | 3 | INPUT-05 | decoration only, KEY- autocomplete | unit | `npx vitest run src/components/wiki-editor/issue-key.test.ts` | ❌ W0 | ⬜ pending |
+| 99-08-1 | 08 | 4 | BLOCK-05 | recent items + v39 migration | unit | `npx vitest run src/stores/settings.store.test.ts` | partial | ⬜ pending |
+| 99-08-2 | 08 | 4 | BLOCK-05 | / trigger, groups, filter, one undo | unit | `npx vitest run src/components/wiki-editor/suggestion/slash.test.ts` | ❌ W0 | ⬜ pending |
+| 99-09-1 | 09 | 3 | INPUT-03 | D-10 removal detection guards | unit | `npx vitest run src/components/wiki-editor/media/embed-removal.test.ts` | ❌ W0 | ⬜ pending |
+| 99-09-2 | 09 | 3 | INPUT-03 | error line + notice in live editor | component | `npx vitest run src/components/wiki-editor/media` | ❌ W0 | ⬜ pending |
+| 99-10-1 | 10 | 3 | INPUT-04 | HTML/HTML-image/wiki-text/plain paste, double undo | unit | `npx vitest run src/components/wiki-editor/paste` | ❌ W0 | ⬜ pending |
+| 99-10-2 | 10 | 3 | INPUT-04 | Cmd+Shift+V + trigger rows registered | unit | `npx vitest run src/lib/shortcuts` | partial | ⬜ pending |
+| 99-11-1 | 11 | 5 | INPUT-07 | bubble show rules, Esc first, footer | component | `npx vitest run src/components/wiki-editor/toolbar/compact.test.tsx` | ❌ W0 | ⬜ pending |
+| 99-11-2 | 11 | 5 | INPUT-07/02 | preset branch, picker mount | component | `npx vitest run src/components/wiki-editor src/routes/dashboard/issue-detail` | ❌ W0 | ⬜ pending |
+| 99-12-1 | 12 | 5 | all | end-to-end through WikiEditor | component | `npx vitest run src/components/wiki-editor/input-integration.test.tsx` | ❌ W0 | ⬜ pending |
+| 99-12-2 | 12 | 5 | all | dev-tools host row, dialog, paste sample/capture | component | `npx vitest run src/routes/dev-tools` | ❌ W0 | ⬜ pending |
+| 99-13-1 | 13 | 6 | INPUT-03 | caret util, source uploads | unit | `npx vitest run src/lib/textarea-caret.test.ts src/components/wiki-editor/source/source-uploads.test.ts` | ❌ W0 | ⬜ pending |
+| 99-13-2 | 13 | 6 | INPUT-01/06 | source-mode @ and : popover, file paste/drop | component | `npx vitest run src/components/wiki-editor/source` | ❌ W0 | ⬜ pending |
+| 99-14-1 | 14 | 7 | all | full suite + tsc, UAT checklist | gate | `npm test && npx tsc --noEmit` | ✅ | ⬜ pending |
+| 99-14-2 | 14 | 7 | all | WKWebView manual UAT | manual | n/a (checkpoint) | n/a | ⬜ pending |
+| Guards | all | — | — | schema parity, bundle guard, compiler compat | unit | `npx vitest run src/components/wiki-editor/schema-parity.test.ts src/lib/wiki/editor/bundle-guard.test.ts src/components/wiki-editor/compiler-compat.test.ts` | ✅ | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
+
+Every test file marked ❌ W0 is created by the same task that implements the behaviour (tdd="true", test first), so no separate Wave 0 plan is needed. No three consecutive tasks lack an automated command.
 
 ---
 
