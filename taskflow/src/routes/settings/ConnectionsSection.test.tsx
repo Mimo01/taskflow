@@ -95,6 +95,7 @@ const mockAuthStore = {
   jiraConnected: true,
   gitlabConnected: true,
   jiraBaseUrl: 'https://jira.example.com',
+  jiraUsername: 'janesmith',
   gitlabBaseUrl: 'https://gitlab.example.com',
   activeJiraProject: 'PROJECT-1',
   activeGitlabProject: 1,
@@ -110,7 +111,7 @@ const mockAuthStore = {
 };
 
 vi.mock('@/stores/auth.store', () => ({
-  useAuthStore: () => mockAuthStore,
+  useAuthStore: Object.assign(() => mockAuthStore, { getState: () => mockAuthStore }),
 }));
 
 describe('ConnectionsSection', () => {
