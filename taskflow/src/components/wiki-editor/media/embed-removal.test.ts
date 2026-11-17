@@ -62,6 +62,18 @@ describe('WikiEmbedRemoval', () => {
     expect(getRemovalNotice(editor.state)).toEqual({ filename: 'a.png', attachmentId: 'ID1' });
   });
 
+  it('WR-04: pasting the cut embed back clears the notice', async () => {
+    const { editor } = await uploaded();
+    const r = embedRange(editor, 'a.png');
+    const node = r ? editor.state.doc.nodeAt(r[0]) : null;
+    if (!r || !node) throw new Error('no embed');
+    removeEmbed(editor, 'a.png');
+    expect(getRemovalNotice(editor.state)).not.toBeNull();
+    editor.view.dispatch(editor.state.tr.insert(3, node.copy(node.content)));
+    expect(embedRange(editor, 'a.png')).not.toBeNull();
+    expect(getRemovalNotice(editor.state)).toBeNull();
+  });
+
   it('does not offer for a pre-existing attachment', () => {
     const { editor } = setup('!b.png!', uploadHost());
     removeEmbed(editor, 'b.png');

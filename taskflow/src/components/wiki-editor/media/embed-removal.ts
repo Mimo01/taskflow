@@ -62,17 +62,14 @@ export const WikiEmbedRemoval = Extension.create({
               if (prev && nameCounts(newState.doc).has(prev.filename)) return null;
               return prev;
             }
-            if (
-              !tr.docChanged ||
-              tr.getMeta(WIKI_TOGGLE_META) ||
-              tr.getMeta('addToHistory') === false
-            ) {
-              return prev;
-            }
-            const before = nameCounts(oldState.doc);
+            if (!tr.docChanged) return prev;
+            // The embed is back (cut then pasted, external reset): never offer to delete it (WR-04).
             const after = nameCounts(newState.doc);
+            const kept = prev && (after.get(prev.filename) ?? 0) > 0 ? null : prev;
+            if (tr.getMeta(WIKI_TOGGLE_META) || tr.getMeta('addToHistory') === false) return kept;
+            const before = nameCounts(oldState.doc);
             const sessionUploads = getSessionUploads(oldState);
-            let next = prev;
+            let next = kept;
             for (const name of before.keys()) {
               if ((after.get(name) ?? 0) > 0) continue;
               const attachmentId = sessionUploads.get(name);
