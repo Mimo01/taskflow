@@ -331,7 +331,7 @@ Plans:
 
 **Wave 7** *(blocked on Wave 6 completion)*
 
-- [ ] 99-14-PLAN.md — Gate run and manual WKWebView UAT
+- [x] 99-14-PLAN.md — Gate run and manual WKWebView UAT
 
 **UI hint**: yes
 
@@ -388,7 +388,7 @@ Plans:
 | 96. Wiki Foundations & Equivalence Harness | 6/6 | Complete    | 2026-11-16 |
 | 97. Round-Trip Engine | 17/17 | Complete    | 2026-11-16 |
 | 98. Editor Shell | 15/16 | In Progress|  |
-| 99. Mentions, Media & Smart Input | 13/14 | In Progress|  |
+| 99. Mentions, Media & Smart Input | 14/14 | Complete   | 2026-11-17 |
 | 100. Host Adoption & Editing Workflow | 0/TBD | Not started | - |
 | 101. Issue Drafts & Large Create/Edit Modal | 0/TBD | Not started | - |
 | 102. Polished Surfaces | 0/TBD | Not started | - |
