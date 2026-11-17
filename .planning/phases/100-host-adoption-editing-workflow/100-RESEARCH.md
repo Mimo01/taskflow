@@ -372,14 +372,14 @@ Threat patterns: stored XSS via restored draft (mitigated: editor schema parse, 
 | A5 | Persist hydration is async with the Tauri adapter and `persist.hasHydrated()` is available on zustand ^5 | Draft store | Low |
 | A6 | Clearing drafts on credential change/disconnect is desirable | Security | Low; product call |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Composer button label: "Comment" (code) vs "Send" (UI-SPEC, D-14 prose, tooltip "Send ⌘↵").** The spec calls "Send" "existing" but the code says `Comment`. Recommend keeping the current `Comment` label (spec says "as close to today as possible") and tooltip "Comment ⌘↵", or confirm with user. Existing tests query `/comment/i`.
-2. **ROADMAP criterion 3 wording** ("Esc, close or navigation") conflicts with D-08; fix in the docs commit along with criterion 1 and Phase 102 criterion 2.
-3. **Create Epic attachments:** no attachment support today; recommendation is none (omit host upload/stage). Confirm.
-4. **Stale-base source for the Edit modal** (cached `initialValues.description` vs fresh fetch). Recommend comparing against the live issue query on open (refetch if older than a threshold).
-5. **Sticky composer and the "Draft saved · Discard" note** need a 24px reserved line; UI-SPEC says no layout shift: verify the sticky container height in peek.
-6. **Draft clearing on logout/credential change**: does a disconnect flow exist? If yes, hook it.
+1. **Composer button label: "Comment" (code) vs "Send" (UI-SPEC, D-14 prose, tooltip "Send ⌘↵").** The spec calls "Send" "existing" but the code says `Comment`. Recommend keeping the current `Comment` label (spec says "as close to today as possible") and tooltip "Comment ⌘↵", or confirm with user. Existing tests query `/comment/i`. RESOLVED: D-19 keeps "Comment", tooltip "Comment ⌘↵" (plan 100-08).
+2. **ROADMAP criterion 3 wording** ("Esc, close or navigation") conflicts with D-08; fix in the docs commit along with criterion 1 and Phase 102 criterion 2. RESOLVED: plan 100-01 Task 1 rewrites criteria 1 and 3 and removes Phase 102 criterion 2.
+3. **Create Epic attachments:** no attachment support today; recommendation is none (omit host upload/stage). Confirm. RESOLVED: D-20 reverses this recommendation. Create Epic gets staging like Create Issue (plan 100-04).
+4. **Stale-base source for the Edit modal** (cached `initialValues.description` vs fresh fetch). Recommend comparing against the live issue query on open (refetch if older than a threshold). RESOLVED: plan 100-07 adds a live `fetchIssueDescription` query (staleTime 0).
+5. **Sticky composer and the "Draft saved · Discard" note** need a 24px reserved line; UI-SPEC says no layout shift: verify the sticky container height in peek. RESOLVED: reserved 24px DraftNote line in plans 100-06 and 100-08.
+6. **Draft clearing on logout/credential change**: does a disconnect flow exist? If yes, hook it. RESOLVED: D-21, implemented in plan 100-02 (account guard + ConnectionsSection hook).
 
 ## Sources
 
