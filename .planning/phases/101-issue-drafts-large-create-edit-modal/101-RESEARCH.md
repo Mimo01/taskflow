@@ -354,16 +354,21 @@ Which custom fields are "context" is not defined; recommend keeping all `customF
 | A5 | Labels/Fix version Create-mode only | Pitfall 1 | If user expects Edit support, more plumbing (initial values + editmeta + PUT) |
 | A6 | Blob URLs for restored image previews inside `<img>` are fine on WKWebView (existing stage code already does this) | Pitfall 2 | Low |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Labels / Fix version in Edit mode.**
    - Known: `EditInitialValues` lacks both; Edit sends only changed fields for some, unconditional for story points.
    - Unclear: whether the user wants them editable in the Edit modal now.
    - Recommendation: Create-only now; hide in Edit. Ask the user at plan check if not already settled.
+   - RESOLVED: User chose Create **and** Edit (post-research decision). Plan 101-01 seeds Edit initial values and sends labels/fixVersions only when changed.
 2. **Which custom fields are kept by Create another.** Recommend keep all required custom field values; clear none.
+   - RESOLVED: Keep all custom field values (plan 101-04 `keptFieldsAfterCreate`).
 3. **Draft for Subtask type.** Draft stores `parentKey`; stale check clears parent if lookup 404s, and the type remains Subtask with an empty parent (submit blocked only by existing validation). Confirm acceptable.
+   - RESOLVED: Stays Subtask, parent cleared with stale note "Parent {KEY} no longer exists" (plans 101-04, 101-10).
 4. **Orphaned file purge** at hydration: delete `$APPDATA/issue-drafts/<id>` dirs with no matching draft. Recommended; needs `readDir` permission (`fs:allow-appdata-read-recursive` covers it).
+   - RESOLVED: Orphan purge at hydration in plan 101-06.
 5. **Relative time format** "edited 5m ago" vs existing `relativeTime()` output ("5 minutes ago"). Add a compact helper or accept the long form.
+   - RESOLVED: New compact `shortRelativeTime` helper (plan 101-03).
 
 ## Environment Availability
 
