@@ -16,6 +16,7 @@ import {
   WIKI_TOGGLE_META,
 } from './editor-session';
 import { EDITOR_ATTRIBUTES, EDITOR_RULE_OPTIONS } from './extensions';
+import { EditorMessages } from './media/EditorMessages';
 import { EDIT_IN_SOURCE_EVENT } from './nodeviews/events';
 import { richExtensions } from './rich-extensions';
 import { type SourceHandle, SourceView } from './source/SourceView';
@@ -381,6 +382,7 @@ export default function WikiEditor({
               aria-label={ariaLabel}
             />
           ) : null}
+          {mode === 'rich' ? <EditorMessages editor={editor} /> : null}
           {mode === 'rich' ? <TableToolbar editor={editor} /> : null}
         </div>
       </div>
