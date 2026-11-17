@@ -118,6 +118,31 @@ describe('input extensions through WikiEditor', () => {
     await waitFor(() => expect(lastSaved(onChange)).toContain('DEMO-12'));
   });
 
+  it('CR-01: Enter after a typed full key makes a new line and keeps the key', async () => {
+    searchJiraForLink.mockResolvedValue([
+      { key: 'DEMO-120', fields: { summary: 'Mentions DEMO-12, updated later' } },
+      { key: 'DEMO-12', fields: { summary: 'The typed issue' } },
+    ]);
+    const { editor } = mount('Blocked by');
+    typeChars(editor, ' DEMO-12');
+    await waitFor(() => expect(screen.getAllByRole('option').length).toBe(2));
+    enter(editor);
+    expect(editor.state.doc.textContent).not.toContain('DEMO-120');
+    expect(editor.state.doc.firstChild?.textContent).toBe('Blocked by DEMO-12');
+    expect(editor.state.doc.childCount).toBe(2);
+  });
+
+  it('CR-01: after arrowing, Enter on a typed key picks the highlighted issue', async () => {
+    const { editor, onChange } = mount('see');
+    typeChars(editor, ' DEMO-1');
+    await waitFor(() => expect(screen.getAllByRole('option').length).toBe(2));
+    act(() => {
+      fireEvent.keyDown(editor.view.dom, { key: 'ArrowDown' });
+    });
+    enter(editor);
+    await waitFor(() => expect(lastSaved(onChange)).toContain('DEMO-13'));
+  });
+
   it('decorates a known key without changing the saved text', () => {
     const { editor, onChange } = mount('see DEMO-12');
     expect(document.querySelector('[data-issue-key="DEMO-12"]')).not.toBeNull();

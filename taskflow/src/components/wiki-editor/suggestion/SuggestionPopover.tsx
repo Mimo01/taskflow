@@ -29,6 +29,8 @@ export interface SuggestionPopoverProps {
   maxRows: number;
   listboxId: string;
   onActiveChange?: (optionId: string | null) => void;
+  /** Enter/Tab only commit after the user moved the highlight (arrows or pointer). */
+  commitNeedsNavigation?: boolean;
   ref?: React.Ref<SuggestionPopoverHandle>;
 }
 
@@ -57,6 +59,7 @@ export function SuggestionPopover({
   maxRows,
   listboxId,
   onActiveChange,
+  commitNeedsNavigation = false,
   ref,
 }: SuggestionPopoverProps) {
   // Keep the last resolved rows visible while the next query loads (no blink).
@@ -65,10 +68,12 @@ export function SuggestionPopover({
   const display = loading ? kept : rows;
 
   const [active, setActive] = useState(0);
+  const [navigated, setNavigated] = useState(false);
   const [prevDisplay, setPrevDisplay] = useState(display);
   if (prevDisplay !== display) {
     setPrevDisplay(display);
     setActive(0);
+    setNavigated(false);
   }
 
   useImperativeHandle(
@@ -78,13 +83,17 @@ export function SuggestionPopover({
         if (display.length === 0) return false;
         if (event.key === 'ArrowDown') {
           setActive((i) => (i + 1) % display.length);
+          setNavigated(true);
           return true;
         }
         if (event.key === 'ArrowUp') {
           setActive((i) => (i - 1 + display.length) % display.length);
+          setNavigated(true);
           return true;
         }
         if (event.key === 'Enter' || event.key === 'Tab') {
+          // Let Enter/Tab keep their editing meaning unless the user picked a row.
+          if (commitNeedsNavigation && !navigated) return false;
           const row = display[active];
           if (!row) return false;
           onSelect(row);
@@ -93,7 +102,7 @@ export function SuggestionPopover({
         return false;
       },
     }),
-    [display, active, onSelect],
+    [display, active, onSelect, commitNeedsNavigation, navigated],
   );
 
   const hasRows = display.length > 0;
@@ -148,7 +157,10 @@ export function SuggestionPopover({
                     isActive && 'bg-accent text-accent-foreground',
                   )}
                   onMouseDown={(e) => e.preventDefault()}
-                  onPointerMove={() => setActive(i)}
+                  onPointerMove={() => {
+                    setActive(i);
+                    setNavigated(true);
+                  }}
                   onClick={() => onSelect(row)}
                   onKeyDown={() => {}}
                 >

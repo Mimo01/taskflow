@@ -34,6 +34,11 @@ export interface SuggestionSpec {
     signal?: AbortSignal;
   }): Promise<SuggestionRow[]> | SuggestionRow[];
   command(args: { editor: Editor; range: Range; row: SuggestionRow }): void;
+  /**
+   * When true for the current query, Enter/Tab only commit a row the user navigated to.
+   * For triggers without an explicit char (issue keys) so Enter after typed text stays a newline.
+   */
+  commitNeedsNavigation?(query: string): boolean;
   /** Close silently when a non-empty query matches nothing (slash, emoticon). */
   closeOnEmpty?: boolean;
 }
@@ -100,6 +105,7 @@ export function createSuggestionExtension(spec: SuggestionSpec) {
               maxRows: spec.maxRows,
               listboxId,
               onSelect: (row) => latest?.command(row),
+              commitNeedsNavigation: spec.commitNeedsNavigation?.(props.query) ?? false,
               onActiveChange: (id) => {
                 const dom = props.editor.view?.dom;
                 if (!dom) return;

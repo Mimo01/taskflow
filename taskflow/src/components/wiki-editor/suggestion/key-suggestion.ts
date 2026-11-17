@@ -15,6 +15,8 @@ export const WikiIssueKeySuggestion = createSuggestionExtension({
   maxRows: 8,
   debounce: 250,
   emptyText: 'No matching issues',
+  // Once digits are typed the text is already a key: Enter must not swap it for row 0 (CR-01).
+  commitNeedsNavigation: (query) => /-\d+$/.test(query),
   findSuggestionMatch: ({ $position }) => {
     const offset = $position.parentOffset;
     const before = $position.parent.textBetween(0, offset, undefined, '\ufffc');
@@ -47,7 +49,9 @@ export const WikiIssueKeySuggestion = createSuggestionExtension({
       },
       staleTime: 30_000,
     });
-    return issues.map((i) => ({
+    // An exact key match ranks first, ahead of issues that merely mention it.
+    const ranked = [...issues].sort((a, b) => Number(b.key === query) - Number(a.key === query));
+    return ranked.map((i) => ({
       key: i.key,
       label: i.key,
       mono: true,

@@ -175,11 +175,14 @@ describe('issue key suggestion', () => {
     const editor = await setupLive();
     type(editor, ' DEMO-1');
     await waitFor(() => expect(document.body.textContent).toContain('Fix it'));
-    act(() => {
-      editor.view.dom.dispatchEvent(
-        new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }),
-      );
-    });
+    // A typed key with digits only commits a row the user navigated to (CR-01).
+    for (const key of ['ArrowDown', 'Enter']) {
+      act(() => {
+        editor.view.dom.dispatchEvent(
+          new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }),
+        );
+      });
+    }
     await waitFor(() => expect(editor.getText()).toContain('DEMO-123 '));
     act(() => {
       editor.commands.undo();
