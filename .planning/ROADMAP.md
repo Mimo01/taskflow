@@ -305,9 +305,9 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 99-03-PLAN.md — Shared suggestion popover + factory, leak and Esc-in-Dialog tests
-- [ ] 99-04-PLAN.md — Mention/image/attachment/emoticon node views matching WikiRenderer
-- [ ] 99-05-PLAN.md — Upload engine: placeholder decorations, staged mode, naming, picker embed
+- [x] 99-03-PLAN.md — Shared suggestion popover + factory, leak and Esc-in-Dialog tests
+- [x] 99-04-PLAN.md — Mention/image/attachment/emoticon node views matching WikiRenderer
+- [x] 99-05-PLAN.md — Upload engine: placeholder decorations, staged mode, naming, picker embed
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
@@ -388,7 +388,7 @@ Plans:
 | 96. Wiki Foundations & Equivalence Harness | 6/6 | Complete    | 2026-11-16 |
 | 97. Round-Trip Engine | 17/17 | Complete    | 2026-11-16 |
 | 98. Editor Shell | 15/16 | In Progress|  |
-| 99. Mentions, Media & Smart Input | 2/14 | In Progress|  |
+| 99. Mentions, Media & Smart Input | 5/14 | In Progress|  |
 | 100. Host Adoption & Editing Workflow | 0/TBD | Not started | - |
 | 101. Issue Drafts & Large Create/Edit Modal | 0/TBD | Not started | - |
 | 102. Polished Surfaces | 0/TBD | Not started | - |
