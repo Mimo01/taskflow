@@ -7,6 +7,7 @@
  */
 import { useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
+import type { WikiEditorHandle, WikiEditorHost } from '@/components/wiki-editor/types';
 import type { ChangelogHistory, JiraComment, TimelineFilter } from '@/services/jira';
 import { countByType, mergeTimeline } from '@/services/jira';
 import type { JiraWorklog } from '@/services/jira/types';
@@ -32,8 +33,15 @@ interface ActivityTimelineProps {
   editText: string;
   onEditStart: (comment: JiraComment) => void;
   onEditChange: (text: string) => void;
-  onEditSave: (commentId: string) => void;
+  onEditSave: (commentId: string, text?: string) => void;
   onEditCancel: () => void;
+  /** Editor wiring for the card being edited (host, ref, draft note). */
+  editorHost?: WikiEditorHost;
+  editorRef?: React.Ref<WikiEditorHandle>;
+  editDraftState?: 'draft' | 'stale' | null;
+  onEditDiscardDraft?: () => void;
+  onEditUseJira?: () => void;
+  onEditBlur?: () => void;
   onDelete: (comment: JiraComment) => void;
   editError: string | null;
   deleteError: string | null;
@@ -53,11 +61,17 @@ interface ActivityTimelineProps {
     editPending: boolean;
     onEdit: (comment: JiraComment) => void;
     onDelete: (comment: JiraComment) => void;
-    onSaveEdit: (commentId: string) => void;
+    onSaveEdit: (commentId: string, text?: string) => void;
     onCancelEdit: () => void;
     onEditTextChange: (text: string) => void;
     attachmentMap: AttachmentMap;
     userMap: UserMap;
+    editorHost?: WikiEditorHost;
+    editorRef?: React.Ref<WikiEditorHandle>;
+    editDraftState?: 'draft' | 'stale' | null;
+    onEditDiscardDraft?: () => void;
+    onEditUseJira?: () => void;
+    onEditBlur?: () => void;
   }>;
   /** Worklog edit/delete wiring */
   editingWorklogId: string | null;
@@ -87,6 +101,12 @@ export function ActivityTimeline({
   onEditChange,
   onEditSave,
   onEditCancel,
+  editorHost,
+  editorRef,
+  editDraftState,
+  onEditDiscardDraft,
+  onEditUseJira,
+  onEditBlur,
   onDelete,
   editError,
   deleteError,
@@ -234,6 +254,12 @@ export function ActivityTimeline({
                   onEditTextChange={onEditChange}
                   attachmentMap={attachmentMap}
                   userMap={userMap}
+                  editorHost={isEditing ? editorHost : undefined}
+                  editorRef={isEditing ? editorRef : undefined}
+                  editDraftState={isEditing ? editDraftState : null}
+                  onEditDiscardDraft={isEditing ? onEditDiscardDraft : undefined}
+                  onEditUseJira={isEditing ? onEditUseJira : undefined}
+                  onEditBlur={isEditing ? onEditBlur : undefined}
                 />
               </li>
             );

@@ -178,6 +178,10 @@ vi.mock('./issue-detail/AioTestRunsSection', () => ({
 vi.mock('./CommentComposer', () => ({
   CommentComposer: () => null,
 }));
+vi.mock(
+  '@/components/wiki-editor/WikiEditorLazy',
+  async () => (await import('@/test/wiki-editor-stub')).wikiEditorLazyMock,
+);
 
 // --- Imports (after mocks) ---
 
@@ -558,20 +562,10 @@ describe('invalidation fan-out (PERF-DETAIL-03)', () => {
     const editButton = within(menuContainer).getByRole('button', { name: 'Edit' });
     fireEvent.click(editButton);
 
-    // After clicking Edit, the CommentCard switches to edit mode — a Textarea
-    // pre-filled with the comment body appears inside the comment card.
-    await waitFor(() => {
-      const textareas = screen.getAllByRole('textbox');
-      const editingTextarea = textareas.find(
-        (el) => (el as HTMLTextAreaElement).value === MOCK_COMMENT.body,
-      );
-      expect(editingTextarea).toBeTruthy();
-    });
-    const textareas = screen.getAllByRole('textbox');
-    const editTextarea = textareas.find(
-      (el) => (el as HTMLTextAreaElement).value === MOCK_COMMENT.body,
-    );
-    if (!editTextarea) throw new Error('edit textarea not found');
+    // After clicking Edit, the CommentCard switches to edit mode: the editor (stubbed
+    // as a textarea) pre-filled with the comment body appears.
+    const editTextarea = (await screen.findByLabelText('Edit comment')) as HTMLTextAreaElement;
+    expect(editTextarea.value).toBe(MOCK_COMMENT.body);
 
     fireEvent.change(editTextarea, { target: { value: 'Updated comment text' } });
 

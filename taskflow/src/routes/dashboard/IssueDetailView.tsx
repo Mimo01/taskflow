@@ -13,13 +13,21 @@ import { MoreVertical } from 'lucide-react';
 import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/button';
+import { DiscardChangesDialog } from '@/components/ui/discard-changes-dialog';
+import { DraftNote } from '@/components/ui/draft-note';
 import { ErrorState } from '@/components/ui/error-state';
+import { Keycap } from '@/components/ui/keycap';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Textarea } from '@/components/ui/textarea';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { TooltipBody } from '@/components/ui/tooltip-body';
+import type { WikiEditorHandle, WikiEditorHost } from '@/components/wiki-editor/types';
+import { WikiEditorLazy } from '@/components/wiki-editor/WikiEditorLazy';
 import { useCompactOnScroll } from '@/hooks/useCompactOnScroll';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
+import { useEditorDraft } from '@/hooks/useEditorDraft';
 import { useMentionUserMap } from '@/hooks/useMentionUserMap';
 import { useResizable } from '@/hooks/useResizable';
+import { draftKey } from '@/lib/draft-keys';
 import { refreshIssueDetail } from '@/lib/issue-detail-refresh';
 import type { JiraComment, JiraIssue, TimelineFilter } from '@/services/jira';
 import {
@@ -37,6 +45,7 @@ import type { JiraWorklog } from '@/services/jira/types';
 import { deleteWorklog, fetchFullWorklogs, updateWorklog } from '@/services/jira/worklogs';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
+import { commentEditDraftsFor, useDraftsStore } from '@/stores/drafts.store';
 import { usePinnedTabsStore } from '@/stores/pinned-tabs.store';
 import { useRecentItemsStore } from '@/stores/recent-items.store';
 import { useSettingsStore } from '@/stores/settings.store';
@@ -52,6 +61,7 @@ import { IssueUnavailable } from './issue-detail/IssueUnavailable';
 import { LinkedIssuesSection } from './issue-detail/LinkedIssuesSection';
 import { MergeRequestsSection } from './issue-detail/MergeRequestsSection';
 import { getIssueUnavailableInfo } from './issue-detail/unavailable-info';
+import { useIssueEditorHost } from './issue-detail/useIssueEditorHost';
 import { useLinkedMRs } from './issue-detail/useLinkedMRs';
 import type { AttachmentMap, UserMap } from './WikiRenderer';
 import { WikiRenderer } from './WikiRenderer';
@@ -337,6 +347,18 @@ export function IssueDetailView({
   };
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editText, setEditText] = useState('');
+  // Jira text the current edit started from; dirty = editText !== editBase (D-10).
+  const [editBase, setEditBase] = useState('');
+  const [discardOpen, setDiscardOpen] = useState(false);
+  const commentEditorRef = useRef<WikiEditorHandle>(null);
+  const draft = useEditorDraft({
+    key: editingCommentId ? draftKey.commentEdit(editingCommentId) : null,
+    kind: 'comment-edit',
+    issueKey: issueKey ?? '',
+    base: editBase,
+    liveBase: comments.find((c) => c.id === editingCommentId)?.body ?? null,
+  });
+  const allDrafts = useDraftsStore((s) => s.drafts);
   const [editError, setEditError] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
@@ -346,15 +368,17 @@ export function IssueDetailView({
       if (!token) throw new Error('No token');
       return updateComment(jiraBaseUrl ?? '', token, issueKey ?? '', commentId, body);
     },
-    onSuccess: () => {
+    onSuccess: (_data, { commentId }) => {
+      useDraftsStore.getState().clearDraft(draftKey.commentEdit(commentId));
       setEditingCommentId(null);
       setEditText('');
+      setEditBase('');
       setEditError(null);
       queryClient.invalidateQueries({ queryKey: ['jira-issue-detail', issueKey, jiraBaseUrl] });
       queryClient.invalidateQueries({ queryKey: ['jira-issue-comments', issueKey, jiraBaseUrl] });
     },
-    onError: (err: Error) => {
-      setEditError(err.message);
+    onError: () => {
+      setEditError("Couldn't save your changes. Your text is kept as a draft, try again.");
     },
   });
 
@@ -404,8 +428,12 @@ export function IssueDetailView({
   const [handleHovered, setHandleHovered] = useState(false);
 
   const handleEdit = (comment: JiraComment) => {
+    // Switching comments (D-07): persist the one being left before the hook's key changes.
+    draft.flush();
+    const stored = useDraftsStore.getState().drafts[draftKey.commentEdit(comment.id)];
     setEditingCommentId(comment.id);
-    setEditText(comment.body);
+    setEditBase(stored?.base ?? comment.body);
+    setEditText(stored?.text ?? comment.body);
     setEditError(null);
   };
 
@@ -415,8 +443,27 @@ export function IssueDetailView({
     deleteMutateRef.current(comment.id);
   };
 
-  const handleSaveEdit = (commentId: string) => {
-    const text = editTextRef.current.trim();
+  const handleEditTextChange = (text: string) => {
+    setEditText(text);
+    draft.schedule(text);
+  };
+
+  const liveEditBody = comments.find((c) => c.id === editingCommentId)?.body ?? null;
+  const handleDiscardDraft = () => {
+    draft.discard();
+    setEditText(editBase);
+    commentEditorRef.current?.focus({ toEnd: true });
+  };
+  const handleUseJiraVersion = () => {
+    if (liveEditBody === null) return;
+    setEditText(liveEditBody);
+    setEditBase(liveEditBody);
+    draft.discard();
+    commentEditorRef.current?.focus({ toEnd: true });
+  };
+
+  const handleSaveEdit = (commentId: string, submitted?: string) => {
+    const text = (submitted ?? editTextRef.current).trim();
     if (!text) return;
     editMutateRef.current({ commentId, body: text });
   };
@@ -424,8 +471,65 @@ export function IssueDetailView({
   const handleCancelEdit = () => {
     setEditingCommentId(null);
     setEditText('');
+    setEditBase('');
     setEditError(null);
   };
+
+  const dirty = editText !== editBase;
+  const requestCancelEdit = () => {
+    if (!dirty) handleCancelEdit();
+    else setDiscardOpen(true);
+  };
+
+  const editorHost = useIssueEditorHost({
+    issueKey: issueKey ?? null,
+    attachments: issue?.fields.attachment ?? [],
+    userMap,
+    referenceTexts: [issue?.fields.description ?? '', ...commentTexts],
+    onOpenIssue,
+  });
+
+  // D-04: reopen the most recent comment-edit draft once per issue, scrolled into view.
+  const reopenedForRef = useRef<string | null>(null);
+  const commentsLoaded = commentsQuery.isSuccess;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: allDrafts/comments read once per issue
+  useEffect(() => {
+    if (!issueKey || reopenedForRef.current === issueKey) return;
+    if (!draft.hydrated || !commentsLoaded || editingCommentId !== null) return;
+    reopenedForRef.current = issueKey;
+    const [match] = commentEditDraftsFor(allDrafts, issueKey)
+      .filter(([id]) => comments.some((c) => c.id === id))
+      .sort((x, y) => y[1].updatedAt - x[1].updatedAt);
+    if (!match) return;
+    const [id, stored] = match;
+    const live = comments.find((c) => c.id === id);
+    setEditingCommentId(id);
+    setEditBase(stored.base ?? live?.body ?? '');
+    setEditText(stored.text);
+    requestAnimationFrame(() => {
+      Array.from(document.querySelectorAll<HTMLElement>('[data-comment-id]'))
+        .find((el) => el.dataset.commentId === id)
+        ?.scrollIntoView({ block: 'nearest' });
+    });
+  }, [issueKey, draft.hydrated, commentsLoaded, editingCommentId]);
+
+  // D-06: drop drafts for deleted comments (the comment endpoint returns the full list).
+  const commentIdsSignature = commentsQuery.isSuccess ? comments.map((c) => c.id).join(',') : null;
+  useEffect(() => {
+    if (!issueKey || commentIdsSignature === null) return;
+    useDraftsStore
+      .getState()
+      .pruneCommentEdits(
+        issueKey,
+        commentIdsSignature === '' ? [] : commentIdsSignature.split(','),
+      );
+  }, [issueKey, commentIdsSignature]);
+
+  // D-06: the issue is gone (404) -> its drafts can never be used again.
+  const issueGone = !!issueError && getIssueUnavailableInfo(issueError).status === 404;
+  useEffect(() => {
+    if (issueKey && issueGone) useDraftsStore.getState().clearIssue(issueKey);
+  }, [issueKey, issueGone]);
 
   // ─── Worklog data + CRUD ──────────────────────────────────────────────────────
   const worklogsQuery = useQuery({
@@ -628,9 +732,15 @@ export function IssueDetailView({
           editingCommentId={editingCommentId}
           editText={editText}
           onEditStart={handleEdit}
-          onEditChange={setEditText}
+          onEditChange={handleEditTextChange}
           onEditSave={handleSaveEdit}
-          onEditCancel={handleCancelEdit}
+          onEditCancel={requestCancelEdit}
+          editorHost={editorHost}
+          editorRef={commentEditorRef}
+          editDraftState={draft.state}
+          onEditDiscardDraft={handleDiscardDraft}
+          onEditUseJira={handleUseJiraVersion}
+          onEditBlur={draft.flush}
           onDelete={handleDelete}
           editError={editError}
           deleteError={deleteError}
@@ -651,6 +761,19 @@ export function IssueDetailView({
           worklogEditError={worklogEditError}
         />
       )}
+
+      <DiscardChangesDialog
+        open={discardOpen}
+        onKeepEditing={() => {
+          setDiscardOpen(false);
+          commentEditorRef.current?.focus({ toEnd: true });
+        }}
+        onDiscard={() => {
+          setDiscardOpen(false);
+          draft.discard();
+          handleCancelEdit();
+        }}
+      />
 
       {(timelineFilter === 'comment' || timelineFilter === 'all') && (
         <div
@@ -830,11 +953,18 @@ interface CommentCardProps {
   editPending: boolean;
   onEdit: (comment: JiraComment) => void;
   onDelete: (comment: JiraComment) => void;
-  onSaveEdit: (commentId: string) => void;
+  onSaveEdit: (commentId: string, text?: string) => void;
   onCancelEdit: () => void;
   onEditTextChange: (text: string) => void;
   attachmentMap: AttachmentMap;
   userMap: UserMap;
+  /** Editor wiring; only non-default for the card being edited. */
+  editorHost?: WikiEditorHost;
+  editorRef?: React.Ref<WikiEditorHandle>;
+  editDraftState?: 'draft' | 'stale' | null;
+  onEditDiscardDraft?: () => void;
+  onEditUseJira?: () => void;
+  onEditBlur?: () => void;
 }
 
 function CommentCard({
@@ -853,6 +983,12 @@ function CommentCard({
   onEditTextChange,
   attachmentMap,
   userMap,
+  editorHost,
+  editorRef,
+  editDraftState = null,
+  onEditDiscardDraft,
+  onEditUseJira,
+  onEditBlur,
 }: CommentCardProps) {
   const [showMenu, setShowMenu] = useState(false);
   const [menuPosition, setMenuPosition] = useState<{ top: number; right: number } | null>(null);
@@ -872,7 +1008,10 @@ function CommentCard({
   }, [showMenu]);
 
   return (
-    <div className="rounded-lg border bg-card p-3 density-compact:p-2 density-comfortable:p-4 space-y-2 density-compact:space-y-1 density-comfortable:space-y-3">
+    <div
+      data-comment-id={comment.id}
+      className="rounded-lg border bg-card p-3 density-compact:p-2 density-comfortable:p-4 space-y-2 density-compact:space-y-1 density-comfortable:space-y-3"
+    >
       {/* Card header */}
       <div className="flex items-center gap-2 text-xs">
         <span className="font-medium text-sm">{comment.author.displayName}</span>
@@ -945,24 +1084,72 @@ function CommentCard({
 
       {/* Card body */}
       {isEditing ? (
-        <div className="space-y-2">
-          <Textarea
+        // biome-ignore lint/a11y/noStaticElementInteractions: focusout bubbling only (draft flush)
+        <div className="space-y-2" onBlur={onEditBlur}>
+          <WikiEditorLazy
+            ref={editorRef}
             value={editText}
-            onChange={(e) => onEditTextChange(e.target.value)}
-            className="min-h-[80px] resize-none"
+            onChange={onEditTextChange}
+            preset="compact"
+            aria-label="Edit comment"
+            host={editorHost}
+            onSubmit={(t) => onSaveEdit(comment.id, t)}
+            onCancel={onCancelEdit}
           />
           {editError && <p className="text-xs text-destructive">{editError}</p>}
-          <div className="flex gap-2 justify-end">
-            <Button variant="outline" size="sm" onClick={onCancelEdit} disabled={editPending}>
-              Cancel
-            </Button>
-            <Button
-              size="sm"
-              onClick={() => onSaveEdit(comment.id)}
-              disabled={!editText.trim() || editPending}
-            >
-              {editPending ? 'Saving...' : 'Save'}
-            </Button>
+          <div className="flex items-center gap-2 justify-end">
+            <DraftNote
+              className="mr-auto"
+              state={editDraftState}
+              onDiscard={() => onEditDiscardDraft?.()}
+              onUseJira={() => onEditUseJira?.()}
+            />
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={onCancelEdit}
+                    disabled={editPending}
+                  />
+                }
+              >
+                Cancel
+              </TooltipTrigger>
+              <TooltipContent>
+                <TooltipBody>
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">Cancel</span>
+                    <Keycap>Esc</Keycap>
+                  </div>
+                </TooltipBody>
+              </TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Button
+                    size="sm"
+                    onClick={() => onSaveEdit(comment.id)}
+                    disabled={!editText.trim() || editPending}
+                  />
+                }
+              >
+                {editPending ? 'Saving...' : 'Save'}
+              </TooltipTrigger>
+              <TooltipContent>
+                <TooltipBody>
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">Save</span>
+                    <span className="flex items-center gap-1">
+                      <Keycap>⌘</Keycap>
+                      <Keycap>↵</Keycap>
+                    </span>
+                  </div>
+                </TooltipBody>
+              </TooltipContent>
+            </Tooltip>
           </div>
         </div>
       ) : (
