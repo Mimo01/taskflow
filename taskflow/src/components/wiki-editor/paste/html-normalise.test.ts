@@ -154,6 +154,15 @@ describe('normalisePastedHtml Jira rendered HTML', () => {
     expect(text).not.toContain('/browse/');
   });
 
+  it('keeps {{monospace}} that Jira renders as <tt>, with the spaces around it (99 UAT)', () => {
+    const { save } = pasteInto(
+      '<p style="margin: 10px 0px 0px; white-space: normal;"><tt>DemoCache#flush</tt> and <tt>clear()</tt>. <tt>Demo#reset()</tt> nulls every slot.</p>',
+    );
+    expect(savedText(save)).toContain(
+      '{{DemoCache#flush}} and {{clear()}}. {{Demo#reset()}} nulls every slot.',
+    );
+  });
+
   it('maps emoticon images to emoticon nodes', () => {
     const { editor, save } = pasteInto(jiraRendered, ctx);
     expect(savedText(save)).toContain('(/)');

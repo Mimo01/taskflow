@@ -71,6 +71,8 @@ const KEEP: Record<string, string> = {
   strike: 's',
   del: 's',
   code: 'code',
+  // Jira renders {{monospace}} as <tt>.
+  tt: 'code',
   sup: 'sup',
   sub: 'sub',
   cite: 'cite',
