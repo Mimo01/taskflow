@@ -361,6 +361,19 @@ export function IssueDetailView({
   const allDrafts = useDraftsStore((s) => s.drafts);
   const [editError, setEditError] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  // The peek reuses this view across issues (no remount, PEEK-04): drop the previous issue's
+  // edit state during render so it never blocks or overwrites the next issue's drafts (CR-01).
+  // A pending draft write keeps its own key, so the key-change flush still saves it correctly.
+  const [editStateIssueKey, setEditStateIssueKey] = useState(issueKey);
+  if (editStateIssueKey !== issueKey) {
+    setEditStateIssueKey(issueKey);
+    setEditingCommentId(null);
+    setEditText('');
+    setEditBase('');
+    setDiscardOpen(false);
+    setEditError(null);
+    setDeleteError(null);
+  }
 
   const editMutation = useMutation({
     mutationFn: async ({ commentId, body }: { commentId: string; body: string }) => {
@@ -369,6 +382,9 @@ export function IssueDetailView({
       return updateComment(jiraBaseUrl ?? '', token, issueKey ?? '', commentId, body);
     },
     onSuccess: (_data, { commentId }) => {
+      // Drop any pending debounced write first, or the key-change flush would restore it (WR-04).
+      // Only while the hook still points at this comment; a switched-to comment keeps its draft.
+      if (editingCommentId === commentId) draft.discard();
       useDraftsStore.getState().clearDraft(draftKey.commentEdit(commentId));
       setEditingCommentId(null);
       setEditText('');
@@ -780,6 +796,7 @@ export function IssueDetailView({
           className={`sticky bottom-0 z-20 border-t py-3 ${activityNegMx} ${activityPadX} bg-(--detail-surface,var(--background))`}
         >
           <CommentComposer
+            key={issueKey}
             issueKey={issueKey}
             jiraBaseUrl={jiraBaseUrl ?? ''}
             attachments={issue?.fields.attachment ?? []}

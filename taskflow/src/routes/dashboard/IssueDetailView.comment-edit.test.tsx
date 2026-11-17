@@ -173,9 +173,16 @@ vi.mock('./IssueDetailSidebar', () => ({
 vi.mock('./issue-detail/AioTestRunsSection', () => ({
   AioTestRunsSection: () => null,
 }));
-vi.mock('./CommentComposer', () => ({
-  CommentComposer: () => null,
-}));
+vi.mock('./CommentComposer', async () => {
+  const { useState } = await import('react');
+  return {
+    // Stateful stand-in: remembers the issue it mounted for, like the real composer's text state.
+    CommentComposer: ({ issueKey }: { issueKey: string }) => {
+      const [mountedFor] = useState(issueKey);
+      return <div data-testid="composer" data-mounted-for={mountedFor} />;
+    },
+  };
+});
 vi.mock(
   '@/components/wiki-editor/WikiEditorLazy',
   async () => (await import('@/test/wiki-editor-stub')).wikiEditorLazyMock,
@@ -543,5 +550,58 @@ describe('comment edit drafts (Task 2)', () => {
     renderView();
     await new Promise((r) => setTimeout(r, 200));
     expect(stored(K1)).toBeDefined();
+  });
+});
+
+describe('review fixes (CR-01, WR-04)', () => {
+  const OTHER_KEY = 'PROJ-456';
+  const tree = (issueKey: string) => (
+    <QueryClientProvider client={qc}>
+      <MemoryRouter>
+        <IssueDetailView issueKey={issueKey} layout="single-column" />
+      </MemoryRouter>
+    </QueryClientProvider>
+  );
+
+  beforeEach(() => {
+    mockFetchComments.mockImplementation((async (...args: unknown[]) =>
+      args.includes(OTHER_KEY)
+        ? [comment('c2', 'Other issue comment')]
+        : [comment('c1', 'Hello world')]) as never);
+  });
+
+  it('CR-01: swapping the issue remounts the composer (no carried text or draft)', async () => {
+    // Visit B first so the swap back to it is served from cache (no loading unmount), as in the app.
+    const view = render(tree(OTHER_KEY));
+    await screen.findByText('Other issue comment');
+    view.rerender(tree(ISSUE_KEY));
+    await screen.findByText('Hello world');
+    expect(screen.getByTestId('composer').dataset.mountedFor).toBe(ISSUE_KEY);
+    view.rerender(tree(OTHER_KEY));
+    await screen.findByText('Other issue comment');
+    await waitFor(() => expect(screen.getByTestId('composer').dataset.mountedFor).toBe(OTHER_KEY));
+  });
+
+  it('CR-01: swapping the issue leaves comment edit and keeps the draft under its own issue', async () => {
+    const view = render(tree(ISSUE_KEY));
+    const editor = await startEdit();
+    fireEvent.change(editor, { target: { value: 'A edit' } });
+    seed('c2', 'B draft', 'Other issue comment', OTHER_KEY);
+    view.rerender(tree(OTHER_KEY));
+    // B's own draft reopens; A's edit state does not block or replace it.
+    const reopened = (await screen.findByLabelText('Edit comment')) as HTMLTextAreaElement;
+    await waitFor(() => expect(reopened.value).toBe('B draft'));
+    await waitFor(() => expect(stored(K1)?.text).toBe('A edit'));
+    expect(stored(K1)?.issueKey).toBe(ISSUE_KEY);
+  });
+
+  it('WR-04: a save inside the debounce window does not bring the draft back', async () => {
+    render(tree(ISSUE_KEY));
+    const editor = await startEdit();
+    fireEvent.change(editor, { target: { value: 'Quick change' } });
+    fireEvent.keyDown(editor, { key: 'Enter', metaKey: true });
+    await waitFor(() => expect(screen.queryByLabelText('Edit comment')).toBeNull());
+    await new Promise((r) => setTimeout(r, 700));
+    expect(stored(K1)).toBeUndefined();
   });
 });
