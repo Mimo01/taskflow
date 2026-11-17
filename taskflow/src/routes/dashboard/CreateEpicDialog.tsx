@@ -2,6 +2,10 @@ import { Dialog } from '@base-ui/react/dialog';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Paperclip } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
+import { Keycap } from '@/components/ui/keycap';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { TooltipBody } from '@/components/ui/tooltip-body';
 import type { WikiEditorHandle, WikiEditorHost } from '@/components/wiki-editor/types';
 import { WikiEditorLazy } from '@/components/wiki-editor/WikiEditorLazy';
 import { uploadStagedFiles } from '@/lib/upload-staged-files';
@@ -24,6 +28,8 @@ export function CreateEpicDialog({ open, onClose }: CreateEpicDialogProps) {
   const [description, setDescription] = useState('');
 
   const editorRef = useRef<WikiEditorHandle>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+  const nameInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [stagedFiles, setStagedFiles] = useState<File[]>([]);
   const [stagedUploadError, setStagedUploadError] = useState<string | null>(null);
@@ -83,9 +89,19 @@ export function CreateEpicDialog({ open, onClose }: CreateEpicDialogProps) {
     },
   });
 
+  const canSubmit = !!epicName.trim() && !mutation.isPending && !hasCreatedWithError;
+
+  const trySubmit = () => {
+    if (!canSubmit) {
+      nameInputRef.current?.focus();
+      return;
+    }
+    formRef.current?.requestSubmit();
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!epicName.trim() || mutation.isPending || hasCreatedWithError) return;
+    if (!canSubmit) return;
     mutation.mutate();
   };
 
@@ -100,10 +116,21 @@ export function CreateEpicDialog({ open, onClose }: CreateEpicDialogProps) {
         <Dialog.Backdrop className="fixed inset-0 bg-black/50 z-40" />
         <Dialog.Popup className="fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-background rounded-lg shadow-lg p-6">
           <Dialog.Title className="text-lg font-semibold mb-4">Create Epic</Dialog.Title>
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <form
+            ref={formRef}
+            onSubmit={handleSubmit}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && !e.nativeEvent.isComposing) {
+                e.preventDefault();
+                trySubmit();
+              }
+            }}
+            className="flex flex-col gap-4"
+          >
             <label className="flex flex-col gap-1">
               <span className="text-sm font-medium">Epic Name *</span>
               <input
+                ref={nameInputRef}
                 aria-label="Epic Name"
                 value={epicName}
                 onChange={(e) => setEpicName(e.target.value)}
@@ -146,6 +173,10 @@ export function CreateEpicDialog({ open, onClose }: CreateEpicDialogProps) {
                 placeholder="Optional description"
                 aria-label="Description"
                 host={host}
+                onSubmit={(text) => {
+                  flushSync(() => setDescription(text));
+                  trySubmit();
+                }}
               />
               <StagedFilesStrip
                 files={stagedFiles}
@@ -169,14 +200,32 @@ export function CreateEpicDialog({ open, onClose }: CreateEpicDialogProps) {
                   </button>
                 }
               />
-              <button
-                type="submit"
-                disabled={!epicName.trim() || mutation.isPending || hasCreatedWithError}
-                className="px-4 py-2 text-sm rounded bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
-                aria-label="Create Epic"
-              >
-                {mutation.isPending ? 'Creating...' : 'Create Epic'}
-              </button>
+              <Tooltip>
+                <TooltipTrigger
+                  delay={300}
+                  render={
+                    <button
+                      type="submit"
+                      disabled={!canSubmit}
+                      className="px-4 py-2 text-sm rounded bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+                      aria-label="Create Epic"
+                    />
+                  }
+                >
+                  {mutation.isPending ? 'Creating...' : 'Create Epic'}
+                </TooltipTrigger>
+                <TooltipContent>
+                  <TooltipBody>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">Create Epic</span>
+                      <span className="flex items-center gap-1">
+                        <Keycap>⌘</Keycap>
+                        <Keycap>↵</Keycap>
+                      </span>
+                    </div>
+                  </TooltipBody>
+                </TooltipContent>
+              </Tooltip>
             </div>
           </form>
         </Dialog.Popup>

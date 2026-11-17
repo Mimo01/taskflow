@@ -47,6 +47,7 @@ export function WikiEditorLazyStub(props: WikiEditorProps) {
       onChange={(e) => onChange(e.target.value)}
       onKeyDown={(e) => {
         if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+          if (onSubmit) e.stopPropagation(); // the real editor consumes handled Cmd+Enter
           onSubmit?.(e.currentTarget.value);
         } else if (e.key === 'Escape' && onCancel) {
           e.preventDefault();

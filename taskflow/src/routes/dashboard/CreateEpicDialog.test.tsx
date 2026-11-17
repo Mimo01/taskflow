@@ -162,4 +162,81 @@ describe('CreateEpicDialog', () => {
     fireEvent.click(btn);
     expect(createIssue).toHaveBeenCalledTimes(1);
   });
+
+  describe('Cmd+Enter submit', () => {
+    it('Cmd+Enter in the name input submits once', async () => {
+      const { createIssue } = await setup();
+      fireEvent.keyDown(screen.getByRole('textbox', { name: /epic name/i }), {
+        key: 'Enter',
+        metaKey: true,
+      });
+      await waitFor(() => expect(createIssue).toHaveBeenCalledTimes(1));
+    });
+
+    it('Ctrl+Enter behaves the same', async () => {
+      const { createIssue } = await setup();
+      fireEvent.keyDown(screen.getByRole('textbox', { name: /epic name/i }), {
+        key: 'Enter',
+        ctrlKey: true,
+      });
+      await waitFor(() => expect(createIssue).toHaveBeenCalledTimes(1));
+    });
+
+    it('Cmd+Enter from the editor submits with the latest text', async () => {
+      const { createIssue } = await setup();
+      const editor = screen.getByRole('textbox', { name: 'Description' });
+      fireEvent.change(editor, { target: { value: 'fresh' } });
+      fireEvent.keyDown(editor, { key: 'Enter', metaKey: true });
+      await waitFor(() => expect(createIssue).toHaveBeenCalledTimes(1));
+      expect(createIssue.mock.calls[0][4].description).toBe('fresh');
+    });
+
+    it('Cmd+Enter with an empty name does not submit and focuses the name field', async () => {
+      const { createIssue } = await setup();
+      const name = screen.getByRole('textbox', { name: /epic name/i });
+      fireEvent.change(name, { target: { value: '' } });
+      const editor = screen.getByRole('textbox', { name: 'Description' });
+      fireEvent.keyDown(editor, { key: 'Enter', metaKey: true });
+      expect(createIssue).not.toHaveBeenCalled();
+      expect(document.activeElement).toBe(name);
+    });
+
+    it('Cmd+Enter does not create a second epic after created-with-error', async () => {
+      const { uploadStagedFiles, createIssue } = await setup();
+      (uploadStagedFiles as ReturnType<typeof vi.fn>).mockResolvedValueOnce(['a.png']);
+      act(() => lastStubProps.current?.host?.stageFile?.(new File(['x'], 'a.png')));
+      fireEvent.click(screen.getByRole('button', { name: /create epic/i }));
+      await screen.findByRole('alert');
+      fireEvent.keyDown(screen.getByRole('textbox', { name: /epic name/i }), {
+        key: 'Enter',
+        metaKey: true,
+      });
+      expect(createIssue).toHaveBeenCalledTimes(1);
+    });
+
+    it('Cmd+Enter while pending does not submit again', async () => {
+      const { createIssue } = await setup();
+      createIssue.mockReturnValue(new Promise(() => {}));
+      const name = screen.getByRole('textbox', { name: /epic name/i });
+      fireEvent.keyDown(name, { key: 'Enter', metaKey: true });
+      await waitFor(() => expect(createIssue).toHaveBeenCalledTimes(1));
+      fireEvent.keyDown(name, { key: 'Enter', metaKey: true });
+      expect(createIssue).toHaveBeenCalledTimes(1);
+    });
+
+    it('plain Enter in the editor never submits', async () => {
+      const { createIssue } = await setup();
+      fireEvent.keyDown(screen.getByRole('textbox', { name: 'Description' }), { key: 'Enter' });
+      expect(createIssue).not.toHaveBeenCalled();
+    });
+
+    it('button tooltip shows Create Epic with keycaps', async () => {
+      await setup();
+      fireEvent.focus(screen.getByRole('button', { name: /create epic/i }));
+      fireEvent.mouseEnter(screen.getByRole('button', { name: /create epic/i }));
+      const tip = await screen.findByText('⌘', {}, { timeout: 2000 });
+      expect(tip.tagName).toBe('KBD');
+      expect(screen.getByText('↵')).toBeTruthy();
+    });
+  });
 });
