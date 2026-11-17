@@ -468,19 +468,24 @@ Remote `<img src="https://…">`: webview `fetch` is subject to CORS and `connec
 | A9 | The three new packages are legitimate | Package audit | slopcheck unavailable; gate with a human-verify checkpoint |
 | A10 | `|`-containing or very long pasted wiki > some size needs no cap | Wiki heuristic | Large paste parse cost; measure with a 50KB fixture |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Image width/thumbnail display (C1).**
    - Known: WikiRenderer ignores options; D-05 says they are respected.
    - Recommendation: parity (ignore, keep `params` verbatim). Confirm with the user in plan review; supporting width means touching WikiRenderer too.
+   - RESOLVED: user chose parity (CONTEXT D-05 amended 2026-11-17); plan 99-04.
 2. **Undo-offer UI without a toast library (C3).**
    - Recommendation: inline notice row in the frame (no dependency). Alternative is adding `sonner`.
+   - RESOLVED: inline notice row (CONTEXT D-10 amended 2026-11-17); plan 99-09.
 3. **Real Jira/Word paste samples.**
    - Recommendation: plan a Wave 1 task to build synthetic fixtures + a UAT step where the user pastes from real Jira/Word into the dev-tools tab; the "Paste sample" select doubles as the capture harness.
+   - RESOLVED: synthetic fixtures in plan 99-02; capture harness in plan 99-12; UAT in plan 99-14.
 4. **Where does `host` data (issue key, project key, attachments, upload) come from before Phase 100?**
    - Recommendation: add an optional `host?: WikiEditorHost` prop on `WikiEditorProps` (types-only, bundle-guard safe) and wire it from the dev-tools "Host context" row; Phase 100 passes real values.
+   - RESOLVED: optional `host` prop in plan 99-01, dev-tools wiring in plan 99-12.
 5. **Issue-key trigger source for projects other than the active one.**
    - Recommendation: known prefix = `activeJiraProject` plus the host `projectKey`; `searchJiraForLink` already resolves a full key in any project.
+   - RESOLVED: adopted in plan 99-07.
 
 ## Environment Availability
 
