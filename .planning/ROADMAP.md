@@ -387,19 +387,35 @@ Plans:
   5. Resuming from anywhere restores every field and staged attachment, drafts survive an app restart, and a successful create or a discard removes the draft
 
 **Plans**: 12 plans
-
 Plans:
+**Wave 1**
+
 - [ ] 101-01-PLAN.md — D-03 docs; labels/fix versions in form state (Create + Edit, no-clobber diff); HYDRATE/RESET_KEEP; create returns key
 - [ ] 101-02-PLAN.md — fs plugin (legitimacy checkpoint), scoped capability, issue-draft-files service, editor setLocalPreview
 - [ ] 101-03-PLAN.md — issue-drafts store, useIssueDraft autosave hook, create-modal store, shortRelativeTime
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 101-04-PLAN.md — (TDD) snapshot rules: content gate, kept fields, round-trip, stale validation
 - [ ] 101-05-PLAN.md — LabelsField + FixVersionField, shared version ordering + versions hook
 - [ ] 101-06-PLAN.md — AppLayout on create-modal store, global CreateEpicDialog, account-change purge
 - [ ] 101-07-PLAN.md — TopBar Drafts chip + popover (resume, discard with undo)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 101-08-PLAN.md — large two-column modal shell + sidebar, UI-SPEC copy, Edit labels tests
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
 - [ ] 101-09-PLAN.md — Create autosave, keep-on-close, draft note, staged copies, Create another
+
+**Wave 5** *(blocked on Wave 4 completion)*
+
 - [ ] 101-10-PLAN.md — resume into Create with stale-field notes and restored files
 - [ ] 101-11-PLAN.md — Epic drafts in CreateEpicDialog
+
+**Wave 6** *(blocked on Wave 5 completion)*
+
 - [ ] 101-12-PLAN.md — full gate + manual restart / Edit round-trip / visual check
 
 **UI hint**: yes
