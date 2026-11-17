@@ -1,10 +1,11 @@
 ---
 phase: 100
 slug: host-adoption-editing-workflow
-status: draft
+status: approved
 shadcn_initialized: true
 preset: base-nova (neutral, cssVariables, lucide)
 created: 2026-11-17
+reviewed_at: 2026-11-17
 ---
 
 # Phase 100 — UI Design Contract
