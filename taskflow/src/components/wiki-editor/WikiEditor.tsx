@@ -1,7 +1,7 @@
 import { QueryClientContext } from '@tanstack/react-query';
 import { Selection } from '@tiptap/pm/state';
 import { EditorContent, useEditor } from '@tiptap/react';
-import { useContext, useEffect, useRef, useState } from 'react';
+import { useContext, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { attachmentRef } from '@/lib/attachment-markup';
 import { cn } from '@/lib/utils';
 import { loadWiki, type WikiLoad } from '@/lib/wiki/editor';
@@ -22,11 +22,12 @@ import { EDITOR_ATTRIBUTES, EDITOR_RULE_OPTIONS } from './extensions';
 import { useHost } from './host';
 import { EditorMessages } from './media/EditorMessages';
 import { insertEmbed } from './media/embed';
+import { startUploads } from './media/upload-plugin';
 import { EDIT_IN_SOURCE_EVENT, WIKI_OPEN_ATTACH_EVENT } from './nodeviews/events';
 import { richExtensions } from './rich-extensions';
 import { type SourceHandle, SourceView } from './source/SourceView';
 import { uploadIntoSource } from './source/source-uploads';
-import { exitAllSuggestions } from './suggestion/create-suggestion';
+import { exitAllSuggestions, isAnySuggestionActive } from './suggestion/create-suggestion';
 import { BubbleToolbar } from './toolbar/BubbleToolbar';
 import { CompactFooter } from './toolbar/CompactFooter';
 import { TableToolbar } from './toolbar/TableToolbar';
@@ -64,6 +65,11 @@ export default function WikiEditor({
   'aria-label': ariaLabel,
   onVerdict,
   host,
+  placeholder,
+  autoFocus,
+  onSubmit,
+  onCancel,
+  ref,
 }: WikiEditorProps) {
   const [initial] = useState(() => {
     const load = loadWiki(value);
@@ -96,10 +102,12 @@ export default function WikiEditor({
   });
   const stateRef = useRef({ mode, forced });
   const pendingFocusRef = useRef<{ mode: Mode; resetCaret: boolean } | null>(null);
-  const cbRef = useRef({ onChange, onVerdict });
+  const cbRef = useRef({ onChange, onVerdict, onSubmit, onCancel });
+  const sourceTextRef = useRef(sourceText);
 
   useEffect(() => {
-    cbRef.current = { onChange, onVerdict };
+    cbRef.current = { onChange, onVerdict, onSubmit, onCancel };
+    sourceTextRef.current = sourceText;
     stateRef.current = { mode, forced };
   });
 
@@ -120,11 +128,17 @@ export default function WikiEditor({
     immediatelyRender: true,
     editable: mode === 'rich',
     shouldRerenderOnTransaction: false,
-    editorProps: { attributes: { ...EDITOR_ATTRIBUTES[preset] } },
+    editorProps: {
+      attributes: {
+        ...EDITOR_ATTRIBUTES[preset],
+        ...(placeholder !== undefined ? { 'data-wiki-placeholder': placeholder } : {}),
+      },
+    },
     ...EDITOR_RULE_OPTIONS,
-    onCreate: () => {
+    onCreate: ({ editor: e }) => {
       createdRef.current += 1;
       report();
+      if (autoFocus && stateRef.current.mode === 'rich') e.commands.focus('end');
     },
     onUpdate: ({ editor: e, transaction }) => {
       if (transaction.getMeta(WIKI_TOGGLE_META)) return;
@@ -160,7 +174,7 @@ export default function WikiEditor({
   // Push host + queryClient into per-editor storage so module-scope extensions and node
   // views read them at call time (never through closures over props).
   useEffect(() => {
-    editor?.storage.wikiHost.set(host, queryClient);
+    editor?.storage.wikiHost?.set(host, queryClient);
   });
 
   // Report on mount and on every mode change (dev tools only).
@@ -326,6 +340,47 @@ export default function WikiEditor({
     return () => el.removeEventListener(WIKI_OPEN_ATTACH_EVENT, handler);
   }, []);
 
+  // Source mode has no ProseMirror plugin state; its popover is a portaled [data-suggestion].
+  const suggestionOpen = () =>
+    stateRef.current.mode === 'rich'
+      ? isAnySuggestionActive(editor.state)
+      : document.querySelector('[data-suggestion]') !== null;
+
+  const focusEditor = (toEnd?: boolean) => {
+    if (stateRef.current.mode === 'rich') {
+      editor.commands.focus(toEnd ? 'end' : undefined);
+    } else if (toEnd) {
+      sourceRef.current?.focusAt(Number.MAX_SAFE_INTEGER);
+    } else {
+      sourceRef.current?.focus();
+    }
+  };
+
+  useImperativeHandle(ref, () => ({
+    focus: (opts) => focusEditor(opts?.toEnd),
+    blur: () => {
+      if (stateRef.current.mode === 'rich') editor.commands.blur();
+      else (document.activeElement as HTMLElement | null)?.blur();
+    },
+    insertFiles: (files) => {
+      if (stateRef.current.mode === 'rich') {
+        startUploads(editor, files, editor.state.selection.to);
+      } else {
+        uploadIntoSource(editor, files, (m) => {
+          if (!sourceRef.current) return false;
+          sourceRef.current.insert(m);
+          return true;
+        });
+      }
+    },
+  }));
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: mount-only focus
+  useEffect(() => {
+    if (autoFocus && stateRef.current.mode === 'source')
+      sourceRef.current?.focusAt(Number.MAX_SAFE_INTEGER);
+  }, []);
+
   const { attachments } = useHost(editor);
   const onPickAttachment = (att: JiraAttachment) => {
     if (stateRef.current.mode === 'rich') {
@@ -339,7 +394,13 @@ export default function WikiEditor({
   const onKeyDownCapture = (e: React.KeyboardEvent) => {
     if (!(e.metaKey || e.ctrlKey)) return;
     const key = e.key.toLowerCase();
-    if (e.shiftKey && key === 'm') {
+    if (key === 'enter' && !e.shiftKey && !e.altKey) {
+      const submit = cbRef.current.onSubmit;
+      if (!submit || e.nativeEvent.isComposing || e.keyCode === 229 || suggestionOpen()) return;
+      e.preventDefault();
+      e.stopPropagation();
+      submit(stateRef.current.mode === 'source' ? sourceTextRef.current : lastEmittedRef.current);
+    } else if (e.shiftKey && key === 'm') {
       e.preventDefault();
       e.stopPropagation();
       userToggle(stateRef.current.mode === 'rich' ? 'source' : 'rich');
@@ -349,15 +410,26 @@ export default function WikiEditor({
     }
   };
 
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key !== 'Escape' || e.defaultPrevented || e.nativeEvent.isComposing) return;
+    const cancel = cbRef.current.onCancel;
+    if (!cancel) return;
+    e.preventDefault();
+    e.stopPropagation();
+    cancel();
+  };
+
   const sizes = HEIGHTS[preset];
   const maxClass = maxHeightClass ?? sizes.max;
   const message = saveError ? null : notice;
 
   return (
     <div className={cn('@container', className)}>
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: key events bubble up from the focusable editor/textarea inside */}
       <div
         ref={frameRef}
         onKeyDownCapture={onKeyDownCapture}
+        onKeyDown={onKeyDown}
         className="rounded-lg border border-input bg-background focus-within:ring-1 focus-within:ring-ring"
       >
         <div className={cn('relative overflow-auto', maxClass)}>
