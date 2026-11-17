@@ -352,9 +352,9 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 100-01-PLAN.md — Docs descope (D-01) + editor host API (handle, placeholder, onSubmit/onCancel) + shortcut rows + test stub
-- [ ] 100-02-PLAN.md — Drafts store (drafts.json), useEditorDraft hook, D-21 account-change clearing
-- [ ] 100-03-PLAN.md — Discard changes dialog, draft note, useIssueEditorHost, staged-files strip + upload helper
+- [x] 100-01-PLAN.md — Docs descope (D-01) + editor host API (handle, placeholder, onSubmit/onCancel) + shortcut rows + test stub
+- [x] 100-02-PLAN.md — Drafts store (drafts.json), useEditorDraft hook, D-21 account-change clearing
+- [x] 100-03-PLAN.md — Discard changes dialog, draft note, useIssueEditorHost, staged-files strip + upload helper
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -410,7 +410,7 @@ Plans:
 | 97. Round-Trip Engine | 17/17 | Complete    | 2026-11-16 |
 | 98. Editor Shell | 15/16 | In Progress|  |
 | 99. Mentions, Media & Smart Input | 14/14 | Complete    | 2026-11-17 |
-| 100. Host Adoption & Editing Workflow | 0/9 | Not started | - |
+| 100. Host Adoption & Editing Workflow | 3/9 | In Progress|  |
 | 101. Issue Drafts & Large Create/Edit Modal | 0/TBD | Not started | - |
 | 102. Polished Surfaces | 0/TBD | Not started | - |
 
