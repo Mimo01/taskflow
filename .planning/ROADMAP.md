@@ -239,20 +239,39 @@ Plans:
   5. Typing never loses the caret or rebuilds the editor, wiki/markdown shortcuts and IME composition behave on macOS WKWebView (manual check), and app shortcuts are suppressed while typing
 
 **Plans**: 13 plans
-
 Plans:
+**Wave 1**
+
 - [ ] 98-01-PLAN.md — Engine fixes: saveWiki schema identity, schema exports, table-cell {code} escape, WR-02, IN-01
 - [ ] 98-02-PLAN.md — WR-01 bare-URL escaping (Jira UAT checkpoint, then fix; closes folded todo)
 - [ ] 98-03-PLAN.md — Install @tiptap/react + extensions, shared prose classes, wikiEditorMode setting, bundle guard
 - [ ] 98-04-PLAN.md — FLOW-04 typing-target guards, Editor shortcut category, Keycap, ToolbarButton
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 98-05-PLAN.md — Headless editor core: extension list, keymap, wiki-first input rules, safe links
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 98-06-PLAN.md — Session logic (undo-safe toggle, forced source, failed-save text), SourceView, ModeToggle
 - [ ] 98-07-PLAN.md — Panel/code/raw node views, Jira languages, panel commands, richExtensions
 - [ ] 98-08-PLAN.md — Insert list, text styles, InsertMenu, TableGridPicker, TextStyleMenu
 - [ ] 98-09-PLAN.md — Palette colour, link and table commands; ColourPopover, LinkPopover, TableToolbar
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
 - [ ] 98-10-PLAN.md — Toolbar composition: presets, one-row overflow, source-mode actions
+
+**Wave 5** *(blocked on Wave 4 completion)*
+
 - [ ] 98-11-PLAN.md — WikiEditor shell (value binding, modes, notices, shortcuts) and lazy wrapper
+
+**Wave 6** *(blocked on Wave 5 completion)*
+
 - [ ] 98-12-PLAN.md — Dev-tools Editor tab, React Compiler acceptance test, async chunk check
+
+**Wave 7** *(blocked on Wave 6 completion)*
+
 - [ ] 98-13-PLAN.md — Manual macOS WKWebView UAT (IME, caret, input rules, visual pass)
 
 **UI hint**: yes
