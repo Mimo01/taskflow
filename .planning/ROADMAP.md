@@ -327,7 +327,7 @@ Plans:
 
 **Wave 6** *(blocked on Wave 5 completion)*
 
-- [ ] 99-13-PLAN.md — Source-mode mentions, emoticons and file paste/drop
+- [x] 99-13-PLAN.md — Source-mode mentions, emoticons and file paste/drop
 
 **Wave 7** *(blocked on Wave 6 completion)*
 
@@ -388,7 +388,7 @@ Plans:
 | 96. Wiki Foundations & Equivalence Harness | 6/6 | Complete    | 2026-11-16 |
 | 97. Round-Trip Engine | 17/17 | Complete    | 2026-11-16 |
 | 98. Editor Shell | 15/16 | In Progress|  |
-| 99. Mentions, Media & Smart Input | 12/14 | In Progress|  |
+| 99. Mentions, Media & Smart Input | 13/14 | In Progress|  |
 | 100. Host Adoption & Editing Workflow | 0/TBD | Not started | - |
 | 101. Issue Drafts & Large Create/Edit Modal | 0/TBD | Not started | - |
 | 102. Polished Surfaces | 0/TBD | Not started | - |
