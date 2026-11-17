@@ -13,9 +13,15 @@ import { MoreVertical } from 'lucide-react';
 import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/button';
+import { DiscardChangesDialog } from '@/components/ui/discard-changes-dialog';
+import { DraftNote } from '@/components/ui/draft-note';
 import { ErrorState } from '@/components/ui/error-state';
+import { Keycap } from '@/components/ui/keycap';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Textarea } from '@/components/ui/textarea';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { TooltipBody } from '@/components/ui/tooltip-body';
+import type { WikiEditorHandle, WikiEditorHost } from '@/components/wiki-editor/types';
+import { WikiEditorLazy } from '@/components/wiki-editor/WikiEditorLazy';
 import { useCompactOnScroll } from '@/hooks/useCompactOnScroll';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { useMentionUserMap } from '@/hooks/useMentionUserMap';
@@ -52,6 +58,7 @@ import { IssueUnavailable } from './issue-detail/IssueUnavailable';
 import { LinkedIssuesSection } from './issue-detail/LinkedIssuesSection';
 import { MergeRequestsSection } from './issue-detail/MergeRequestsSection';
 import { getIssueUnavailableInfo } from './issue-detail/unavailable-info';
+import { useIssueEditorHost } from './issue-detail/useIssueEditorHost';
 import { useLinkedMRs } from './issue-detail/useLinkedMRs';
 import type { AttachmentMap, UserMap } from './WikiRenderer';
 import { WikiRenderer } from './WikiRenderer';
@@ -337,6 +344,10 @@ export function IssueDetailView({
   };
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editText, setEditText] = useState('');
+  // Jira text the current edit started from; dirty = editText !== editBase (D-10).
+  const [editBase, setEditBase] = useState('');
+  const [discardOpen, setDiscardOpen] = useState(false);
+  const commentEditorRef = useRef<WikiEditorHandle>(null);
   const [editError, setEditError] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
@@ -353,8 +364,8 @@ export function IssueDetailView({
       queryClient.invalidateQueries({ queryKey: ['jira-issue-detail', issueKey, jiraBaseUrl] });
       queryClient.invalidateQueries({ queryKey: ['jira-issue-comments', issueKey, jiraBaseUrl] });
     },
-    onError: (err: Error) => {
-      setEditError(err.message);
+    onError: () => {
+      setEditError("Couldn't save your changes. Your text is kept as a draft, try again.");
     },
   });
 
@@ -405,6 +416,7 @@ export function IssueDetailView({
 
   const handleEdit = (comment: JiraComment) => {
     setEditingCommentId(comment.id);
+    setEditBase(comment.body);
     setEditText(comment.body);
     setEditError(null);
   };
@@ -415,8 +427,8 @@ export function IssueDetailView({
     deleteMutateRef.current(comment.id);
   };
 
-  const handleSaveEdit = (commentId: string) => {
-    const text = editTextRef.current.trim();
+  const handleSaveEdit = (commentId: string, submitted?: string) => {
+    const text = (submitted ?? editTextRef.current).trim();
     if (!text) return;
     editMutateRef.current({ commentId, body: text });
   };
@@ -424,8 +436,23 @@ export function IssueDetailView({
   const handleCancelEdit = () => {
     setEditingCommentId(null);
     setEditText('');
+    setEditBase('');
     setEditError(null);
   };
+
+  const dirty = editText !== editBase;
+  const requestCancelEdit = () => {
+    if (!dirty) handleCancelEdit();
+    else setDiscardOpen(true);
+  };
+
+  const editorHost = useIssueEditorHost({
+    issueKey: issueKey ?? null,
+    attachments: issue?.fields.attachment ?? [],
+    userMap,
+    referenceTexts: [issue?.fields.description ?? '', ...commentTexts],
+    onOpenIssue,
+  });
 
   // ─── Worklog data + CRUD ──────────────────────────────────────────────────────
   const worklogsQuery = useQuery({
@@ -630,7 +657,12 @@ export function IssueDetailView({
           onEditStart={handleEdit}
           onEditChange={setEditText}
           onEditSave={handleSaveEdit}
-          onEditCancel={handleCancelEdit}
+          onEditCancel={requestCancelEdit}
+          editorHost={editorHost}
+          editorRef={commentEditorRef}
+          editDraftState={null}
+          onEditDiscardDraft={() => {}}
+          onEditUseJira={() => {}}
           onDelete={handleDelete}
           editError={editError}
           deleteError={deleteError}
@@ -651,6 +683,18 @@ export function IssueDetailView({
           worklogEditError={worklogEditError}
         />
       )}
+
+      <DiscardChangesDialog
+        open={discardOpen}
+        onKeepEditing={() => {
+          setDiscardOpen(false);
+          commentEditorRef.current?.focus({ toEnd: true });
+        }}
+        onDiscard={() => {
+          setDiscardOpen(false);
+          handleCancelEdit();
+        }}
+      />
 
       {(timelineFilter === 'comment' || timelineFilter === 'all') && (
         <div
@@ -830,11 +874,17 @@ interface CommentCardProps {
   editPending: boolean;
   onEdit: (comment: JiraComment) => void;
   onDelete: (comment: JiraComment) => void;
-  onSaveEdit: (commentId: string) => void;
+  onSaveEdit: (commentId: string, text?: string) => void;
   onCancelEdit: () => void;
   onEditTextChange: (text: string) => void;
   attachmentMap: AttachmentMap;
   userMap: UserMap;
+  /** Editor wiring; only non-default for the card being edited. */
+  editorHost?: WikiEditorHost;
+  editorRef?: React.Ref<WikiEditorHandle>;
+  editDraftState?: 'draft' | 'stale' | null;
+  onEditDiscardDraft?: () => void;
+  onEditUseJira?: () => void;
 }
 
 function CommentCard({
@@ -853,6 +903,11 @@ function CommentCard({
   onEditTextChange,
   attachmentMap,
   userMap,
+  editorHost,
+  editorRef,
+  editDraftState = null,
+  onEditDiscardDraft,
+  onEditUseJira,
 }: CommentCardProps) {
   const [showMenu, setShowMenu] = useState(false);
   const [menuPosition, setMenuPosition] = useState<{ top: number; right: number } | null>(null);
@@ -946,23 +1001,70 @@ function CommentCard({
       {/* Card body */}
       {isEditing ? (
         <div className="space-y-2">
-          <Textarea
+          <WikiEditorLazy
+            ref={editorRef}
             value={editText}
-            onChange={(e) => onEditTextChange(e.target.value)}
-            className="min-h-[80px] resize-none"
+            onChange={onEditTextChange}
+            preset="compact"
+            aria-label="Edit comment"
+            host={editorHost}
+            onSubmit={(t) => onSaveEdit(comment.id, t)}
+            onCancel={onCancelEdit}
           />
           {editError && <p className="text-xs text-destructive">{editError}</p>}
-          <div className="flex gap-2 justify-end">
-            <Button variant="outline" size="sm" onClick={onCancelEdit} disabled={editPending}>
-              Cancel
-            </Button>
-            <Button
-              size="sm"
-              onClick={() => onSaveEdit(comment.id)}
-              disabled={!editText.trim() || editPending}
-            >
-              {editPending ? 'Saving...' : 'Save'}
-            </Button>
+          <div className="flex items-center gap-2 justify-end">
+            <DraftNote
+              className="mr-auto"
+              state={editDraftState}
+              onDiscard={() => onEditDiscardDraft?.()}
+              onUseJira={() => onEditUseJira?.()}
+            />
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={onCancelEdit}
+                    disabled={editPending}
+                  />
+                }
+              >
+                Cancel
+              </TooltipTrigger>
+              <TooltipContent>
+                <TooltipBody>
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">Cancel</span>
+                    <Keycap>Esc</Keycap>
+                  </div>
+                </TooltipBody>
+              </TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Button
+                    size="sm"
+                    onClick={() => onSaveEdit(comment.id)}
+                    disabled={!editText.trim() || editPending}
+                  />
+                }
+              >
+                {editPending ? 'Saving...' : 'Save'}
+              </TooltipTrigger>
+              <TooltipContent>
+                <TooltipBody>
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">Save</span>
+                    <span className="flex items-center gap-1">
+                      <Keycap>⌘</Keycap>
+                      <Keycap>↵</Keycap>
+                    </span>
+                  </div>
+                </TooltipBody>
+              </TooltipContent>
+            </Tooltip>
           </div>
         </div>
       ) : (
