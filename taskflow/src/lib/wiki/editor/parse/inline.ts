@@ -199,7 +199,7 @@ export function parseInline(src: string): JSONContent[] {
         // `{{code}}` is a monospace span around the word, not a macro token.
         const inMono = line[i - 1] === '{' && line[i + (m?.[0].length ?? 0)] === '}';
         const live = m !== null && LIVE_INLINE_MACROS.has(m[1] ?? '') && !inMono;
-        if (m && (!KNOWN_MACROS.has(m[1] ?? '') || live)) {
+        if (m && !inMono && (!KNOWN_MACROS.has(m[1] ?? '') || live)) {
           atom({ type: 'rawInline', attrs: { raw: m[0] } });
           i += m[0].length;
           continue;

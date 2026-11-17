@@ -54,6 +54,12 @@ describe('formatting marks', () => {
     expect(rt(nbsp)).toBe(nbsp);
   });
 
+  it('reads {{word}} as monospace even when the word is not a known macro name', () => {
+    const wiki = 'a {{word}} b';
+    expect(withMark(wiki, 'mono').map((m) => m.text)).toEqual(['word']);
+    expect(rt(wiki)).toBe(wiki);
+  });
+
   it('nests marks and keeps their recorded order', () => {
     const t = inlines(parse('*_both_*'));
     expect(t).toHaveLength(1);
