@@ -7,6 +7,7 @@ import {
   type ViewerState,
   viewerReducer,
 } from '@/lib/image-viewer';
+import { isTypingTarget } from '@/lib/typing-target';
 
 const KEY_PAN_PX = 50;
 /** A press that moves further than this is a drag, not a click. */
@@ -21,12 +22,6 @@ export const GESTURE_STALE_MS = 300;
 interface UseImageViewerResult {
   state: ViewerState;
   dispatch: (action: ViewerAction) => void;
-}
-
-function isEditableTarget(target: EventTarget | null): boolean {
-  if (!(target instanceof HTMLElement)) return false;
-  const tag = target.tagName;
-  return tag === 'INPUT' || tag === 'TEXTAREA' || target.isContentEditable;
 }
 
 /**
@@ -181,7 +176,7 @@ export function useImageViewer(
   useEffect(() => {
     if (!enabled) return;
     const onKeyDown = (e: KeyboardEvent) => {
-      if (isEditableTarget(e.target)) return;
+      if (isTypingTarget(e.target)) return;
       switch (e.key) {
         case '+':
         case '=':

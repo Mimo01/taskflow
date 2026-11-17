@@ -13,6 +13,7 @@ import { useResizable } from '@/hooks/useResizable';
 import { PROGRESS_SEGMENT_CLASS } from '@/lib/aio-cycle-list';
 import { normalizeStatus, normalizeStatusLabel } from '@/lib/aioUtils';
 import { aioRunStatusPillClass } from '@/lib/statusStyles';
+import { isTypingTarget } from '@/lib/typing-target';
 import { cn } from '@/lib/utils';
 import type { AioTestCaseDetail, AioTestRun, AioTestRunStep } from '@/services/aio';
 import { fetchAioTestCaseDetail, fetchAioTestRunDetail } from '@/services/aio';
@@ -128,9 +129,7 @@ export default function AioTestRunDetailPage() {
   // ArrowLeft / ArrowRight step through runs (ignored while typing).
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      const el = e.target as HTMLElement | null;
-      const tag = el?.tagName;
-      if (tag === 'INPUT' || tag === 'TEXTAREA' || el?.isContentEditable) return;
+      if (isTypingTarget(e.target)) return;
       if (e.key === 'ArrowLeft' && prevRun) goToRun(prevRun);
       else if (e.key === 'ArrowRight' && nextRun) goToRun(nextRun);
     };

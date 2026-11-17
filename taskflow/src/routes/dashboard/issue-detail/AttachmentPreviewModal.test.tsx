@@ -169,6 +169,17 @@ describe('AttachmentPreviewModal keyboard with focus inside', () => {
     fireEvent.keyDown(btn, { key: 'ArrowRight' });
     expect(props.onNavigate).toHaveBeenCalledWith(1);
   });
+
+  it('ArrowRight from a contenteditable target does not navigate', () => {
+    const { props } = renderModal([img1, img2], 0);
+    loadImage();
+    const editor = document.createElement('div');
+    Object.defineProperty(editor, 'isContentEditable', { value: true });
+    document.body.appendChild(editor);
+    fireEvent.keyDown(editor, { key: 'ArrowRight' });
+    editor.remove();
+    expect(props.onNavigate).not.toHaveBeenCalled();
+  });
 });
 
 describe('AttachmentPreviewModal reveal', () => {
