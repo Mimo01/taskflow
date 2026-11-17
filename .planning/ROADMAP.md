@@ -349,17 +349,28 @@ Plans:
   5. The old textarea toolbar and Preview-tab code no longer exists in the codebase
 
 **Plans**: 9 plans
-
 Plans:
+**Wave 1**
+
 - [ ] 100-01-PLAN.md — Docs descope (D-01) + editor host API (handle, placeholder, onSubmit/onCancel) + shortcut rows + test stub
 - [ ] 100-02-PLAN.md — Drafts store (drafts.json), useEditorDraft hook, D-21 account-change clearing
 - [ ] 100-03-PLAN.md — Discard changes dialog, draft note, useIssueEditorHost, staged-files strip + upload helper
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 100-04-PLAN.md — Host 1: Create Epic on WikiEditor with staging (D-20) and Cmd+Enter
 - [ ] 100-05-PLAN.md — Host 2: Create/Edit Issue description on WikiEditor + form Cmd+Enter
 - [ ] 100-06-PLAN.md — Host 3: comment edit on WikiEditor with drafts, discard guard, keys
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 100-07-PLAN.md — Edit Issue modal drafts, stale base, Cancel/Esc discard guard
 - [ ] 100-08-PLAN.md — Host 4: comment composer on WikiEditor with draft, send, Esc blur, Reply focus
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
 - [ ] 100-09-PLAN.md — Delete textarea editing code and dead components + removal guard test
+
 **UI hint**: yes
 
 ### Phase 101: Issue Drafts & Large Create/Edit Modal
