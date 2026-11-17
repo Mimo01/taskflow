@@ -27,9 +27,20 @@ import { WikiHostBridge } from './host';
 import { WikiInputRules } from './input-rules';
 import { WikiKeymap } from './keymap';
 import { WikiLinkPaste } from './link-paste';
+import { emoticonGlyph } from './suggestion/emoticon-data';
 
 export type WikiNodeViews = Partial<
-  Record<'panel' | 'codeBlock' | 'rawBlock' | 'rawInline', NodeViewRenderer>
+  Record<
+    | 'panel'
+    | 'codeBlock'
+    | 'rawBlock'
+    | 'rawInline'
+    | 'mention'
+    | 'image'
+    | 'attachment'
+    | 'emoticon',
+    NodeViewRenderer
+  >
 >;
 
 const CHIP_CLASS = 'rounded bg-muted px-1 text-xs text-muted-foreground';
@@ -83,15 +94,20 @@ export function buildEditorExtensions(views: WikiNodeViews = {}) {
     }),
     Emoticon.extend({
       parseHTML: () => [{ tag: 'span[data-wiki-emoticon]' }],
-      renderHTML: ({ node }) => ['span', { 'data-wiki-emoticon': '' }, String(node.attrs.src)],
+      renderHTML: ({ node }) => {
+        const src = String(node.attrs.src);
+        return ['span', { 'data-wiki-emoticon': '', src }, emoticonGlyph(src) ?? src];
+      },
+      addNodeView: views.emoticon ? () => views.emoticon as NodeViewRenderer : undefined,
     }),
     Mention.extend({
       parseHTML: () => [{ tag: 'span[data-wiki-mention]' }],
       renderHTML: ({ node }) => [
         'span',
-        { 'data-wiki-mention': '', class: CHIP_CLASS },
+        { 'data-wiki-mention': '', id: String(node.attrs.id), class: CHIP_CLASS },
         `@${String(node.attrs.id)}`,
       ],
+      addNodeView: views.mention ? () => views.mention as NodeViewRenderer : undefined,
     }),
     Escape.extend({
       parseHTML: () => [{ tag: 'span[data-wiki-escape]' }],
@@ -101,17 +117,24 @@ export function buildEditorExtensions(views: WikiNodeViews = {}) {
       parseHTML: () => [{ tag: 'span[data-wiki-image]' }],
       renderHTML: ({ node }) => [
         'span',
-        { 'data-wiki-image': '', class: CHIP_CLASS },
+        {
+          'data-wiki-image': '',
+          name: String(node.attrs.name),
+          ...(node.attrs.params ? { params: String(node.attrs.params) } : {}),
+          class: CHIP_CLASS,
+        },
         String(node.attrs.name),
       ],
+      addNodeView: views.image ? () => views.image as NodeViewRenderer : undefined,
     }),
     Attachment.extend({
       parseHTML: () => [{ tag: 'span[data-wiki-attachment]' }],
       renderHTML: ({ node }) => [
         'span',
-        { 'data-wiki-attachment': '', class: CHIP_CLASS },
+        { 'data-wiki-attachment': '', name: String(node.attrs.name), class: CHIP_CLASS },
         String(node.attrs.name),
       ],
+      addNodeView: views.attachment ? () => views.attachment as NodeViewRenderer : undefined,
     }),
     Sup.extend({
       parseHTML: () => [{ tag: 'sup' }],

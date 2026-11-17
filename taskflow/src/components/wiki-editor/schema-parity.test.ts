@@ -46,7 +46,16 @@ describe('editor schema parity', () => {
       'with node views',
       () =>
         getSchema(
-          buildEditorExtensions({ panel: stub, codeBlock: stub, rawBlock: stub, rawInline: stub }),
+          buildEditorExtensions({
+            panel: stub,
+            codeBlock: stub,
+            rawBlock: stub,
+            rawInline: stub,
+            mention: stub,
+            image: stub,
+            attachment: stub,
+            emoticon: stub,
+          }),
         ),
     ],
   ])('%s matches wikiSchema', (_n, build) => {
