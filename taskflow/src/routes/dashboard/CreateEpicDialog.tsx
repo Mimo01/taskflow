@@ -1,10 +1,15 @@
 import { Dialog } from '@base-ui/react/dialog';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { Paperclip } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import type { WikiEditorHandle, WikiEditorHost } from '@/components/wiki-editor/types';
+import { WikiEditorLazy } from '@/components/wiki-editor/WikiEditorLazy';
+import { uploadStagedFiles } from '@/lib/upload-staged-files';
 import { createIssue } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useSettingsStore } from '@/stores/settings.store';
+import { StagedFilesStrip } from './StagedFilesStrip';
 
 export interface CreateEpicDialogProps {
   open: boolean;
@@ -18,6 +23,30 @@ export function CreateEpicDialog({ open, onClose }: CreateEpicDialogProps) {
   const [epicName, setEpicName] = useState('');
   const [description, setDescription] = useState('');
 
+  const editorRef = useRef<WikiEditorHandle>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [stagedFiles, setStagedFiles] = useState<File[]>([]);
+  const [stagedUploadError, setStagedUploadError] = useState<string | null>(null);
+  // Set when create succeeded but a staged upload failed: the dialog stays open with the
+  // error visible and the button is disabled so the form can't create a duplicate epic.
+  const [hasCreatedWithError, setHasCreatedWithError] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    setStagedFiles([]);
+    setStagedUploadError(null);
+    setHasCreatedWithError(false);
+  }, [open]);
+
+  const host = useMemo<WikiEditorHost>(
+    () => ({
+      projectKey: activeJiraProject,
+      staged: true,
+      stageFile: (f) => setStagedFiles((p) => [...p, f]),
+    }),
+    [activeJiraProject],
+  );
+
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
@@ -26,23 +55,37 @@ export function CreateEpicDialog({ open, onClose }: CreateEpicDialogProps) {
       if (!jiraBaseUrl || !jiraToken || !activeJiraProject || !epicNameFieldKey) {
         throw new Error('Not configured');
       }
-      return createIssue(jiraBaseUrl, jiraToken, activeJiraProject, epicName, {
+      const newIssue = await createIssue(jiraBaseUrl, jiraToken, activeJiraProject, epicName, {
         issuetype: 'Epic',
         description: description || undefined,
         [epicNameFieldKey]: epicName,
       });
+      const failed =
+        stagedFiles.length > 0
+          ? await uploadStagedFiles(jiraBaseUrl, jiraToken, newIssue.key, stagedFiles)
+          : [];
+      return { newIssue, failed };
     },
-    onSuccess: () => {
+    onSuccess: ({ failed }) => {
       queryClient.invalidateQueries({ queryKey: ['jira-epics-basic'] });
+      if (failed.length > 0) {
+        setStagedUploadError(
+          `Issue created, but ${failed.length} file(s) failed to upload: ${failed.join(', ')}`,
+        );
+        setStagedFiles([]);
+        setHasCreatedWithError(true);
+        return;
+      }
       setEpicName('');
       setDescription('');
+      setStagedFiles([]);
       onClose();
     },
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!epicName.trim()) return;
+    if (!epicName.trim() || mutation.isPending || hasCreatedWithError) return;
     mutation.mutate();
   };
 
@@ -68,15 +111,53 @@ export function CreateEpicDialog({ open, onClose }: CreateEpicDialogProps) {
                 required
               />
             </label>
-            <label className="flex flex-col gap-1">
-              <span className="text-sm font-medium">Description</span>
-              <textarea
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center justify-between">
+                <span id="create-epic-description-label" className="text-sm font-medium">
+                  Description
+                </span>
+                <button
+                  type="button"
+                  disabled={mutation.isPending}
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
+                >
+                  <Paperclip className="h-3 w-3" />
+                  Attach file
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  className="hidden"
+                  data-testid="create-epic-file-input"
+                  onChange={(e) => {
+                    const files = Array.from(e.target.files ?? []);
+                    if (files.length > 0) editorRef.current?.insertFiles(files);
+                    e.target.value = '';
+                  }}
+                />
+              </div>
+              <WikiEditorLazy
+                ref={editorRef}
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                className="border rounded px-3 py-2 text-sm resize-y min-h-[80px]"
+                onChange={setDescription}
+                preset="full"
                 placeholder="Optional description"
+                aria-label="Description"
+                host={host}
               />
-            </label>
+              <StagedFilesStrip
+                files={stagedFiles}
+                onRemove={(i) => setStagedFiles((p) => p.filter((_, idx) => idx !== i))}
+                disabled={mutation.isPending}
+              />
+              {stagedUploadError && (
+                <p role="alert" className="text-xs text-destructive">
+                  {stagedUploadError}
+                </p>
+              )}
+            </div>
             <div className="flex justify-end gap-2 mt-2">
               <Dialog.Close
                 render={
@@ -90,7 +171,7 @@ export function CreateEpicDialog({ open, onClose }: CreateEpicDialogProps) {
               />
               <button
                 type="submit"
-                disabled={!epicName.trim() || mutation.isPending}
+                disabled={!epicName.trim() || mutation.isPending || hasCreatedWithError}
                 className="px-4 py-2 text-sm rounded bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
                 aria-label="Create Epic"
               >
