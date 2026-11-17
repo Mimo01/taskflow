@@ -167,7 +167,7 @@ async function runEntry(editor: Editor, entry: UploadEntry, ph: Placeholder): Pr
     dispatchResolution(
       editor,
       ph.id,
-      { session: [created.filename, created.id], clearFailures: true },
+      { session: [created.filename, created.id] },
       embedContentFor(created),
     );
   } catch {
@@ -183,7 +183,9 @@ export function withUploads(tr: Transaction, editor: Editor, entries: UploadEntr
     pos: e.pos,
     name: e.name,
   }));
-  tr.setMeta(uploadPluginKey, mergeMeta(tr, { add: placeholders }));
+  // Failures stay visible until dismissed or the next batch starts (UI-SPEC); a success must not
+  // wipe a failure from the same batch.
+  tr.setMeta(uploadPluginKey, mergeMeta(tr, { add: placeholders, clearFailures: true }));
   if (!tr.docChanged) tr.setMeta('addToHistory', false);
   queueMicrotask(() => {
     if (editor.isDestroyed) return;

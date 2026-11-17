@@ -1,5 +1,7 @@
 import { ReactNodeViewRenderer } from '@tiptap/react';
 import { buildEditorExtensions } from './extensions';
+import { WikiEmbedRemoval } from './media/embed-removal';
+import { WikiUpload } from './media/upload-plugin';
 import { AttachmentChip } from './nodeviews/AttachmentChip';
 import { CodeBlockView } from './nodeviews/CodeBlockView';
 import { EmoticonView } from './nodeviews/EmoticonView';
@@ -10,13 +12,17 @@ import { RawBlockView } from './nodeviews/RawBlockView';
 import { RawInlineChip } from './nodeviews/RawInlineChip';
 
 /** Rich-view extension list with React node views. Module scope: never rebuilt per render. */
-export const richExtensions = buildEditorExtensions({
-  panel: ReactNodeViewRenderer(PanelView),
-  codeBlock: ReactNodeViewRenderer(CodeBlockView),
-  rawBlock: ReactNodeViewRenderer(RawBlockView),
-  rawInline: ReactNodeViewRenderer(RawInlineChip),
-  mention: ReactNodeViewRenderer(MentionView, { as: 'span' }),
-  image: ReactNodeViewRenderer(ImageView, { as: 'span' }),
-  attachment: ReactNodeViewRenderer(AttachmentChip, { as: 'span' }),
-  emoticon: ReactNodeViewRenderer(EmoticonView, { as: 'span' }),
-});
+export const richExtensions = [
+  ...buildEditorExtensions({
+    panel: ReactNodeViewRenderer(PanelView),
+    codeBlock: ReactNodeViewRenderer(CodeBlockView),
+    rawBlock: ReactNodeViewRenderer(RawBlockView),
+    rawInline: ReactNodeViewRenderer(RawInlineChip),
+    mention: ReactNodeViewRenderer(MentionView, { as: 'span' }),
+    image: ReactNodeViewRenderer(ImageView, { as: 'span' }),
+    attachment: ReactNodeViewRenderer(AttachmentChip, { as: 'span' }),
+    emoticon: ReactNodeViewRenderer(EmoticonView, { as: 'span' }),
+  }),
+  WikiUpload,
+  WikiEmbedRemoval,
+];
