@@ -12,6 +12,12 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { SKIP, visit } from 'unist-util-visit';
 import { LinkContextMenu } from '@/components/ui/link-context-menu';
 import { tryInternalPath } from '@/lib/internalLinks';
+import {
+  ISSUE_KEY_EXACT_RE,
+  ISSUE_KEY_GLOBAL_RE,
+  ISSUE_KEY_LINK_CLASS,
+  isKnownPrefix,
+} from '@/lib/issue-key';
 import { doneSummaryClass } from '@/lib/issueDisplayUtils';
 import { openExternal } from '@/lib/openExternal';
 import { cn } from '@/lib/utils';
@@ -86,25 +92,6 @@ function deriveSourceCrumb(pathname: string): { path: string; label: string } {
   };
   return { path: pathname, label: staticLabels[pathname] ?? 'Home' };
 }
-
-/**
- * Quick task 260610-fnk (D-02): decide whether a canonical issue key should be
- * linkified. "Known" is currently defined as "the active Jira project only" —
- * there is no persisted app-wide project list, so the only safe prefix to trust
- * is `auth.store.activeJiraProject`. Isolating the decision here means the rule
- * can be widened later (e.g. to a cached `['jira-projects']` query) without
- * touching any call site. Returns false when `activeJiraProject` is falsy.
- *
- * Module-private — not exported.
- */
-function isKnownPrefix(key: string, activeJiraProject: string | null): boolean {
-  if (!activeJiraProject) return false;
-  return key.split('-')[0] === activeJiraProject;
-}
-
-/** Canonical Jira issue-key pattern, mirrored from internalLinks.ts `tryInternalPath`. */
-const ISSUE_KEY_GLOBAL_RE = /\b[A-Z][A-Z0-9_]+-\d+\b/g;
-const ISSUE_KEY_EXACT_RE = /^[A-Z][A-Z0-9_]+-\d+$/;
 
 /**
  * Quick task 260610-fnk (D-02/D-04/D-05): rehype plugin that linkifies bare
@@ -246,7 +233,7 @@ function IssueKeyLink({ issueKey }: { issueKey: string }) {
   return (
     <a
       href={`#issue-${issueKey}`}
-      className={cn('text-primary hover:underline', doneClass)}
+      className={cn(ISSUE_KEY_LINK_CLASS, doneClass)}
       onClick={handleClick}
     >
       {issueKey}
