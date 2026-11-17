@@ -33,7 +33,7 @@ As in Phase 98, everything is exercised in the dev-tools "Editor" tab. Host adop
 - **D-04:** Issue keys are **decorated only** (ProseMirror decorations matching WikiRenderer's issue-key link look). No markup is written around a key, because Jira auto-links plain keys.
 
 ### Images & file uploads
-- **D-05:** Embedded images display **as WikiRenderer shows them**. `|thumbnail` and `|width=` are respected, and otherwise the image is capped to the column width. Clicking an image in the editor selects it and does not open the lightbox.
+- **D-05:** Embedded images display **as WikiRenderer shows them**. Parity with WikiRenderer (which ignores `|thumbnail` and `|width=`): images are capped to the column width, and the params are kept verbatim on the node and on save. *(Amended 2026-11-17 at planning: research showed WikiRenderer ignores these params; user chose parity.)* Clicking an image in the editor selects it and does not open the lightbox.
 - **D-06:** **Upload state:**
   - A pasted or dropped file inserts an inline placeholder chip at the caret, with the filename and a spinner. On success it turns into the image or attachment node.
   - On failure the placeholder is removed, and an inline error line under the editor names the file.
@@ -43,7 +43,7 @@ As in Phase 98, everything is exercised in the dev-tools "Editor" tab. Host adop
 - **D-08:** A **non-image file** is uploaded and inserted as a `[^file]` attachment chip, as Jira does. Generic-MIME images are classified by extension (existing attachments memory).
 - **D-09:** **Create flow (staged):** a staged image shows a **real preview from the local file** (blob/data URL, mind the WKWebView blob gotcha) exactly like an uploaded one. It also appears in the existing staged-files strip and uploads on create. The markup keeps its filename so it resolves once uploaded.
 - **D-10:** **Removing an embed:**
-  - When the user deletes the embed of a file **uploaded in this editing session**, offer a quiet undo-style toast: "Also delete attachment?". Otherwise nothing happens and the attachment stays.
+  - When the user deletes the embed of a file **uploaded in this editing session**, offer a quiet **inline notice row** in the editor footer: "Also delete attachment?" with a delete action, dismissible. *(Amended 2026-11-17 at planning: the app has no toast library; user chose an inline notice over adding sonner.)* Otherwise nothing happens and the attachment stays.
   - Guard: don't offer it if the same file is still referenced elsewhere in the text, or in the issue's description or comments when that is cheaply known.
   - Removing a staged (create-flow) embed leaves the file staged.
 - **D-11:** A pasted clipboard image with no filename is named **`image-YYYYMMDD-HHMMSS.png`** (use the real extension for the MIME type).
