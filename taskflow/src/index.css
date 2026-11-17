@@ -175,6 +175,15 @@
   content: none;
 }
 
+/* Wiki editor placeholder (Tiptap Placeholder decorates the empty first block). */
+.ProseMirror .is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+  color: var(--muted-foreground);
+}
+
 @layer base {
   :root {
     --background: oklch(1 0 0);

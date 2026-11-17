@@ -66,6 +66,24 @@ describe('Cmd+Enter submit (D-14)', () => {
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
+  it('does nothing while a popover is open: no pick, nothing reaches the host form', async () => {
+    const parent = vi.fn();
+    render(
+      <MemoryRouter>
+        {/* biome-ignore lint/a11y/noStaticElementInteractions: test spy */}
+        <div onKeyDown={parent}>
+          <WikiEditorLazy value="" onChange={vi.fn()} onSubmit={vi.fn()} />
+        </div>
+      </MemoryRouter>,
+    );
+    await waitFor(() => expect(document.querySelector('.ProseMirror')).not.toBeNull());
+    await openPopover();
+    const before = liveEditor().getJSON();
+    fireEvent.keyDown(liveEditor().view.dom, { ...mod, keyCode: 13 });
+    expect(parent).not.toHaveBeenCalled();
+    expect(liveEditor().getJSON()).toEqual(before);
+  });
+
   it('skips submit during IME composition', () => {
     const onSubmit = vi.fn();
     renderEditor({ value: 'Hello', onChange: vi.fn(), onSubmit });
@@ -84,11 +102,14 @@ describe('Cmd+Enter submit (D-14)', () => {
   });
 });
 
+// A real Escape carries keyCode 27, which ProseMirror's captureKeyDown always preventDefaults.
+const ESC = { key: 'Escape', keyCode: 27 };
+
 describe('Esc cancel (D-11)', () => {
   it('calls onCancel when nothing else consumes Esc', () => {
     const onCancel = vi.fn();
     renderEditor({ value: 'Hello', onChange: vi.fn(), onCancel });
-    fireEvent.keyDown(liveEditor().view.dom, { key: 'Escape' });
+    fireEvent.keyDown(liveEditor().view.dom, ESC);
     expect(onCancel).toHaveBeenCalledTimes(1);
   });
 
@@ -96,10 +117,10 @@ describe('Esc cancel (D-11)', () => {
     const onCancel = vi.fn();
     renderEditor({ value: '', onChange: vi.fn(), onCancel });
     await openPopover();
-    fireEvent.keyDown(liveEditor().view.dom, { key: 'Escape' });
+    fireEvent.keyDown(liveEditor().view.dom, ESC);
     expect(onCancel).not.toHaveBeenCalled();
     await waitFor(() => expect(popovers().length).toBe(0));
-    fireEvent.keyDown(liveEditor().view.dom, { key: 'Escape' });
+    fireEvent.keyDown(liveEditor().view.dom, ESC);
     expect(onCancel).toHaveBeenCalledTimes(1);
   });
 
@@ -114,8 +135,7 @@ describe('Esc cancel (D-11)', () => {
       </MemoryRouter>,
     );
     await waitFor(() => expect(document.querySelector('.ProseMirror')).not.toBeNull());
-    const notPrevented = fireEvent.keyDown(liveEditor().view.dom, { key: 'Escape' });
-    expect(notPrevented).toBe(true);
+    fireEvent.keyDown(liveEditor().view.dom, ESC);
     expect(parent).toHaveBeenCalled();
   });
 });

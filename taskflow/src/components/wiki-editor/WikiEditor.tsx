@@ -396,7 +396,14 @@ export default function WikiEditor({
     const key = e.key.toLowerCase();
     if (key === 'enter' && !e.shiftKey && !e.altKey) {
       const submit = cbRef.current.onSubmit;
-      if (!submit || e.nativeEvent.isComposing || e.keyCode === 229 || suggestionOpen()) return;
+      if (!submit || e.nativeEvent.isComposing || e.keyCode === 229) return;
+      if (suggestionOpen()) {
+        // Do nothing while a popover is open: don't let the popover treat it as Enter (pick)
+        // or let a host form's own Cmd+Enter handler submit (D-14).
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
       e.preventDefault();
       e.stopPropagation();
       submit(stateRef.current.mode === 'source' ? sourceTextRef.current : lastEmittedRef.current);
@@ -411,7 +418,13 @@ export default function WikiEditor({
   };
 
   const onKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key !== 'Escape' || e.defaultPrevented || e.nativeEvent.isComposing) return;
+    if (e.key !== 'Escape' || e.nativeEvent.isComposing) return;
+    // ProseMirror preventDefaults every Escape it sees (captureKeyDown, keyCode 27), so in rich
+    // mode defaultPrevented says nothing. Popovers and the bubble toolbar that consume Esc stop
+    // propagation, so they never reach this handler.
+    const fromProseMirror =
+      stateRef.current.mode === 'rich' && editor.view.dom.contains(e.target as Node);
+    if (e.defaultPrevented && !fromProseMirror) return;
     const cancel = cbRef.current.onCancel;
     if (!cancel) return;
     e.preventDefault();
