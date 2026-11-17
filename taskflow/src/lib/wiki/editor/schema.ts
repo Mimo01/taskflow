@@ -29,8 +29,12 @@ export const WikiSpelling = Extension.create({
   name: 'wikiSpelling',
   addGlobalAttributes() {
     return [
-      // Blank lines between this block and the previous one.
-      { types: [...BLOCK_TYPES], attributes: { gap: { default: 1 } } },
+      // Blank lines between this block and the previous one. keepOnSplit: false so an
+      // at-end Enter builds the new block with the default gap 1, not a copy of gap 0.
+      {
+        types: [...BLOCK_TYPES],
+        attributes: { gap: { default: 1, keepOnSplit: false } },
+      },
       { types: ['doc'], attributes: { eol: { default: 'lf' }, tail: { default: 0 } } },
       { types: ['heading'], attributes: { sep: { default: ' ' } } },
       { types: ['horizontalRule'], attributes: { src: { default: '----' } } },
