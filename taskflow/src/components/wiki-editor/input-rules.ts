@@ -1,4 +1,12 @@
-import { Extension, markInputRule, textblockTypeInputRule, wrappingInputRule } from '@tiptap/core';
+import {
+  Extension,
+  InputRule,
+  markInputRule,
+  textblockTypeInputRule,
+  wrappingInputRule,
+} from '@tiptap/core';
+import type { NodeType } from '@tiptap/pm/model';
+import { JIRA_EMOTICON_TOKENS } from '@/lib/wiki/preprocess';
 
 // Mark rules: the LAST capture group is the inner text (see markInputRule).
 const BOLD_RE = /(?:^|\s)(\*\*?([^\s*](?:[^*]*[^\s*])?)\*\*?)$/;
@@ -14,6 +22,27 @@ const MD_HEADING_RE = /^(#{2,6})\s$/;
 const ORDERED_RE = /^#\s$/;
 const CODE_RE = /^\{code(?::([a-z]+))?\}$/;
 const NOFORMAT_RE = /^\{noformat\}$/;
+
+function escapeRe(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+// Longest token first. Only the real Jira tokens convert; ":)" and "(y)" are not Jira (C2).
+const EMOTICON_TOKENS_LONGEST_FIRST = [...JIRA_EMOTICON_TOKENS].sort((a, b) => b.length - a.length);
+
+/** Typing the closing paren of a full Jira emoticon token converts it to an emoticon node. */
+function emoticonRule(token: string, type: NodeType): InputRule {
+  return new InputRule({
+    find: new RegExp(`${escapeRe(token)}$`),
+    handler: ({ state, range }) => {
+      const { $from } = state.selection;
+      if ($from.parent.type.spec.code) return null;
+      const marks = state.storedMarks ?? $from.marks();
+      if (marks.some((m) => m.type.name === 'mono')) return null;
+      state.tr.replaceWith(range.from, range.to, type.create({ src: token }));
+    },
+  });
+}
 
 /** Wiki meaning wins over TipTap's markdown defaults (they are excluded by EDITOR_RULE_OPTIONS). */
 export const WikiInputRules = Extension.create({
@@ -49,6 +78,9 @@ export const WikiInputRules = Extension.create({
         type: nodes.codeBlock,
         getAttributes: () => ({ language: null, open: '{noformat}', close: '{noformat}' }),
       }),
+      ...EMOTICON_TOKENS_LONGEST_FIRST.map((token) =>
+        emoticonRule(token, nodes.emoticon as NodeType),
+      ),
     ];
   },
 });
