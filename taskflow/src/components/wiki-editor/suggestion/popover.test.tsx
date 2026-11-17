@@ -85,6 +85,23 @@ describe('SuggestionPopover', () => {
     expect(document.querySelectorAll('[data-slot="skeleton"]')).toHaveLength(0);
   });
 
+  it('WR-02: Enter/Tab do not commit the kept rows of the previous query while loading', () => {
+    const ref = createRef<SuggestionPopoverHandle>();
+    const onSelect = vi.fn();
+    const props = { onSelect, maxRows: 8, listboxId: 'lb', ref };
+    const { rerender } = render(<SuggestionPopover {...props} rows={rows(3)} loading={false} />);
+    rerender(<SuggestionPopover {...props} rows={[]} loading />);
+    expect(screen.getAllByRole('option')).toHaveLength(3);
+    for (const k of ['Enter', 'Tab']) {
+      let res = true;
+      act(() => {
+        res = ref.current?.onKeyDown(new KeyboardEvent('keydown', { key: k })) ?? true;
+      });
+      expect(res).toBe(false);
+    }
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
   it('renders nothing when empty without emptyText', () => {
     setup({ rows: [] });
     expect(document.querySelector('[data-suggestion]')).toBeNull();

@@ -94,6 +94,8 @@ export function SuggestionPopover({
         if (event.key === 'Enter' || event.key === 'Tab') {
           // Let Enter/Tab keep their editing meaning unless the user picked a row.
           if (commitNeedsNavigation && !navigated) return false;
+          // The kept rows belong to the previous query: never commit them (WR-02).
+          if (loading) return false;
           const row = display[active];
           if (!row) return false;
           onSelect(row);
@@ -102,7 +104,7 @@ export function SuggestionPopover({
         return false;
       },
     }),
-    [display, active, onSelect, commitNeedsNavigation, navigated],
+    [display, active, onSelect, commitNeedsNavigation, navigated, loading],
   );
 
   const hasRows = display.length > 0;
