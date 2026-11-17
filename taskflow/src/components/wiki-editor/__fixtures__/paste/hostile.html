@@ -1,0 +1,9 @@
+<html><head><script>alert(1)</script><style>body { background: red }</style></head><body onload="alert(2)">
+<script>alert(3)</script>
+<iframe src="https://example.invalid/frame"></iframe>
+<p onclick="alert(4)" style="color:red">Click <a href="javascript:alert(1)" onclick="alert(5)">bad link</a> and <a href="data:text/html,&lt;b&gt;x&lt;/b&gt;">data link</a> and <a href="https://example.invalid/ok" onmouseover="alert(6)">good link</a>.</p>
+<img src="https://example.invalid/x.png" onerror="alert(7)" alt="x">
+<img src="file:///etc/passwd" alt="local">
+<span data-wiki-mention id="bad id&quot;><script>">x</span>
+<object data="x"></object><svg onload="alert(8)"></svg>
+</body></html>
