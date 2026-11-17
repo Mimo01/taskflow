@@ -498,17 +498,30 @@ describe('settings.store — rankFieldKey (Phase 76)', () => {
     expect(src).toMatch(/if\s*\(version\s*<\s*30\)/);
   });
 
-  it('persist version is 37 (v31 moved the 288 default; v32 drops the field; v34 replaces the px standup width with a ratio)', () => {
+  it('persist version is 38 (v31 moved the 288 default; v32 drops the field; v34 replaces the px standup width with a ratio)', () => {
     const fs = require('node:fs') as typeof import('node:fs');
     const path = require('node:path') as typeof import('node:path');
     const src = fs.readFileSync(path.resolve(__dirname, 'settings.store.ts'), 'utf8');
     expect(src).toMatch(/if\s*\(version\s*<\s*31\)/);
     expect(src).toMatch(/releaseDetailPanelWidth === 288\) s\.releaseDetailPanelWidth = 256/);
-    expect(src).toMatch(/version: 37,/);
+    expect(src).toMatch(/version: 38,/);
     expect(src).toMatch(/if\s*\(version\s*<\s*32\)/);
     expect(src).toMatch(/if\s*\(version\s*<\s*33\)/);
     expect(src).toMatch(/if\s*\(version\s*<\s*34\)/);
     expect(src).toMatch(/if\s*\(version\s*<\s*35\)/);
+  });
+
+  it('wikiEditorMode defaults to rich, the setter stores it, and v37 -> v38 fills the default', async () => {
+    expect(useSettingsStore.getState().wikiEditorMode).toBe('rich');
+    useSettingsStore.getState().setWikiEditorMode('source');
+    expect(useSettingsStore.getState().wikiEditorMode).toBe('source');
+    useSettingsStore.getState().setWikiEditorMode('rich');
+    const migrate = useSettingsStore.persist.getOptions().migrate as (
+      persisted: unknown,
+      version: number,
+    ) => Record<string, unknown>;
+    expect((await migrate({}, 37)).wikiEditorMode).toBe('rich');
+    expect((await migrate({ wikiEditorMode: 'source' }, 37)).wikiEditorMode).toBe('source');
   });
 
   it('banner duration defaults to 5s, the setter stores it, and v34 -> v35 fills the default', async () => {
