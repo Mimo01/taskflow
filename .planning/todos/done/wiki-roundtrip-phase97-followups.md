@@ -1,6 +1,7 @@
 ---
 type: todo
-status: pending
+status: done
+resolved: "98-01 (table-cell code, WR-02, IN-01) and 98-02 (WR-01, renderer side: preprocess.ts keeps the escaped underscore literal inside bare URLs, per 97-HUMAN-UAT test 1: Jira drops the backslashes)"
 created: 2026-11-16
 origin: phase-97 (gap-closure review + re-verification)
 priority: high
