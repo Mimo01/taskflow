@@ -348,7 +348,18 @@ Plans:
   4. Cmd+Enter submits and Esc cancels in every editor host, deferring to open popovers
   5. The old textarea toolbar and Preview-tab code no longer exists in the codebase
 
-**Plans**: TBD
+**Plans**: 9 plans
+
+Plans:
+- [ ] 100-01-PLAN.md — Docs descope (D-01) + editor host API (handle, placeholder, onSubmit/onCancel) + shortcut rows + test stub
+- [ ] 100-02-PLAN.md — Drafts store (drafts.json), useEditorDraft hook, D-21 account-change clearing
+- [ ] 100-03-PLAN.md — Discard changes dialog, draft note, useIssueEditorHost, staged-files strip + upload helper
+- [ ] 100-04-PLAN.md — Host 1: Create Epic on WikiEditor with staging (D-20) and Cmd+Enter
+- [ ] 100-05-PLAN.md — Host 2: Create/Edit Issue description on WikiEditor + form Cmd+Enter
+- [ ] 100-06-PLAN.md — Host 3: comment edit on WikiEditor with drafts, discard guard, keys
+- [ ] 100-07-PLAN.md — Edit Issue modal drafts, stale base, Cancel/Esc discard guard
+- [ ] 100-08-PLAN.md — Host 4: comment composer on WikiEditor with draft, send, Esc blur, Reply focus
+- [ ] 100-09-PLAN.md — Delete textarea editing code and dead components + removal guard test
 **UI hint**: yes
 
 ### Phase 101: Issue Drafts & Large Create/Edit Modal
@@ -389,7 +400,7 @@ Plans:
 | 97. Round-Trip Engine | 17/17 | Complete    | 2026-11-16 |
 | 98. Editor Shell | 15/16 | In Progress|  |
 | 99. Mentions, Media & Smart Input | 14/14 | Complete    | 2026-11-17 |
-| 100. Host Adoption & Editing Workflow | 0/TBD | Not started | - |
+| 100. Host Adoption & Editing Workflow | 0/9 | Not started | - |
 | 101. Issue Drafts & Large Create/Edit Modal | 0/TBD | Not started | - |
 | 102. Polished Surfaces | 0/TBD | Not started | - |
 
