@@ -1,5 +1,5 @@
 ---
-status: diagnosed
+status: complete
 phase: 98-editor-shell
 source: [98-13-PLAN.md, 98-14-SUMMARY.md, 98-15-SUMMARY.md, 98-16-SUMMARY.md]
 started: 2026-11-17
@@ -8,7 +8,7 @@ updated: 2026-11-17
 
 ## Current Test
 
-[testing complete — round 2: WKWebView re-test of the 98-14..16 fixes, 2026-11-17]
+[testing complete — round 2: WKWebView re-test of the 98-14..16 fixes, then round-2 gaps fixed inline in 226a92ce and re-verified, 2026-11-17]
 
 Round 2 method: same approach as round 1; the harness was rebuilt and deleted afterwards. Native NSEvent keys and mouse clicks (Base UI popovers open with native clicks). Synthetic mouse moves produce no pointer events in WKWebView, so tooltips were checked via keyboard focus.
 
@@ -57,16 +57,18 @@ retest: "Re-test after 98-15: ⌘⇧M focuses the source textarea, a second ⌘�
 ### 7. Toolbar
 Full and Compact presets; Narrow width; hover tooltips; scroll a long fixture.
 expected: Narrow keeps one row with low-priority items in the ⋯ More menu; tooltips show label + keycaps; the toolbar stays sticky while scrolling.
-result: issue
-reported: "Re-test after 98-16: at Narrow 360px the Full toolbar is one 40px row and More + Rich|Source are visible, BUT Italic is clipped by the overflow-hidden items region (region 144px wide, content 175px) and is not in the More menu, so it is unreachable except by ⌘I. Compact is fine (Bold, Italic, Underline, Link, Insert, More, Rich, Source). Tooltip shows 'Bold ⌘ B' (checked via keyboard focus; synthetic hover doesn't reach WebKit). Sticky works while scrolling, BUT the toolbar background is bg-muted/40, so scrolled text shows through it."
-severity: major
+result: pass
+round2_reported: "Re-test after 98-16: at Narrow 360px the Full toolbar is one 40px row and More + Rich|Source are visible, BUT Italic is clipped by the overflow-hidden items region (region 144px wide, content 175px) and is not in the More menu, so it is unreachable except by ⌘I. Compact is fine (Bold, Italic, Underline, Link, Insert, More, Rich, Source). Tooltip shows 'Bold ⌘ B' (checked via keyboard focus; synthetic hover doesn't reach WebKit). Sticky works while scrolling, BUT the toolbar background is bg-muted/40, so scrolled text shows through it."
+round2_severity: major
+fixed: "226a92ce: breakpoints derived from WebKit measurements (Italic joins overflow, Insert label only at the widest breakpoint); WebKit sweep 358-900px shows no clipping in Full or Compact; at 360 More lists Italic. Toolbar background is opaque (color-mix of muted over background); scrolled text no longer shows through, light and dark."
 
 ### 8. Blocks
 Insert a 3×4 table, Tab/Shift+Tab, Tab in the last cell, floating table toolbar actions incl. header toggle, delete table + ⌘Z; insert a code block and change its language; noformat; panels of each type with a title, switch type, remove panel + ⌘Z; colour from the palette, remove colour; a fixture with an off-palette colour.
 expected: Tab in the last cell adds a row; every action works and undoes; the off-palette colour shows "Custom (kept)".
-result: issue
-reported: "Colour popover opens, off-palette #123456 shows 'Custom (kept)', Blue applies, Remove colour works, two ⌘Z restore #123456 (save unchanged). Panels: Insert → Info, title, switch to Warning, Remove panel (keeps content) all emit correct wiki, and ⌘Z undoes once the editor has focus. BUT after any Panel options action focus leaves ProseMirror (type switch → wrapper div, Remove → BODY), so the next ⌘Z or typing does nothing in the editor (in the app, J/K would then reach app shortcuts)."
-severity: major
+result: pass
+round2_reported: "Colour popover opens, off-palette #123456 shows 'Custom (kept)', Blue applies, Remove colour works, two ⌘Z restore #123456 (save unchanged). Panels: Insert → Info, title, switch to Warning, Remove panel (keeps content) all emit correct wiki, and ⌘Z undoes once the editor has focus. BUT after any Panel options action focus leaves ProseMirror (type switch → wrapper div, Remove → BODY), so the next ⌘Z or typing does nothing in the editor (in the app, J/K would then reach app shortcuts)."
+round2_severity: major
+fixed: "226a92ce: panel type items close the menu; Panel options and the code language picker return focus to the editor (finalFocus); an immediate ⌘Z undoes in WebKit. Also found and fixed while re-testing: removing a panel loaded from wiki text failed the save (lifted first block kept gap 0); removePanel now gives lifted blocks a safe gap."
 
 ### 9. Links
 ⌘K and the toolbar link popover, paste a URL over a selection, try `javascript:`, use Open.
@@ -101,8 +103,8 @@ note: "inline/formatting: rich view matches the source-mode WikiRenderer preview
 ## Summary
 
 total: 13
-passed: 11
-issues: 2
+passed: 13
+issues: 0
 pending: 0
 skipped: 0
 blocked: 0
@@ -112,7 +114,8 @@ blocked: 0
 <!-- Round 1 gaps (Enter gap, mode-toggle focus, Cmd+Arrow, narrow toolbar More/mode toggle, empty list banner) were closed by 98-14..16 and re-verified in WKWebView on 2026-11-17. -->
 
 - truth: "Narrow width keeps every inline Full toolbar item visible or in ⋯ More (test 7)"
-  status: failed
+  status: resolved
+  resolved_by: 226a92ce
   reason: "User reported (re-test): at 360px Italic is clipped by the overflow-hidden data-toolbar-items region and is not in More."
   severity: major
   test: 7
@@ -122,7 +125,8 @@ blocked: 0
   debug_session: "inline WKWebView probe"
 
 - truth: "The sticky toolbar is opaque while content scrolls under it (test 7)"
-  status: failed
+  status: resolved
+  resolved_by: 226a92ce
   reason: "User reported (re-test): the toolbar uses bg-muted/40, so scrolled paragraphs show through it."
   severity: cosmetic
   test: 7
@@ -132,7 +136,8 @@ blocked: 0
   debug_session: "inline WKWebView probe"
 
 - truth: "Panel options actions (switch type, Remove panel) return focus to the editor (test 8)"
-  status: failed
+  status: resolved
+  resolved_by: 226a92ce
   reason: "User reported (re-test): after a Panel options action focus is on a wrapper div or BODY; ⌘Z and typing do nothing until the user clicks back in."
   severity: major
   test: 8
