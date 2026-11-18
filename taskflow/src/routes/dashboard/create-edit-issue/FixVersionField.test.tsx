@@ -15,6 +15,11 @@ beforeEach(() => {
 });
 
 describe('FixVersionField', () => {
+  it("loads the modal's project versions (WR-04)", () => {
+    render(<FixVersionField id="fv" value={[]} dispatch={vi.fn()} open projectKey="OTHER" />);
+    expect(hook).toHaveBeenCalledWith(true, 'OTHER');
+  });
+
   it('shows None when empty and joined names when selected', () => {
     const { rerender } = render(<FixVersionField id="fv" value={[]} dispatch={vi.fn()} open />);
     expect(screen.getByText('None')).toBeTruthy();

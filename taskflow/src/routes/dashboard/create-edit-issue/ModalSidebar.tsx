@@ -231,6 +231,7 @@ export function ModalSidebar({
             dispatch={dispatch}
             disabled={isPending}
             open={open}
+            projectKey={projectKey}
           />
         </Row>
       )}

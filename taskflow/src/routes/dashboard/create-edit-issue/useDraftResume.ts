@@ -5,7 +5,6 @@ import { useProjectFixVersions } from '@/hooks/useProjectFixVersions';
 import { type StaleNotes, snapshotToFormPatch, validateSnapshot } from '@/lib/issue-draft-snapshot';
 import { type CreatemetaField, fetchIssueDescription } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
-import { useAuthStore } from '@/stores/auth.store';
 import {
   type DraftFileRef,
   type IssueDraftSnapshot,
@@ -53,7 +52,6 @@ export function useDraftResume({
   jiraBaseUrl,
 }: Options) {
   const hydrated = useIssueDraftsHydrated();
-  const activeJiraProject = useAuthStore((s) => s.activeJiraProject);
   const [snapshot, setSnapshot] = useState<IssueDraftSnapshot | null>(null);
   const [resumedProjectKey, setResumedProjectKey] = useState<string | null>(null);
   const [staleNotes, setStaleNotes] = useState<StaleNotes | undefined>(undefined);
@@ -140,9 +138,12 @@ export function useDraftResume({
     enabled: open && !!parentKey && !!jiraBaseUrl,
     retry: false,
   });
-  const sameProject = !!resumedProjectKey && resumedProjectKey === activeJiraProject;
   const hasFixVersions = (snapshot?.fixVersions.length ?? 0) > 0;
-  const fixVersionsQuery = useProjectFixVersions(open && hasFixVersions && sameProject);
+  // Validate against the draft's own project, the one the issue is created in (D-14).
+  const fixVersionsQuery = useProjectFixVersions(
+    open && hasFixVersions && !!resumedProjectKey,
+    resumedProjectKey,
+  );
 
   // Validate once, after the hydrated type's createmeta and the lookups settled (Pitfall 10).
   useEffect(() => {
@@ -150,11 +151,12 @@ export function useDraftResume({
     if (selectedIssueType !== snapshot.selectedIssueType) return;
     if (creatmetaLoading) return;
     if (!settled(epicQuery) || !settled(parentQuery)) return;
-    if (hasFixVersions && sameProject && !settled(fixVersionsQuery)) return;
+    if (hasFixVersions && !settled(fixVersionsQuery)) return;
     validatedRef.current = true;
 
-    const fixVersionIds =
-      sameProject && fixVersionsQuery.data ? new Set(fixVersionsQuery.data.map((v) => v.id)) : null;
+    const fixVersionIds = fixVersionsQuery.data
+      ? new Set(fixVersionsQuery.data.map((v) => v.id))
+      : null;
     const result = validateSnapshot(snapshot, {
       // Empty means the fetch failed or returned nothing: unknown, never "field removed".
       createmetaFields: creatmetaFields && creatmetaFields.length > 0 ? creatmetaFields : undefined,
@@ -191,7 +193,6 @@ export function useDraftResume({
     parentQuery,
     fixVersionsQuery,
     hasFixVersions,
-    sameProject,
     epicKey,
     parentKey,
     dispatch,

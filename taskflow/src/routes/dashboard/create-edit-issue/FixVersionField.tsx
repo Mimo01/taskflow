@@ -14,11 +14,20 @@ interface FixVersionFieldProps {
   disabled?: boolean;
   /** Whether the modal is open; versions load while it is. */
   open: boolean;
+  /** Project the issue is created in (a resumed draft's own project); defaults to active. */
+  projectKey?: string;
 }
 
 /** Fix version multi-select (Popover) bound to FormState.fixVersions. */
-export function FixVersionField({ id, value, dispatch, disabled, open }: FixVersionFieldProps) {
-  const query = useProjectFixVersions(open);
+export function FixVersionField({
+  id,
+  value,
+  dispatch,
+  disabled,
+  open,
+  projectKey,
+}: FixVersionFieldProps) {
+  const query = useProjectFixVersions(open, projectKey);
   const selectedIds = new Set(value.map((v) => v.id));
   const ordered = orderFixVersions(query.data, selectedIds);
 
