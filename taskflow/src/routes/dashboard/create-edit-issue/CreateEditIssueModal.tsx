@@ -19,13 +19,7 @@ import { useMentionUserMap } from '@/hooks/useMentionUserMap';
 import { draftKey } from '@/lib/draft-keys';
 import { removeDraftFiles } from '@/lib/issue-draft-files';
 import { hasUserContent, keptFieldsAfterCreate, toIssueSnapshot } from '@/lib/issue-draft-snapshot';
-import {
-  fetchIssueDescription,
-  fetchIssuePriorityOptions,
-  fetchPriorities,
-  fetchProjectPriorityOptions,
-  type JiraPriority,
-} from '@/services/jira';
+import { fetchIssueDescription } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useDraftsStore } from '@/stores/drafts.store';
@@ -39,6 +33,7 @@ import { type EditInitialValues, type FormAction, useCreateEditForm } from './us
 import { useCreateEditQueries } from './useCreateEditQueries';
 import { useDraftResume } from './useDraftResume';
 import { useIssueMutations } from './useIssueMutations';
+import { usePriorityOptions } from './usePriorityOptions';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -395,65 +390,18 @@ export function CreateEditIssueModal({
     });
   }, [editTick]);
 
-  // Priorities must be scoped to the priority scheme that actually applies here, not
-  // the instance-wide list (which has many priorities this project never uses). In
-  // create mode the scoped set is the createmeta priority field's allowedValues; in
-  // edit mode it's the issue's editmeta allowedValues. Both fall back to the global
-  // list. Never hardcode standard-Jira names like "Highest" which may not exist.
-  const createmetaPriorities = useMemo<JiraPriority[]>(() => {
-    const field = creatmetaFields?.find((f) => f.fieldId === 'priority');
-    return (field?.schema.allowedValues ?? []) as unknown as JiraPriority[];
-  }, [creatmetaFields]);
-
-  const prioritiesQuery = useQuery<JiraPriority[]>({
-    // Create mode gets its own key: the edit key ['jira-priorities', issueKey, base] is
-    // shared with the issue-detail picker and must not hold a project-wide set.
-    queryKey:
-      mode === 'edit'
-        ? ['jira-priorities', initialValues?.issueKey, jiraBaseUrl]
-        : [
-            'jira-create-priorities',
-            projectKey,
-            state.selectedIssueType,
-            inheritFromKey,
-            jiraBaseUrl,
-          ],
-    queryFn: async () => {
-      const token = await readSecret('jira-pat').catch(() => null);
-      if (!token || !jiraBaseUrl) return [];
-      if (mode === 'edit' && initialValues?.issueKey) {
-        const scoped = await fetchIssuePriorityOptions(jiraBaseUrl, token, initialValues.issueKey);
-        if (scoped.length > 0) return scoped;
-      } else if (mode === 'create' && projectKey) {
-        // createmeta omits priority when it is not on the create screen; borrow the
-        // scheme from a reference issue so only this project's priorities show.
-        const scoped = await fetchProjectPriorityOptions(
-          jiraBaseUrl,
-          token,
-          projectKey,
-          state.selectedIssueType,
-          inheritFromKey,
-        );
-        if (scoped.length > 0) return scoped;
-      }
-      return fetchPriorities(jiraBaseUrl, token);
-    },
-    // Skip the network query when createmeta already gives us the scoped create-mode set.
-    // Create mode waits for createmeta, so the instance-wide list never flashes in first.
-    enabled:
-      open &&
-      !!jiraBaseUrl &&
-      (mode === 'edit' ||
-        (!creatmetaLoading && !issueTypesLoading && createmetaPriorities.length === 0)),
-    staleTime: 10 * 60 * 1000,
+  const priorityOptions = usePriorityOptions({
+    mode,
+    open,
+    jiraBaseUrl,
+    projectKey,
+    selectedIssueType: state.selectedIssueType,
+    inheritFromKey,
+    issueKey: initialValues?.issueKey,
+    creatmetaFields,
+    creatmetaLoading,
+    issueTypesLoading,
   });
-
-  const priorityOptions =
-    mode === 'create' && createmetaPriorities.length > 0
-      ? createmetaPriorities
-      : mode === 'create' && (creatmetaLoading || issueTypesLoading)
-        ? []
-        : (prioritiesQuery.data ?? []);
 
   // Raw parent values for required custom fields — sent directly to Jira, bypassing
   // wrapCustomFieldValue so the original types (e.g. integer account IDs) are preserved.

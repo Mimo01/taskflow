@@ -24,6 +24,8 @@ interface UseCreateEditQueriesOptions {
   selectedIssueType: IssueType;
   epicLinkFieldKey: string | null;
   storyPointsFieldKey: string | null;
+  /** Epic Name custom field id; excluded from sidebar custom fields (Create Epic has its own input). */
+  epicNameFieldKey?: string | null;
   /** Issue whose required custom fields are inherited: the parent (subtask) or the epic (story). */
   inheritFromKey?: string;
 }
@@ -52,6 +54,7 @@ export function useCreateEditQueries({
   selectedIssueType,
   epicLinkFieldKey,
   storyPointsFieldKey,
+  epicNameFieldKey,
   inheritFromKey,
 }: UseCreateEditQueriesOptions) {
   const staleTime = 5 * 60 * 1000;
@@ -103,6 +106,7 @@ export function useCreateEditQueries({
     if (CORE_FIELD_IDS.has(f.fieldId)) return false;
     if (epicLinkFieldKey && f.fieldId === epicLinkFieldKey) return false;
     if (storyPointsFieldKey && f.fieldId === storyPointsFieldKey) return false;
+    if (epicNameFieldKey && f.fieldId === epicNameFieldKey) return false;
     return true;
   });
 
