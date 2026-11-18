@@ -28,9 +28,11 @@ import {
 } from '@/components/ui/select';
 import { SprintMoveMenuItems } from '@/components/ui/sprint-move-menu-items';
 import { useBoardId } from '@/hooks/useBoardId';
+import { useProjectFixVersions } from '@/hooks/useProjectFixVersions';
 import { useRmPackage } from '@/hooks/useRmWeekIndex';
 import { formatWeekLabel } from '@/lib/deployment-package';
 import { epicColorToTailwind } from '@/lib/epicColors';
+import { orderFixVersions } from '@/lib/fix-version-order';
 import { invalidateLightweightIssue } from '@/lib/issue-lightweight-cache';
 import { exactDateTime } from '@/lib/relative-time';
 import type { TimedSource } from '@/lib/time-bar';
@@ -49,7 +51,6 @@ import {
   postTransition,
   transitionsWithFieldsKey,
 } from '@/services/jira/transitions';
-import { fetchFixVersions } from '@/services/jira/versions';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useParentCompletionPrompt } from '../CompleteParentDialog';
@@ -193,15 +194,7 @@ export function FieldsSection({
   // Fix version edit state
   const [fixVersionOpen, setFixVersionOpen] = useState(false);
   const activeJiraProject = useAuthStore((s) => s.activeJiraProject);
-  const versionsQuery = useQuery({
-    queryKey: ['jira-fix-versions', activeJiraProject, jiraBaseUrl],
-    queryFn: async () => {
-      const token = await readSecret('jira-pat').catch(() => null);
-      if (!token || !activeJiraProject) return [];
-      return fetchFixVersions(jiraBaseUrl, token, activeJiraProject);
-    },
-    enabled: fixVersionOpen && !!activeJiraProject,
-  });
+  const versionsQuery = useProjectFixVersions(fixVersionOpen);
 
   // Resolution is set by EXECUTING a workflow transition (the live Jira rejects a
   // direct resolution field PUT — see REWORK ADDENDUM). On demand (while editing the
@@ -251,44 +244,10 @@ export function FieldsSection({
     enabled: sprintPickerOpen && !!boardId && !!jiraToken,
   });
 
-  const filteredVersions = (() => {
-    const all = versionsQuery.data;
-    if (!all || all.length === 0) return [];
-
-    const unreleased = all.filter((v) => !v.released);
-    const released = all
-      .filter((v) => v.released)
-      .sort((a, b) => {
-        if (!a.releaseDate && !b.releaseDate) return a.name.localeCompare(b.name);
-        if (!a.releaseDate) return 1;
-        if (!b.releaseDate) return -1;
-        return b.releaseDate.localeCompare(a.releaseDate);
-      });
-
-    const recentReleased = released.slice(0, 10);
-    const recentIds = new Set(recentReleased.map((v) => v.id));
-
-    // Ensure currently-selected released versions remain visible
-    const selectedOlder = released.filter(
-      (v) => !recentIds.has(v.id) && f.fixVersions.some((fv) => fv.id === v.id),
-    );
-
-    // Display order: unreleased (undated first, then by releaseDate descending), then released (most recent first)
-    const sortedUnreleased = [...unreleased].sort((a, b) => {
-      if (!a.releaseDate && !b.releaseDate) return a.name.localeCompare(b.name);
-      if (!a.releaseDate) return -1;
-      if (!b.releaseDate) return 1;
-      return b.releaseDate.localeCompare(a.releaseDate);
-    });
-    const sortedReleased = [...recentReleased, ...selectedOlder].sort((a, b) => {
-      if (!a.releaseDate && !b.releaseDate) return a.name.localeCompare(b.name);
-      if (!a.releaseDate) return 1;
-      if (!b.releaseDate) return -1;
-      return b.releaseDate.localeCompare(a.releaseDate);
-    });
-
-    return [...sortedUnreleased, ...sortedReleased];
-  })();
+  const filteredVersions = orderFixVersions(
+    versionsQuery.data,
+    new Set(f.fixVersions.map((v) => v.id)),
+  );
 
   // Status transition state
   const queryClient = useQueryClient();
