@@ -6,6 +6,9 @@
  * Polling is performed by useNotificationPolling hook called from AppLayout in main.tsx
  * (requires QueryClientProvider — separated so TopBar tests work without a QueryClient wrapper).
  *
+ * The drafts chip reads the issue-drafts zustand store inside its own child component;
+ * still no useQuery here.
+ *
  * CRITICAL: TopBar must NOT use useQuery directly.
  */
 
@@ -17,6 +20,7 @@ import { createSwipeRightTracker } from '../../routes/notifications/notification
 import { useUnreadCardCount } from '../../routes/notifications/useUnreadCardCount';
 import { useNotificationsStore, useUnreadCount } from '../../stores/notifications.store';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
+import { DraftsChip } from './DraftsChip';
 import RecentItemsPopover from './RecentItemsPopover';
 
 /** Panel inset from the window's right edge; .notif-glass extends 11px past it (to 1px of the edge). */
@@ -157,6 +161,9 @@ export default function TopBar({
     <header ref={headerRef} className="h-12 border-b flex items-center px-4 flex-shrink-0 gap-2">
       {/* Spacer — branding moved to Sidebar */}
       <div className="mr-auto" />
+
+      {/* Drafts chip — only when saved drafts exist */}
+      <DraftsChip />
 
       {/* Search trigger — opens command palette via parent callback */}
       <button
