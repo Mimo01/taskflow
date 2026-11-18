@@ -449,7 +449,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 102-10-PLAN.md — Full-suite gate + visual sign-off checkpoint (wave 3)
+- [x] 102-10-PLAN.md — Full-suite gate + visual sign-off checkpoint (wave 3)
 
 **UI hint**: yes
 
@@ -463,7 +463,7 @@ Plans:
 | 99. Mentions, Media & Smart Input | 14/14 | Complete    | 2026-11-17 |
 | 100. Host Adoption & Editing Workflow | 9/9 | Complete    | 2026-11-17 |
 | 101. Issue Drafts & Large Create/Edit Modal | 12/12 | Complete    | 2026-11-18 |
-| 102. Polished Surfaces | 9/10 | In Progress|  |
+| 102. Polished Surfaces | 10/10 | Complete   | 2026-11-18 |
 
 ### Shipped milestones
 
