@@ -40,6 +40,10 @@ interface ModalSidebarProps {
   staleNotes?: StaleNotes;
   /** Issue type names the project offers (Create only). */
   availableTypeNames?: string[];
+  /** 'epic' renders the Create Epic field set (no Issue type, Epic, Parent or Estimate rows). */
+  variant?: 'issue' | 'epic';
+  /** Epic variant only: whether the create screen offers Story points. */
+  storyPointsOffered?: boolean;
 }
 
 function Row({
@@ -91,7 +95,10 @@ export function ModalSidebar({
   issueTypeName,
   staleNotes,
   availableTypeNames,
+  variant = 'issue',
+  storyPointsOffered = true,
 }: ModalSidebarProps) {
+  const isEpic = variant === 'epic';
   const showFixVersion =
     mode === 'create'
       ? fixVersionsOffered && !isSubtask
@@ -103,7 +110,7 @@ export function ModalSidebar({
 
   return (
     <div className="flex flex-col gap-4">
-      {mode === 'create' && !isSubtask && (
+      {!isEpic && mode === 'create' && !isSubtask && (
         <Row htmlFor={ISSUE_TYPE_CONTROL_ID} label="Issue type">
           <IssueTypeSelector
             selectedIssueType={state.selectedIssueType}
@@ -163,7 +170,7 @@ export function ModalSidebar({
         </Select>
       </Row>
 
-      {isSubtask ? (
+      {isEpic ? null : isSubtask ? (
         <Row htmlFor="parent-key" label="Parent" required note={staleNotes?.parent}>
           {defaultParentKey ? (
             <output
@@ -236,7 +243,7 @@ export function ModalSidebar({
         </Row>
       )}
 
-      {!isSubtask && (
+      {(isEpic ? storyPointsOffered : !isSubtask) && (
         <Row htmlFor="story-points" label="Story points">
           <Input
             id="story-points"
@@ -253,7 +260,7 @@ export function ModalSidebar({
         </Row>
       )}
 
-      {isSubtask && (
+      {!isEpic && isSubtask && (
         <Row htmlFor="time-estimate" label="Estimate">
           <Input
             id="time-estimate"
