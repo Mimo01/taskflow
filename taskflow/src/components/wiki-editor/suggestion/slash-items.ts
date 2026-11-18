@@ -1,6 +1,7 @@
 import type { Editor } from '@tiptap/core';
 import {
   AtSign,
+  FileSymlink,
   Heading1,
   Heading2,
   Heading3,
@@ -10,7 +11,6 @@ import {
   List,
   ListOrdered,
   type LucideIcon,
-  Paperclip,
   Pilcrow,
   Quote,
   Smile,
@@ -93,7 +93,7 @@ const INSERT_GROUP: SlashItem[] = [
   {
     id: 'attachment',
     label: 'Attachment or image',
-    icon: Paperclip,
+    icon: FileSymlink,
     keywords: ['attachment', 'image', 'file', 'upload', 'picture'],
     group: 'Insert',
     run: (editor) => {

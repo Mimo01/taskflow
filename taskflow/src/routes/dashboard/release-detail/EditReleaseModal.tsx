@@ -134,6 +134,7 @@ export function EditReleaseModal({
           onChange={(e) => setEditName(e.target.value)}
           disabled={isSaving}
           required
+          autoFocus
         />
       </ModalField>
       <ModalField htmlFor="release-description" label="Description" className="min-h-0 flex-1">
@@ -160,7 +161,7 @@ export function EditReleaseModal({
           <ModalField htmlFor="milestone-description" label="Description">
             <Textarea
               id="milestone-description"
-              className="min-h-24"
+              className="min-h-24 resize-none field-sizing-fixed"
               value={editMilestoneDescription}
               onChange={(e) => setEditMilestoneDescription(e.target.value)}
               disabled={isSaving}

@@ -2,7 +2,6 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Paperclip } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
-import { Button } from '@/components/ui/button';
 import { DiscardChangesDialog } from '@/components/ui/discard-changes-dialog';
 import { DraftNote } from '@/components/ui/draft-note';
 import { Input } from '@/components/ui/input';
@@ -472,16 +471,15 @@ export function CreateEpicDialog({ open, onClose, resumeDraftId = null }: Create
       <div className="flex min-h-0 flex-1 flex-col gap-1">
         <div className="flex items-center justify-between">
           <span className="text-xs font-semibold text-muted-foreground">Description</span>
-          <Button
+          <button
             type="button"
-            variant="ghost"
-            size="xs"
             disabled={mutation.isPending}
             onClick={() => fileInputRef.current?.click()}
+            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
           >
-            <Paperclip />
+            <Paperclip className="h-3 w-3" />
             Attach file
-          </Button>
+          </button>
           <input
             ref={fileInputRef}
             type="file"

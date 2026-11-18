@@ -600,7 +600,8 @@ export function BulkCreateSubtasksModal({
         <div className="flex items-center gap-3">
           {/* Template selector */}
           <Select value={selectedTemplateId} onValueChange={handleTemplateChange}>
-            <SelectTrigger className="w-48">
+            {/* First control takes focus on open, like Summary in the Issue modal (not the close X) */}
+            <SelectTrigger className="w-48" autoFocus>
               <SelectValue placeholder="No template (ad-hoc)">
                 {(v) =>
                   v === '__adhoc__' || !v

@@ -145,7 +145,7 @@ describe('CompactFooter', () => {
     const { onAttach } = setup('rich');
     expect(screen.getByRole('button', { name: 'Mention someone' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Emoticon' })).toBeTruthy();
-    await userEvent.click(screen.getByRole('button', { name: 'Attach file' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Insert attachment' }));
     expect(onAttach).toHaveBeenCalled();
   });
 
@@ -179,29 +179,29 @@ describe('WikiEditor presets and picker', () => {
   it('full: Toolbar and no footer; compact: footer and no toolbar', () => {
     const a = renderEditor({ value: 'hi', onChange: vi.fn(), preset: 'full' });
     expect(screen.queryByRole('toolbar', { name: 'Formatting' })).not.toBeNull();
-    expect(screen.queryByRole('button', { name: 'Attach file' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Insert attachment' })).toBeNull();
     a.unmount();
     renderEditor({ value: 'hi', onChange: vi.fn(), preset: 'compact' });
     expect(screen.queryByRole('toolbar', { name: 'Formatting' })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Attach file' })).not.toBeNull();
+    expect(screen.queryByRole('button', { name: 'Insert attachment' })).not.toBeNull();
   });
 
   it('compact source mode keeps the footer and hides the bubble', async () => {
     renderEditor({ value: 'hi', onChange: vi.fn(), preset: 'compact' });
     await userEvent.click(screen.getByRole('radio', { name: /source/i }));
     expect(textarea()).toBeTruthy();
-    expect(screen.queryByRole('button', { name: 'Attach file' })).not.toBeNull();
+    expect(screen.queryByRole('button', { name: 'Insert attachment' })).not.toBeNull();
     expect(screen.queryByRole('toolbar', { name: 'Selection formatting' })).toBeNull();
   });
 
   it('picker embeds image and attachment nodes at the caret', async () => {
     const onChange = vi.fn();
     renderEditor({ value: 'hi', onChange, preset: 'compact', host: { attachments: ATTACHMENTS } });
-    await userEvent.click(screen.getByRole('button', { name: 'Attach file' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Insert attachment' }));
     expect(screen.getByText('Select an attachment to embed it here.')).toBeTruthy();
     await userEvent.click(await screen.findByRole('button', { name: /diagram.png/ }));
     expect(onChange.mock.calls[onChange.mock.calls.length - 1]?.[0]).toContain('!diagram.png!');
-    await userEvent.click(screen.getByRole('button', { name: 'Attach file' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Insert attachment' }));
     await userEvent.click(await screen.findByRole('button', { name: 'report.pdf' }));
     expect(onChange.mock.calls[onChange.mock.calls.length - 1]?.[0]).toContain('[^report.pdf]');
   });
@@ -228,7 +228,7 @@ describe('WikiEditor presets and picker', () => {
     const onChange = vi.fn();
     renderEditor({ value: 'hi', onChange, preset: 'compact', host: { attachments: ATTACHMENTS } });
     await userEvent.click(screen.getByRole('radio', { name: /source/i }));
-    await userEvent.click(screen.getByRole('button', { name: 'Attach file' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Insert attachment' }));
     await userEvent.click(await screen.findByRole('button', { name: 'report.pdf' }));
     expect(textarea().value).toContain('[^report.pdf]');
   });

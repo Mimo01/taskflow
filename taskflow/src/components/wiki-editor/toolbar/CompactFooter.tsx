@@ -1,5 +1,5 @@
 import type { Editor } from '@tiptap/core';
-import { AtSign, Paperclip, Smile } from 'lucide-react';
+import { AtSign, FileSymlink, Smile } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { SourceHandle } from '../source/SourceView';
 import { openEmoticonSuggestion } from '../suggestion/emoticon-suggestion';
@@ -52,8 +52,8 @@ export function CompactFooter({
   return (
     <div className="flex h-8 flex-nowrap items-center gap-1 border-t border-border px-2">
       <ToolbarButton
-        label="Attach file"
-        icon={<Paperclip className={ICON} />}
+        label="Insert attachment"
+        icon={<FileSymlink className={ICON} />}
         onClick={onAttach}
         className={BTN}
       />

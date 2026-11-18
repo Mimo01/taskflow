@@ -97,7 +97,7 @@ export function ModalShell({
           <aside
             aria-label={asideLabel}
             onBlur={onAsideBlur}
-            className="w-[300px] shrink-0 overflow-y-auto border-l bg-muted/30 p-4 min-[721px]:@max-[900px]:w-[240px] max-[720px]:w-full max-[720px]:overflow-visible max-[720px]:border-l-0 max-[720px]:border-t"
+            className="w-[300px] shrink-0 overflow-y-auto border-l bg-muted/30 p-4 min-[721px]:@max-[900px]:w-[240px] max-[720px]:w-full max-[720px]:overflow-visible max-[720px]:border-l-0 max-[720px]:border-t max-[720px]:px-6"
           >
             {aside}
           </aside>
