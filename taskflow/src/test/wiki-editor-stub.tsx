@@ -59,4 +59,7 @@ export function WikiEditorLazyStub(props: WikiEditorProps) {
   );
 }
 
-export const wikiEditorLazyMock = { WikiEditorLazy: WikiEditorLazyStub };
+export const wikiEditorLazyMock = {
+  WikiEditorLazy: WikiEditorLazyStub,
+  preloadWikiEditor: () => Promise.resolve(),
+};

@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import type { WikiEditorHandle } from '@/components/wiki-editor/types';
-import { WikiEditorLazy } from '@/components/wiki-editor/WikiEditorLazy';
+import { preloadWikiEditor, WikiEditorLazy } from '@/components/wiki-editor/WikiEditorLazy';
 import { useEditorDraft } from '@/hooks/useEditorDraft';
 import { draftKey } from '@/lib/draft-keys';
 import type { JiraAttachment } from '@/services/jira';
@@ -52,6 +52,11 @@ export function CommentComposer({
   }, [draft.hydrated, draft.draft, text]);
 
   const host = useIssueEditorHost({ issueKey, attachments, userMap, referenceTexts, onOpenIssue });
+
+  // The first expand should not show the skeleton: see preloadWikiEditor.
+  useEffect(() => {
+    preloadWikiEditor().catch(() => {});
+  }, []);
 
   const handleRef = useRef<WikiEditorHandle | null>(null);
   const [editorReady, setEditorReady] = useState(false);

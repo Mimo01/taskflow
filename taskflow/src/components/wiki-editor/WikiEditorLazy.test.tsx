@@ -43,6 +43,16 @@ describe('WikiEditorLazy', () => {
     expect(cls).not.toContain('bg-background');
   });
 
+  it('renders the editor with no skeleton once preloaded', async () => {
+    vi.resetModules();
+    vi.doMock('./WikiEditor', () => ({ default: () => <div data-testid="real-editor" /> }));
+    const mod = await import('./WikiEditorLazy');
+    await mod.preloadWikiEditor();
+    const { container } = render(<mod.WikiEditorLazy value="" onChange={() => {}} />);
+    expect(container.querySelector('[data-testid="wiki-editor-skeleton"]')).toBeNull();
+    expect(screen.getByTestId('real-editor')).toBeTruthy();
+  });
+
   it('imports nothing from the editor stack', () => {
     for (const f of ['WikiEditorLazy.tsx', 'types.ts']) {
       const src = readFileSync(resolve(process.cwd(), 'src/components/wiki-editor', f), 'utf8');

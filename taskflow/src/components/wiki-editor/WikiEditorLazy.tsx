@@ -1,8 +1,33 @@
-import { Component, type ErrorInfo, lazy, type ReactNode, Suspense } from 'react';
+import {
+  Component,
+  type ComponentType,
+  type ErrorInfo,
+  lazy,
+  type ReactNode,
+  Suspense,
+  useState,
+} from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { WikiEditorPreset, WikiEditorProps } from './types';
 
-const WikiEditor = lazy(() => import('./WikiEditor'));
+let loading: Promise<{ default: ComponentType<WikiEditorProps> }> | null = null;
+let loaded: ComponentType<WikiEditorProps> | null = null;
+
+/**
+ * Starts loading the editor chunk ahead of the first mount. Once it has loaded, new
+ * editors render synchronously with no skeleton. The skeleton-to-editor swap briefly
+ * collapses the editor's height, and WebKit clamps a bottom-scrolled container during
+ * that moment, leaving the expanded sticky comment composer covering the activity.
+ */
+export function preloadWikiEditor() {
+  loading ??= import('./WikiEditor').then((m) => {
+    loaded = m.default;
+    return m;
+  });
+  return loading;
+}
+
+const WikiEditor = lazy(preloadWikiEditor);
 
 const FRAME = 'rounded-lg border border-input bg-transparent dark:bg-input/30';
 const MIN_HEIGHT: Record<WikiEditorPreset, string> = {
@@ -54,10 +79,12 @@ class EditorLoadBoundary extends Component<
 
 export function WikiEditorLazy(props: WikiEditorProps) {
   const preset = props.preset ?? 'full';
+  // Fixed per mount: switching component type mid-life would remount the editor.
+  const [Editor] = useState(() => loaded ?? WikiEditor);
   return (
     <EditorLoadBoundary preset={preset}>
       <Suspense fallback={<EditorSkeleton preset={preset} />}>
-        <WikiEditor {...props} />
+        <Editor {...props} />
       </Suspense>
     </EditorLoadBoundary>
   );
