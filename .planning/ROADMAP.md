@@ -430,7 +430,19 @@ Plans:
   1. Comment hosts have an expanding editor and a consistent, clean action row
   2. Create Epic, Bulk Create Subtasks and Edit Release modals are larger and visually consistent with the Create/Edit Issue modal, and Edit Release keeps its plain-text/Markdown fields
 
-**Plans**: TBD
+**Plans**: 10 plans
+
+Plans:
+- [ ] 102-01-PLAN.md — Shared field surface on the wiki editor frame + extracted ModalShell (wave 1)
+- [ ] 102-02-PLAN.md — Shared CommentActionRow + comment edit adoption and height cap (wave 1)
+- [ ] 102-03-PLAN.md — Collapsible comment composer (expand on focus/Reply) (wave 2)
+- [ ] 102-04-PLAN.md — Epic data layer: IssueType 'Epic', sidebar-aware epic drafts + sanitizer, payload builder (wave 1)
+- [ ] 102-05-PLAN.md — Shared priority-options hook, epic-name exclusion, ModalSidebar epic variant (wave 1)
+- [ ] 102-06-PLAN.md — Create epic on the two-column shell with Epic sidebar and drafts (wave 2)
+- [ ] 102-07-PLAN.md — Bulk create subtasks on the one-column shell (wave 2)
+- [ ] 102-08-PLAN.md — Edit release on the two-column shell with plain textareas and shared Switch (wave 2)
+- [ ] 102-09-PLAN.md — Issue modal adopts ModalShell + sentence-case CTAs (wave 2)
+- [ ] 102-10-PLAN.md — Full-suite gate + visual sign-off checkpoint (wave 3)
 **UI hint**: yes
 
 ## Progress
