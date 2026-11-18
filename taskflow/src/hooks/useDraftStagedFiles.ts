@@ -61,10 +61,10 @@ export function useDraftStagedFiles({ ensureDraftId, onChange }: Options) {
     [files],
   );
 
-  const restore = useCallback(async (toRestore: DraftFileRef[]) => {
+  const restore = useCallback(async (toRestore: DraftFileRef[]): Promise<File[]> => {
     const generation = generationRef.current;
     const results = await Promise.all(toRestore.map((r) => readDraftFile(r)));
-    if (generation !== generationRef.current) return;
+    if (generation !== generationRef.current) return [];
     const found: File[] = [];
     const keptRefs: DraftFileRef[] = [];
     const gone: string[] = [];
@@ -79,6 +79,7 @@ export function useDraftStagedFiles({ ensureDraftId, onChange }: Options) {
     setFiles(found);
     setRefs(keptRefs);
     setMissing(gone);
+    return found;
   }, []);
 
   const removeMissing = useCallback((name: string) => {
