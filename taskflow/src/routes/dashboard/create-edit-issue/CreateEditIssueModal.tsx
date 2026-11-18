@@ -312,6 +312,7 @@ export function CreateEditIssueModal({
         : undefined;
 
   const {
+    issueTypes,
     creatmetaFields,
     creatmetaLoading,
     issueTypesLoading,
@@ -332,6 +333,7 @@ export function CreateEditIssueModal({
     storyPointsFieldKey,
     inheritFromKey,
   });
+  const issueTypeNames = issueTypes?.map((t) => t.name);
 
   const { staleNotes, clearNote } = useDraftResume({
     open: open && mode === 'create',
@@ -748,7 +750,7 @@ export function CreateEditIssueModal({
                     open={open}
                     issueTypeName={initialValues?.issueTypeName}
                     staleNotes={staleNotes}
-                    defaultIssueType={defaultIssueType}
+                    availableTypeNames={issueTypeNames}
                   />
                 </aside>
               </div>

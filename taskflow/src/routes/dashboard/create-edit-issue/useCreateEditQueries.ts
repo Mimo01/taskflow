@@ -143,6 +143,7 @@ export function useCreateEditQueries({
   });
 
   return {
+    issueTypes,
     creatmetaFields,
     creatmetaLoading,
     issueTypesLoading,

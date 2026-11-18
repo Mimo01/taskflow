@@ -32,7 +32,7 @@ export interface EditInitialValues {
   fixVersions?: { id: string; name: string }[];
 }
 
-const ISSUE_TYPES = ['Story', 'Subtask', 'Bug'] as const;
+const ISSUE_TYPES = ['Story', 'Subtask', 'Bug', 'Defect'] as const;
 export type IssueType = (typeof ISSUE_TYPES)[number];
 
 export interface AutoCompleteResult {

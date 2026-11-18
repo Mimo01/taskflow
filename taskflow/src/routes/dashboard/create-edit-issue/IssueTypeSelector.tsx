@@ -8,41 +8,32 @@ import {
 } from '@/components/ui/select';
 import type { FormAction, IssueType } from './useCreateEditForm';
 
-const ISSUE_TYPES = ['Story', 'Subtask', 'Bug'] as const;
-const ITEMS = ISSUE_TYPES.map((t) => ({ value: t, label: t }));
+/** Types offered in Create issue. Subtasks are created only from a parent (no picker). */
+const CREATE_TYPES = ['Story', 'Bug', 'Defect'] as const satisfies readonly IssueType[];
 
 export const ISSUE_TYPE_CONTROL_ID = 'issue-type-select';
 
 interface IssueTypeSelectorProps {
   selectedIssueType: IssueType;
-  defaultIssueType?: IssueType;
+  /** Issue type names the project offers; until loaded, every create type is shown. */
+  availableTypeNames?: string[];
   dispatch: React.Dispatch<FormAction>;
 }
 
-/**
- * First sidebar control of the Create modal. A locked type (opened from "Create Story"
- * etc.) renders read-only at the same height as the other sidebar controls.
- */
+/** First sidebar control of the Create modal (not rendered for subtasks). */
 export function IssueTypeSelector({
   selectedIssueType,
-  defaultIssueType,
+  availableTypeNames,
   dispatch,
 }: IssueTypeSelectorProps) {
-  if (defaultIssueType) {
-    return (
-      <output
-        id={ISSUE_TYPE_CONTROL_ID}
-        className="flex h-8 w-full items-center gap-1.5 rounded-lg border bg-muted pl-2.5 pr-2 text-sm text-muted-foreground"
-      >
-        <IssueTypeIcon typeName={selectedIssueType} />
-        {selectedIssueType}
-      </output>
-    );
-  }
+  const types = CREATE_TYPES.filter(
+    (t) => !availableTypeNames || availableTypeNames.includes(t) || t === selectedIssueType,
+  );
+  const items = types.map((t) => ({ value: t, label: t }));
 
   return (
     <Select
-      items={ITEMS}
+      items={items}
       value={selectedIssueType}
       onValueChange={(v) => dispatch({ type: 'SET_ISSUE_TYPE', issueType: v as IssueType })}
     >
@@ -52,10 +43,10 @@ export function IssueTypeSelector({
           <SelectValue />
         </span>
       </SelectTrigger>
-      <SelectContent>
-        {ISSUE_TYPES.map((t) => (
+      <SelectContent alignItemWithTrigger={false}>
+        {types.map((t) => (
           <SelectItem key={t} value={t}>
-            <IssueTypeIcon typeName={t} />
+            <IssueTypeIcon typeName={t} keepColor />
             {t}
           </SelectItem>
         ))}

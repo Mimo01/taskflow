@@ -46,6 +46,7 @@ export function issueTypeStripeClass(
   if (issuetype?.subtask) return BLUE;
   switch (issuetype?.name) {
     case 'Bug':
+    case 'Defect':
       return 'border-l-red-500 dark:border-l-red-400';
     case 'Story':
       return 'border-l-green-600 dark:border-l-green-400';
