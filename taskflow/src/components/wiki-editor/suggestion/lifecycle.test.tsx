@@ -99,6 +99,15 @@ describe('suggestion lifecycle', () => {
     expect(editor.state.doc.textContent).toBe('a #q');
   });
 
+  it('stacks the positioned popover wrapper above sticky page chrome (z-50)', async () => {
+    render(<Harness />);
+    const editor = current as Editor;
+    await openIn(editor);
+    const wrapper = popovers()[0] as HTMLElement;
+    expect(wrapper.querySelector('[role="listbox"]')).not.toBeNull();
+    expect(wrapper.classList.contains('z-50')).toBe(true);
+  });
+
   it('Enter replaces the trigger in one transaction (one undo restores it)', async () => {
     render(<Harness />);
     const editor = current as Editor;

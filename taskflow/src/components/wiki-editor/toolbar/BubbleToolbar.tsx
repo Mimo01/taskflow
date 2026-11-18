@@ -141,6 +141,8 @@ export function BubbleToolbar({ editor, linkOpen, onLinkOpenChange }: BubbleTool
     <BubbleMenu
       editor={editor}
       pluginKey={BUBBLE_KEY}
+      // z-index on the positioned wrapper; the inner toolbar isn't positioned, so its own is ignored.
+      className="z-50"
       updateDelay={0}
       shouldShow={shouldShowBubble}
       appendTo={() => (editor.view.dom.closest('[role="dialog"]') as HTMLElement) ?? document.body}
@@ -158,7 +160,7 @@ export function BubbleToolbar({ editor, linkOpen, onLinkOpenChange }: BubbleTool
       <div
         role="toolbar"
         aria-label="Selection formatting"
-        className="z-50 flex h-8 items-center gap-1 rounded-lg border bg-popover p-1 shadow-md"
+        className="flex h-8 items-center gap-1 rounded-lg border bg-popover p-1 shadow-md"
       >
         {simple('bold', <Bold className={ICON} />, () => chain().toggleBold().run())}
         {simple('italic', <Italic className={ICON} />, () => chain().toggleItalic().run())}

@@ -129,6 +129,9 @@ export function createSuggestionExtension(spec: SuggestionSpec) {
                 );
                 renderer = r;
                 r.element.setAttribute('data-suggestion', '');
+                // The floating wrapper is what gets positioned: without its own z-index it paints
+                // under sticky section headers (z-20) and other stacked page chrome.
+                r.element.classList.add('z-50');
                 popoverContainer(props.editor).appendChild(r.element);
                 unmount = props.mount(r.element);
                 props.editor.view.dom.setAttribute('aria-controls', listboxId);
