@@ -3,6 +3,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Outlet, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { useCreateModalStore } from '@/stores/create-modal.store';
 
 vi.mock('@/stores/settings.store', () => ({
   useSettingsStore: () => ({
@@ -245,6 +246,17 @@ describe('EpicsPage', () => {
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
     expect(screen.queryByPlaceholderText(/search/i)).not.toBeInTheDocument();
     expect(screen.getByText('+ Create Epic')).toBeInTheDocument();
+  });
+
+  it('Create Epic button opens the global epic dialog via the store', async () => {
+    const { fetchEpicsBasic, fetchEpicEnrichmentMap } = await import('@/services/jira');
+    (fetchEpicsBasic as ReturnType<typeof vi.fn>).mockResolvedValue([baseEpic()]);
+    (fetchEpicEnrichmentMap as ReturnType<typeof vi.fn>).mockResolvedValue(new Map());
+    renderEpicsPage();
+    await screen.findByText('PROJ-10');
+    await userEvent.click(screen.getByText('+ Create Epic'));
+    expect(useCreateModalStore.getState().epicOpen).toBe(true);
+    useCreateModalStore.getState().closeEpic();
   });
 
   it('EPIC-01: shows empty state when no epics returned', async () => {
