@@ -1,7 +1,33 @@
 cd taskflow
 # One check per line: husky runs this with `sh -e`, which ignores a failure in any
 # non-final command of an `a && b` list — that let lint errors through for months.
-# --no-errors-on-unmatched keeps docs-only commits (no staged src files) passing.
+# `|| true` on every grep: a no-match exit inside $(…) would otherwise abort under -e.
+
+# Staged paths under taskflow/, relative to it. Docs-only commits (.planning/ etc.)
+# stage nothing here and skip every check.
+staged=$(git diff --cached --name-only --relative)
+if [ -z "$staged" ]; then
+  echo "pre-commit: no app files staged, skipping checks"
+  exit 0
+fi
+
+# --no-errors-on-unmatched keeps commits without staged src files passing.
 biome check --staged --no-errors-on-unmatched ./src
-tsc --noEmit
-npm run test
+
+# Anything that changes how every test runs (deps, config, setup, deleted or
+# renamed modules) runs the full suite. Otherwise only tests whose import graph
+# reaches a staged src file run.
+global=$(printf '%s\n' "$staged" | grep -E '^(package(-lock)?\.json|tsconfig[^/]*\.json|vitest\.config\.ts|vite\.config\.ts|src/test/)' || true)
+removed=$(git diff --cached --name-only --relative --diff-filter=DR -- src || true)
+src=$(git diff --cached --name-only --relative --diff-filter=ACM -- src | grep -E '\.(ts|tsx)$' || true)
+
+if [ -n "$global" ] || [ -n "$removed" ]; then
+  tsc --noEmit
+  npm run test
+elif [ -n "$src" ]; then
+  tsc --noEmit
+  # shellcheck disable=SC2086 # word-split the path list on purpose
+  npx vitest related --run $src
+else
+  echo "pre-commit: no TypeScript changes staged, skipping tsc and tests"
+fi
