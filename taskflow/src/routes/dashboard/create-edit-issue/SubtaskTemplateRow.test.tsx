@@ -86,3 +86,36 @@ describe('SubtaskTemplateRow assignee picker', () => {
     );
   });
 });
+
+describe('SubtaskTemplateRow advanced custom field size', () => {
+  it('renders the allowed-values trigger at the shared field size (h-8 text-sm)', () => {
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const { container } = render(
+      <QueryClientProvider client={qc}>
+        <SubtaskTemplateRow
+          row={makeRow('@inherit')}
+          mode="settings"
+          onChange={vi.fn()}
+          onRemove={vi.fn()}
+          creatmetaFields={[
+            {
+              fieldId: 'customfield_1',
+              name: 'Team',
+              required: false,
+              schema: { type: 'option', allowedValues: [{ id: '1', value: 'A' }] },
+            } as never,
+          ]}
+        />
+      </QueryClientProvider>,
+    );
+    const toggle = container.querySelector('[aria-controls="r1-advanced"]') as HTMLElement;
+    fireEvent.click(toggle);
+    const trigger = document.getElementById('adv-customfield_1');
+    expect(trigger).not.toBeNull();
+    const tokens = (trigger?.className ?? '').split(/\s+/);
+    expect(tokens).toContain('h-8');
+    expect(tokens).toContain('text-sm');
+    expect(tokens).not.toContain('h-7');
+    expect(tokens).not.toContain('text-xs');
+  });
+});
