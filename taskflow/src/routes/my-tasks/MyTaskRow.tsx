@@ -17,6 +17,8 @@
  *   <  860px: Flagged / MR chips icon-only (text sr-only, aria-label + title)
  *   <  720px: time bar narrows 144px -> 96px
  *   <  580px: time bar hidden
+ *   <  45rem: status pill capped at 6.5rem (long names ellipsize, full name in title)
+ *   <  32rem: issue key hidden (row click still opens peek); subtask indent narrows
  * The LEFT region is overflow-hidden so leftover chips clip instead of
  * painting over the right cluster at extreme widths.
  *
@@ -158,8 +160,16 @@ export function MyTaskRow({
   const rightCluster = (
     <div className="flex items-center gap-2 shrink-0">
       {/* Status pill — static, non-interactive; clicks bubble to row's onOpenPeek */}
-      <div className="flex shrink-0">
-        <span className={statusPillClass(statusCategoryKey)}>{issue.fields.status.name}</span>
+      <div className="flex shrink-0 @max-[45rem]:max-w-[6.5rem]">
+        <span
+          className={cn(
+            statusPillClass(statusCategoryKey),
+            'max-w-full overflow-hidden text-ellipsis',
+          )}
+          title={issue.fields.status.name}
+        >
+          {issue.fields.status.name}
+        </span>
       </div>
 
       {/* SP slot — fixed w-12 so WebKit never collapses it.
@@ -208,7 +218,7 @@ export function MyTaskRow({
         role="button"
         tabIndex={0}
         className={cn(
-          'ml-9 flex items-center gap-2 px-2 py-1.5 density-compact:py-1 density-comfortable:py-2.5 cursor-pointer hover:bg-muted/70 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+          'ml-9 @max-[32rem]:ml-5 flex items-center gap-2 px-2 py-1.5 density-compact:py-1 density-comfortable:py-2.5 cursor-pointer hover:bg-muted/70 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
           isPeeked && PEEKED_ROW_CLASS,
         )}
         onClick={() => onOpenPeek(issue.key)}
@@ -236,7 +246,7 @@ export function MyTaskRow({
           <button
             type="button"
             className={cn(
-              'font-mono text-xs text-muted-foreground cursor-pointer hover:underline shrink-0',
+              'font-mono text-xs text-muted-foreground cursor-pointer hover:underline shrink-0 @max-[32rem]:hidden',
               doneSummaryClass(issue.fields.status.statusCategory),
             )}
             onClick={(e) => {
@@ -296,7 +306,7 @@ export function MyTaskRow({
         <button
           type="button"
           className={cn(
-            'font-mono text-xs text-muted-foreground cursor-pointer hover:underline shrink-0',
+            'font-mono text-xs text-muted-foreground cursor-pointer hover:underline shrink-0 @max-[32rem]:hidden',
             doneSummaryClass(issue.fields.status.statusCategory),
           )}
           onClick={(e) => {

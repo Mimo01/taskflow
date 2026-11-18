@@ -879,30 +879,33 @@ export default function MyTasksPage() {
 
       {/* ── 2. Enriched stat tiles ───────────────────────────────────────────── */}
       {!noSprint && (
-        <div className="px-6 py-4 border-b border-border/50 shrink-0">
-          <div className="grid grid-cols-1 @[40rem]:grid-cols-3 gap-3">
+        <div className="px-6 py-4 @max-[40rem]:py-3 border-b border-border/50 shrink-0">
+          {/* Always three across; below 40rem the tiles compact instead of stacking. */}
+          <div className="grid grid-cols-3 gap-3 @max-[40rem]:gap-2">
             {/* To Do tile */}
             <button
               type="button"
               aria-pressed={activeBucket === 'toDo'}
               onClick={() => handleBucketClick('toDo')}
               className={cn(
-                'relative overflow-hidden rounded-lg border p-3 text-left transition-colors',
+                'relative overflow-hidden rounded-lg border p-3 @max-[40rem]:px-2.5 @max-[40rem]:py-2 text-left transition-colors',
                 activeBucket === 'toDo'
                   ? 'ring-1 ring-inset ring-primary/60 bg-primary/5 border-primary/30'
                   : 'border-border/60 bg-card hover:bg-muted/30',
               )}
             >
               <Hourglass
-                className="pointer-events-none absolute -top-4 -right-3 size-20 text-slate-500/10 dark:text-slate-400/10"
+                className="pointer-events-none absolute -top-4 -right-3 size-20 @max-[40rem]:hidden text-slate-500/10 dark:text-slate-400/10"
                 aria-hidden
               />
               <div className="relative">
-                <span className="text-2xl font-semibold tabular-nums text-foreground leading-none">
+                <span className="text-2xl @max-[40rem]:text-xl font-semibold tabular-nums text-foreground leading-none">
                   {tileToDoCount}
                 </span>
-                <div className="mt-2 text-sm text-muted-foreground">To Do</div>
-                <div className="mt-2 h-1.5 rounded-full bg-muted overflow-hidden">
+                <div className="mt-2 @max-[40rem]:mt-1 truncate text-sm @max-[40rem]:text-xs text-muted-foreground">
+                  To Do
+                </div>
+                <div className="mt-2 @max-[40rem]:mt-1.5 h-1.5 rounded-full bg-muted overflow-hidden">
                   <div
                     className="h-full rounded-full bg-slate-400 dark:bg-slate-500 transition-all"
                     style={{
@@ -922,22 +925,24 @@ export default function MyTasksPage() {
               aria-pressed={activeBucket === 'inProgress'}
               onClick={() => handleBucketClick('inProgress')}
               className={cn(
-                'relative overflow-hidden rounded-lg border p-3 text-left transition-colors',
+                'relative overflow-hidden rounded-lg border p-3 @max-[40rem]:px-2.5 @max-[40rem]:py-2 text-left transition-colors',
                 activeBucket === 'inProgress'
                   ? 'ring-1 ring-inset ring-primary/60 bg-primary/5 border-primary/30'
                   : 'border-border/60 bg-card hover:bg-muted/30',
               )}
             >
               <Zap
-                className="pointer-events-none absolute -top-4 -right-3 size-20 text-blue-500/10 dark:text-blue-400/15"
+                className="pointer-events-none absolute -top-4 -right-3 size-20 @max-[40rem]:hidden text-blue-500/10 dark:text-blue-400/15"
                 aria-hidden
               />
               <div className="relative">
-                <span className="text-2xl font-semibold tabular-nums text-blue-600 dark:text-blue-400 leading-none">
+                <span className="text-2xl @max-[40rem]:text-xl font-semibold tabular-nums text-blue-600 dark:text-blue-400 leading-none">
                   {tileInProgressCount}
                 </span>
-                <div className="mt-2 text-sm text-muted-foreground">In Progress</div>
-                <div className="mt-2 h-1.5 rounded-full bg-muted overflow-hidden">
+                <div className="mt-2 @max-[40rem]:mt-1 truncate text-sm @max-[40rem]:text-xs text-muted-foreground">
+                  In Progress
+                </div>
+                <div className="mt-2 @max-[40rem]:mt-1.5 h-1.5 rounded-full bg-muted overflow-hidden">
                   <div
                     className="h-full rounded-full bg-blue-500 transition-all"
                     style={{
@@ -957,22 +962,24 @@ export default function MyTasksPage() {
               aria-pressed={activeBucket === 'done'}
               onClick={() => handleBucketClick('done')}
               className={cn(
-                'relative overflow-hidden rounded-lg border p-3 text-left transition-colors',
+                'relative overflow-hidden rounded-lg border p-3 @max-[40rem]:px-2.5 @max-[40rem]:py-2 text-left transition-colors',
                 activeBucket === 'done'
                   ? 'ring-1 ring-inset ring-primary/60 bg-primary/5 border-primary/30'
                   : 'border-border/60 bg-card hover:bg-muted/30',
               )}
             >
               <BadgeCheck
-                className="pointer-events-none absolute -top-4 -right-3 size-20 text-emerald-500/10 dark:text-emerald-400/15"
+                className="pointer-events-none absolute -top-4 -right-3 size-20 @max-[40rem]:hidden text-emerald-500/10 dark:text-emerald-400/15"
                 aria-hidden
               />
               <div className="relative">
-                <span className="text-2xl font-semibold tabular-nums text-emerald-600 dark:text-emerald-400 leading-none">
+                <span className="text-2xl @max-[40rem]:text-xl font-semibold tabular-nums text-emerald-600 dark:text-emerald-400 leading-none">
                   {tileDoneCount}
                 </span>
-                <div className="mt-2 text-sm text-muted-foreground">Done</div>
-                <div className="mt-2 h-1.5 rounded-full bg-muted overflow-hidden">
+                <div className="mt-2 @max-[40rem]:mt-1 truncate text-sm @max-[40rem]:text-xs text-muted-foreground">
+                  Done
+                </div>
+                <div className="mt-2 @max-[40rem]:mt-1.5 h-1.5 rounded-full bg-muted overflow-hidden">
                   <div
                     className="h-full rounded-full bg-emerald-500 transition-all"
                     style={{
