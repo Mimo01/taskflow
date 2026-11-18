@@ -880,7 +880,7 @@ export default function MyTasksPage() {
       {/* ── 2. Enriched stat tiles ───────────────────────────────────────────── */}
       {!noSprint && (
         <div className="px-6 py-4 border-b border-border/50 shrink-0">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 @[40rem]:grid-cols-3 gap-3">
             {/* To Do tile */}
             <button
               type="button"

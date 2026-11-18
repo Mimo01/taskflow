@@ -31,6 +31,7 @@ import { useEffect, useRef, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { activeSprintQueryKey } from '@/hooks/useActiveSprint';
 import { useResizable } from '@/hooks/useResizable';
+import { useSidebarAutoRail } from '@/hooks/useSidebarAutoRail';
 import {
   EPICS_PAGE_ORDER,
   fetchActiveSprint,
@@ -43,6 +44,7 @@ import { fetchBoardId } from '@/services/jira/sprints';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useSettingsStore } from '@/stores/settings.store';
+import { useSidebarOverlayStore } from '@/stores/sidebar-overlay.store';
 import AppIcon from './AppIcon';
 import { SIDEBAR_NAV_ITEMS, SIDEBAR_SECTIONS } from './sidebar-items';
 
@@ -85,6 +87,33 @@ export default function Sidebar() {
   const sidebarCollapsed = useSettingsStore((s) => s.sidebarCollapsed);
   const toggleSidebarCollapsed = useSettingsStore((s) => s.toggleSidebarCollapsed);
   const sidebarWidth = useSettingsStore((s) => s.sidebarWidth);
+  const autoRail = useSidebarAutoRail();
+  const overlayOpen = useSidebarOverlayStore((s) => s.overlayOpen);
+  const setOverlayOpen = useSidebarOverlayStore((s) => s.setOverlayOpen);
+  const toggleOverlay = useSidebarOverlayStore((s) => s.toggleOverlay);
+  const overlayMode = autoRail && overlayOpen;
+  const effectiveCollapsed = sidebarCollapsed || (autoRail && !overlayOpen);
+  const asideRef = useRef<HTMLElement | null>(null);
+
+  // Dismiss the auto-rail overlay on Esc or a pointerdown outside the aside.
+  useEffect(() => {
+    if (!overlayMode) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOverlayOpen(false);
+    };
+    const onPointer = (e: PointerEvent) => {
+      if (asideRef.current && !asideRef.current.contains(e.target as Node)) setOverlayOpen(false);
+    };
+    document.addEventListener('keydown', onKey);
+    document.addEventListener('pointerdown', onPointer);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.removeEventListener('pointerdown', onPointer);
+    };
+  }, [overlayMode, setOverlayOpen]);
+  const closeOverlay = () => {
+    if (overlayMode) setOverlayOpen(false);
+  };
   const setSidebarWidth = useSettingsStore((s) => s.setSidebarWidth);
   const { width, isDragging, handleMouseDown } = useResizable({
     initialWidth: sidebarWidth,
@@ -249,8 +278,8 @@ export default function Sidebar() {
     prefetchForPath(path); // immediate on focus
   }
 
-  const navLinkClass = navLinkClassFn(sidebarCollapsed);
-  const labelClass = sidebarCollapsed ? 'hidden' : 'block truncate';
+  const navLinkClass = navLinkClassFn(effectiveCollapsed);
+  const labelClass = effectiveCollapsed ? 'hidden' : 'block truncate';
 
   // Build lookup of visible item ids from store
   const visibleIds = new Set<string>();
@@ -270,118 +299,127 @@ export default function Sidebar() {
   })).filter((section) => section.items.length > 0);
 
   return (
-    <aside
-      className={`relative flex flex-col h-full border-r border-border bg-background shrink-0${isDragging ? '' : ' transition-all duration-200'}`}
-      style={{ width: sidebarCollapsed ? 64 : width }}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+    <div
+      className={overlayMode ? 'relative shrink-0 h-full' : 'contents'}
+      style={overlayMode ? { width: 64 } : undefined}
     >
-      {!sidebarCollapsed && (
-        <div
-          aria-hidden="true"
-          onMouseDown={handleMouseDown}
-          onMouseEnter={() => setHandleHovered(true)}
-          onMouseLeave={() => setHandleHovered(false)}
-          style={{ borderColor: isDragging || handleHovered ? 'var(--ring)' : undefined }}
-          className="absolute -right-px top-0 h-full w-3 cursor-ew-resize z-20 border-r border-border transition-colors duration-100"
-        />
-      )}
-      {/* Hover chevron toggle */}
-      <button
-        type="button"
-        onClick={toggleSidebarCollapsed}
-        className={`absolute -right-3 top-1/2 -translate-y-1/2 z-30 flex items-center justify-center w-6 h-6 rounded-full border border-border bg-background shadow-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-opacity duration-150 ${hovered ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
-        aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+      <aside
+        ref={asideRef}
+        className={`flex flex-col h-full border-r border-border bg-background shrink-0${overlayMode ? ' absolute left-0 top-0 z-40 shadow-xl' : ' relative'}${isDragging ? '' : ' transition-all duration-200'}`}
+        style={{ width: effectiveCollapsed ? 64 : width }}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
       >
-        {sidebarCollapsed ? (
-          <ChevronRight className="h-3.5 w-3.5" />
-        ) : (
-          <ChevronLeft className="h-3.5 w-3.5" />
+        {!effectiveCollapsed && !overlayMode && (
+          <div
+            aria-hidden="true"
+            onMouseDown={handleMouseDown}
+            onMouseEnter={() => setHandleHovered(true)}
+            onMouseLeave={() => setHandleHovered(false)}
+            style={{ borderColor: isDragging || handleHovered ? 'var(--ring)' : undefined }}
+            className="absolute -right-px top-0 h-full w-3 cursor-ew-resize z-20 border-r border-border transition-colors duration-100"
+          />
         )}
-      </button>
-
-      {/* Branding */}
-      <div
-        className={`flex items-center py-1.5 border-b border-border transition-all duration-200 ${sidebarCollapsed ? 'justify-center px-2' : 'px-3.5'}`}
-      >
-        {sidebarCollapsed ? (
-          <AppIcon className="w-8 h-8" />
-        ) : (
-          <div className="flex items-center gap-1.5 select-none">
-            <AppIcon className="w-14 h-14 shrink-0" />
-            <div className="flex flex-col leading-none">
-              <span className="text-lg font-extrabold tracking-tight text-foreground">
-                task<span className="text-[#f97316]">flow</span>
-              </span>
-              <span className="text-[0.5625rem] font-medium tracking-[0.16em] text-muted-foreground/35 dark:text-muted-foreground/70 uppercase mt-0.5">
-                manage &amp; track
-              </span>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Nav links grouped by section */}
-      <nav className="flex-1 min-h-0 overflow-y-auto px-2 py-4 flex flex-col gap-1">
-        {sectionedItems.map((section) => (
-          <div key={section.id} className="flex flex-col gap-0.5">
-            {!sidebarCollapsed && (
-              <span className="px-3 pt-3 pb-1 text-[0.625rem] font-semibold uppercase tracking-wider text-muted-foreground/60">
-                {section.label}
-              </span>
-            )}
-            {section.items.map((nav) => {
-              const Icon = ICON_MAP[nav.iconName];
-              // Phase 55 D-10: 'aio-projects' nav item deep-links to the configured project.
-              // The filter above guarantees selectedAioProjectKey is non-null when this branch is hit;
-              // the `?? ''` is defensive belt-and-braces in case the gate is ever loosened.
-              // WR-02: encodeURIComponent protects against any future project-key shape
-              // containing URL-reserved characters (`/`, `?`, `#`, space).
-              const navTo =
-                nav.id === 'aio-projects'
-                  ? `/aio-project/${encodeURIComponent(selectedAioProjectKey ?? '')}`
-                  : nav.path;
-              return (
-                <NavLink
-                  key={nav.id}
-                  to={navTo}
-                  className={navLinkClass}
-                  title={sidebarCollapsed ? nav.label : undefined}
-                  onMouseEnter={() => handleNavMouseEnter(nav.path)}
-                  onMouseLeave={handleNavMouseLeave}
-                  onFocus={() => handleNavFocus(nav.path)}
-                >
-                  {Icon ? <Icon className="h-4 w-4 shrink-0" /> : null}
-                  <span className={labelClass}>{nav.label}</span>
-                </NavLink>
-              );
-            })}
-          </div>
-        ))}
-      </nav>
-
-      {/* Bottom: Dev Tools (when enabled) + Settings */}
-      <div className="px-2 py-4 border-t border-border flex flex-col gap-1">
-        {devToolsEnabled && (
-          <NavLink
-            to="/dev-tools"
-            className={navLinkClass}
-            title={sidebarCollapsed ? 'Dev Tools' : undefined}
-          >
-            <Bug className="h-4 w-4 shrink-0" />
-            <span className={labelClass}>Dev Tools</span>
-          </NavLink>
-        )}
-        <NavLink
-          to="/settings"
-          className={navLinkClass}
-          aria-label="Settings"
-          title={sidebarCollapsed ? 'Settings' : undefined}
+        {/* Hover chevron toggle */}
+        <button
+          type="button"
+          onClick={autoRail ? toggleOverlay : toggleSidebarCollapsed}
+          className={`absolute -right-3 top-1/2 -translate-y-1/2 z-30 flex items-center justify-center w-6 h-6 rounded-full border border-border bg-background shadow-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-opacity duration-150 ${hovered ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+          aria-label={effectiveCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
-          <Settings className="h-4 w-4 shrink-0" />
-          <span className={labelClass}>Settings</span>
-        </NavLink>
-      </div>
-    </aside>
+          {effectiveCollapsed ? (
+            <ChevronRight className="h-3.5 w-3.5" />
+          ) : (
+            <ChevronLeft className="h-3.5 w-3.5" />
+          )}
+        </button>
+
+        {/* Branding */}
+        <div
+          className={`flex items-center py-1.5 border-b border-border transition-all duration-200 ${effectiveCollapsed ? 'justify-center px-2' : 'px-3.5'}`}
+        >
+          {effectiveCollapsed ? (
+            <AppIcon className="w-8 h-8" />
+          ) : (
+            <div className="flex items-center gap-1.5 select-none">
+              <AppIcon className="w-14 h-14 shrink-0" />
+              <div className="flex flex-col leading-none">
+                <span className="text-lg font-extrabold tracking-tight text-foreground">
+                  task<span className="text-[#f97316]">flow</span>
+                </span>
+                <span className="text-[0.5625rem] font-medium tracking-[0.16em] text-muted-foreground/35 dark:text-muted-foreground/70 uppercase mt-0.5">
+                  manage &amp; track
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Nav links grouped by section */}
+        <nav className="flex-1 min-h-0 overflow-y-auto px-2 py-4 flex flex-col gap-1">
+          {sectionedItems.map((section) => (
+            <div key={section.id} className="flex flex-col gap-0.5">
+              {!effectiveCollapsed && (
+                <span className="px-3 pt-3 pb-1 text-[0.625rem] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                  {section.label}
+                </span>
+              )}
+              {section.items.map((nav) => {
+                const Icon = ICON_MAP[nav.iconName];
+                // Phase 55 D-10: 'aio-projects' nav item deep-links to the configured project.
+                // The filter above guarantees selectedAioProjectKey is non-null when this branch is hit;
+                // the `?? ''` is defensive belt-and-braces in case the gate is ever loosened.
+                // WR-02: encodeURIComponent protects against any future project-key shape
+                // containing URL-reserved characters (`/`, `?`, `#`, space).
+                const navTo =
+                  nav.id === 'aio-projects'
+                    ? `/aio-project/${encodeURIComponent(selectedAioProjectKey ?? '')}`
+                    : nav.path;
+                return (
+                  <NavLink
+                    key={nav.id}
+                    to={navTo}
+                    className={navLinkClass}
+                    title={effectiveCollapsed ? nav.label : undefined}
+                    onMouseEnter={() => handleNavMouseEnter(nav.path)}
+                    onMouseLeave={handleNavMouseLeave}
+                    onFocus={() => handleNavFocus(nav.path)}
+                    onClick={closeOverlay}
+                  >
+                    {Icon ? <Icon className="h-4 w-4 shrink-0" /> : null}
+                    <span className={labelClass}>{nav.label}</span>
+                  </NavLink>
+                );
+              })}
+            </div>
+          ))}
+        </nav>
+
+        {/* Bottom: Dev Tools (when enabled) + Settings */}
+        <div className="px-2 py-4 border-t border-border flex flex-col gap-1">
+          {devToolsEnabled && (
+            <NavLink
+              to="/dev-tools"
+              className={navLinkClass}
+              title={effectiveCollapsed ? 'Dev Tools' : undefined}
+              onClick={closeOverlay}
+            >
+              <Bug className="h-4 w-4 shrink-0" />
+              <span className={labelClass}>Dev Tools</span>
+            </NavLink>
+          )}
+          <NavLink
+            to="/settings"
+            className={navLinkClass}
+            aria-label="Settings"
+            onClick={closeOverlay}
+            title={effectiveCollapsed ? 'Settings' : undefined}
+          >
+            <Settings className="h-4 w-4 shrink-0" />
+            <span className={labelClass}>Settings</span>
+          </NavLink>
+        </div>
+      </aside>
+    </div>
   );
 }
