@@ -209,6 +209,22 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 
 ## Current State
 
+**Phase 101 complete 2026-11-18** (v1.15 Rich Wiki Editor). Create/Edit Issue is now a large two-column modal with a fields sidebar and a sticky footer, and "Create another" keeps the modal open (UI-01, UI-02). The Create Issue and Create Epic modals auto-save structured drafts, several at a time. Staged files are copied to `$APPDATA/issue-drafts` through the scoped Tauri fs plugin, so drafts survive restarts. A TopBar Drafts chip lists drafts, resumes them from any page, and discards with undo (DRAFT-01..07). Resume validates stale pieces against live Jira and adds notes without blocking. Live UAT in the running app found three bugs, all fixed:
+- restored image previews never showed, because React Compiler memoized a tiptap storage read in `ImageView`;
+- a stacked-sidebar width bug;
+- the broken header.
+
+At the user's request, Issue type moved into the sidebar. It offers Story, Bug and Defect, filtered to the project's types, and subtasks show no type field. Pickers were polished:
+- Priority is scoped to the project through a reference issue's editmeta, because priority is not on the ESHOP create screen.
+- Account is a portaled server-side search.
+- Labels accept several entries.
+- Create subtask shows the parent's summary.
+
+Jira-writing checks were skipped by request. Verification passed 5/5. Open code-review findings, advisory and not yet fixed:
+- CR-01: a type switch still sends hidden fields.
+- CR-02: a failed createmeta request on resume wipes custom-field values.
+- WR-01..07: staged-file races and name collisions, resumed-subtask inheritance, draft-project fix versions, edits before hydration, uncommitted label text.
+
 **Phase 100 complete 2026-11-17** (v1.15 Rich Wiki Editor). The new editor now runs in every editing host: Create Epic, Create/Edit Issue, the comment composer and comment edit (HOST-01, 03, 04). The old textarea editor, MentionPopover, InlineComment and IssueDetailSheet are deleted, with a guard test (HOST-05). Inline description editing (HOST-02) was dropped by decision D-01. Comments and Edit Issue descriptions keep local drafts in `drafts.json`, with a stale check against Jira, a "Discard changes?" guard on Cancel/Esc, and silent keep on X/backdrop. Cmd+Enter submits and Esc cancels in every host, deferring to open popovers (FLOW-01..03). The code review found a draft leak across issue swaps in the peek (CR-01) and a draft that came back after a quick save (WR-04); both are fixed with failing-first tests. In-app UAT found three bugs the jsdom tests missed: ProseMirror preventDefaults every Escape, so rich-mode Esc never cancelled; Cmd+Enter with a popover open submitted the host form; placeholders had no CSS. All fixed in 92433ba3. Not run in-app: real submits and an app restart (see 100-HUMAN-UAT.md). Open review warnings: WR-02, WR-03, WR-05, IN-01.
 
 **Phase 99 complete 2026-11-17** (v1.15 Rich Wiki Editor). The editor gained @mentions with server-side search, attachment embeds from a picker, paste and drop uploads (staged on create), rich paste from web, Word and Jira through an allowlist normaliser, issue-key and emoticon autocomplete, a `/` slash menu, and a bubble menu for compact hosts (INPUT-01..07, BLOCK-05). The code review found 4 blockers and 7 warnings, all fixed with failing-first tests. In-app checks in the running Tauri app passed for plain paste (Cmd+Shift+V and Edit > Paste and Match Style), a real Finder drag, and a real Jira copy. The Jira copy exposed dropped `{{monospace}}` (Jira renders `<tt>`), fixed in adcba3ea. Word paste was not run because Word isn't installed. Follow-up: WKWebView's paste sanitiser can drop a space after an inline element; the fix would read raw HTML from the native clipboard. The editor is reachable only from Dev tools until Phase 100 wires it into issue pages.
@@ -450,4 +466,4 @@ This document evolves at phase transitions and milestone boundaries.
 | `fetchEpicsBasic` ordering is a per-caller parameter, in the query key (v1.14 Phase 91.2) | The fetcher is shared with the Sidebar, Backlog and Sprint Board pickers under one cache key — this phase's `created ASC` was silently reordering all of them | ✓ Good — defaults to the original `updated DESC`; the two orderings cannot serve each other's cache |
 
 ---
-*Last updated: 2026-11-17 after Phase 100 completion*
+*Last updated: 2026-11-18 after Phase 101 completion*
