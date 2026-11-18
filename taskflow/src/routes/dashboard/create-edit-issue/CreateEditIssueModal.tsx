@@ -37,6 +37,7 @@ import { LinkRowsSection } from './LinkRowsSection';
 import { ModalSidebar } from './ModalSidebar';
 import { type EditInitialValues, type FormAction, useCreateEditForm } from './useCreateEditForm';
 import { useCreateEditQueries } from './useCreateEditQueries';
+import { useDraftResume } from './useDraftResume';
 import { useIssueMutations } from './useIssueMutations';
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -68,15 +69,26 @@ export function CreateEditIssueModal({
   defaultIssueType,
   defaultParentKey,
   defaultEpicLinkKey,
+  resumeDraftId,
   onOpenIssue,
 }: CreateEditIssueModalProps) {
   const { jiraBaseUrl, activeJiraProject } = useAuthStore();
   const { epicLinkFieldKey, storyPointsFieldKey } = useSettingsStore();
-  const projectKey = activeJiraProject ?? '';
 
   // Edit mode only: create/clone never read or write a description draft (Phase 101).
   const editIssueKey = mode === 'edit' ? initialValues?.issueKey : undefined;
   const descriptionKey = editIssueKey ? draftKey.description(editIssueKey) : null;
+
+  // A resumed draft is created in its own project (D-14). Latched for the session so discarding
+  // or creating the draft mid-session never flips the project underneath the open form.
+  const storedDraftProject = useIssueDraftsStore((s) =>
+    resumeDraftId ? s.drafts[resumeDraftId]?.projectKey : undefined,
+  );
+  const resumedProjectRef = useRef<string | null>(null);
+  if (!open || mode !== 'create' || !resumeDraftId) resumedProjectRef.current = null;
+  else if (storedDraftProject && resumedProjectRef.current === null)
+    resumedProjectRef.current = storedDraftProject;
+  const projectKey = resumedProjectRef.current ?? activeJiraProject ?? '';
 
   const { state, dispatch, isSubtask } = useCreateEditForm({
     open,
@@ -104,10 +116,19 @@ export function CreateEditIssueModal({
   // the reducer keeps the previous session's values until the open RESET lands.
   const [editTick, setEditTick] = useState(0);
   const markEdited = useCallback(() => setEditTick((t) => t + 1), []);
+  const clearNoteRef = useRef<(key: string) => void>(() => {});
   const userDispatch = useCallback(
     (a: FormAction) => {
       dispatch(a);
       setEditTick((t) => t + 1);
+      // Editing a field retires its stale note (UI-SPEC).
+      if (a.type === 'SET_FIELD') {
+        if (a.field === 'epicLinkKey') clearNoteRef.current('epic');
+        else if (a.field === 'parentKey') clearNoteRef.current('parent');
+        else if (a.field === 'fixVersions') clearNoteRef.current('fixVersions');
+      } else if (a.type === 'SET_CUSTOM_FIELD_VALUE' || a.type === 'SET_CUSTOM_FIELD_INPUT') {
+        clearNoteRef.current(a.fieldId);
+      }
     },
     [dispatch],
   );
@@ -139,7 +160,7 @@ export function CreateEditIssueModal({
     setCreateAnother(false);
     setCreatedKey(null);
     setEditTick(0);
-    if (mode === 'create') issueDraft.adopt(null);
+    if (mode === 'create' && !resumeDraftId) issueDraft.adopt(null);
   }, [open]);
 
   // ── Description draft (edit mode): base, live stale check, restore ────────
@@ -294,6 +315,7 @@ export function CreateEditIssueModal({
   const {
     creatmetaFields,
     creatmetaLoading,
+    issueTypesLoading,
     customRequiredFields,
     selectedIssueTypeId,
     parentFields,
@@ -311,6 +333,21 @@ export function CreateEditIssueModal({
     storyPointsFieldKey,
     inheritFromKey,
   });
+
+  const { staleNotes, clearNote } = useDraftResume({
+    open: open && mode === 'create',
+    resumeDraftId,
+    dispatch,
+    issueDraft,
+    staged,
+    editorRef,
+    creatmetaFields,
+    creatmetaLoading: creatmetaLoading || issueTypesLoading,
+    selectedIssueType: state.selectedIssueType,
+    jiraBaseUrl,
+  });
+
+  clearNoteRef.current = clearNote;
 
   // Autosave (Create only): fires on user edits alone, reading the latest values via a ref.
   const latestRef = useRef({ open, mode, state, projectKey, creatmetaFields, staged });
@@ -717,6 +754,7 @@ export function CreateEditIssueModal({
                     fixVersionsRequired={fixVersionsRequired}
                     open={open}
                     issueTypeName={initialValues?.issueTypeName}
+                    staleNotes={staleNotes}
                   />
                 </aside>
               </div>

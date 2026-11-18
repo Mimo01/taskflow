@@ -56,7 +56,7 @@ export function useCreateEditQueries({
 }: UseCreateEditQueriesOptions) {
   const staleTime = 5 * 60 * 1000;
 
-  const { data: issueTypes } = useQuery<CreatemtaIssueType[]>({
+  const { data: issueTypes, isLoading: issueTypesLoading } = useQuery<CreatemtaIssueType[]>({
     queryKey: ['createmeta-issuetypes', projectKey],
     queryFn: async () => {
       const token = await readSecret('jira-pat').catch(() => null);
@@ -145,6 +145,7 @@ export function useCreateEditQueries({
   return {
     creatmetaFields,
     creatmetaLoading,
+    issueTypesLoading,
     customRequiredFields,
     labelsRequired,
     fixVersionsOffered,

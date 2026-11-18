@@ -237,6 +237,11 @@ export function ModalSidebar({
         jiraBaseUrl={jiraBaseUrl}
         isPending={isPending}
       />
+      {Object.entries(staleNotes?.customFields ?? {}).map(([fieldId, note]) => (
+        <p key={fieldId} className="text-xs text-muted-foreground">
+          {note}
+        </p>
+      ))}
     </div>
   );
 }
