@@ -16,9 +16,10 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { LayoutList, Plus, X } from 'lucide-react';
+import { LayoutList, Plus } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/components/ui/empty-state';
 import {
   Select,
   SelectContent,
@@ -42,6 +43,7 @@ import { useSettingsStore } from '@/stores/settings.store';
 import type { SubtaskTemplate } from '@/stores/subtask-templates.store';
 import { useSubtaskTemplatesStore } from '@/stores/subtask-templates.store';
 import { BulkProgressIndicator } from './BulkProgressIndicator';
+import { ModalShell } from './create-edit-issue/ModalShell';
 import type { RowState, RowStatus } from './create-edit-issue/SubtaskTemplateRow';
 import { SubtaskTemplateRow } from './create-edit-issue/SubtaskTemplateRow';
 import type { PlaceholderContext } from './resolveRowPlaceholders';
@@ -289,7 +291,7 @@ export function BulkCreateSubtasksModal({
         'jira',
         `${base}/rest/api/2/issue/createmeta/${projectKey}/issuetypes`,
         { headers: { Authorization: `Bearer ${token}` } },
-        'Bulk Create Subtasks',
+        'Bulk create subtasks',
       );
       if (!resp.ok) return [];
       const data = await resp.json();
@@ -585,185 +587,156 @@ export function BulkCreateSubtasksModal({
   const activeRow = activeId ? rows.find((r) => r.id === activeId) : null;
 
   return (
-    <Dialog.Root
+    <ModalShell
       open={open}
       onOpenChange={(o) => {
         if (!o && !creating) onClose();
       }}
-    >
-      <Dialog.Portal>
-        <Dialog.Backdrop className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm" />
-        <Dialog.Popup className="fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 w-[860px] max-h-[88vh] overflow-y-auto bg-background border rounded-lg shadow-xl flex flex-col">
-          {/* Header */}
-          <div className="flex items-center justify-between border-b px-6 py-4">
-            <div>
-              <h2 className="text-lg font-semibold">Bulk Create Subtasks</h2>
-              <p className="text-sm text-muted-foreground">Parent: {parentKey}</p>
-            </div>
-            <Dialog.Close
-              render={
-                <button
-                  type="button"
-                  className="rounded p-1 hover:bg-accent"
-                  aria-label="Close"
-                  disabled={creating}
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              }
+      title="Bulk create subtasks"
+      subtitle={`Parent: ${parentKey}`}
+      closeDisabled={creating}
+      testId="bulk-create-subtasks-modal"
+      toolbar={
+        <div className="flex items-center gap-3">
+          {/* Template selector */}
+          <Select value={selectedTemplateId} onValueChange={handleTemplateChange}>
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder="No template (ad-hoc)">
+                {(v) =>
+                  v === '__adhoc__' || !v
+                    ? 'No template (ad-hoc)'
+                    : (templates.find((t: SubtaskTemplate) => t.id === v)?.name ??
+                      'No template (ad-hoc)')
+                }
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__adhoc__">No template (ad-hoc)</SelectItem>
+              {templates.map((t: SubtaskTemplate) => (
+                <SelectItem key={t.id} value={t.id}>
+                  {t.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {/* Subtask type selector */}
+          <Select value={effectiveTypeId} onValueChange={handleTypeChange}>
+            <SelectTrigger className="w-40">
+              <SelectValue placeholder="Subtask type">
+                {(v) => subtaskTypes.find((t) => t.id === v)?.name ?? 'Subtask type'}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {subtaskTypes.map((t) => (
+                <SelectItem key={t.id} value={t.id}>
+                  {t.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {/* N fields skipped badge — shown only when totalSkipped > 0 */}
+          {totalSkipped > 0 && (
+            <span
+              role="status"
+              className="ml-auto bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 rounded-md px-2 py-0.5 text-xs"
+            >
+              {totalSkipped} field{totalSkipped !== 1 ? 's' : ''} skipped
+            </span>
+          )}
+        </div>
+      }
+      footerStatus={
+        showProgress ? (
+          <div className="flex-1">
+            <BulkProgressIndicator
+              total={rows.length}
+              completed={progressCompleted}
+              succeeded={progressSucceeded}
+              failed={progressFailed}
+              failures={progressFailures}
+              isComplete={isComplete}
+              onDismiss={() => setShowProgress(false)}
+              actionVerb="Creating"
+              noun="subtasks"
             />
           </div>
-
-          {/* Toolbar */}
-          <div className="flex items-center gap-3 px-6 py-3 border-b bg-muted/30">
-            {/* Template selector */}
-            <Select value={selectedTemplateId} onValueChange={handleTemplateChange}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="No template (ad-hoc)">
-                  {(v) =>
-                    v === '__adhoc__' || !v
-                      ? 'No template (ad-hoc)'
-                      : (templates.find((t: SubtaskTemplate) => t.id === v)?.name ??
-                        'No template (ad-hoc)')
-                  }
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__adhoc__">No template (ad-hoc)</SelectItem>
-                {templates.map((t: SubtaskTemplate) => (
-                  <SelectItem key={t.id} value={t.id}>
-                    {t.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            {/* Subtask type selector */}
-            <Select value={effectiveTypeId} onValueChange={handleTypeChange}>
-              <SelectTrigger className="w-40">
-                <SelectValue placeholder="Subtask type">
-                  {(v) => subtaskTypes.find((t) => t.id === v)?.name ?? 'Subtask type'}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {subtaskTypes.map((t) => (
-                  <SelectItem key={t.id} value={t.id}>
-                    {t.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            {/* N fields skipped badge — shown only when totalSkipped > 0 */}
-            {totalSkipped > 0 && (
-              <span
-                role="status"
-                className="ml-auto bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 rounded-md px-2 py-0.5 text-xs"
-              >
-                {totalSkipped} field{totalSkipped !== 1 ? 's' : ''} skipped
-              </span>
-            )}
-          </div>
-
-          {/* Row list */}
-          <div className="flex flex-col gap-2 px-6 py-4 flex-1 min-h-0">
-            {rows.length === 0 ? (
-              /* Ad-hoc empty state */
-              <p className="text-sm text-muted-foreground text-center py-6">
-                Add rows below, or choose a template above to pre-fill.
-              </p>
-            ) : (
-              <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragStart={handleDragStart}
-                onDragEnd={handleDragEnd}
-              >
-                <SortableContext
-                  items={rows.map((r) => r.id)}
-                  strategy={verticalListSortingStrategy}
-                >
-                  {rows.map((row, idx) => (
-                    <SortableRowItem
-                      key={row.id}
-                      row={row}
-                      rowState={rowStates[idx] ?? { status: 'pending' }}
-                      creatmetaFields={creatmetaFields}
-                      placeholderCtx={placeholderCtx}
-                      creating={creating}
-                      onChange={(patch) => handleRowChange(idx, patch)}
-                      onRemove={() => handleRowRemove(idx)}
-                    />
-                  ))}
-                </SortableContext>
-                <DragOverlay>
-                  {activeRow ? (
-                    <div className="opacity-90 shadow-lg rounded-md bg-background border px-3 py-2 text-sm">
-                      {activeRow.title || '(untitled row)'}
-                    </div>
-                  ) : null}
-                </DragOverlay>
-              </DndContext>
-            )}
-
-            {/* Add row button */}
-            <button
+        ) : null
+      }
+      footerActions={
+        <>
+          <Dialog.Close render={<Button type="button" variant="outline" disabled={creating} />}>
+            Close
+          </Dialog.Close>
+          {hasFailed && isComplete ? (
+            <Button type="button" variant="outline" onClick={handleRetry}>
+              Retry failed
+            </Button>
+          ) : (
+            <Button
               type="button"
-              onClick={handleAddRow}
-              disabled={creating}
-              className="mt-2 flex items-center gap-1.5 px-2 py-1.5 rounded text-sm text-muted-foreground hover:bg-accent hover:text-foreground transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={rows.length === 0 || creating}
+              onClick={handleCreate}
+              className="gap-1.5"
             >
-              <Plus className="size-3.5" />
-              Add row
-            </button>
-          </div>
-
-          {/* Footer */}
-          <div className="flex items-center justify-between gap-2 border-t bg-muted/50 px-6 py-4 rounded-b-lg">
-            {/* Left slot: progress indicator */}
-            {showProgress && (
-              <div className="flex-1">
-                <BulkProgressIndicator
-                  total={rows.length}
-                  completed={progressCompleted}
-                  succeeded={progressSucceeded}
-                  failed={progressFailed}
-                  failures={progressFailures}
-                  isComplete={isComplete}
-                  onDismiss={() => setShowProgress(false)}
-                  actionVerb="Creating"
-                  noun="subtasks"
+              <LayoutList className="size-4" />
+              Create subtasks
+            </Button>
+          )}
+        </>
+      }
+    >
+      <div className="flex flex-col gap-2">
+        {rows.length === 0 ? (
+          <EmptyState
+            compact
+            icon={LayoutList}
+            title="No subtasks yet"
+            subtitle="Add a row or pick a template to start."
+          />
+        ) : (
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext items={rows.map((r) => r.id)} strategy={verticalListSortingStrategy}>
+              {rows.map((row, idx) => (
+                <SortableRowItem
+                  key={row.id}
+                  row={row}
+                  rowState={rowStates[idx] ?? { status: 'pending' }}
+                  creatmetaFields={creatmetaFields}
+                  placeholderCtx={placeholderCtx}
+                  creating={creating}
+                  onChange={(patch) => handleRowChange(idx, patch)}
+                  onRemove={() => handleRowRemove(idx)}
                 />
-              </div>
-            )}
+              ))}
+            </SortableContext>
+            <DragOverlay>
+              {activeRow ? (
+                <div className="opacity-90 shadow-lg rounded-md bg-background border px-3 py-2 text-sm">
+                  {activeRow.title || '(untitled row)'}
+                </div>
+              ) : null}
+            </DragOverlay>
+          </DndContext>
+        )}
 
-            {/* Right group */}
-            <div className="flex items-center gap-2 ml-auto">
-              <Dialog.Close
-                render={
-                  <Button variant="ghost" disabled={creating}>
-                    Close
-                  </Button>
-                }
-              />
-              {hasFailed && isComplete ? (
-                <Button variant="outline" onClick={handleRetry}>
-                  Retry Failed
-                </Button>
-              ) : (
-                <Button
-                  variant="default"
-                  disabled={rows.length === 0 || creating}
-                  onClick={handleCreate}
-                >
-                  <LayoutList className="size-4 mr-1.5" />
-                  Create Subtasks
-                </Button>
-              )}
-            </div>
-          </div>
-        </Dialog.Popup>
-      </Dialog.Portal>
-    </Dialog.Root>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={handleAddRow}
+          disabled={creating}
+          className="self-start gap-1.5"
+        >
+          <Plus className="size-3.5" />
+          Add row
+        </Button>
+      </div>
+    </ModalShell>
   );
 }

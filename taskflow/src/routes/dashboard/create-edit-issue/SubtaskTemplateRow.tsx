@@ -125,7 +125,7 @@ function AdvancedFieldItem({
       </label>
       {field.schema.allowedValues && field.schema.allowedValues.length > 0 ? (
         <Select value={value} onValueChange={(v) => onChange(v ?? '')}>
-          <SelectTrigger id={`adv-${fid}`} className="h-7 w-full text-xs" disabled={disabled}>
+          <SelectTrigger id={`adv-${fid}`} className="h-8 w-full text-sm" disabled={disabled}>
             <SelectValue placeholder={`Select ${field.name}`} />
           </SelectTrigger>
           <SelectContent>
