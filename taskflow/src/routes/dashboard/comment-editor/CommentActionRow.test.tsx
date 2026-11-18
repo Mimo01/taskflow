@@ -65,9 +65,7 @@ describe('CommentActionRow', () => {
 
   it('primaryDisabled disables the primary button', () => {
     setup({ primaryDisabled: true });
-    expect((screen.getByRole('button', { name: 'Save' }) as HTMLButtonElement).disabled).toBe(
-      true,
-    );
+    expect((screen.getByRole('button', { name: 'Save' }) as HTMLButtonElement).disabled).toBe(true);
   });
 
   it('attachDisabled disables Attach', () => {

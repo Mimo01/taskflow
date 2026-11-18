@@ -12,14 +12,9 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { MoreVertical } from 'lucide-react';
 import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Button } from '@/components/ui/button';
 import { DiscardChangesDialog } from '@/components/ui/discard-changes-dialog';
-import { DraftNote } from '@/components/ui/draft-note';
 import { ErrorState } from '@/components/ui/error-state';
-import { Keycap } from '@/components/ui/keycap';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { TooltipBody } from '@/components/ui/tooltip-body';
 import type { WikiEditorHandle, WikiEditorHost } from '@/components/wiki-editor/types';
 import { WikiEditorLazy } from '@/components/wiki-editor/WikiEditorLazy';
 import { useCompactOnScroll } from '@/hooks/useCompactOnScroll';
@@ -51,6 +46,8 @@ import { useRecentItemsStore } from '@/stores/recent-items.store';
 import { useSettingsStore } from '@/stores/settings.store';
 import { CommentComposer } from './CommentComposer';
 import type { EditInitialValues } from './CreateEditIssueModal';
+import { CommentActionRow } from './comment-editor/CommentActionRow';
+import { COMMENT_EDITOR_MAX_HEIGHT } from './comment-editor/comment-editor-sizing';
 import { IssueDetailContent, relativeTime } from './IssueDetailContent';
 import { IssueDetailSidebar } from './IssueDetailSidebar';
 import { ActivityTimeline } from './issue-detail/ActivityTimeline';
@@ -980,7 +977,7 @@ interface CommentCardProps {
   userMap: UserMap;
   /** Editor wiring; only non-default for the card being edited. */
   editorHost?: WikiEditorHost;
-  editorRef?: React.Ref<WikiEditorHandle>;
+  editorRef?: React.RefObject<WikiEditorHandle | null>;
   editDraftState?: 'draft' | 'stale' | null;
   onEditDiscardDraft?: () => void;
   onEditUseJira?: () => void;
@@ -1115,62 +1112,23 @@ function CommentCard({
             host={editorHost}
             onSubmit={(t) => onSaveEdit(comment.id, t)}
             onCancel={onCancelEdit}
+            maxHeightClass={COMMENT_EDITOR_MAX_HEIGHT}
           />
           {editError && <p className="text-xs text-destructive">{editError}</p>}
-          <div className="flex items-center gap-2 justify-end">
-            <DraftNote
-              className="mr-auto"
-              state={editDraftState}
-              onDiscard={() => onEditDiscardDraft?.()}
-              onUseJira={() => onEditUseJira?.()}
-            />
-            <Tooltip>
-              <TooltipTrigger
-                render={
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={onCancelEdit}
-                    disabled={editPending}
-                  />
-                }
-              >
-                Cancel
-              </TooltipTrigger>
-              <TooltipContent>
-                <TooltipBody>
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium">Cancel</span>
-                    <Keycap>Esc</Keycap>
-                  </div>
-                </TooltipBody>
-              </TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger
-                render={
-                  <Button
-                    size="sm"
-                    onClick={() => onSaveEdit(comment.id)}
-                    disabled={!editText.trim() || editPending}
-                  />
-                }
-              >
-                {editPending ? 'Saving...' : 'Save'}
-              </TooltipTrigger>
-              <TooltipContent>
-                <TooltipBody>
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium">Save</span>
-                    <span className="flex items-center gap-1">
-                      <Keycap>⌘</Keycap>
-                      <Keycap>↵</Keycap>
-                    </span>
-                  </div>
-                </TooltipBody>
-              </TooltipContent>
-            </Tooltip>
-          </div>
+          <CommentActionRow
+            draftState={editDraftState}
+            onDiscard={() => onEditDiscardDraft?.()}
+            onUseJira={() => onEditUseJira?.()}
+            onAttachFiles={(files) => editorRef?.current?.insertFiles(files)}
+            attachDisabled={editPending}
+            onCancel={onCancelEdit}
+            cancelDisabled={editPending}
+            primaryLabel="Save"
+            pendingLabel="Saving…"
+            pending={!!editPending}
+            primaryDisabled={!editText.trim()}
+            onPrimary={() => onSaveEdit(comment.id)}
+          />
         </div>
       ) : (
         <WikiRenderer wikiText={comment.body} attachments={attachmentMap} users={userMap} />

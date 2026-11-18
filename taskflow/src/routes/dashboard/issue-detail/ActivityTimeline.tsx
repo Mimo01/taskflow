@@ -37,7 +37,7 @@ interface ActivityTimelineProps {
   onEditCancel: () => void;
   /** Editor wiring for the card being edited (host, ref, draft note). */
   editorHost?: WikiEditorHost;
-  editorRef?: React.Ref<WikiEditorHandle>;
+  editorRef?: React.RefObject<WikiEditorHandle | null>;
   editDraftState?: 'draft' | 'stale' | null;
   onEditDiscardDraft?: () => void;
   onEditUseJira?: () => void;
@@ -67,7 +67,7 @@ interface ActivityTimelineProps {
     attachmentMap: AttachmentMap;
     userMap: UserMap;
     editorHost?: WikiEditorHost;
-    editorRef?: React.Ref<WikiEditorHandle>;
+    editorRef?: React.RefObject<WikiEditorHandle | null>;
     editDraftState?: 'draft' | 'stale' | null;
     onEditDiscardDraft?: () => void;
     onEditUseJira?: () => void;
