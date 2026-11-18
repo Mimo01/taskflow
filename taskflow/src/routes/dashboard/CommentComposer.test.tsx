@@ -42,12 +42,20 @@ function makeQueryClient() {
   });
 }
 
-function renderComposer(qc: QueryClient = makeQueryClient()) {
-  return render(
+const collapsedField = () => screen.queryByRole('textbox', { name: 'Add a comment' });
+
+/** Renders the composer and (by default) focuses the collapsed field so the editor is mounted. */
+function renderComposer(qc: QueryClient = makeQueryClient(), opts: { expand?: boolean } = {}) {
+  const view = render(
     <QueryClientProvider client={qc}>
       <CommentComposer issueKey={ISSUE_KEY} jiraBaseUrl={JIRA_BASE_URL} />
     </QueryClientProvider>,
   );
+  const field = collapsedField();
+  if (opts.expand !== false && field && field.tagName === 'INPUT') {
+    act(() => field.focus());
+  }
+  return view;
 }
 
 const editor = () => screen.getByPlaceholderText('Add a comment…') as HTMLTextAreaElement;
@@ -55,6 +63,7 @@ const commentButton = () => screen.getByRole('button', { name: 'Comment' });
 
 beforeEach(() => {
   vi.clearAllMocks();
+  lastStubProps.current = null;
   useComposerFocus.setState({ composerFocus: null });
   useDraftsStore.setState({ drafts: {}, owner: null });
   hydratedSpy = vi.spyOn(useDraftsStore.persist, 'hasHydrated').mockReturnValue(true);
@@ -62,6 +71,68 @@ beforeEach(() => {
 
 afterEach(() => {
   hydratedSpy.mockRestore();
+});
+
+describe('CommentComposer — collapse / expand (D-03, D-06, D-07)', () => {
+  it('idle and empty: single-line field, no editor, no action row', () => {
+    renderComposer(makeQueryClient(), { expand: false });
+    const field = screen.getByRole('textbox', { name: 'Add a comment' });
+    expect(field).toHaveAttribute('placeholder', 'Add a comment…');
+    expect(lastStubProps.current).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Comment' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Attach files' })).not.toBeInTheDocument();
+  });
+
+  it('focusing the field expands, focuses the editor and shows the row without Cancel', async () => {
+    renderComposer();
+    await waitFor(() => expect(editor()).toHaveFocus());
+    expect(screen.getByRole('button', { name: 'Attach files' })).toBeInTheDocument();
+    expect(commentButton()).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Cancel' })).not.toBeInTheDocument();
+    expect(lastStubProps.current?.maxHeightClass).toBe('max-h-[min(50vh,480px)]');
+  });
+
+  it('blur to the Comment button keeps it expanded', async () => {
+    renderComposer();
+    await waitFor(() => expect(editor()).toHaveFocus());
+    fireEvent.blur(editor(), { relatedTarget: commentButton() });
+    expect(commentButton()).toBeInTheDocument();
+  });
+
+  it('blur outside with empty text collapses back to the single-line field', async () => {
+    renderComposer();
+    await waitFor(() => expect(editor()).toHaveFocus());
+    fireEvent.blur(editor(), { relatedTarget: document.body });
+    await waitFor(() => expect(collapsedField()?.tagName).toBe('INPUT'));
+    expect(screen.queryByRole('button', { name: 'Comment' })).not.toBeInTheDocument();
+  });
+
+  it('blur outside with text stays expanded', async () => {
+    renderComposer();
+    fireEvent.change(editor(), { target: { value: 'keep' } });
+    fireEvent.blur(editor(), { relatedTarget: document.body });
+    expect(editor().value).toBe('keep');
+    expect(commentButton()).toBeInTheDocument();
+  });
+
+  it('a hydrated draft with text renders expanded on mount', () => {
+    useDraftsStore.setState({
+      drafts: {
+        [DRAFT_KEY]: { kind: 'comment-new', issueKey: ISSUE_KEY, text: 'restored', updatedAt: 1 },
+      },
+    });
+    renderComposer(makeQueryClient(), { expand: false });
+    expect(editor().value).toBe('restored');
+    expect(commentButton()).toBeInTheDocument();
+  });
+
+  it('shows Posting… while pending', async () => {
+    mockPostComment.mockReturnValue(new Promise(() => {}) as never);
+    renderComposer();
+    fireEvent.change(editor(), { target: { value: 'slow' } });
+    fireEvent.click(commentButton());
+    expect(await screen.findByRole('button', { name: 'Posting…' })).toBeDisabled();
+  });
 });
 
 describe('CommentComposer — editor wiring', () => {
@@ -187,26 +258,27 @@ describe('CommentComposer — Esc', () => {
 describe('CommentComposer — composer focus request (notification Reply)', () => {
   it('focuses the editor when the flag matches the issue key, then clears the flag', async () => {
     useComposerFocus.setState({ composerFocus: ISSUE_KEY });
-    renderComposer();
+    renderComposer(makeQueryClient(), { expand: false });
     await waitFor(() => expect(editor()).toHaveFocus());
     expect(useComposerFocus.getState().composerFocus).toBeNull();
   });
 
   it('does nothing for a different issue key and keeps the flag', () => {
     useComposerFocus.setState({ composerFocus: 'OTHER-1' });
-    renderComposer();
-    expect(editor()).not.toHaveFocus();
+    renderComposer(makeQueryClient(), { expand: false });
+    expect(lastStubProps.current).toBeNull();
+    expect(collapsedField()).not.toHaveFocus();
     expect(useComposerFocus.getState().composerFocus).toBe('OTHER-1');
   });
 
   it('waits for the editor handle before focusing', async () => {
     // The stub's handle is attached on mount; a request made before mount is honoured only after.
     useComposerFocus.setState({ composerFocus: ISSUE_KEY });
-    const { unmount } = renderComposer();
+    const { unmount } = renderComposer(makeQueryClient(), { expand: false });
     await waitFor(() => expect(useComposerFocus.getState().composerFocus).toBeNull());
     unmount();
     useComposerFocus.setState({ composerFocus: ISSUE_KEY });
-    renderComposer();
+    renderComposer(makeQueryClient(), { expand: false });
     await waitFor(() => expect(editor()).toHaveFocus());
   });
 });
@@ -316,6 +388,7 @@ describe('CommentComposer — ported from the old issue sheet (ISSUE-08)', () =>
         <CommentComposer issueKey="PROJ-1" jiraBaseUrl="https://jira.example.com" />
       </QueryClientProvider>,
     );
+    act(() => screen.getByRole('textbox', { name: 'Add a comment' }).focus());
     fireEvent.change(editor(), { target: { value: 'My new comment' } });
     fireEvent.click(commentButton());
     await waitFor(() =>

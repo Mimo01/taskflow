@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import type React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { JiraAttachment } from '@/services/jira';
@@ -49,10 +49,13 @@ function wrapper({ children }: { children: React.ReactNode }) {
 
 async function renderComposer(attachments: JiraAttachment[] = []) {
   const { CommentComposer } = await import('./CommentComposer');
-  return render(
+  const view = render(
     <CommentComposer issueKey="PROJ-1" jiraBaseUrl={BASE_URL} attachments={attachments} />,
     { wrapper },
   );
+  // Expand the collapsed composer so the editor (and its host) is mounted.
+  act(() => screen.getByRole('textbox', { name: 'Add a comment' }).focus());
+  return view;
 }
 
 describe('CommentComposer attachments (editor host contract)', () => {
