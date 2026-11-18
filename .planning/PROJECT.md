@@ -209,6 +209,15 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 
 ## Current State
 
+**Phase 102 complete 2026-11-18** (v1.15 Rich Wiki Editor). The remaining editing surfaces now match the new modal (UI-03, UI-05). A shared `ModalShell` (extracted from the Issue modal) hosts Create/Edit Issue, Create Epic, Bulk Create Subtasks and Edit Release. Create Epic reuses the Issue sidebar (epic variant), keeps sidebar-aware drafts and creates a resumed draft in its own project. Bulk Create is one column with a pinned toolbar; Edit Release is two columns with plain-text descriptions. Input, Textarea and the wiki editor frame share one field surface. The new-comment composer is one line when idle and expands on focus or Reply, and the composer and comment edit share one action row and height cap. The visual sign-off was delegated to Claude and done with headless-browser screenshots that made no Jira writes. That pass and the user's live testing found and fixed several bugs:
+- The expanding composer hid the activity above it.
+- A pre-existing `BubbleToolbar` crash showed "The editor couldn't load" (a destroyed tiptap editor read during hide/reveal).
+- Attach on an empty composer dropped the chosen files when the native file panel blurred the window.
+- Epic drafts resumed into the wrong project.
+- Four alignment and focus inconsistencies.
+
+In the comment editor footer, "Insert attachment" (link an existing issue file) now has its own icon, distinct from the action-row paperclip (upload). Seven info-level review notes are deferred (102-REVIEW-FIX.md). UI-04 was dropped earlier by decision.
+
 **Phase 101 complete 2026-11-18** (v1.15 Rich Wiki Editor). Create/Edit Issue is now a large two-column modal with a fields sidebar and a sticky footer, and "Create another" keeps the modal open (UI-01, UI-02). The Create Issue and Create Epic modals auto-save structured drafts, several at a time. Staged files are copied to `$APPDATA/issue-drafts` through the scoped Tauri fs plugin, so drafts survive restarts. A TopBar Drafts chip lists drafts, resumes them from any page, and discards with undo (DRAFT-01..07). Resume validates stale pieces against live Jira and adds notes without blocking. Live UAT in the running app found three bugs, all fixed:
 - restored image previews never showed, because React Compiler memoized a tiptap storage read in `ImageView`;
 - a stacked-sidebar width bug;
@@ -466,4 +475,4 @@ This document evolves at phase transitions and milestone boundaries.
 | `fetchEpicsBasic` ordering is a per-caller parameter, in the query key (v1.14 Phase 91.2) | The fetcher is shared with the Sidebar, Backlog and Sprint Board pickers under one cache key — this phase's `created ASC` was silently reordering all of them | ✓ Good — defaults to the original `updated DESC`; the two orderings cannot serve each other's cache |
 
 ---
-*Last updated: 2026-11-18 after Phase 101 completion*
+*Last updated: 2026-11-18 after Phase 102 completion*
