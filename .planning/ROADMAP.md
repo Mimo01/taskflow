@@ -416,7 +416,7 @@ Plans:
 
 **Wave 6** *(blocked on Wave 5 completion)*
 
-- [ ] 101-12-PLAN.md — full gate + manual restart / Edit round-trip / visual check
+- [x] 101-12-PLAN.md — full gate + manual restart / Edit round-trip / visual check
 
 **UI hint**: yes
 
@@ -442,7 +442,7 @@ Plans:
 | 98. Editor Shell | 15/16 | In Progress|  |
 | 99. Mentions, Media & Smart Input | 14/14 | Complete    | 2026-11-17 |
 | 100. Host Adoption & Editing Workflow | 9/9 | Complete    | 2026-11-17 |
-| 101. Issue Drafts & Large Create/Edit Modal | 11/12 | In Progress|  |
+| 101. Issue Drafts & Large Create/Edit Modal | 12/12 | Complete   | 2026-11-18 |
 | 102. Polished Surfaces | 0/TBD | Not started | - |
 
 ### Shipped milestones
