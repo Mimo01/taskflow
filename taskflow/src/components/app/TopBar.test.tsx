@@ -7,6 +7,7 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { NotificationItem } from '../../stores/notifications.store';
 import { useNotificationsStore } from '../../stores/notifications.store';
+import { useIssueDraftsStore } from '../../stores/issue-drafts.store';
 import TopBar from './TopBar';
 
 vi.mock('@/hooks/useGlobalSearchSources', () => ({
@@ -285,5 +286,36 @@ describe('TopBar search shows the open state', () => {
     expect(recent.hasAttribute('data-active')).toBe(false);
     fireEvent.click(recent);
     expect(recent.getAttribute('data-active')).toBe('true');
+  });
+
+  it('renders the Drafts chip before Search only when a draft exists', () => {
+    act(() => {
+      useIssueDraftsStore.setState({ drafts: {}, owner: null });
+    });
+    const { unmount } = renderTopBar();
+    expect(screen.queryByRole('button', { name: /^Drafts/ })).not.toBeInTheDocument();
+    unmount();
+
+    act(() => {
+      useIssueDraftsStore.setState({
+        drafts: {
+          d1: {
+            id: 'd1',
+            kind: 'epic',
+            updatedAt: Date.now(),
+            projectKey: 'PROJ',
+            files: [],
+            snapshot: { epicName: 'E', description: '' },
+          },
+        },
+      });
+    });
+    renderTopBar();
+    const chip = screen.getByRole('button', { name: 'Drafts, 1' });
+    const search = screen.getByLabelText('Search');
+    expect(chip.compareDocumentPosition(search) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    act(() => {
+      useIssueDraftsStore.setState({ drafts: {} });
+    });
   });
 });
