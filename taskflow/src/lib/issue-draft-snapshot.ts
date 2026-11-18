@@ -1,6 +1,6 @@
 import type { FormState } from '@/routes/dashboard/create-edit-issue/useCreateEditForm';
 import type { CreatemetaField } from '@/services/jira';
-import type { IssueDraftSnapshot } from '@/stores/issue-drafts.store';
+import type { EpicDraftSnapshot, IssueDraftSnapshot } from '@/stores/issue-drafts.store';
 
 export type StaleNotes = {
   epic?: string;
@@ -52,6 +52,72 @@ export function toIssueSnapshot(
     customFieldNames,
     linkRows: state.linkRows,
   };
+}
+
+/** Epic dialog keeps the epic name in FormState.summary. */
+export function toEpicSnapshot(
+  state: FormState,
+  fieldNames: Record<string, string>,
+): EpicDraftSnapshot {
+  const customFieldNames: Record<string, string> = {};
+  for (const key of Object.keys(state.customFieldValues)) {
+    customFieldNames[key] = fieldNames[key] ?? key;
+  }
+  return {
+    epicName: state.summary,
+    description: state.description,
+    selectedAssignee: state.selectedAssignee,
+    selectedAssigneeName: state.selectedAssigneeName,
+    priority: state.priority,
+    storyPoints: state.storyPoints,
+    labels: state.labels,
+    fixVersions: state.fixVersions,
+    customFieldValues: state.customFieldValues,
+    customFieldInputValues: state.customFieldInputValues,
+    customFieldNames,
+  };
+}
+
+/** Full issue snapshot so validateSnapshot (D-15 stale handling) can run on an epic draft. */
+export function epicSnapshotToIssueSnapshot(s: EpicDraftSnapshot): IssueDraftSnapshot {
+  return {
+    selectedIssueType: 'Epic',
+    summary: s.epicName,
+    description: s.description,
+    selectedAssignee: s.selectedAssignee ?? null,
+    selectedAssigneeName: s.selectedAssigneeName ?? null,
+    timeEstimate: '',
+    priority: s.priority ?? null,
+    storyPoints: s.storyPoints ?? '',
+    epicLinkKey: null,
+    parentKey: null,
+    labels: s.labels ?? [],
+    fixVersions: s.fixVersions ?? [],
+    customFieldValues: s.customFieldValues ?? {},
+    customFieldInputValues: s.customFieldInputValues ?? {},
+    customFieldNames: s.customFieldNames ?? {},
+    linkRows: [],
+  };
+}
+
+/** Patch carries type, name, description and only the sidebar fields the draft stored. */
+export function epicSnapshotToFormPatch(s: EpicDraftSnapshot): Partial<FormState> {
+  const full = snapshotToFormPatch(epicSnapshotToIssueSnapshot(s));
+  const patch: Partial<FormState> = {
+    selectedIssueType: full.selectedIssueType,
+    summary: full.summary,
+    description: full.description,
+  };
+  if (s.selectedAssignee !== undefined) patch.selectedAssignee = full.selectedAssignee;
+  if (s.selectedAssigneeName !== undefined) patch.selectedAssigneeName = full.selectedAssigneeName;
+  if (s.priority !== undefined) patch.priority = full.priority;
+  if (s.storyPoints !== undefined) patch.storyPoints = full.storyPoints;
+  if (s.labels !== undefined) patch.labels = full.labels;
+  if (s.fixVersions !== undefined) patch.fixVersions = full.fixVersions;
+  if (s.customFieldValues !== undefined) patch.customFieldValues = full.customFieldValues;
+  if (s.customFieldInputValues !== undefined)
+    patch.customFieldInputValues = full.customFieldInputValues;
+  return patch;
 }
 
 export function snapshotToFormPatch(s: IssueDraftSnapshot): Partial<FormState> {

@@ -101,6 +101,70 @@ describe('issue drafts store', () => {
     expect(get().drafts.ok.files.map((f) => f.name)).toEqual(['a.png']);
   });
 
+  describe('epic draft sanitizer (D-09)', () => {
+    const epic = (id: string, snapshot: Record<string, unknown>) => ({
+      id,
+      kind: 'epic',
+      updatedAt: 1,
+      projectKey: 'PROJ',
+      files: [],
+      snapshot,
+    });
+    const load = async (drafts: Record<string, unknown>) => {
+      await new LazyStore('issue-drafts.json').set(
+        'issue-drafts-store',
+        JSON.stringify({ state: { drafts, owner: null }, version: 1 }),
+      );
+      await useIssueDraftsStore.persist.rehydrate();
+    };
+
+    it('keeps an old-shape epic draft', async () => {
+      await load({ a: epic('a', { epicName: 'E', description: 'D' }) });
+      expect(get().drafts.a.snapshot).toEqual({ epicName: 'E', description: 'D' });
+    });
+
+    it('keeps valid sidebar fields', async () => {
+      const snap = {
+        epicName: 'E',
+        description: 'D',
+        selectedAssignee: { name: 'bob', displayName: 'Bob', avatarUrl: null },
+        selectedAssigneeName: 'Bob',
+        priority: 'High',
+        storyPoints: '3',
+        labels: ['x'],
+        fixVersions: [{ id: '1', name: 'v1' }],
+        customFieldValues: { cf: '1' },
+        customFieldInputValues: { cf: 'One' },
+        customFieldNames: { cf: 'Field' },
+      };
+      await load({ a: epic('a', snap) });
+      expect(get().drafts.a.snapshot).toEqual(snap);
+    });
+
+    it('strips malformed optional fields but keeps the draft', async () => {
+      await load({
+        a: epic('a', {
+          epicName: 'E',
+          description: 'D',
+          labels: 'x',
+          fixVersions: [{ id: 1 }],
+          customFieldValues: { a: 2 },
+          selectedAssignee: 'bob',
+          priority: 3,
+        }),
+      });
+      expect(get().drafts.a.snapshot).toEqual({ epicName: 'E', description: 'D' });
+    });
+
+    it('drops an epic draft missing epicName or description', async () => {
+      await load({
+        a: epic('a', { description: 'D' }),
+        b: epic('b', { epicName: 'E' }),
+      });
+      expect(Object.keys(get().drafts)).toEqual([]);
+    });
+  });
+
   it('useSortedIssueDrafts is newest first and referentially stable', () => {
     get().upsertDraft(mk('old', 1));
     get().upsertDraft(mk('new', 9));
