@@ -10,6 +10,8 @@ import { lastStubProps } from '@/test/wiki-editor-stub';
 vi.mock('@/stores/settings.store', () => ({
   useSettingsStore: () => ({
     epicNameFieldKey: 'customfield_10015',
+    epicLinkFieldKey: 'customfield_10014',
+    storyPointsFieldKey: null,
   }),
 }));
 vi.mock('@/stores/auth.store', () => ({
@@ -21,8 +23,96 @@ vi.mock('@/stores/auth.store', () => ({
 vi.mock('@/services/stronghold', () => ({
   readSecret: vi.fn().mockResolvedValue('tok'),
 }));
-vi.mock('@/services/jira', () => ({
+vi.mock('@/services/jira', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/services/jira')>()),
   createIssue: vi.fn(),
+  fetchCreatemeta: vi.fn(),
+  fetchIssueLinkTypes: vi.fn().mockResolvedValue([]),
+  fetchPriorities: vi.fn().mockResolvedValue([]),
+  fetchIssuePriorityOptions: vi.fn().mockResolvedValue([]),
+  fetchProjectPriorityOptions: vi.fn().mockResolvedValue([]),
+}));
+vi.mock('@/services/jira/versions', () => ({
+  fetchFixVersions: vi.fn().mockResolvedValue([{ id: '77', name: '1.0', released: false }]),
+}));
+vi.mock('@/lib/apiFetch', () => ({
+  apiFetch: vi.fn().mockResolvedValue({
+    ok: true,
+    json: async () => ({ values: [{ id: '10000', name: 'Epic', subtask: false }] }),
+  }),
+}));
+// Sidebar pickers are stubbed to buttons that dispatch the same actions the real ones do.
+vi.mock('@/components/ui/person-picker', () => ({
+  toPersonValue: (u: unknown) => u,
+  PersonPicker: ({ onChange }: { onChange: (u: unknown) => void }) => (
+    <button
+      type="button"
+      data-testid="pick-assignee"
+      onClick={() => onChange({ name: 'jdoe', displayName: 'Jane Doe' })}
+    >
+      pick assignee
+    </button>
+  ),
+}));
+vi.mock('./create-edit-issue/LabelsField', () => ({
+  LabelsField: ({
+    dispatch,
+  }: {
+    dispatch: (a: { type: string; field: string; value: string[] }) => void;
+  }) => (
+    <button
+      type="button"
+      data-testid="pick-label"
+      onClick={() => dispatch({ type: 'SET_FIELD', field: 'labels', value: ['alpha'] })}
+    >
+      pick label
+    </button>
+  ),
+}));
+vi.mock('./create-edit-issue/FixVersionField', () => ({
+  FixVersionField: ({
+    dispatch,
+  }: {
+    dispatch: (a: { type: string; field: string; value: unknown }) => void;
+  }) => (
+    <button
+      type="button"
+      data-testid="pick-fixversion"
+      onClick={() =>
+        dispatch({
+          type: 'SET_FIELD',
+          field: 'fixVersions',
+          value: [{ id: '77', name: '1.0' }],
+        })
+      }
+    >
+      pick fix version
+    </button>
+  ),
+}));
+vi.mock('./create-edit-issue/CustomFieldsSection', () => ({
+  CustomFieldsSection: ({
+    customRequiredFields,
+    dispatch,
+  }: {
+    customRequiredFields: { fieldId: string; name: string }[];
+    dispatch: (a: { type: string; fieldId: string; value: string }) => void;
+  }) => (
+    <>
+      {customRequiredFields.map((f) => (
+        <button
+          key={f.fieldId}
+          type="button"
+          data-testid={`fill-${f.fieldId}`}
+          onClick={() =>
+            dispatch({ type: 'SET_CUSTOM_FIELD_VALUE', fieldId: f.fieldId, value: '10' })
+          }
+        >
+          fill {f.name}
+        </button>
+      ))}
+    </>
+  ),
 }));
 vi.mock(
   '@/components/wiki-editor/WikiEditorLazy',
@@ -43,9 +133,44 @@ function makeClient() {
   return new QueryClient({ defaultOptions: { queries: { retry: false } } });
 }
 
+const baseMeta = [
+  { fieldId: 'customfield_10015', name: 'Epic Name', required: true, schema: { type: 'string' } },
+  {
+    fieldId: 'labels',
+    name: 'Labels',
+    required: false,
+    schema: { type: 'array', items: 'string' },
+  },
+  { fieldId: 'fixVersions', name: 'Fix versions', required: false, schema: { type: 'array' } },
+  {
+    fieldId: 'priority',
+    name: 'Priority',
+    required: false,
+    schema: {
+      type: 'priority',
+      allowedValues: [
+        { id: '1', value: 'High' },
+        { id: '2', value: 'Low' },
+      ],
+    },
+  },
+];
+const accountMeta = {
+  fieldId: 'customfield_20001',
+  name: 'Account',
+  required: true,
+  schema: { type: 'option', custom: 'select' },
+};
+async function mockCreatemeta(fields: unknown[] = baseMeta) {
+  const { fetchCreatemeta } = await import('@/services/jira');
+  vi.mocked(fetchCreatemeta).mockResolvedValue(fields as never);
+}
+
 describe('CreateEpicDialog', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
+    // clearAllMocks keeps implementations; createmeta must be re-seeded each test.
+    await mockCreatemeta();
     useIssueDraftsStore.setState({ drafts: {}, owner: null, saveFailed: false });
     vi.spyOn(useIssueDraftsStore.persist, 'hasHydrated').mockReturnValue(true);
     vi.mocked(stageDraftFile).mockImplementation(async (_id, f) => ({
@@ -73,7 +198,7 @@ describe('CreateEpicDialog', () => {
     fireEvent.change(screen.getByRole('textbox', { name: /epic name/i }), {
       target: { value: 'My New Epic' },
     });
-    fireEvent.click(screen.getByRole('button', { name: /create epic/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^create epic$/i }));
     await waitFor(() =>
       expect(createIssue).toHaveBeenCalledWith(
         'https://jira.example.com',
@@ -93,7 +218,7 @@ describe('CreateEpicDialog', () => {
         <CreateEpicDialog open={true} onClose={vi.fn()} />
       </QueryClientProvider>,
     );
-    fireEvent.click(screen.getByRole('button', { name: /create epic/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^create epic$/i }));
     await waitFor(() => expect(createIssue).not.toHaveBeenCalled());
   });
 
@@ -124,7 +249,7 @@ describe('CreateEpicDialog', () => {
 
   it('passes the editor text as description, undefined when empty', async () => {
     const { createIssue } = await setup();
-    fireEvent.click(screen.getByRole('button', { name: /create epic/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^create epic$/i }));
     await waitFor(() => expect(createIssue).toHaveBeenCalledTimes(1));
     expect(createIssue.mock.calls[0][4].description).toBeUndefined();
   });
@@ -134,7 +259,7 @@ describe('CreateEpicDialog', () => {
     fireEvent.change(screen.getByRole('textbox', { name: 'Description' }), {
       target: { value: 'h1. Hi' },
     });
-    fireEvent.click(screen.getByRole('button', { name: /create epic/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^create epic$/i }));
     await waitFor(() => expect(createIssue).toHaveBeenCalled());
     expect(createIssue.mock.calls[0][4].description).toBe('h1. Hi');
   });
@@ -159,7 +284,7 @@ describe('CreateEpicDialog', () => {
     const { uploadStagedFiles, onClose } = await setup();
     const file = new File(['x'], 'a.png');
     act(() => lastStubProps.current?.host?.stageFile?.(file));
-    fireEvent.click(screen.getByRole('button', { name: /create epic/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^create epic$/i }));
     await waitFor(() => expect(onClose).toHaveBeenCalled());
     expect(uploadStagedFiles).toHaveBeenCalledWith('https://jira.example.com', 'tok', 'PROJ-9', [
       file,
@@ -168,7 +293,7 @@ describe('CreateEpicDialog', () => {
 
   it('does not call uploadStagedFiles with nothing staged', async () => {
     const { uploadStagedFiles, onClose } = await setup();
-    fireEvent.click(screen.getByRole('button', { name: /create epic/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^create epic$/i }));
     await waitFor(() => expect(onClose).toHaveBeenCalled());
     expect(uploadStagedFiles).not.toHaveBeenCalled();
   });
@@ -177,10 +302,10 @@ describe('CreateEpicDialog', () => {
     const { uploadStagedFiles, createIssue, onClose } = await setup();
     (uploadStagedFiles as ReturnType<typeof vi.fn>).mockResolvedValueOnce(['a.png']);
     act(() => lastStubProps.current?.host?.stageFile?.(new File(['x'], 'a.png')));
-    fireEvent.click(screen.getByRole('button', { name: /create epic/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^create epic$/i }));
     await screen.findByText(/Issue created, but 1 file\(s\) failed to upload: a.png/);
     expect(onClose).not.toHaveBeenCalled();
-    const btn = screen.getByRole('button', { name: /create epic/i }) as HTMLButtonElement;
+    const btn = screen.getByRole('button', { name: /^create epic$/i }) as HTMLButtonElement;
     expect(btn.disabled).toBe(true);
     fireEvent.click(btn);
     expect(createIssue).toHaveBeenCalledTimes(1);
@@ -228,7 +353,7 @@ describe('CreateEpicDialog', () => {
       const { uploadStagedFiles, createIssue } = await setup();
       (uploadStagedFiles as ReturnType<typeof vi.fn>).mockResolvedValueOnce(['a.png']);
       act(() => lastStubProps.current?.host?.stageFile?.(new File(['x'], 'a.png')));
-      fireEvent.click(screen.getByRole('button', { name: /create epic/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^create epic$/i }));
       await screen.findByRole('alert');
       fireEvent.keyDown(screen.getByRole('textbox', { name: /epic name/i }), {
         key: 'Enter',
@@ -253,13 +378,109 @@ describe('CreateEpicDialog', () => {
       expect(createIssue).not.toHaveBeenCalled();
     });
 
-    it('button tooltip shows Create Epic with keycaps', async () => {
+    it('button tooltip shows Create epic with keycaps', async () => {
       await setup();
-      fireEvent.focus(screen.getByRole('button', { name: /create epic/i }));
-      fireEvent.mouseEnter(screen.getByRole('button', { name: /create epic/i }));
+      fireEvent.focus(screen.getByRole('button', { name: /^create epic$/i }));
+      fireEvent.mouseEnter(screen.getByRole('button', { name: /^create epic$/i }));
       const tip = await screen.findByText('⌘', {}, { timeout: 2000 });
       expect(tip.tagName).toBe('KBD');
       expect(screen.getByText('↵')).toBeTruthy();
+    });
+  });
+
+  describe('shell and sidebar (D-08, D-10, D-11)', () => {
+    async function renderOpen(onClose = vi.fn()) {
+      const { createIssue } = await import('@/services/jira');
+      (createIssue as ReturnType<typeof vi.fn>).mockResolvedValue({ id: '9', key: 'PROJ-9' });
+      const { CreateEpicDialog } = await import('./CreateEpicDialog');
+      render(
+        <QueryClientProvider client={makeClient()}>
+          <CreateEpicDialog open={true} onClose={onClose} />
+        </QueryClientProvider>,
+      );
+      return { createIssue: createIssue as ReturnType<typeof vi.fn>, onClose };
+    }
+
+    it('renders the two-column shell with title, name input and sidebar rows', async () => {
+      await renderOpen();
+      expect(screen.getByRole('dialog', { name: 'Create epic' })).toBeTruthy();
+      const name = screen.getByRole('textbox', { name: 'Epic name' }) as HTMLInputElement;
+      expect(name.placeholder).toBe('Epic name');
+      expect(document.activeElement).toBe(name);
+      await screen.findByTestId('pick-fixversion');
+      const aside = screen.getByRole('complementary', { name: 'Epic fields' });
+      for (const label of ['Assignee', 'Priority', 'Labels', 'Fix version']) {
+        expect(aside.textContent).toContain(label);
+      }
+      expect(screen.queryByText('Create another')).toBeNull();
+      expect(screen.getByRole('button', { name: 'Cancel' })).toBeTruthy();
+    });
+
+    it('keeps the epic name field out of the sidebar and blocks on another required field', async () => {
+      await mockCreatemeta([...baseMeta, accountMeta]);
+      const { createIssue } = await renderOpen();
+      fireEvent.change(screen.getByRole('textbox', { name: 'Epic name' }), {
+        target: { value: 'My epic' },
+      });
+      await screen.findByTestId('fill-customfield_20001');
+      expect(screen.queryByTestId('fill-customfield_10015')).toBeNull();
+      const btn = screen.getByRole('button', { name: /^create epic$/i }) as HTMLButtonElement;
+      expect(btn.disabled).toBe(true);
+      fireEvent.click(screen.getByTestId('fill-customfield_20001'));
+      await waitFor(() => expect(btn.disabled).toBe(false));
+      expect(createIssue).not.toHaveBeenCalled();
+    });
+
+    it('sends sidebar values in the create payload', async () => {
+      await mockCreatemeta([...baseMeta, accountMeta]);
+      const { createIssue } = await renderOpen();
+      fireEvent.change(screen.getByRole('textbox', { name: 'Epic name' }), {
+        target: { value: 'My epic' },
+      });
+      await screen.findByTestId('fill-customfield_20001');
+      fireEvent.click(screen.getByTestId('pick-assignee'));
+      fireEvent.click(screen.getByTestId('pick-label'));
+      fireEvent.click(screen.getByTestId('pick-fixversion'));
+      fireEvent.click(screen.getByTestId('fill-customfield_20001'));
+      fireEvent.click(screen.getByRole('button', { name: /^create epic$/i }));
+      await waitFor(() => expect(createIssue).toHaveBeenCalledTimes(1));
+      const [, , , summary, fields] = createIssue.mock.calls[0];
+      expect(summary).toBe('My epic');
+      expect(fields).toMatchObject({
+        issuetype: 'Epic',
+        customfield_10015: 'My epic',
+        assignee: { name: 'jdoe' },
+        labels: ['alpha'],
+        fixVersions: [{ id: '77' }],
+      });
+      expect(fields).toHaveProperty('customfield_20001');
+    });
+
+    it('shows the failure copy in the footer when create fails', async () => {
+      const { createIssue } = await renderOpen();
+      createIssue.mockRejectedValue(new Error('boom'));
+      fireEvent.change(screen.getByRole('textbox', { name: 'Epic name' }), {
+        target: { value: 'My epic' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: /^create epic$/i }));
+      expect(
+        await screen.findByText("Couldn't create the epic. Check your connection and try again."),
+      ).toBeTruthy();
+    });
+
+    it('Esc with content opens the discard dialog; Discard closes; Esc without content closes', async () => {
+      const { onClose } = await renderOpen();
+      fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape' });
+      await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
+      fireEvent.change(screen.getByRole('textbox', { name: 'Epic name' }), {
+        target: { value: 'Placeholder epic' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+      expect(await screen.findByText('Discard changes?')).toBeTruthy();
+      expect(onClose).toHaveBeenCalledTimes(1);
+      const discards = screen.getAllByRole('button', { name: 'Discard' });
+      fireEvent.click(discards[discards.length - 1]);
+      expect(onClose).toHaveBeenCalledTimes(2);
     });
   });
 
@@ -297,12 +518,12 @@ describe('CreateEpicDialog', () => {
       CreateEpicDialogRef.current = (await import('./CreateEpicDialog')).CreateEpicDialog;
     });
 
-    it('keeps a draft with kind epic when closed with content, no prompt', async () => {
+    it('keeps a draft with kind epic when closed with X, no prompt', async () => {
       const { onClose } = renderDialog();
       fireEvent.change(screen.getByRole('textbox', { name: /epic name/i }), {
         target: { value: 'Placeholder epic' },
       });
-      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Close' }));
       expect(onClose).toHaveBeenCalled();
       expect(drafts()).toHaveLength(1);
       expect(drafts()[0].kind).toBe('epic');
@@ -379,7 +600,7 @@ describe('CreateEpicDialog', () => {
       (createIssue as ReturnType<typeof vi.fn>).mockResolvedValue({ id: '9', key: 'PROJ-9' });
       useIssueDraftsStore.getState().upsertDraft(epicDraft());
       const { onClose } = renderDialog({ resumeDraftId: 'd1' });
-      fireEvent.click(screen.getByRole('button', { name: /create epic/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^create epic$/i }));
       await waitFor(() => expect(onClose).toHaveBeenCalled());
       expect(drafts()).toHaveLength(0);
       expect(removeDraftFiles).toHaveBeenCalledWith('d1');
@@ -393,11 +614,88 @@ describe('CreateEpicDialog', () => {
       useIssueDraftsStore.getState().upsertDraft(epicDraft());
       const { onClose } = renderDialog({ resumeDraftId: 'd1' });
       act(() => lastStubProps.current?.host?.stageFile?.(new File(['x'], 'a.png')));
-      fireEvent.click(screen.getByRole('button', { name: /create epic/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^create epic$/i }));
       await screen.findByText(/Issue created, but 1 file\(s\) failed to upload: a.png/);
       expect(onClose).not.toHaveBeenCalled();
       await waitFor(() => expect(drafts()).toHaveLength(0));
       expect(removeDraftFiles).toHaveBeenCalledWith('d1');
+    });
+
+    it('a sidebar edit after naming the epic is saved into the draft snapshot', async () => {
+      renderDialog();
+      fireEvent.change(screen.getByRole('textbox', { name: /epic name/i }), {
+        target: { value: 'Placeholder epic' },
+      });
+      fireEvent.click(screen.getByTestId('pick-label'));
+      fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+      expect((drafts()[0].snapshot as { labels?: string[] }).labels).toEqual(['alpha']);
+    });
+
+    it('a sidebar-only edit with an empty name creates no draft', () => {
+      renderDialog();
+      fireEvent.click(screen.getByTestId('pick-label'));
+      fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+      expect(drafts()).toHaveLength(0);
+    });
+
+    it('restores sidebar values from a resumed draft into the payload', async () => {
+      const { createIssue } = await import('@/services/jira');
+      (createIssue as ReturnType<typeof vi.fn>).mockResolvedValue({ id: '9', key: 'PROJ-9' });
+      useIssueDraftsStore.getState().upsertDraft(
+        epicDraft({
+          snapshot: {
+            epicName: 'Placeholder epic',
+            description: '',
+            selectedAssignee: { name: 'jdoe', displayName: 'Jane Doe' },
+            selectedAssigneeName: 'jdoe',
+            priority: 'High',
+            labels: ['alpha'],
+            fixVersions: [{ id: '77', name: '1.0' }],
+          },
+        }),
+      );
+      const { onClose } = renderDialog({ resumeDraftId: 'd1' });
+      await waitFor(() =>
+        expect(
+          (screen.getByRole('button', { name: /^create epic$/i }) as HTMLButtonElement).disabled,
+        ).toBe(false),
+      );
+      fireEvent.click(screen.getByRole('button', { name: /^create epic$/i }));
+      await waitFor(() => expect(onClose).toHaveBeenCalled());
+      expect(vi.mocked(createIssue).mock.calls[0][4]).toMatchObject({
+        assignee: { name: 'jdoe' },
+        priority: { name: 'High' },
+        labels: ['alpha'],
+        fixVersions: [{ id: '77' }],
+      });
+    });
+
+    it('resumes an old-shape draft with only name and description', () => {
+      useIssueDraftsStore.getState().upsertDraft(epicDraft());
+      renderDialog({ resumeDraftId: 'd1' });
+      expect((screen.getByRole('textbox', { name: /epic name/i }) as HTMLInputElement).value).toBe(
+        'Placeholder epic',
+      );
+    });
+
+    it('clears a stale custom field and a stale fix version with notes after settling', async () => {
+      const { fetchFixVersions } = await import('@/services/jira/versions');
+      vi.mocked(fetchFixVersions).mockResolvedValue([{ id: '99', name: '2.0' }] as never);
+      useIssueDraftsStore.getState().upsertDraft(
+        epicDraft({
+          snapshot: {
+            epicName: 'Placeholder epic',
+            description: '',
+            fixVersions: [{ id: '77', name: '1.0' }],
+            customFieldValues: { customfield_99999: '5' },
+            customFieldInputValues: {},
+            customFieldNames: { customfield_99999: 'Gone field' },
+          },
+        }),
+      );
+      renderDialog({ resumeDraftId: 'd1' });
+      expect(await screen.findByText(/Gone field is no longer available/)).toBeTruthy();
+      expect(await screen.findByText(/1\.0/, { selector: 'p' })).toBeTruthy();
     });
 
     it('resumes an epic draft from the chip through the create-modal store', async () => {
