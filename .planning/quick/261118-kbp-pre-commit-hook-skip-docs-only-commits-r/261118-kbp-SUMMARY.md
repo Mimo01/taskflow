@@ -16,3 +16,6 @@ commit: dca0e4a5
 **Verified** with a temp index: nothing staged skipped; docs-only skipped; changing src/lib/table-sort.ts ran 9 test files and 342 tests in about 7s. The hook's own commit took the "no TS changes" path.
 
 **Trade-off:** tests that reach a module only through vi.mock factories or dynamic imports may not count as "related". Run `npm run test` before pushing or releasing when that matters.
+
+## Follow-up: pre-push safety net (7f2fc079)
+taskflow/.husky/pre-push (previously a no-op) now runs the full suite once per push. It is skipped when no pushed commit touches taskflow/. When the remote base is unknown, it runs the suite anyway (fails safe). Verified: a docs-only range was skipped, and a range containing an app commit was detected.
