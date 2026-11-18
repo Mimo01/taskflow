@@ -1,12 +1,13 @@
 import { act, render, renderHook, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { readDraftFile, stageDraftFile } from '@/lib/issue-draft-files';
+import { readDraftFile, removeDraftFile, stageDraftFile } from '@/lib/issue-draft-files';
 import { StagedFilesStrip } from '@/routes/dashboard/StagedFilesStrip';
 import { useDraftStagedFiles } from './useDraftStagedFiles';
 
 vi.mock('@/lib/issue-draft-files', () => ({
   stageDraftFile: vi.fn(),
   readDraftFile: vi.fn(),
+  removeDraftFile: vi.fn().mockResolvedValue(undefined),
 }));
 
 const file = (name: string) => new File(['x'], name, { type: 'text/plain' });
@@ -75,6 +76,27 @@ describe('useDraftStagedFiles', () => {
     await act(async () => finish(ref('a.txt')));
     expect(result.current.files).toEqual([]);
     expect(result.current.refs).toEqual([]);
+    expect(removeDraftFile).toHaveBeenCalledWith(ref('a.txt'));
+  });
+
+  it('keeps a ref per file when names collide and removes only the chosen one (WR-02)', async () => {
+    let n = 0;
+    vi.mocked(stageDraftFile).mockImplementation(async (_id, f) => ({
+      ...ref(f.name),
+      path: `issue-drafts/d1/${++n}-${f.name}`,
+    }));
+    const { result } = setup();
+    await act(async () => {
+      result.current.stage(file('image.png'));
+      result.current.stage(file('image.png'));
+    });
+    expect(result.current.refs.map((r) => r.path)).toEqual([
+      'issue-drafts/d1/1-image.png',
+      'issue-drafts/d1/2-image.png',
+    ]);
+    act(() => result.current.remove(0));
+    expect(result.current.files).toHaveLength(1);
+    expect(result.current.refs.map((r) => r.path)).toEqual(['issue-drafts/d1/2-image.png']);
   });
 
   it('restore splits found files from missing names', async () => {

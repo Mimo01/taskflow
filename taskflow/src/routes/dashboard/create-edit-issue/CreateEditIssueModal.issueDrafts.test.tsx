@@ -62,6 +62,7 @@ vi.mock('@/lib/issue-draft-files', () => ({
   stageDraftFile: vi.fn(),
   readDraftFile: vi.fn(),
   removeDraftFiles: vi.fn().mockResolvedValue(undefined),
+  removeDraftFile: vi.fn().mockResolvedValue(undefined),
 }));
 
 const issueDrafts = () => Object.values(useIssueDraftsStore.getState().drafts);

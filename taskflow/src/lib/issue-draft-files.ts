@@ -1,6 +1,6 @@
 /*
  * Disk copies of staged attachments for issue drafts, under
- * $APPDATA/issue-drafts/<draftId>/<name>. Never log file names or bytes:
+ * $APPDATA/issue-drafts/<draftId>/<unique>-<name>. Never log file names or bytes:
  * drafts may contain customer data.
  */
 import { BaseDirectory, mkdir, readDir, readFile, remove, writeFile } from '@tauri-apps/plugin-fs';
@@ -24,7 +24,9 @@ function dirFor(draftId: string): string {
 
 export async function stageDraftFile(draftId: string, file: File): Promise<StagedFileRef> {
   const dir = dirFor(draftId);
-  const path = `${dir}/${safeDraftFileName(file.name)}`;
+  // Unique per copy: same-named files (pasted screenshots are all image.png) and names that
+  // only differ by case or '..' must never share a path.
+  const path = `${dir}/${crypto.randomUUID()}-${safeDraftFileName(file.name)}`;
   await mkdir(dir, { baseDir: BaseDirectory.AppData, recursive: true });
   await writeFile(path, new Uint8Array(await file.arrayBuffer()), {
     baseDir: BaseDirectory.AppData,
@@ -39,6 +41,16 @@ export async function readDraftFile(ref: StagedFileRef): Promise<File | null> {
     return new File([bytes as BlobPart], ref.name, { type: ref.type });
   } catch {
     return null;
+  }
+}
+
+/** Removes one staged copy; best effort. */
+export async function removeDraftFile(ref: StagedFileRef): Promise<void> {
+  if (!ref.path.startsWith(`${ROOT}/`) || ref.path.split('/').includes('..')) return;
+  try {
+    await remove(ref.path, { baseDir: BaseDirectory.AppData });
+  } catch {
+    // already gone
   }
 }
 

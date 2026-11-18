@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
-import { readDraftFile, stageDraftFile } from '@/lib/issue-draft-files';
+import { readDraftFile, removeDraftFile, stageDraftFile } from '@/lib/issue-draft-files';
 import type { DraftFileRef } from '@/stores/issue-drafts.store';
 
 interface Options {
@@ -10,7 +10,7 @@ interface Options {
 
 /**
  * Staged attachments for a create flow: the live File objects plus durable copies in
- * app storage (referenced by name). Never log names or bytes: drafts may hold customer data.
+ * app storage (one unique path per file, tracked by File identity, never by name). Never log names or bytes: drafts may hold customer data.
  */
 export function useDraftStagedFiles({ ensureDraftId, onChange }: Options) {
   const [files, setFiles] = useState<File[]>([]);
@@ -21,6 +21,7 @@ export function useDraftStagedFiles({ ensureDraftId, onChange }: Options) {
   const generationRef = useRef(0);
   // Files still staged: a copy that resolves after its file was removed is ignored.
   const liveRef = useRef(new Set<File>());
+  const refByFileRef = useRef(new Map<File, DraftFileRef>());
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
   const ensureRef = useRef(ensureDraftId);
@@ -41,8 +42,13 @@ export function useDraftStagedFiles({ ensureDraftId, onChange }: Options) {
     }
     stageDraftFile(draftId, file).then(
       (ref) => {
-        if (generation !== generationRef.current || !liveRef.current.has(file)) return;
-        setRefs((prev) => [...prev.filter((r) => r.name !== ref.name), ref]);
+        if (generation !== generationRef.current) return;
+        if (!liveRef.current.has(file)) {
+          void removeDraftFile(ref);
+          return;
+        }
+        refByFileRef.current.set(file, ref);
+        setRefs((prev) => [...prev, ref]);
         onChangeRef.current?.();
       },
       (err: unknown) => {
@@ -58,8 +64,13 @@ export function useDraftStagedFiles({ ensureDraftId, onChange }: Options) {
       const target = files[index];
       if (!target) return;
       liveRef.current.delete(target);
+      const ref = refByFileRef.current.get(target);
+      refByFileRef.current.delete(target);
       setFiles((prev) => prev.filter((_, i) => i !== index));
-      setRefs((prev) => prev.filter((r) => r.name !== target.name));
+      if (ref) {
+        setRefs((prev) => prev.filter((r) => r !== ref));
+        void removeDraftFile(ref);
+      }
       onChangeRef.current?.();
     },
     [files],
@@ -81,6 +92,7 @@ export function useDraftStagedFiles({ ensureDraftId, onChange }: Options) {
       }
     });
     liveRef.current = new Set(found);
+    refByFileRef.current = new Map(found.map((f, i) => [f, keptRefs[i]]));
     setFiles(found);
     setRefs(keptRefs);
     setMissing(gone);
@@ -95,6 +107,7 @@ export function useDraftStagedFiles({ ensureDraftId, onChange }: Options) {
   const reset = useCallback(() => {
     generationRef.current += 1;
     liveRef.current = new Set();
+    refByFileRef.current = new Map();
     setFiles([]);
     setRefs([]);
     setMissing([]);

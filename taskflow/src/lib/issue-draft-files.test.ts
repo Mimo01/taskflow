@@ -33,7 +33,7 @@ describe('issue-draft-files', () => {
       name: 'x.png',
       size: 3,
       type: 'image/png',
-      path: 'issue-drafts/id1/x.png',
+      path: expect.stringMatching(/^issue-drafts\/id1\/[0-9a-f-]+-x\.png$/),
     });
     const back = await readDraftFile(ref);
     expect(back?.name).toBe('x.png');
@@ -41,9 +41,22 @@ describe('issue-draft-files', () => {
     expect(new Uint8Array(await (back as File).arrayBuffer())).toEqual(new Uint8Array([1, 2, 3]));
   });
 
+  it('keeps same-named files apart (pasted screenshots are all image.png) (WR-02)', async () => {
+    const a = await stageDraftFile('id1', new File([new Uint8Array([1])], 'image.png'));
+    const b = await stageDraftFile('id1', new File([new Uint8Array([2])], 'image.png'));
+    expect(a.path).not.toBe(b.path);
+    const backA = await readDraftFile(a);
+    const backB = await readDraftFile(b);
+    expect(backA?.name).toBe('image.png');
+    expect(new Uint8Array(await (backA as File).arrayBuffer())).toEqual(new Uint8Array([1]));
+    expect(new Uint8Array(await (backB as File).arrayBuffer())).toEqual(new Uint8Array([2]));
+  });
+
   it('creates the draft dir and file under AppData-relative paths', async () => {
     await stageDraftFile('id1', new File(['a'], 'x.png'));
-    expect((await readDir('issue-drafts/id1')).map((e) => e.name)).toEqual(['x.png']);
+    const names = (await readDir('issue-drafts/id1')).map((e) => e.name);
+    expect(names).toHaveLength(1);
+    expect(names[0]).toMatch(/-x\.png$/);
   });
 
   it('rejects a non-token draft id without touching fs', async () => {
