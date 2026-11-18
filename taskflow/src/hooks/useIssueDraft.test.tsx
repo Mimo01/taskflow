@@ -87,6 +87,27 @@ describe('useIssueDraft', () => {
     unmount();
   });
 
+  it('writes an edit made before hydration once hydration finishes (WR-06)', () => {
+    hydratedSpy.mockReturnValue(false);
+    const listeners: Array<() => void> = [];
+    const finishSpy = vi
+      .spyOn(useIssueDraftsStore.persist, 'onFinishHydration')
+      .mockImplementation((cb) => {
+        listeners.push(() => cb(useIssueDraftsStore.getState()));
+        return () => {};
+      });
+    const { result } = renderHook(() => useIssueDraft({ kind: 'epic' }));
+    act(() => result.current.schedule(payload('early')));
+    act(() => vi.advanceTimersByTime(DRAFT_DEBOUNCE_MS + 10));
+    expect(drafts()).toEqual({});
+    hydratedSpy.mockReturnValue(true);
+    act(() => {
+      for (const l of listeners) l();
+    });
+    expect(Object.values(drafts())).toMatchObject([{ snapshot: { epicName: 'early' } }]);
+    finishSpy.mockRestore();
+  });
+
   it('adopt targets an existing id; adopt(null) starts fresh and cancels pending', () => {
     const { result } = renderHook(() => useIssueDraft({ kind: 'epic' }));
     act(() => result.current.adopt('abc'));

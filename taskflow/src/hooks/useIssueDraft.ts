@@ -25,6 +25,9 @@ export function useIssueDraft({ kind }: { kind: 'issue' | 'epic' }) {
   const kindRef = useRef(kind);
   kindRef.current = kind;
   const saveFailed = useIssueDraftsStore((s) => s.saveFailed);
+  // One-shot re-flush once hydration finishes, for an edit held back before it.
+  const hydrationUnsubRef = useRef<(() => void) | null>(null);
+  const flushRef = useRef<() => void>(() => {});
 
   const clearTimer = useCallback(() => {
     if (timerRef.current !== null) {
@@ -47,8 +50,18 @@ export function useIssueDraft({ kind }: { kind: 'issue' | 'epic' }) {
     clearTimer();
     const p = pendingRef.current;
     if (!p) return;
-    // Never write before hydration: an empty mount must not clobber stored drafts.
-    if (!useIssueDraftsStore.persist.hasHydrated()) return;
+    // Never write before hydration: an empty mount must not clobber stored drafts. The edit
+    // stays pending and is written as soon as hydration finishes.
+    if (!useIssueDraftsStore.persist.hasHydrated()) {
+      if (hydrationUnsubRef.current === null) {
+        hydrationUnsubRef.current = useIssueDraftsStore.persist.onFinishHydration(() => {
+          hydrationUnsubRef.current?.();
+          hydrationUnsubRef.current = null;
+          flushRef.current();
+        });
+      }
+      return;
+    }
     // No id yet and no content: nothing to save (D-12).
     if (idRef.current === null && !p.hasContent) {
       pendingRef.current = null;
@@ -70,6 +83,7 @@ export function useIssueDraft({ kind }: { kind: 'issue' | 'epic' }) {
       files: p.files,
     } as IssueDraft);
   }, [clearTimer, ensureId]);
+  flushRef.current = flush;
 
   const schedule = useCallback(
     (p: DraftPayload) => {
