@@ -1,9 +1,9 @@
 ---
 phase: 101
 slug: issue-drafts-large-create-edit-modal
-status: draft
-nyquist_compliant: false
-wave_0_complete: false
+status: complete
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-11-17
 ---
 
@@ -40,15 +40,15 @@ Filled in by the planner per task; the requirement-to-test map from RESEARCH.md 
 
 | Requirement | Behavior | Test Type | Automated Command | File Exists | Status |
 |-------------|----------|-----------|-------------------|-------------|--------|
-| UI-01 | Large two-column dialog, sticky footer, no subtasks, UI-SPEC copy | component | `npx vitest run src/routes/dashboard/create-edit-issue/` | ❌ W0 + update existing | ⬜ pending |
-| UI-02 | Create another: unticked on open, keeps fields, inline "✓ Created KEY · Open", refocus Summary | component + unit | `npx vitest run src/lib/issue-draft-snapshot.test.ts` + createAnother test | ❌ W0 | ⬜ pending |
-| DRAFT-01 | Every close with content saves a draft, no prompt; defaults-only saves none; epic dialog too | component + unit | issueDrafts test + `CreateEpicDialog.test.tsx` | ❌ W0 / extend | ⬜ pending |
-| DRAFT-02 | Independent drafts; blank form on open | store | `npx vitest run src/stores/issue-drafts.store.test.ts` | ❌ W0 | ⬜ pending |
-| DRAFT-03 | Drafts chip: hidden at 0, count, popover rows newest first | component | `npx vitest run src/components/app/DraftsChip.test.tsx` | ❌ W0 | ⬜ pending |
-| DRAFT-04 | Resume restores every field (incl. labels/fix version); stale values cleared with note | component + unit | `npx vitest run src/lib/issue-draft-snapshot.test.ts` | ❌ W0 | ⬜ pending |
-| DRAFT-05 | Staged files copied to app data, restored as File, uploaded on create | unit (mocked fs) | `npx vitest run src/lib/issue-draft-files.test.ts` | ❌ W0 | ⬜ pending |
-| DRAFT-06 | Drafts rehydrate after restart | store | `npx vitest run src/stores/issue-drafts.store.test.ts` | ❌ W0 | ⬜ pending |
-| DRAFT-07 | Discard / create success removes draft + copies; Undo; owner change clears | store + component | DraftsChip + store tests | ❌ W0 | ⬜ pending |
+| UI-01 | Large two-column dialog, sticky footer, no subtasks, UI-SPEC copy | component | `npx vitest run src/routes/dashboard/create-edit-issue/CreateEditIssueModal.layout.test.tsx src/routes/dashboard/create-edit-issue/CreateEditIssueModal.labels.test.tsx src/routes/dashboard/CreateEditIssueModal.test.tsx` | ✅ | ✅ green |
+| UI-02 | Create another: unticked on open, keeps fields, inline "✓ Created KEY · Open", refocus Summary | component + unit | `npx vitest run src/lib/issue-draft-snapshot.test.ts src/routes/dashboard/create-edit-issue/CreateEditIssueModal.createAnother.test.tsx` | ✅ | ✅ green |
+| DRAFT-01 | Every close with content saves a draft, no prompt; defaults-only saves none; epic dialog too | component + unit | `npx vitest run src/routes/dashboard/create-edit-issue/CreateEditIssueModal.issueDrafts.test.tsx src/hooks/useIssueDraft.test.tsx src/routes/dashboard/CreateEpicDialog.test.tsx` | ✅ | ✅ green |
+| DRAFT-02 | Independent drafts; blank form on open | store | `npx vitest run src/stores/issue-drafts.store.test.ts src/stores/create-modal.store.test.ts` | ✅ | ✅ green |
+| DRAFT-03 | Drafts chip: hidden at 0, count, popover rows newest first | component | `npx vitest run src/components/app/DraftsChip.test.tsx` | ✅ | ✅ green |
+| DRAFT-04 | Resume restores every field (incl. labels/fix version); stale values cleared with note | component + unit | `npx vitest run src/lib/issue-draft-snapshot.test.ts src/routes/dashboard/create-edit-issue/CreateEditIssueModal.resume.test.tsx` | ✅ | ✅ green |
+| DRAFT-05 | Staged files copied to app data, restored as File, uploaded on create | unit (mocked fs) | `npx vitest run src/lib/issue-draft-files.test.ts` | ✅ | ✅ green |
+| DRAFT-06 | Drafts rehydrate after restart | store | `npx vitest run src/stores/issue-drafts.store.test.ts` | ✅ | ✅ green |
+| DRAFT-07 | Discard / create success removes draft + copies; Undo; owner change clears | store + component | `npx vitest run src/components/app/DraftsChip.test.tsx src/stores/issue-drafts.store.test.ts` | ✅ | ✅ green |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -56,13 +56,13 @@ Filled in by the planner per task; the requirement-to-test map from RESEARCH.md 
 
 ## Wave 0 Requirements
 
-- [ ] `src/stores/issue-drafts.store.test.ts`
-- [ ] `src/lib/issue-draft-snapshot.test.ts` (content gate, kept fields, validate)
-- [ ] `src/lib/issue-draft-files.test.ts` (mock `@tauri-apps/plugin-fs`)
-- [ ] `src/components/app/DraftsChip.test.tsx`
-- [ ] Modal layout / createAnother / issueDrafts component tests
-- [ ] Update existing modal test files for the renamed UI-SPEC copy
-- [ ] Framework install: none (vitest present)
+- [x] `src/stores/issue-drafts.store.test.ts`
+- [x] `src/lib/issue-draft-snapshot.test.ts` (content gate, kept fields, validate)
+- [x] `src/lib/issue-draft-files.test.ts` (mock `@tauri-apps/plugin-fs`)
+- [x] `src/components/app/DraftsChip.test.tsx`
+- [x] Modal layout / createAnother / issueDrafts component tests
+- [x] Update existing modal test files for the renamed UI-SPEC copy
+- [x] Framework install: none (vitest present)
 
 ---
 
@@ -77,11 +77,13 @@ Filled in by the planner per task; the requirement-to-test map from RESEARCH.md 
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 120s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references
+- [x] No watch-mode flags
+- [x] Feedback latency < 120s
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Automated gate (101-12 Task 1):** `npm test` 451 files / 6730 tests green; `tsc --noEmit` clean; `cargo check` clean. `biome check ./src` exits 1 on a pre-existing baseline (1 error in `src/lib/internalLinks.test.ts` format, plus warnings in files untouched by phase 101); the only phase-touched file flagged is `TopBar.tsx` (warning on the pre-existing notification-panel `useEffect`, not the Drafts chip). Manual checks (restart persistence, Edit round-trip, visual) pending user sign-off in 101-12 Task 2.
+
+**Approval:** automated complete; manual pending
