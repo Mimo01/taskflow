@@ -396,10 +396,10 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 101-04-PLAN.md — (TDD) snapshot rules: content gate, kept fields, round-trip, stale validation
-- [ ] 101-05-PLAN.md — LabelsField + FixVersionField, shared version ordering + versions hook
-- [ ] 101-06-PLAN.md — AppLayout on create-modal store, global CreateEpicDialog, account-change purge
-- [ ] 101-07-PLAN.md — TopBar Drafts chip + popover (resume, discard with undo)
+- [x] 101-04-PLAN.md — (TDD) snapshot rules: content gate, kept fields, round-trip, stale validation
+- [x] 101-05-PLAN.md — LabelsField + FixVersionField, shared version ordering + versions hook
+- [x] 101-06-PLAN.md — AppLayout on create-modal store, global CreateEpicDialog, account-change purge
+- [x] 101-07-PLAN.md — TopBar Drafts chip + popover (resume, discard with undo)
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
@@ -442,7 +442,7 @@ Plans:
 | 98. Editor Shell | 15/16 | In Progress|  |
 | 99. Mentions, Media & Smart Input | 14/14 | Complete    | 2026-11-17 |
 | 100. Host Adoption & Editing Workflow | 9/9 | Complete    | 2026-11-17 |
-| 101. Issue Drafts & Large Create/Edit Modal | 3/12 | In Progress|  |
+| 101. Issue Drafts & Large Create/Edit Modal | 7/12 | In Progress|  |
 | 102. Polished Surfaces | 0/TBD | Not started | - |
 
 ### Shipped milestones
