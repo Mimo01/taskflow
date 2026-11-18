@@ -196,7 +196,7 @@ vi.mock(
 // --- Imports (after mocks) ---
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -629,5 +629,44 @@ describe('review fixes (CR-01, WR-04)', () => {
     await waitFor(() => expect(screen.queryByLabelText('Edit comment')).toBeNull());
     await new Promise((r) => setTimeout(r, 700));
     expect(stored(K1)).toBeUndefined();
+  });
+});
+
+describe('tech-debt fixes (WR-03, failed rich save)', () => {
+  it('WR-03: repeated Cmd+Enter while a save is in flight saves once', async () => {
+    let resolve: () => void = () => {};
+    mockUpdateComment.mockImplementation(() => new Promise<void>((r) => (resolve = r)) as never);
+    renderView();
+    const editor = await startEdit();
+    fireEvent.change(editor, { target: { value: 'Changed' } });
+    fireEvent.keyDown(editor, { key: 'Enter', metaKey: true });
+    fireEvent.keyDown(editor, { key: 'Enter', metaKey: true });
+    fireEvent.keyDown(editor, { key: 'Enter', metaKey: true });
+    await waitFor(() => expect(mockUpdateComment).toHaveBeenCalledTimes(1));
+    await act(async () => resolve());
+    await waitFor(() => expect(screen.queryByLabelText('Edit comment')).toBeNull());
+  });
+
+  it('WR-03: a failed save lets the next Cmd+Enter try again', async () => {
+    mockUpdateComment.mockRejectedValueOnce(new Error('down'));
+    renderView();
+    const editor = await startEdit();
+    fireEvent.change(editor, { target: { value: 'Changed' } });
+    fireEvent.keyDown(editor, { key: 'Enter', metaKey: true });
+    await screen.findByText(/Your text is kept as a draft/);
+    fireEvent.keyDown(editor, { key: 'Enter', metaKey: true });
+    await waitFor(() => expect(mockUpdateComment).toHaveBeenCalledTimes(2));
+  });
+
+  it('Save is disabled while the rich editor cannot save safely', async () => {
+    renderView();
+    const editor = await startEdit();
+    fireEvent.change(editor, { target: { value: 'Changed' } });
+    const save = screen.getByRole('button', { name: /^Save/ });
+    expect(save).not.toBeDisabled();
+    act(() => lastStubProps.current?.onSaveBlockedChange?.(true));
+    expect(save).toBeDisabled();
+    act(() => lastStubProps.current?.onSaveBlockedChange?.(false));
+    expect(save).not.toBeDisabled();
   });
 });

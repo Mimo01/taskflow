@@ -58,6 +58,8 @@ export function CommentComposer({
     preloadWikiEditor().catch(() => {});
   }, []);
 
+  // The rich editor can't convert the latest edit; `text` is the last good text, so no send.
+  const [saveBlocked, setSaveBlocked] = useState(false);
   const handleRef = useRef<WikiEditorHandle | null>(null);
   const [editorReady, setEditorReady] = useState(false);
   const setEditorHandle = useCallback((handle: WikiEditorHandle | null) => {
@@ -106,7 +108,7 @@ export function CommentComposer({
   }
 
   function send(value: string = text) {
-    if (!value.trim() || mutation.isPending) return;
+    if (!value.trim() || mutation.isPending || saveBlocked) return;
     mutation.mutate(value.trim());
   }
 
@@ -130,6 +132,7 @@ export function CommentComposer({
             host={host}
             maxHeightClass={COMMENT_EDITOR_MAX_HEIGHT}
             onSubmit={send}
+            onSaveBlockedChange={setSaveBlocked}
             onCancel={() => handleRef.current?.blur()}
           />
         ) : (
@@ -157,7 +160,7 @@ export function CommentComposer({
             primaryLabel="Comment"
             pendingLabel="Posting…"
             pending={mutation.isPending}
-            primaryDisabled={!text.trim()}
+            primaryDisabled={!text.trim() || saveBlocked}
             onPrimary={() => send()}
           />
         </>

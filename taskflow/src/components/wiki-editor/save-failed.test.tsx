@@ -17,3 +17,22 @@ describe('failed save', () => {
     expect(onChange).toHaveBeenCalledWith(ta.value);
   });
 });
+
+describe('failed save blocks submit', () => {
+  it('reports blocked, swallows Cmd+Enter, and unblocks after Fix in source', () => {
+    const onSubmit = vi.fn();
+    const onSaveBlockedChange = vi.fn();
+    renderEditor({ value: 'hello', onChange: vi.fn(), onSubmit, onSaveBlockedChange });
+    expect(onSaveBlockedChange).not.toHaveBeenCalled();
+    const editor = liveEditor();
+    act(() => typeAt(editor, 1, 'h1. '));
+    expect(onSaveBlockedChange).toHaveBeenLastCalledWith(true);
+    fireEvent.keyDown(editor.view.dom, { key: 'Enter', metaKey: true });
+    expect(onSubmit).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Fix in source' }));
+    expect(onSaveBlockedChange).toHaveBeenLastCalledWith(false);
+    const ta = textarea() as HTMLTextAreaElement;
+    fireEvent.keyDown(ta, { key: 'Enter', metaKey: true });
+    expect(onSubmit).toHaveBeenCalledWith(ta.value);
+  });
+});

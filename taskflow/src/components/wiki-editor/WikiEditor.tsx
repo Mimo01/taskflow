@@ -68,6 +68,7 @@ export default function WikiEditor({
   placeholder,
   autoFocus,
   onSubmit,
+  onSaveBlockedChange,
   onCancel,
   ref,
 }: WikiEditorProps) {
@@ -82,7 +83,13 @@ export default function WikiEditor({
   const [richAllowed, setRichAllowed] = useState(false);
   const [sourceText, setSourceText] = useState(value);
   const [notice, setNotice] = useState<string | null>(initial.forced ? FORCED_NOTICE : null);
-  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saveError, setSaveErrorState] = useState<string | null>(null);
+  // Mirrors saveError synchronously so a Cmd+Enter right after a failed keystroke sees it.
+  const saveErrorRef = useRef<string | null>(null);
+  const setSaveError = (error: string | null) => {
+    saveErrorRef.current = error;
+    setSaveErrorState(error);
+  };
   const [previewVisible, setPreviewVisible] = useState(true);
   const [linkOpen, setLinkOpen] = useState(false);
   const [attachOpen, setAttachOpen] = useState(false);
@@ -102,11 +109,11 @@ export default function WikiEditor({
   });
   const stateRef = useRef({ mode, forced });
   const pendingFocusRef = useRef<{ mode: Mode; resetCaret: boolean } | null>(null);
-  const cbRef = useRef({ onChange, onVerdict, onSubmit, onCancel });
+  const cbRef = useRef({ onChange, onVerdict, onSubmit, onCancel, onSaveBlockedChange });
   const sourceTextRef = useRef(sourceText);
 
   useEffect(() => {
-    cbRef.current = { onChange, onVerdict, onSubmit, onCancel };
+    cbRef.current = { onChange, onVerdict, onSubmit, onCancel, onSaveBlockedChange };
     sourceTextRef.current = sourceText;
     stateRef.current = { mode, forced };
   });
@@ -176,6 +183,22 @@ export default function WikiEditor({
   useEffect(() => {
     editor?.storage.wikiHost?.set(host, queryClient);
   });
+
+  // Rich edits that can't be saved leave the host holding the last good text: tell it.
+  const saveBlocked = mode === 'rich' && saveError !== null;
+  const reportedBlockedRef = useRef(false);
+  useEffect(() => {
+    if (saveBlocked === reportedBlockedRef.current) return;
+    reportedBlockedRef.current = saveBlocked;
+    cbRef.current.onSaveBlockedChange?.(saveBlocked);
+  }, [saveBlocked]);
+  useEffect(
+    () => () => {
+      // An editor unmounted while blocked must not leave its host blocked.
+      if (reportedBlockedRef.current) cbRef.current.onSaveBlockedChange?.(false);
+    },
+    [],
+  );
 
   // Report on mount and on every mode change (dev tools only).
   // biome-ignore lint/correctness/useExhaustiveDependencies: report reads refs
@@ -407,6 +430,8 @@ export default function WikiEditor({
       }
       e.preventDefault();
       e.stopPropagation();
+      // Never submit the stale last-good text; the banner tells the user to fix it in source.
+      if (stateRef.current.mode === 'rich' && saveErrorRef.current !== null) return;
       submit(stateRef.current.mode === 'source' ? sourceTextRef.current : lastEmittedRef.current);
     } else if (e.shiftKey && key === 'm') {
       e.preventDefault();

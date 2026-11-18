@@ -22,9 +22,10 @@ import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { useEditorDraft } from '@/hooks/useEditorDraft';
 import { useMentionUserMap } from '@/hooks/useMentionUserMap';
 import { useResizable } from '@/hooks/useResizable';
+import { withDraftNote } from '@/lib/draft-error';
 import { draftKey } from '@/lib/draft-keys';
 import { refreshIssueDetail } from '@/lib/issue-detail-refresh';
-import type { JiraComment, JiraIssue, TimelineFilter } from '@/services/jira';
+import type { JiraAttachment, JiraComment, JiraIssue, TimelineFilter } from '@/services/jira';
 import {
   deleteComment,
   fetchComments,
@@ -63,6 +64,9 @@ import { useIssueEditorHost } from './issue-detail/useIssueEditorHost';
 import { useLinkedMRs } from './issue-detail/useLinkedMRs';
 import type { AttachmentMap, UserMap } from './WikiRenderer';
 import { WikiRenderer } from './WikiRenderer';
+
+// Stable empty list so the editor host keeps its identity on issues without attachments.
+const NO_ATTACHMENTS: JiraAttachment[] = [];
 
 export interface IssueDetailViewProps {
   issueKey: string;
@@ -373,6 +377,7 @@ export function IssueDetailView({
     setDeleteError(null);
   }
 
+  const editInFlightRef = useRef(false);
   const editMutation = useMutation({
     mutationFn: async ({ commentId, body }: { commentId: string; body: string }) => {
       const token = await readSecret('jira-pat').catch(() => null);
@@ -392,7 +397,11 @@ export function IssueDetailView({
       queryClient.invalidateQueries({ queryKey: ['jira-issue-comments', issueKey, jiraBaseUrl] });
     },
     onError: () => {
-      setEditError("Couldn't save your changes. Your text is kept as a draft, try again.");
+      // Fixed copy, no raw server text (100 UI-SPEC); the Issue modal shows Jira's own error.
+      setEditError(withDraftNote(null));
+    },
+    onSettled: () => {
+      editInFlightRef.current = false;
     },
   });
 
@@ -478,7 +487,9 @@ export function IssueDetailView({
 
   const handleSaveEdit = (commentId: string, submitted?: string) => {
     const text = (submitted ?? editTextRef.current).trim();
-    if (!text) return;
+    // The Save button disables on isPending, but repeated Cmd+Enter lands before it re-renders.
+    if (!text || editInFlightRef.current) return;
+    editInFlightRef.current = true;
     editMutateRef.current({ commentId, body: text });
   };
 
@@ -497,7 +508,7 @@ export function IssueDetailView({
 
   const editorHost = useIssueEditorHost({
     issueKey: issueKey ?? null,
-    attachments: issue?.fields.attachment ?? [],
+    attachments: issue?.fields.attachment ?? NO_ATTACHMENTS,
     userMap,
     referenceTexts: [issue?.fields.description ?? '', ...commentTexts],
     onOpenIssue,
@@ -801,7 +812,7 @@ export function IssueDetailView({
             key={issueKey}
             issueKey={issueKey}
             jiraBaseUrl={jiraBaseUrl ?? ''}
-            attachments={issue?.fields.attachment ?? []}
+            attachments={issue?.fields.attachment ?? NO_ATTACHMENTS}
             userMap={userMap}
             referenceTexts={[issue?.fields.description ?? '', ...commentTexts]}
             onOpenIssue={onOpenIssue}
@@ -1015,6 +1026,8 @@ function CommentCard({
   const [showMenu, setShowMenu] = useState(false);
   const [menuPosition, setMenuPosition] = useState<{ top: number; right: number } | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  // The rich editor can't convert the latest edit; editText is the last good text, so no Save.
+  const [saveBlocked, setSaveBlocked] = useState(false);
 
   // Close menu on outside click
   useEffect(() => {
@@ -1116,6 +1129,7 @@ function CommentCard({
             aria-label="Edit comment"
             host={editorHost}
             onSubmit={(t) => onSaveEdit(comment.id, t)}
+            onSaveBlockedChange={setSaveBlocked}
             onCancel={onCancelEdit}
             maxHeightClass={COMMENT_EDITOR_MAX_HEIGHT}
           />
@@ -1131,7 +1145,7 @@ function CommentCard({
             primaryLabel="Save"
             pendingLabel="Saving…"
             pending={!!editPending}
-            primaryDisabled={!editText.trim()}
+            primaryDisabled={!editText.trim() || saveBlocked}
             onPrimary={() => onSaveEdit(comment.id)}
           />
         </div>

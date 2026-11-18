@@ -33,6 +33,12 @@ vi.mock('@/services/jira', async (importOriginal) => ({
   fetchIssuePriorityOptions: vi.fn().mockResolvedValue([]),
   fetchProjectPriorityOptions: vi.fn().mockResolvedValue([]),
 }));
+vi.mock('@/services/jira/users', () => ({
+  fetchJiraUserByName: vi.fn(async (_base: string, _tok: string, name: string) => ({
+    name,
+    displayName: `User ${name}`,
+  })),
+}));
 vi.mock('@/services/jira/versions', () => ({
   fetchFixVersions: vi.fn().mockResolvedValue([{ id: '77', name: '1.0', released: false }]),
 }));
@@ -800,5 +806,50 @@ describe('CreateEpicDialog', () => {
       expect((input as HTMLInputElement).value).toBe('Placeholder epic');
       await waitFor(() => expect(screen.queryByRole('listbox', { name: 'Drafts' })).toBeNull());
     });
+  });
+});
+
+describe('CreateEpicDialog tech-debt fixes', () => {
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    await mockCreatemeta();
+    useIssueDraftsStore.setState({ drafts: {}, owner: null, saveFailed: false });
+    vi.spyOn(useIssueDraftsStore.persist, 'hasHydrated').mockReturnValue(true);
+  });
+  afterEach(() => vi.restoreAllMocks());
+
+  async function renderOpen() {
+    const { createIssue } = await import('@/services/jira');
+    const { CreateEpicDialog } = await import('./CreateEpicDialog');
+    render(
+      <QueryClientProvider client={makeClient()}>
+        <CreateEpicDialog open={true} onClose={vi.fn()} />
+      </QueryClientProvider>,
+    );
+    fireEvent.change(screen.getByRole('textbox', { name: /epic name/i }), {
+      target: { value: 'E' },
+    });
+    return { createIssue: createIssue as ReturnType<typeof vi.fn> };
+  }
+
+  it('resolves [~user] mentions into the editor host userMap', async () => {
+    await renderOpen();
+    fireEvent.change(screen.getByLabelText('Description'), { target: { value: 'Ping [~jdoe]' } });
+    await waitFor(() => expect(lastStubProps.current?.host?.userMap?.jdoe).toBe('User jdoe'));
+  });
+
+  it('Create epic is disabled while the rich editor cannot save safely', async () => {
+    const { createIssue } = await renderOpen();
+    const create = screen.getByRole('button', { name: /^create epic$/i });
+    await waitFor(() => expect(create).toBeEnabled());
+    act(() => lastStubProps.current?.onSaveBlockedChange?.(true));
+    expect(create).toBeDisabled();
+    fireEvent.keyDown(screen.getByRole('textbox', { name: /epic name/i }), {
+      key: 'Enter',
+      metaKey: true,
+    });
+    expect(createIssue).not.toHaveBeenCalled();
+    act(() => lastStubProps.current?.onSaveBlockedChange?.(false));
+    expect(create).toBeEnabled();
   });
 });

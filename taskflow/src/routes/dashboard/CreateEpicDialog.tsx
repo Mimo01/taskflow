@@ -9,6 +9,7 @@ import type { WikiEditorHandle, WikiEditorHost } from '@/components/wiki-editor/
 import { WikiEditorLazy } from '@/components/wiki-editor/WikiEditorLazy';
 import { useDraftStagedFiles } from '@/hooks/useDraftStagedFiles';
 import { useIssueDraft } from '@/hooks/useIssueDraft';
+import { useMentionUserMap } from '@/hooks/useMentionUserMap';
 import { useProjectFixVersions } from '@/hooks/useProjectFixVersions';
 import { removeDraftFiles } from '@/lib/issue-draft-files';
 import {
@@ -303,14 +304,27 @@ export function CreateEpicDialog({ open, onClose, resumeDraftId = null }: Create
     closeSilently();
   };
 
+  // Same mention resolution as the Issue modal, so [~user] shows a name chip, not a raw username.
+  const initialUserMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    if (state.selectedAssignee)
+      map[state.selectedAssignee.name] = state.selectedAssignee.displayName;
+    return map;
+  }, [state.selectedAssignee]);
+  const descriptionTexts = useMemo(() => [state.description], [state.description]);
+  const userMap = useMentionUserMap(initialUserMap, descriptionTexts, jiraBaseUrl ?? '');
+
   const host = useMemo<WikiEditorHost>(
     () => ({
       projectKey: projectKey || null,
+      userMap,
       staged: true,
       stageFile: (f) => staged.stage(f),
     }),
-    [projectKey, staged.stage],
+    [projectKey, userMap, staged.stage],
   );
+  // The rich editor can't convert the latest edit; state.description is stale, so no create.
+  const [descriptionSaveBlocked, setDescriptionSaveBlocked] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -362,7 +376,8 @@ export function CreateEpicDialog({ open, onClose, resumeDraftId = null }: Create
     (!labelsRequired || state.labels.length > 0) &&
     (!fixVersionsRequired || state.fixVersions.length > 0) &&
     !mutation.isPending &&
-    !hasCreatedWithError;
+    !hasCreatedWithError &&
+    !descriptionSaveBlocked;
 
   const trySubmit = () => {
     if (!state.summary.trim()) {
@@ -516,6 +531,7 @@ export function CreateEpicDialog({ open, onClose, resumeDraftId = null }: Create
             placeholder="Optional description"
             aria-label="Description"
             host={host}
+            onSaveBlockedChange={setDescriptionSaveBlocked}
             onSubmit={(text) => {
               flushSync(() =>
                 editDispatch({ type: 'SET_FIELD', field: 'description', value: text }),

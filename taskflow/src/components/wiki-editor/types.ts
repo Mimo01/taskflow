@@ -72,6 +72,12 @@ export interface WikiEditorProps {
    * Receives the current wiki text.
    */
   onSubmit?: (text: string) => void;
+  /**
+   * True while a rich-mode edit can't be converted safely: the host's value is the last good
+   * text, not what the user sees. Hosts disable their Save/Create action while blocked;
+   * Cmd+Enter is swallowed by the editor itself. Fires only on change.
+   */
+  onSaveBlockedChange?: (blocked: boolean) => void;
   /** Esc, after any open popover or bubble menu has consumed its own Esc. */
   onCancel?: () => void;
   ref?: React.Ref<WikiEditorHandle>;

@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { apiFetch } from '@/lib/apiFetch';
 import { fetchIssueDescription } from '@/services/jira';
 import { DRAFT_DEBOUNCE_MS } from '@/hooks/useEditorDraft';
+import { lastStubProps } from '@/test/wiki-editor-stub';
 import { useDraftsStore } from '@/stores/drafts.store';
 import { CreateEditIssueModal } from './CreateEditIssueModal';
 
@@ -245,7 +246,7 @@ describe('edit mode description draft', () => {
 
   it('a failed save keeps the draft and shows the draft-kept copy', async () => {
     const { bulkUpdateIssue } = await import('@/services/jira');
-    vi.mocked(bulkUpdateIssue).mockRejectedValueOnce(new Error('boom'));
+    vi.mocked(bulkUpdateIssue).mockRejectedValueOnce(new Error('Field Account is required.'));
     useDraftsStore.getState().setDraft(KEY, {
       kind: 'description',
       issueKey: 'PROJ-1',
@@ -255,13 +256,26 @@ describe('edit mode description draft', () => {
     const { onClose } = renderModal();
     await screen.findByText('Draft saved');
     fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+    // WR-02: Jira's own reason stays visible, with the draft note after it.
     expect(
-      await screen.findByText(
-        "Couldn't save your changes. Your text is kept as a draft, try again.",
-      ),
+      await screen.findByText('Field Account is required. Your text is kept as a draft.'),
     ).toBeInTheDocument();
     expect(onClose).not.toHaveBeenCalled();
     expect(useDraftsStore.getState().drafts[KEY]?.text).toBe('Draft text');
+  });
+
+  it('Save changes is disabled while the rich editor cannot save safely', async () => {
+    const { bulkUpdateIssue } = await import('@/services/jira');
+    renderModal();
+    const save = await screen.findByRole('button', { name: 'Save changes' });
+    await waitFor(() => expect(save).toBeEnabled());
+    act(() => lastStubProps.current?.onSaveBlockedChange?.(true));
+    expect(save).toBeDisabled();
+    vi.mocked(bulkUpdateIssue).mockClear();
+    fireEvent.click(save);
+    expect(bulkUpdateIssue).not.toHaveBeenCalled();
+    act(() => lastStubProps.current?.onSaveBlockedChange?.(false));
+    expect(save).toBeEnabled();
   });
 
   it('clears all drafts for the issue when the live fetch 404s', async () => {

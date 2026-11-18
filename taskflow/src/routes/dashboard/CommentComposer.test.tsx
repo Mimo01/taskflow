@@ -154,6 +154,15 @@ describe('CommentComposer — editor wiring', () => {
     expect(commentButton()).toBeEnabled();
   });
 
+  it('disables Comment and ignores the click while the rich editor cannot save safely', () => {
+    renderComposer();
+    fireEvent.change(editor(), { target: { value: 'hi' } });
+    act(() => lastStubProps.current?.onSaveBlockedChange?.(true));
+    expect(commentButton()).toBeDisabled();
+    act(() => lastStubProps.current?.onSaveBlockedChange?.(false));
+    expect(commentButton()).toBeEnabled();
+  });
+
   it('labels the button Comment (not Send)', () => {
     renderComposer();
     expect(screen.queryByRole('button', { name: /send/i })).not.toBeInTheDocument();

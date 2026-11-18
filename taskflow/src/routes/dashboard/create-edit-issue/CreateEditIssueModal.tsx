@@ -12,10 +12,11 @@ import { useDraftStagedFiles } from '@/hooks/useDraftStagedFiles';
 import { useEditorDraft } from '@/hooks/useEditorDraft';
 import { useIssueDraft } from '@/hooks/useIssueDraft';
 import { useMentionUserMap } from '@/hooks/useMentionUserMap';
+import { withDraftNote } from '@/lib/draft-error';
 import { draftKey } from '@/lib/draft-keys';
 import { removeDraftFiles } from '@/lib/issue-draft-files';
 import { hasUserContent, keptFieldsAfterCreate, toIssueSnapshot } from '@/lib/issue-draft-snapshot';
-import { fetchIssueDescription } from '@/services/jira';
+import { fetchIssueDescription, type JiraAttachment } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useDraftsStore } from '@/stores/drafts.store';
@@ -35,6 +36,9 @@ import { usePriorityOptions } from './usePriorityOptions';
 // ── Types ────────────────────────────────────────────────────────────────────
 
 export type { EditInitialValues } from './useCreateEditForm';
+
+// Stable empty list so the live editor host keeps its identity (IN-01).
+const NO_ATTACHMENTS: JiraAttachment[] = [];
 
 export interface CreateEditIssueModalProps {
   open: boolean;
@@ -169,6 +173,8 @@ export function CreateEditIssueModal({
   // ── Description draft (edit mode): base, live stale check, restore ────────
   const [descriptionBase, setDescriptionBase] = useState(initialValues?.description ?? '');
   const [discardOpen, setDiscardOpen] = useState(false);
+  // The rich editor can't convert the latest edit; state.description is stale, so no submit.
+  const [descriptionSaveBlocked, setDescriptionSaveBlocked] = useState(false);
   const hydratedAtOpenRef = useRef(false);
   const descriptionRef = useRef(state.description);
   descriptionRef.current = state.description;
@@ -284,7 +290,7 @@ export function CreateEditIssueModal({
   const liveHost = useIssueEditorHost({
     issueKey: editIssueKey ?? null,
     projectKey,
-    attachments: initialValues?.attachments ?? [],
+    attachments: initialValues?.attachments ?? NO_ATTACHMENTS,
     userMap,
     referenceTexts: [],
   });
@@ -520,10 +526,8 @@ export function CreateEditIssueModal({
       dispatch({
         type: 'SET_FIELD',
         field: 'apiError',
-        value:
-          msg && dirty
-            ? "Couldn't save your changes. Your text is kept as a draft, try again."
-            : msg || null,
+        // Keep the real Jira error (missing field, permission, ...); add the draft note after it.
+        value: msg && dirty ? withDraftNote(msg) : msg || null,
       });
     },
   });
@@ -541,7 +545,8 @@ export function CreateEditIssueModal({
     (!labelsRequired || state.labels.length > 0) &&
     (!fixVersionsRequired || isSubtask || state.fixVersions.length > 0) &&
     !isPending &&
-    !hasCreatedWithError;
+    !hasCreatedWithError &&
+    !descriptionSaveBlocked;
 
   // Cmd+Enter from any field: same guard as the primary button (T-100-15).
   function trySubmit() {
@@ -731,6 +736,7 @@ export function CreateEditIssueModal({
             preset="full"
             aria-label="Description"
             host={host}
+            onSaveBlockedChange={setDescriptionSaveBlocked}
             onSubmit={(text) => {
               flushSync(() => dispatch({ type: 'SET_FIELD', field: 'description', value: text }));
               trySubmit();
