@@ -146,8 +146,13 @@ export function CreateEpicDialog({ open, onClose, resumeDraftId = null }: Create
     creatmetaLoading,
     issueTypesLoading,
   });
+  // Same rule as buildEpicCreateFields and labelsOffered: unknown (loading or empty) createmeta
+  // keeps the row visible, so a value that will be sent can always be seen and cleared.
   const storyPointsOffered =
-    !!storyPointsFieldKey && (creatmetaFields ?? []).some((f) => f.fieldId === storyPointsFieldKey);
+    !!storyPointsFieldKey &&
+    (!creatmetaFields ||
+      creatmetaFields.length === 0 ||
+      creatmetaFields.some((f) => f.fieldId === storyPointsFieldKey));
 
   const revokePreviews = useCallback(() => {
     for (const url of previewUrlsRef.current) URL.revokeObjectURL(url);
