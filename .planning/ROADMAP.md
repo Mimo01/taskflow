@@ -403,7 +403,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 101-08-PLAN.md — large two-column modal shell + sidebar, UI-SPEC copy, Edit labels tests
+- [x] 101-08-PLAN.md — large two-column modal shell + sidebar, UI-SPEC copy, Edit labels tests
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
@@ -442,7 +442,7 @@ Plans:
 | 98. Editor Shell | 15/16 | In Progress|  |
 | 99. Mentions, Media & Smart Input | 14/14 | Complete    | 2026-11-17 |
 | 100. Host Adoption & Editing Workflow | 9/9 | Complete    | 2026-11-17 |
-| 101. Issue Drafts & Large Create/Edit Modal | 7/12 | In Progress|  |
+| 101. Issue Drafts & Large Create/Edit Modal | 8/12 | In Progress|  |
 | 102. Polished Surfaces | 0/TBD | Not started | - |
 
 ### Shipped milestones
