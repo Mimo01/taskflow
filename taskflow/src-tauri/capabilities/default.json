@@ -17,6 +17,30 @@
     "stronghold:default",
     "store:default",
     {
+      "identifier": "fs:allow-mkdir",
+      "allow": [{ "path": "$APPDATA/issue-drafts" }, { "path": "$APPDATA/issue-drafts/**" }]
+    },
+    {
+      "identifier": "fs:allow-write-file",
+      "allow": [{ "path": "$APPDATA/issue-drafts" }, { "path": "$APPDATA/issue-drafts/**" }]
+    },
+    {
+      "identifier": "fs:allow-read-file",
+      "allow": [{ "path": "$APPDATA/issue-drafts" }, { "path": "$APPDATA/issue-drafts/**" }]
+    },
+    {
+      "identifier": "fs:allow-remove",
+      "allow": [{ "path": "$APPDATA/issue-drafts" }, { "path": "$APPDATA/issue-drafts/**" }]
+    },
+    {
+      "identifier": "fs:allow-exists",
+      "allow": [{ "path": "$APPDATA/issue-drafts" }, { "path": "$APPDATA/issue-drafts/**" }]
+    },
+    {
+      "identifier": "fs:allow-read-dir",
+      "allow": [{ "path": "$APPDATA/issue-drafts" }, { "path": "$APPDATA/issue-drafts/**" }]
+    },
+    {
       "identifier": "http:allow-fetch",
       "allow": [{ "url": "https://**" }, { "url": "http://**" }]
     },
