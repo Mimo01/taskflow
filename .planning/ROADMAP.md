@@ -441,11 +441,11 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 102-03-PLAN.md — Collapsible comment composer (expand on focus/Reply) (wave 2)
-- [ ] 102-06-PLAN.md — Create epic on the two-column shell with Epic sidebar and drafts (wave 2)
-- [ ] 102-07-PLAN.md — Bulk create subtasks on the one-column shell (wave 2)
-- [ ] 102-08-PLAN.md — Edit release on the two-column shell with plain textareas and shared Switch (wave 2)
-- [ ] 102-09-PLAN.md — Issue modal adopts ModalShell + sentence-case CTAs (wave 2)
+- [x] 102-03-PLAN.md — Collapsible comment composer (expand on focus/Reply) (wave 2)
+- [x] 102-06-PLAN.md — Create epic on the two-column shell with Epic sidebar and drafts (wave 2)
+- [x] 102-07-PLAN.md — Bulk create subtasks on the one-column shell (wave 2)
+- [x] 102-08-PLAN.md — Edit release on the two-column shell with plain textareas and shared Switch (wave 2)
+- [x] 102-09-PLAN.md — Issue modal adopts ModalShell + sentence-case CTAs (wave 2)
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
@@ -463,7 +463,7 @@ Plans:
 | 99. Mentions, Media & Smart Input | 14/14 | Complete    | 2026-11-17 |
 | 100. Host Adoption & Editing Workflow | 9/9 | Complete    | 2026-11-17 |
 | 101. Issue Drafts & Large Create/Edit Modal | 12/12 | Complete    | 2026-11-18 |
-| 102. Polished Surfaces | 4/10 | In Progress|  |
+| 102. Polished Surfaces | 9/10 | In Progress|  |
 
 ### Shipped milestones
 
