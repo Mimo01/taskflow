@@ -434,10 +434,10 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 102-01-PLAN.md — Shared field surface on the wiki editor frame + extracted ModalShell (wave 1)
-- [ ] 102-02-PLAN.md — Shared CommentActionRow + comment edit adoption and height cap (wave 1)
-- [ ] 102-04-PLAN.md — Epic data layer: IssueType 'Epic', sidebar-aware epic drafts + sanitizer, payload builder (wave 1)
-- [ ] 102-05-PLAN.md — Shared priority-options hook, epic-name exclusion, ModalSidebar epic variant (wave 1)
+- [x] 102-01-PLAN.md — Shared field surface on the wiki editor frame + extracted ModalShell (wave 1)
+- [x] 102-02-PLAN.md — Shared CommentActionRow + comment edit adoption and height cap (wave 1)
+- [x] 102-04-PLAN.md — Epic data layer: IssueType 'Epic', sidebar-aware epic drafts + sanitizer, payload builder (wave 1)
+- [x] 102-05-PLAN.md — Shared priority-options hook, epic-name exclusion, ModalSidebar epic variant (wave 1)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -463,7 +463,7 @@ Plans:
 | 99. Mentions, Media & Smart Input | 14/14 | Complete    | 2026-11-17 |
 | 100. Host Adoption & Editing Workflow | 9/9 | Complete    | 2026-11-17 |
 | 101. Issue Drafts & Large Create/Edit Modal | 12/12 | Complete    | 2026-11-18 |
-| 102. Polished Surfaces | 0/TBD | Not started | - |
+| 102. Polished Surfaces | 4/10 | In Progress|  |
 
 ### Shipped milestones
 
