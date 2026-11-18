@@ -1,15 +1,12 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { act, fireEvent, render, waitFor } from '@testing-library/react';
+import { fireEvent, render, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { useSidebarOverlayStore } from '@/stores/sidebar-overlay.store';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Module-level variable so vi.mock factory can close over it (vi.mock is hoisted)
 let mockAioEnabled = false;
 let mockSelectedAioProjectKey: string | null = null;
 let mockTempoEnabled = false;
-const mockToggleSidebarCollapsed = vi.fn();
-let mockSidebarCollapsed = false;
 
 // Mock NavLink as a plain anchor for test isolation
 vi.mock('react-router-dom', async (importOriginal) => {
@@ -23,7 +20,6 @@ vi.mock('react-router-dom', async (importOriginal) => {
       onMouseEnter,
       onMouseLeave,
       onFocus,
-      onClick,
     }: {
       to: string;
       children: React.ReactNode;
@@ -31,7 +27,6 @@ vi.mock('react-router-dom', async (importOriginal) => {
       onMouseEnter?: (e: React.MouseEvent) => void;
       onMouseLeave?: (e: React.MouseEvent) => void;
       onFocus?: (e: React.FocusEvent) => void;
-      onClick?: (e: React.MouseEvent) => void;
     }) => (
       <a
         href={String(to)}
@@ -39,7 +34,6 @@ vi.mock('react-router-dom', async (importOriginal) => {
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
         onFocus={onFocus}
-        onClick={onClick}
       >
         {children}
       </a>
@@ -102,8 +96,8 @@ vi.mock('@/stores/settings.store', () => ({
         { id: 'worklogs', visible: true },
         { id: 'aio-projects', visible: true },
       ],
-      sidebarCollapsed: mockSidebarCollapsed,
-      toggleSidebarCollapsed: mockToggleSidebarCollapsed,
+      sidebarCollapsed: false,
+      toggleSidebarCollapsed: vi.fn(),
       sidebarWidth: 220,
       setSidebarWidth: vi.fn(),
       storyPointsFieldKey: 'customfield_10016',
@@ -300,85 +294,5 @@ describe('Sidebar — sprint-board prefetch swaps to getGhAllData (Phase 73 Plan
     expect(
       (jira as unknown as { getGhAllData: ReturnType<typeof vi.fn> }).getGhAllData,
     ).not.toHaveBeenCalled();
-  });
-});
-
-describe('Sidebar — auto-rail', () => {
-  const originalWidth = window.innerWidth;
-  function setWidth(w: number) {
-    Object.defineProperty(window, 'innerWidth', { configurable: true, writable: true, value: w });
-    window.dispatchEvent(new Event('resize'));
-  }
-  async function renderIt() {
-    mockAioEnabled = false;
-    mockSelectedAioProjectKey = null;
-    const { default: Sidebar } = await import('./Sidebar');
-    return render(
-      <QueryClientProvider client={makeClient()}>
-        <MemoryRouter>
-          <Sidebar />
-        </MemoryRouter>
-      </QueryClientProvider>,
-    );
-  }
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-    useSidebarOverlayStore.setState({ overlayOpen: false });
-    mockSidebarCollapsed = false;
-  });
-  afterEach(() => {
-    setWidth(originalWidth);
-  });
-
-  it('renders as a rail at narrow width without touching the persisted flag', async () => {
-    setWidth(900);
-    const { getByLabelText, queryByText } = await renderIt();
-    expect(queryByText('Dashboard')?.className).toContain('hidden');
-    expect(getByLabelText('Expand sidebar')).toBeDefined();
-  });
-
-  it('toggle opens the overlay in auto-rail mode', async () => {
-    setWidth(900);
-    const { getByLabelText, getByText } = await renderIt();
-    fireEvent.click(getByLabelText('Expand sidebar'));
-    expect(mockToggleSidebarCollapsed).not.toHaveBeenCalled();
-    expect(getByText('Dashboard').className).not.toContain('hidden');
-    expect(getByLabelText('Collapse sidebar')).toBeDefined();
-  });
-
-  it('Escape closes the overlay', async () => {
-    setWidth(900);
-    const { getByLabelText, getByText } = await renderIt();
-    fireEvent.click(getByLabelText('Expand sidebar'));
-    act(() => {
-      fireEvent.keyDown(document, { key: 'Escape' });
-    });
-    expect(getByText('Dashboard').className).toContain('hidden');
-  });
-
-  it('clicking a nav link closes the overlay', async () => {
-    setWidth(900);
-    const { getByLabelText, getByText } = await renderIt();
-    fireEvent.click(getByLabelText('Expand sidebar'));
-    fireEvent.click(getByText('Dashboard'));
-    expect(getByText('Dashboard').className).toContain('hidden');
-  });
-
-  it('overlay expands fully even when the persisted flag is collapsed', async () => {
-    mockSidebarCollapsed = true;
-    setWidth(900);
-    const { getByLabelText, getByText } = await renderIt();
-    fireEvent.click(getByLabelText('Expand sidebar'));
-    expect(getByText('Dashboard').className).not.toContain('hidden');
-    expect(getByLabelText('Collapse sidebar')).toBeDefined();
-  });
-
-  it('wide window keeps the persisted toggle behaviour', async () => {
-    setWidth(1400);
-    const { getByLabelText, getByText } = await renderIt();
-    expect(getByText('Dashboard').className).not.toContain('hidden');
-    fireEvent.click(getByLabelText('Collapse sidebar'));
-    expect(mockToggleSidebarCollapsed).toHaveBeenCalledTimes(1);
   });
 });

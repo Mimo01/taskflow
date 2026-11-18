@@ -34,7 +34,6 @@ import { UpdateDialog } from './components/update/UpdateDialog';
 import { WhatsNewDialog } from './components/update/WhatsNewDialog';
 import { useDraftsAccountGuard } from './hooks/useDraftsAccountGuard';
 import { useNotificationPolling } from './hooks/useNotificationPolling';
-import { useSidebarAutoRail } from './hooks/useSidebarAutoRail';
 import { useUpdatePolling } from './hooks/useUpdatePolling';
 import { useVersionPolicyCheck } from './hooks/useVersionPolicyCheck';
 import { useWizardRerunCheck } from './hooks/useWizardRerunCheck';
@@ -61,7 +60,6 @@ import { usePeekStore } from './stores/peek.store';
 import { usePinnedTabsStore } from './stores/pinned-tabs.store';
 import { useRecentItemsStore } from './stores/recent-items.store';
 import { useSettingsStore } from './stores/settings.store';
-import { useSidebarOverlayStore } from './stores/sidebar-overlay.store';
 import { useUpdateStore } from './stores/update.store';
 
 const queryClient = new QueryClient({
@@ -338,11 +336,9 @@ function AppLayout() {
 
   // SIDEBAR: Cmd+B toggles sidebar collapsed/expanded
   const toggleSidebarCollapsed = useSettingsStore((s) => s.toggleSidebarCollapsed);
-  const sidebarAutoRail = useSidebarAutoRail();
   useHotkeys('mod+b', (e) => {
     e.preventDefault();
-    if (sidebarAutoRail) useSidebarOverlayStore.getState().toggleOverlay();
-    else toggleSidebarCollapsed();
+    toggleSidebarCollapsed();
   });
 
   // Listen for all native menu bar item clicks and route to existing handlers
