@@ -100,6 +100,23 @@ describe('BubbleToolbar', () => {
     expect(editor.state.selection.from).toBe(1);
     expect(editor.state.selection.to).toBe(6);
   });
+
+  // Hide/reveal (composer collapse, Suspense) runs this effect while useEditor has destroyed
+  // the old instance and not yet created the new one: it must not throw (live UAT crash).
+  it('mounts with a destroyed editor, then wires Escape once the new editor arrives', () => {
+    const { editor: old } = makeEditor('hello world');
+    old.destroy();
+    const { rerender } = render(
+      <BubbleToolbar editor={old} linkOpen={false} onLinkOpenChange={() => {}} />,
+    );
+    const { editor } = makeEditor('hello world');
+    rerender(<BubbleToolbar editor={editor} linkOpen={false} onLinkOpenChange={() => {}} />);
+    editor.commands.setTextSelection({ from: 1, to: 6 });
+    showBubble(editor);
+    expect(screen.queryByRole('button', { name: 'Bold' })).not.toBeNull();
+    fireEvent.keyDown(editor.view.dom, { key: 'Escape' });
+    expect(screen.queryByRole('button', { name: 'Bold' })).toBeNull();
+  });
 });
 
 describe('CompactFooter', () => {

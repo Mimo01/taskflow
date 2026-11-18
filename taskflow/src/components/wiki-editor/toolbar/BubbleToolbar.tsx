@@ -80,7 +80,12 @@ export function BubbleToolbar({ editor, linkOpen, onLinkOpenChange }: BubbleTool
   });
 
   // Esc hides the bubble first (selection kept) and never reaches an enclosing dialog (D-20).
+  // A child effect runs before WikiEditor's useEditor effect. When the editor subtree is
+  // hidden and shown again (Suspense reveal, composer collapse/expand), useEditor has
+  // destroyed the old instance by now and only creates the replacement afterwards; reading
+  // view.dom then throws. Skip; this re-runs when the new editor arrives.
   useEffect(() => {
+    if (editor.isDestroyed) return;
     const dom = editor.view.dom;
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Escape' || !visibleRef.current) return;
