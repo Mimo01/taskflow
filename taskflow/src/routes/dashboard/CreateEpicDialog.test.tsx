@@ -670,6 +670,51 @@ describe('CreateEpicDialog', () => {
       });
     });
 
+    it('WR-01: a resumed draft from another project uses that project for meta, versions and create', async () => {
+      const { createIssue, fetchCreatemeta } = await import('@/services/jira');
+      const { fetchFixVersions } = await import('@/services/jira/versions');
+      (createIssue as ReturnType<typeof vi.fn>).mockResolvedValue({ id: '9', key: 'OTHER-9' });
+      useIssueDraftsStore.getState().upsertDraft(
+        epicDraft({
+          projectKey: 'OTHER',
+          snapshot: {
+            epicName: 'Placeholder epic',
+            description: '',
+            fixVersions: [{ id: '77', name: '1.0' }],
+          },
+        }),
+      );
+      const { onClose } = renderDialog({ resumeDraftId: 'd1' });
+      await waitFor(() => expect(fetchFixVersions).toHaveBeenCalled());
+      await waitFor(() => expect(fetchCreatemeta).toHaveBeenCalled());
+      for (const call of vi.mocked(fetchFixVersions).mock.calls) expect(call[2]).toBe('OTHER');
+      for (const call of vi.mocked(fetchCreatemeta).mock.calls) expect(call[2]).toBe('OTHER');
+      expect(lastStubProps.current?.host?.projectKey).toBe('OTHER');
+      await waitFor(() =>
+        expect(
+          (screen.getByRole('button', { name: /^create epic$/i }) as HTMLButtonElement).disabled,
+        ).toBe(false),
+      );
+      fireEvent.click(screen.getByRole('button', { name: /^create epic$/i }));
+      await waitFor(() => expect(onClose).toHaveBeenCalled());
+      expect(vi.mocked(createIssue).mock.calls[0][2]).toBe('OTHER');
+      expect(vi.mocked(createIssue).mock.calls[0][4]).toMatchObject({
+        fixVersions: [{ id: '77' }],
+      });
+    });
+
+    it('WR-01: editing a resumed draft from another project keeps it in that project', () => {
+      useIssueDraftsStore.getState().upsertDraft(epicDraft({ projectKey: 'OTHER' }));
+      renderDialog({ resumeDraftId: 'd1' });
+      fireEvent.change(screen.getByRole('textbox', { name: /epic name/i }), {
+        target: { value: 'Renamed epic' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+      expect(drafts()).toHaveLength(1);
+      expect(drafts()[0].projectKey).toBe('OTHER');
+      expect((drafts()[0].snapshot as { epicName: string }).epicName).toBe('Renamed epic');
+    });
+
     it('resumes an old-shape draft with only name and description', () => {
       useIssueDraftsStore.getState().upsertDraft(epicDraft());
       renderDialog({ resumeDraftId: 'd1' });
