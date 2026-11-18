@@ -19,7 +19,7 @@ import {
   WIKI_TOGGLE_META,
 } from './editor-session';
 import { EDITOR_ATTRIBUTES, EDITOR_RULE_OPTIONS } from './extensions';
-import { useHost } from './host';
+import { setLocalPreview, useHost } from './host';
 import { EditorMessages } from './media/EditorMessages';
 import { insertEmbed } from './media/embed';
 import { startUploads } from './media/upload-plugin';
@@ -362,6 +362,7 @@ export default function WikiEditor({
       if (stateRef.current.mode === 'rich') editor.commands.blur();
       else (document.activeElement as HTMLElement | null)?.blur();
     },
+    setLocalPreview: (name, url) => setLocalPreview(editor, name, url),
     insertFiles: (files) => {
       if (stateRef.current.mode === 'rich') {
         startUploads(editor, files, editor.state.selection.to);
