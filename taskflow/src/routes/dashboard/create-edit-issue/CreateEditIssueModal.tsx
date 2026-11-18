@@ -32,7 +32,6 @@ import { useIssueDraftsStore } from '@/stores/issue-drafts.store';
 import { useSettingsStore } from '@/stores/settings.store';
 import { useIssueEditorHost } from '../issue-detail/useIssueEditorHost';
 import { StagedFilesStrip } from '../StagedFilesStrip';
-import { IssueTypeSelector } from './IssueTypeSelector';
 import { LinkRowsSection } from './LinkRowsSection';
 import { ModalSidebar } from './ModalSidebar';
 import { type EditInitialValues, type FormAction, useCreateEditForm } from './useCreateEditForm';
@@ -585,21 +584,15 @@ export function CreateEditIssueModal({
             >
               <div className="flex items-center gap-3 border-b px-6 py-4">
                 {mode === 'create' ? (
-                  <>
-                    <div className="w-40 shrink-0">
-                      <IssueTypeSelector
-                        selectedIssueType={state.selectedIssueType}
-                        defaultIssueType={defaultIssueType}
-                        dispatch={userDispatch}
-                      />
-                    </div>
-                    <Dialog.Title className="text-lg font-semibold leading-tight">
-                      Create issue
-                    </Dialog.Title>
-                  </>
+                  <Dialog.Title className="text-lg font-semibold leading-tight">
+                    Create issue
+                  </Dialog.Title>
                 ) : (
                   <>
-                    <IssueTypeIcon typeName={initialValues?.issueTypeName ?? 'Task'} />
+                    <IssueTypeIcon
+                      typeName={initialValues?.issueTypeName ?? 'Task'}
+                      className="h-4 w-4 shrink-0"
+                    />
                     <Dialog.Title className="text-lg font-semibold leading-tight">
                       Edit {initialValues?.issueKey}
                     </Dialog.Title>
@@ -734,7 +727,7 @@ export function CreateEditIssueModal({
 
                 <aside
                   onBlur={flushAll}
-                  className="w-[300px] shrink-0 overflow-y-auto border-l bg-muted/30 p-4 @max-[900px]:w-[240px] max-[720px]:w-full max-[720px]:overflow-visible max-[720px]:border-l-0 max-[720px]:border-t"
+                  className="w-[300px] shrink-0 overflow-y-auto border-l bg-muted/30 p-4 min-[721px]:@max-[900px]:w-[240px] max-[720px]:w-full max-[720px]:overflow-visible max-[720px]:border-l-0 max-[720px]:border-t"
                 >
                   <ModalSidebar
                     mode={mode}
@@ -755,6 +748,7 @@ export function CreateEditIssueModal({
                     open={open}
                     issueTypeName={initialValues?.issueTypeName}
                     staleNotes={staleNotes}
+                    defaultIssueType={defaultIssueType}
                   />
                 </aside>
               </div>

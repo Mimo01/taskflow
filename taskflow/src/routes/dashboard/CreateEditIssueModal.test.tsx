@@ -75,7 +75,7 @@ describe('CreateEditIssueModal', () => {
     it('renders type switcher (Story / Subtask / Bug) as first field in create mode', () => {
       render(<CreateEditIssueModal open={true} onClose={vi.fn()} mode="create" />, { wrapper });
       // The Issue Type label appears as the first field
-      expect(screen.getByText('Issue Type')).toBeInTheDocument();
+      expect(screen.getByText('Issue type')).toBeInTheDocument();
       // There are multiple comboboxes (Issue Type + Priority); the first is the Issue Type selector
       // showing the default value "Story"
       const comboboxes = screen.getAllByRole('combobox');

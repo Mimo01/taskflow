@@ -14,8 +14,9 @@ import type { StaleNotes } from '@/lib/issue-draft-snapshot';
 import type { CreatemetaField, JiraPriority } from '@/services/jira';
 import { CustomFieldsSection } from './CustomFieldsSection';
 import { FixVersionField } from './FixVersionField';
+import { ISSUE_TYPE_CONTROL_ID, IssueTypeSelector } from './IssueTypeSelector';
 import { LabelsField } from './LabelsField';
-import type { FormAction, FormState } from './useCreateEditForm';
+import type { FormAction, FormState, IssueType } from './useCreateEditForm';
 
 interface ModalSidebarProps {
   mode: 'create' | 'edit';
@@ -36,6 +37,8 @@ interface ModalSidebarProps {
   open: boolean;
   issueTypeName?: string;
   staleNotes?: StaleNotes;
+  /** Create only: a type fixed by the opener renders read-only. */
+  defaultIssueType?: IssueType;
 }
 
 function Row({
@@ -83,6 +86,7 @@ export function ModalSidebar({
   open,
   issueTypeName,
   staleNotes,
+  defaultIssueType,
 }: ModalSidebarProps) {
   const showFixVersion =
     mode === 'create'
@@ -91,6 +95,16 @@ export function ModalSidebar({
 
   return (
     <div className="flex flex-col gap-4">
+      {mode === 'create' && (
+        <Row htmlFor={ISSUE_TYPE_CONTROL_ID} label="Issue type">
+          <IssueTypeSelector
+            selectedIssueType={state.selectedIssueType}
+            defaultIssueType={defaultIssueType}
+            dispatch={dispatch}
+          />
+        </Row>
+      )}
+
       <Row htmlFor="modal-assignee" label="Assignee">
         <PersonPicker
           variant="field"

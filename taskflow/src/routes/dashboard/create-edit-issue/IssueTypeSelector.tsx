@@ -1,3 +1,4 @@
+import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
 import {
   Select,
   SelectContent,
@@ -8,6 +9,9 @@ import {
 import type { FormAction, IssueType } from './useCreateEditForm';
 
 const ISSUE_TYPES = ['Story', 'Subtask', 'Bug'] as const;
+const ITEMS = ISSUE_TYPES.map((t) => ({ value: t, label: t }));
+
+export const ISSUE_TYPE_CONTROL_ID = 'issue-type-select';
 
 interface IssueTypeSelectorProps {
   selectedIssueType: IssueType;
@@ -15,6 +19,10 @@ interface IssueTypeSelectorProps {
   dispatch: React.Dispatch<FormAction>;
 }
 
+/**
+ * First sidebar control of the Create modal. A locked type (opened from "Create Story"
+ * etc.) renders read-only at the same height as the other sidebar controls.
+ */
 export function IssueTypeSelector({
   selectedIssueType,
   defaultIssueType,
@@ -22,36 +30,36 @@ export function IssueTypeSelector({
 }: IssueTypeSelectorProps) {
   if (defaultIssueType) {
     return (
-      <div className="flex flex-col gap-1">
-        {/* biome-ignore lint/a11y/noLabelWithoutControl: read-only display div, not a form control */}
-        <label className="text-sm font-medium">Issue Type</label>
-        <div className="flex h-9 w-full items-center rounded-md border bg-muted px-3 py-2 text-sm text-muted-foreground">
-          {selectedIssueType}
-        </div>
-      </div>
+      <output
+        id={ISSUE_TYPE_CONTROL_ID}
+        className="flex h-8 w-full items-center gap-1.5 rounded-lg border bg-muted pl-2.5 pr-2 text-sm text-muted-foreground"
+      >
+        <IssueTypeIcon typeName={selectedIssueType} />
+        {selectedIssueType}
+      </output>
     );
   }
 
   return (
-    <div className="flex flex-col gap-1">
-      <label htmlFor="issue-type-select" className="text-sm font-medium">
-        Issue Type
-      </label>
-      <Select
-        value={selectedIssueType}
-        onValueChange={(v) => dispatch({ type: 'SET_ISSUE_TYPE', issueType: v as IssueType })}
-      >
-        <SelectTrigger id="issue-type-select" className="w-full">
+    <Select
+      items={ITEMS}
+      value={selectedIssueType}
+      onValueChange={(v) => dispatch({ type: 'SET_ISSUE_TYPE', issueType: v as IssueType })}
+    >
+      <SelectTrigger id={ISSUE_TYPE_CONTROL_ID} className="w-full">
+        <span className="flex items-center gap-1.5">
+          <IssueTypeIcon typeName={selectedIssueType} />
           <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {ISSUE_TYPES.map((t) => (
-            <SelectItem key={t} value={t}>
-              {t}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </div>
+        </span>
+      </SelectTrigger>
+      <SelectContent>
+        {ISSUE_TYPES.map((t) => (
+          <SelectItem key={t} value={t}>
+            <IssueTypeIcon typeName={t} />
+            {t}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 }
