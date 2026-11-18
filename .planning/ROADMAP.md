@@ -390,9 +390,9 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 101-01-PLAN.md — D-03 docs; labels/fix versions in form state (Create + Edit, no-clobber diff); HYDRATE/RESET_KEEP; create returns key
-- [ ] 101-02-PLAN.md — fs plugin (legitimacy checkpoint), scoped capability, issue-draft-files service, editor setLocalPreview
-- [ ] 101-03-PLAN.md — issue-drafts store, useIssueDraft autosave hook, create-modal store, shortRelativeTime
+- [x] 101-01-PLAN.md — D-03 docs; labels/fix versions in form state (Create + Edit, no-clobber diff); HYDRATE/RESET_KEEP; create returns key
+- [x] 101-02-PLAN.md — fs plugin (legitimacy checkpoint), scoped capability, issue-draft-files service, editor setLocalPreview
+- [x] 101-03-PLAN.md — issue-drafts store, useIssueDraft autosave hook, create-modal store, shortRelativeTime
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -442,7 +442,7 @@ Plans:
 | 98. Editor Shell | 15/16 | In Progress|  |
 | 99. Mentions, Media & Smart Input | 14/14 | Complete    | 2026-11-17 |
 | 100. Host Adoption & Editing Workflow | 9/9 | Complete    | 2026-11-17 |
-| 101. Issue Drafts & Large Create/Edit Modal | 0/TBD | Not started | - |
+| 101. Issue Drafts & Large Create/Edit Modal | 3/12 | In Progress|  |
 | 102. Polished Surfaces | 0/TBD | Not started | - |
 
 ### Shipped milestones
