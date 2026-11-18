@@ -54,3 +54,10 @@ Tests (58) pass, tsc clean, biome clean on touched files (pre-existing warnings 
 
 - `e939a13d` fix: with the persisted `sidebarCollapsed=true` at a narrow width, the overlay opened as a 64px rail (`effectiveCollapsed = sidebarCollapsed || …`). Now `effectiveCollapsed = autoRail ? !overlayOpen : sidebarCollapsed`; regression test added (failed before the fix).
 - The pre-commit hook skipped tsc/tests for the executor's commits inside the agent worktree ("no TypeScript changes staged"); checks were run manually there and the hook ran normally on main.
+
+## Rework after user review (supersedes the auto-rail above)
+
+User rejected the sidebar auto-collapsing. `8c649f00` reverts ef1edccf/e88544b0/e939a13d (auto-rail, overlay store, Sidebar changes). `e3be8004` makes My Tasks itself adapt, verified by rendering the real page in headless WebKit at 396/452/576/676px content widths:
+- Stat tiles always 3 across; below 40rem compact (smaller padding/number, no watermark). The earlier `@[40rem]:grid-cols-3` stacked them into a ~330px column with peek open — worse.
+- Status pill capped at 6.5rem below 45rem ("Selected for Development" ellipsizes, full name in title).
+- Below 32rem: issue key hidden (row click still opens peek), subtask indent ml-9 → ml-5.
