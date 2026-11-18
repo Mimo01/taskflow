@@ -2,13 +2,8 @@ import type { Dispatch, ReactNode } from 'react';
 import { EpicPicker } from '@/components/ui/epic-picker';
 import { Input } from '@/components/ui/input';
 import { PersonPicker, toPersonValue } from '@/components/ui/person-picker';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { PriorityIcon } from '@/components/ui/priority-icon';
+import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { StaleNotes } from '@/lib/issue-draft-snapshot';
 import type { CreatemetaField, JiraPriority } from '@/services/jira';
@@ -93,6 +88,10 @@ export function ModalSidebar({
       ? fixVersionsOffered && !isSubtask
       : issueTypeName !== 'Subtask' && issueTypeName !== 'Sub-task';
 
+  const selectedPriority = state.priority
+    ? (priorityOptions.find((p) => p.name === state.priority) ?? { name: state.priority })
+    : null;
+
   return (
     <div className="flex flex-col gap-4">
       {mode === 'create' && !isSubtask && (
@@ -135,12 +134,19 @@ export function ModalSidebar({
           }
         >
           <SelectTrigger id="modal-priority" className="w-full">
-            <SelectValue placeholder="Select priority (optional)" />
+            {selectedPriority ? (
+              <span className="flex min-w-0 items-center gap-1.5">
+                <PriorityIcon priority={selectedPriority} />
+                <span className="truncate">{selectedPriority.name}</span>
+              </span>
+            ) : (
+              <span className="text-muted-foreground">Select priority</span>
+            )}
           </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="">None</SelectItem>
+          <SelectContent alignItemWithTrigger={false}>
             {priorityOptions.map((p) => (
               <SelectItem key={p.id} value={p.name}>
+                <PriorityIcon priority={p} />
                 {p.name}
               </SelectItem>
             ))}

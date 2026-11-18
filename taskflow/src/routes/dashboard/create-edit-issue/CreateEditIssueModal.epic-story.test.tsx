@@ -124,7 +124,7 @@ function renderModal(props: Partial<React.ComponentProps<typeof CreateEditIssueM
   return { qc, onClose, ...utils };
 }
 
-const accountInput = () => screen.findByPlaceholderText('Search Account...');
+const accountInput = () => screen.findByRole('button', { name: /^Account/ });
 const fillSummary = () =>
   fireEvent.change(screen.getByPlaceholderText('Issue summary'), {
     target: { value: 'New story' },
@@ -141,16 +141,16 @@ describe('CreateEditIssueModal: epic story inherits from epic', () => {
 
   it('prefills Account from the epic and enables Create', async () => {
     renderModal();
-    const input = (await accountInput()) as HTMLInputElement;
-    await waitFor(() => expect(input.value).toBe('Acme Account'));
+    const input = await accountInput();
+    await waitFor(() => expect(input).toHaveTextContent('Acme Account'));
     fillSummary();
     expect(createBtn()).toBeEnabled();
   });
 
   it('submits the epic raw Account id and the epic link', async () => {
     renderModal();
-    const input = (await accountInput()) as HTMLInputElement;
-    await waitFor(() => expect(input.value).toBe('Acme Account'));
+    const input = await accountInput();
+    await waitFor(() => expect(input).toHaveTextContent('Acme Account'));
     fillSummary();
     fireEvent.click(createBtn());
     await waitFor(() => expect(jiraService.createIssue).toHaveBeenCalled());
@@ -160,10 +160,11 @@ describe('CreateEditIssueModal: epic story inherits from epic', () => {
 
   it('a manually picked Account wins over the inherited one', async () => {
     renderModal();
-    const input = (await accountInput()) as HTMLInputElement;
-    await waitFor(() => expect(input.value).toBe('Acme Account'));
-    fireEvent.change(input, { target: { value: 'Oth' } });
-    fireEvent.mouseDown(await screen.findByText('Other Account'));
+    const input = await accountInput();
+    await waitFor(() => expect(input).toHaveTextContent('Acme Account'));
+    fireEvent.click(input);
+    fireEvent.change(await screen.findByLabelText('Search Account'), { target: { value: 'Oth' } });
+    fireEvent.click(await screen.findByText('Other Account'));
     fillSummary();
     fireEvent.click(createBtn());
     await waitFor(() => expect(jiraService.createIssue).toHaveBeenCalled());
@@ -172,10 +173,10 @@ describe('CreateEditIssueModal: epic story inherits from epic', () => {
 
   it('switching the Epic Link swaps the inherited value', async () => {
     renderModal();
-    const input = (await accountInput()) as HTMLInputElement;
-    await waitFor(() => expect(input.value).toBe('Acme Account'));
+    const input = await accountInput();
+    await waitFor(() => expect(input).toHaveTextContent('Acme Account'));
     fireEvent.click(screen.getByText('pick EPIC-2'));
-    await waitFor(() => expect(input.value).toBe('Beta Account'));
+    await waitFor(() => expect(input).toHaveTextContent('Beta Account'));
     fillSummary();
     fireEvent.click(createBtn());
     await waitFor(() => expect(jiraService.createIssue).toHaveBeenCalled());
@@ -184,12 +185,12 @@ describe('CreateEditIssueModal: epic story inherits from epic', () => {
 
   it('clearing the Epic Link drops the inherited label and disables Create', async () => {
     renderModal();
-    const input = (await accountInput()) as HTMLInputElement;
-    await waitFor(() => expect(input.value).toBe('Acme Account'));
+    const input = await accountInput();
+    await waitFor(() => expect(input).toHaveTextContent('Acme Account'));
     fillSummary();
     expect(createBtn()).toBeEnabled();
     fireEvent.click(screen.getByText('clear epic'));
-    await waitFor(() => expect(input.value).toBe(''));
+    await waitFor(() => expect(input).toHaveTextContent('Select Account'));
     expect(createBtn()).toBeDisabled();
   });
 
@@ -199,8 +200,8 @@ describe('CreateEditIssueModal: epic story inherits from epic', () => {
       defaultParentKey: 'PARENT-1',
       defaultEpicLinkKey: undefined,
     });
-    const input = (await accountInput()) as HTMLInputElement;
-    await waitFor(() => expect(input.value).toBe('Parent Account'));
+    const input = await accountInput();
+    await waitFor(() => expect(input).toHaveTextContent('Parent Account'));
   });
 });
 
@@ -213,8 +214,8 @@ describe('CreateEditIssueModal: close after create', () => {
   it('epic story create closes the modal exactly once and invalidates the epic lists', async () => {
     const { qc, onClose } = renderModal();
     const spy = vi.spyOn(qc, 'invalidateQueries');
-    const input = (await accountInput()) as HTMLInputElement;
-    await waitFor(() => expect(input.value).toBe('Acme Account'));
+    const input = await accountInput();
+    await waitFor(() => expect(input).toHaveTextContent('Acme Account'));
     fillSummary();
     fireEvent.click(createBtn());
     await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
@@ -233,8 +234,8 @@ describe('CreateEditIssueModal: close after create', () => {
       defaultParentKey: 'PARENT-1',
       defaultEpicLinkKey: undefined,
     });
-    const input = (await accountInput()) as HTMLInputElement;
-    await waitFor(() => expect(input.value).toBe('Parent Account'));
+    const input = await accountInput();
+    await waitFor(() => expect(input).toHaveTextContent('Parent Account'));
     fillSummary();
     fireEvent.click(createBtn());
     await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
@@ -243,8 +244,8 @@ describe('CreateEditIssueModal: close after create', () => {
   it('a Jira error keeps the modal open and shows the message', async () => {
     vi.mocked(jiraService.createIssue).mockRejectedValue(new Error('Account is invalid'));
     const { onClose } = renderModal();
-    const input = (await accountInput()) as HTMLInputElement;
-    await waitFor(() => expect(input.value).toBe('Acme Account'));
+    const input = await accountInput();
+    await waitFor(() => expect(input).toHaveTextContent('Acme Account'));
     fillSummary();
     fireEvent.click(createBtn());
     expect(await screen.findByText('Account is invalid')).toBeInTheDocument();

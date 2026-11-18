@@ -2661,6 +2661,41 @@ export async function fetchIssuePriorityOptions(
   return Array.isArray(allowed) ? allowed : [];
 }
 
+/**
+ * Priorities valid for NEW issues in a project. createmeta omits `priority` when it is
+ * not on the create screen, so borrow the editmeta of a reference issue: the given key
+ * (epic/parent) or the project's most recently updated issue of that type. Empty when
+ * nothing usable is found; callers fall back to the instance-wide list.
+ */
+export async function fetchProjectPriorityOptions(
+  baseUrl: string,
+  token: string,
+  projectKey: string,
+  issueTypeName: string,
+  referenceKey?: string,
+): Promise<JiraPriority[]> {
+  if (referenceKey) {
+    const scoped = await fetchIssuePriorityOptions(baseUrl, token, referenceKey);
+    if (scoped.length > 0) return scoped;
+  }
+  const typeClause =
+    issueTypeName === 'Subtask'
+      ? 'issuetype in subTaskIssueTypes()'
+      : `issuetype = "${issueTypeName}"`;
+  const jql = encodeURIComponent(
+    `project = "${projectKey}" AND ${typeClause} ORDER BY updated DESC`,
+  );
+  const resp = await apiFetch(
+    'jira',
+    `${baseUrl.replace(/\/$/, '')}/rest/api/2/search?jql=${jql}&fields=priority&maxResults=1`,
+    { headers: { Authorization: `Bearer ${token}` } },
+    'Load Priorities',
+  );
+  if (!resp.ok) return [];
+  const key = (await resp.json())?.issues?.[0]?.key;
+  return typeof key === 'string' ? fetchIssuePriorityOptions(baseUrl, token, key) : [];
+}
+
 const RM_PROJECT_KEY_RE = /^[A-Z][A-Z0-9_]+$/;
 
 const linkFieldIdCache = new Map<string, Promise<string[]>>();

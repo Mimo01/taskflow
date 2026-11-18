@@ -38,7 +38,9 @@ describe('FixVersionField', () => {
       <FixVersionField id="fv" value={[{ id: '1', name: 'Alpha' }]} dispatch={dispatch} open />,
     );
     fireEvent.click(screen.getByRole('button'));
-    expect(screen.getByText('✓')).toBeTruthy();
+    const alphas = screen.getAllByText('Alpha');
+    const alphaRow = alphas[alphas.length - 1].closest('button');
+    expect(alphaRow?.querySelector('svg.lucide-check')).toBeTruthy();
     fireEvent.click(screen.getByText('Beta'));
     expect(dispatch).toHaveBeenCalledWith({
       type: 'SET_FIELD',

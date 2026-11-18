@@ -11,6 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { apiFetch } from '@/lib/apiFetch';
 import type { CreatemetaField } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
+import { AutocompleteField } from './AutocompleteField';
 import type { FormAction, FormState } from './useCreateEditForm';
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -89,8 +90,9 @@ export function CustomFieldsSection({
 
         return (
           <div key={fid} className="flex flex-col gap-1">
-            <label htmlFor={fid} className="text-sm font-medium">
-              {field.name} <span className="text-destructive">*</span>
+            <label htmlFor={fid} className="text-xs font-semibold text-muted-foreground">
+              {field.name}
+              <span className="text-destructive"> *</span>
             </label>
             {field.schema.allowedValues && field.schema.allowedValues.length > 0 ? (
               <Select
@@ -135,68 +137,20 @@ export function CustomFieldsSection({
                 }}
               />
             ) : hasAutocomplete ? (
-              <div className="relative">
-                <Input
-                  id={fid}
-                  value={state.customFieldInputValues[fid] ?? ''}
-                  onChange={(e) => {
-                    const q = e.target.value;
-                    dispatch({ type: 'SET_CUSTOM_FIELD_INPUT', fieldId: fid, value: q });
-                    dispatch({ type: 'SET_CUSTOM_FIELD_VALUE', fieldId: fid, value: '' });
-                    dispatch({ type: 'SET_CUSTOM_FIELD_SHOW_RESULTS', fieldId: fid, show: true });
-                    void fetchAutoComplete(field, fid, q, dispatch);
-                  }}
-                  onFocus={() => {
-                    dispatch({ type: 'SET_CUSTOM_FIELD_SHOW_RESULTS', fieldId: fid, show: true });
-                    if (!state.customFieldAutoResults[fid]?.length)
-                      void fetchAutoComplete(field, fid, '', dispatch);
-                  }}
-                  onBlur={() =>
-                    setTimeout(
-                      () =>
-                        dispatch({
-                          type: 'SET_CUSTOM_FIELD_SHOW_RESULTS',
-                          fieldId: fid,
-                          show: false,
-                        }),
-                      150,
-                    )
-                  }
-                  placeholder={`Search ${field.name}...`}
-                  disabled={isPending}
-                />
-                {state.customFieldShowResults[fid] &&
-                  (state.customFieldAutoResults[fid] ?? []).length > 0 && (
-                    <div className="absolute z-50 mt-1 w-full rounded-lg border bg-popover shadow-md">
-                      {(state.customFieldAutoResults[fid] ?? []).map((result) => (
-                        <button
-                          key={result.id}
-                          type="button"
-                          className="w-full px-3 py-2 text-left text-sm hover:bg-accent"
-                          onMouseDown={() => {
-                            dispatch({
-                              type: 'SET_CUSTOM_FIELD_VALUE',
-                              fieldId: fid,
-                              value: result.id,
-                            });
-                            dispatch({
-                              type: 'SET_CUSTOM_FIELD_INPUT',
-                              fieldId: fid,
-                              value: result.label,
-                            });
-                            dispatch({
-                              type: 'SET_CUSTOM_FIELD_SHOW_RESULTS',
-                              fieldId: fid,
-                              show: false,
-                            });
-                          }}
-                        >
-                          {result.label}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-              </div>
+              <AutocompleteField
+                id={fid}
+                label={field.name}
+                value={state.customFieldValues[fid] ?? ''}
+                displayText={state.customFieldInputValues[fid] ?? ''}
+                results={state.customFieldAutoResults[fid] ?? []}
+                required={field.required}
+                disabled={isPending}
+                onSearch={(q) => void fetchAutoComplete(field, fid, q, dispatch)}
+                onSelect={(result) => {
+                  dispatch({ type: 'SET_CUSTOM_FIELD_VALUE', fieldId: fid, value: result.id });
+                  dispatch({ type: 'SET_CUSTOM_FIELD_INPUT', fieldId: fid, value: result.label });
+                }}
+              />
             ) : (
               <Input
                 id={fid}

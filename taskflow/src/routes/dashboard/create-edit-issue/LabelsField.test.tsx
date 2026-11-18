@@ -66,3 +66,27 @@ describe('LabelsField', () => {
     expect(input.disabled).toBe(true);
   });
 });
+
+describe('LabelsField multi-entry', () => {
+  it('commits on comma and on blur, keeping earlier labels', () => {
+    const dispatch = vi.fn();
+    const { rerender } = render(<LabelsField id="l" labels={[]} dispatch={dispatch} />);
+    const input = screen.getByPlaceholderText('Add label');
+    fireEvent.change(input, { target: { value: 'alpha' } });
+    fireEvent.keyDown(input, { key: ',' });
+    expect(dispatch).toHaveBeenLastCalledWith({
+      type: 'SET_FIELD',
+      field: 'labels',
+      value: ['alpha'],
+    });
+    rerender(<LabelsField id="l" labels={['alpha']} dispatch={dispatch} />);
+    const next = screen.getByPlaceholderText('Add label');
+    fireEvent.change(next, { target: { value: 'beta, gamma' } });
+    fireEvent.blur(next);
+    expect(dispatch).toHaveBeenLastCalledWith({
+      type: 'SET_FIELD',
+      field: 'labels',
+      value: ['alpha', 'beta', 'gamma'],
+    });
+  });
+});
