@@ -335,6 +335,15 @@ export function CreateEditIssueModal({
     inheritFromKey,
   });
   const issueTypeNames = issueTypes?.map((t) => t.name);
+  // The fixed parent (subtask create) is shown with its summary; parentFields already
+  // holds the parent's navigable fields for inheritance.
+  const parentSummary =
+    defaultParentKey && typeof parentFields?.summary === 'string'
+      ? parentFields.summary
+      : undefined;
+  const parentTypeName = defaultParentKey
+    ? (parentFields?.issuetype as { name?: string } | undefined)?.name
+    : undefined;
 
   const { staleNotes, clearNote } = useDraftResume({
     open: open && mode === 'create',
@@ -781,6 +790,8 @@ export function CreateEditIssueModal({
                     issueTypeName={initialValues?.issueTypeName}
                     staleNotes={staleNotes}
                     availableTypeNames={issueTypeNames}
+                    parentSummary={parentSummary}
+                    parentTypeName={parentTypeName}
                   />
                 </aside>
               </div>

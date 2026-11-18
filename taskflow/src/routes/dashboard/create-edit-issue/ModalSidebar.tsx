@@ -1,6 +1,7 @@
 import type { Dispatch, ReactNode } from 'react';
 import { EpicPicker } from '@/components/ui/epic-picker';
 import { Input } from '@/components/ui/input';
+import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
 import { PersonPicker, toPersonValue } from '@/components/ui/person-picker';
 import { PriorityIcon } from '@/components/ui/priority-icon';
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
@@ -22,6 +23,9 @@ interface ModalSidebarProps {
   projectKey: string;
   jiraBaseUrl: string;
   defaultParentKey?: string;
+  /** Fixed parent's summary and type, shown beside its key (subtask create). */
+  parentSummary?: string;
+  parentTypeName?: string;
   priorityOptions: JiraPriority[];
   creatmetaFields?: CreatemetaField[];
   creatmetaLoading: boolean;
@@ -71,6 +75,8 @@ export function ModalSidebar({
   projectKey,
   jiraBaseUrl,
   defaultParentKey,
+  parentSummary,
+  parentTypeName,
   priorityOptions,
   creatmetaFields,
   creatmetaLoading,
@@ -157,9 +163,17 @@ export function ModalSidebar({
       {isSubtask ? (
         <Row htmlFor="parent-key" label="Parent" required note={staleNotes?.parent}>
           {defaultParentKey ? (
-            <div className="flex h-9 w-full items-center rounded-md border bg-muted px-3 py-2 text-sm text-muted-foreground font-mono">
-              {state.parentKey}
-            </div>
+            <output
+              id="parent-key"
+              title={parentSummary ? `${state.parentKey} ${parentSummary}` : undefined}
+              className="flex h-8 w-full min-w-0 items-center gap-1.5 rounded-lg border bg-muted pl-2.5 pr-2 text-sm text-muted-foreground"
+            >
+              {parentTypeName && <IssueTypeIcon typeName={parentTypeName} />}
+              <span className="shrink-0 font-mono text-xs">{state.parentKey}</span>
+              {parentSummary && (
+                <span className="min-w-0 truncate text-foreground">{parentSummary}</span>
+              )}
+            </output>
           ) : (
             <Input
               id="parent-key"

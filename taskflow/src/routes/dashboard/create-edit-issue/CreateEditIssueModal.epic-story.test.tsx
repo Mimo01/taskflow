@@ -90,7 +90,13 @@ function mockApi() {
     if (url.includes('/issue/EPIC-2?'))
       return ok({ fields: { customfield_10500: { id: 43, name: 'Beta Account' } } });
     if (url.includes('/issue/PARENT-1?'))
-      return ok({ fields: { customfield_10500: { id: 99, name: 'Parent Account' } } });
+      return ok({
+        fields: {
+          customfield_10500: { id: 99, name: 'Parent Account' },
+          summary: 'Parent story title',
+          issuetype: { name: 'Story' },
+        },
+      });
     if (url.includes('/ac?')) return ok([{ id: 77, name: 'Other Account' }]);
     return ok({ values: [] });
   });
@@ -202,6 +208,9 @@ describe('CreateEditIssueModal: epic story inherits from epic', () => {
     });
     const input = await accountInput();
     await waitFor(() => expect(input).toHaveTextContent('Parent Account'));
+    // The fixed parent shows its summary beside the key, read-only.
+    expect(screen.getByText('PARENT-1')).toBeInTheDocument();
+    expect(screen.getByText('Parent story title')).toBeInTheDocument();
   });
 });
 
