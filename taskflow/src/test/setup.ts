@@ -1,9 +1,9 @@
 /// <reference types="vitest/globals" />
 import '@testing-library/jest-dom';
-import { randomFillSync } from 'node:crypto';
+import { randomFillSync, randomUUID } from 'node:crypto';
 
 Object.defineProperty(window, 'crypto', {
-  value: { getRandomValues: (buf: BufferSource) => randomFillSync(buf as Buffer) },
+  value: { getRandomValues: (buf: BufferSource) => randomFillSync(buf as Buffer), randomUUID },
   configurable: true,
 });
 

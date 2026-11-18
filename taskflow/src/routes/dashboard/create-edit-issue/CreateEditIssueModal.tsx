@@ -1,7 +1,7 @@
 import { Dialog } from '@base-ui/react/dialog';
 import { useQuery } from '@tanstack/react-query';
 import { Loader2, Paperclip, X } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import { Button } from '@/components/ui/button';
 import { DiscardChangesDialog } from '@/components/ui/discard-changes-dialog';
@@ -12,9 +12,13 @@ import { Keycap } from '@/components/ui/keycap';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import type { WikiEditorHandle, WikiEditorHost } from '@/components/wiki-editor/types';
 import { WikiEditorLazy } from '@/components/wiki-editor/WikiEditorLazy';
+import { useDraftStagedFiles } from '@/hooks/useDraftStagedFiles';
 import { useEditorDraft } from '@/hooks/useEditorDraft';
+import { useIssueDraft } from '@/hooks/useIssueDraft';
 import { useMentionUserMap } from '@/hooks/useMentionUserMap';
 import { draftKey } from '@/lib/draft-keys';
+import { removeDraftFiles } from '@/lib/issue-draft-files';
+import { hasUserContent, keptFieldsAfterCreate, toIssueSnapshot } from '@/lib/issue-draft-snapshot';
 import {
   fetchIssueDescription,
   fetchIssuePriorityOptions,
@@ -24,13 +28,14 @@ import {
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useDraftsStore } from '@/stores/drafts.store';
+import { useIssueDraftsStore } from '@/stores/issue-drafts.store';
 import { useSettingsStore } from '@/stores/settings.store';
 import { useIssueEditorHost } from '../issue-detail/useIssueEditorHost';
 import { StagedFilesStrip } from '../StagedFilesStrip';
 import { IssueTypeSelector } from './IssueTypeSelector';
 import { LinkRowsSection } from './LinkRowsSection';
 import { ModalSidebar } from './ModalSidebar';
-import { type EditInitialValues, useCreateEditForm } from './useCreateEditForm';
+import { type EditInitialValues, type FormAction, useCreateEditForm } from './useCreateEditForm';
 import { useCreateEditQueries } from './useCreateEditQueries';
 import { useIssueMutations } from './useIssueMutations';
 
@@ -63,6 +68,7 @@ export function CreateEditIssueModal({
   defaultIssueType,
   defaultParentKey,
   defaultEpicLinkKey,
+  onOpenIssue,
 }: CreateEditIssueModalProps) {
   const { jiraBaseUrl, activeJiraProject } = useAuthStore();
   const { epicLinkFieldKey, storyPointsFieldKey } = useSettingsStore();
@@ -88,7 +94,27 @@ export function CreateEditIssueModal({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const summaryRef = useRef<HTMLInputElement>(null);
-  const [stagedFiles, setStagedFiles] = useState<File[]>([]);
+  const issueDraft = useIssueDraft({ kind: 'issue' });
+  const draftIdRef = useRef<string | null>(null);
+  draftIdRef.current = issueDraft.draftId;
+  const savedDraft = useIssueDraftsStore((s) =>
+    issueDraft.draftId ? s.drafts[issueDraft.draftId] : undefined,
+  );
+  // Bumped only by user edits: autosave must never fire from a state effect alone, because
+  // the reducer keeps the previous session's values until the open RESET lands.
+  const [editTick, setEditTick] = useState(0);
+  const markEdited = useCallback(() => setEditTick((t) => t + 1), []);
+  const userDispatch = useCallback(
+    (a: FormAction) => {
+      dispatch(a);
+      setEditTick((t) => t + 1);
+    },
+    [dispatch],
+  );
+  const staged = useDraftStagedFiles({ ensureDraftId: issueDraft.ensureId, onChange: markEdited });
+  const [createAnother, setCreateAnother] = useState(false);
+  const [createdKey, setCreatedKey] = useState<string | null>(null);
+  const [focusSummary, setFocusSummary] = useState(false);
   const [stagedUploadError, setStagedUploadError] = useState<string | null>(null);
   // Set when create succeeds but a staged attachment failed to upload, so the modal
   // stays open with the error visible (locked decision: never roll back the created
@@ -103,12 +129,17 @@ export function CreateEditIssueModal({
 
   // Reset all staged/upload state whenever the modal (re)opens, so a reopened modal
   // never carries files or errors from the previous session.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: runs once per open
   useEffect(() => {
     if (!open) return;
-    setStagedFiles([]);
+    staged.reset();
     setStagedUploadError(null);
     stagedUploadErrorRef.current = null;
     setHasCreatedWithError(false);
+    setCreateAnother(false);
+    setCreatedKey(null);
+    setEditTick(0);
+    if (mode === 'create') issueDraft.adopt(null);
   }, [open]);
 
   // ── Description draft (edit mode): base, live stale check, restore ────────
@@ -172,8 +203,21 @@ export function CreateEditIssueModal({
   const dirty = mode === 'edit' && state.description !== descriptionBase;
 
   function handleDescriptionChange(v: string) {
-    dispatch({ type: 'SET_FIELD', field: 'description', value: v });
+    userDispatch({ type: 'SET_FIELD', field: 'description', value: v });
     draft.schedule(v);
+  }
+
+  function flushAll() {
+    draft.flush();
+    issueDraft.flush();
+  }
+
+  function handleDiscardIssueDraft() {
+    const id = draftIdRef.current;
+    issueDraft.discard();
+    if (id) void removeDraftFiles(id);
+    staged.reset();
+    onClose();
   }
 
   function handleDiscardDraft() {
@@ -190,7 +234,7 @@ export function CreateEditIssueModal({
   }
 
   function closeSilently() {
-    draft.flush();
+    flushAll();
     onClose();
   }
 
@@ -225,15 +269,11 @@ export function CreateEditIssueModal({
       projectKey,
       userMap,
       staged: true,
-      stageFile: (f) => setStagedFiles((p) => [...p, f]),
+      stageFile: staged.stage,
     }),
-    [projectKey, userMap],
+    [projectKey, userMap, staged.stage],
   );
   const host = mode === 'edit' && editIssueKey ? liveHost : stagedHost;
-
-  function handleRemoveStagedFile(index: number) {
-    setStagedFiles((prev) => prev.filter((_, i) => i !== index));
-  }
 
   function handleFileInputChange(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
@@ -271,6 +311,24 @@ export function CreateEditIssueModal({
     storyPointsFieldKey,
     inheritFromKey,
   });
+
+  // Autosave (Create only): fires on user edits alone, reading the latest values via a ref.
+  const latestRef = useRef({ open, mode, state, projectKey, creatmetaFields, staged });
+  latestRef.current = { open, mode, state, projectKey, creatmetaFields, staged };
+  // biome-ignore lint/correctness/useExhaustiveDependencies: keyed on user edits only (T-101-27)
+  useEffect(() => {
+    if (editTick === 0) return;
+    const cur = latestRef.current;
+    if (!cur.open || cur.mode !== 'create') return;
+    const fieldNames: Record<string, string> = {};
+    for (const f of cur.creatmetaFields ?? []) fieldNames[f.fieldId] = f.name;
+    issueDraft.schedule({
+      projectKey: cur.projectKey,
+      snapshot: toIssueSnapshot(cur.state, fieldNames),
+      files: cur.staged.refs,
+      hasContent: hasUserContent(cur.state, cur.staged.files.length),
+    });
+  }, [editTick]);
 
   // Priorities must be scoped to the priority scheme that actually applies here, not
   // the instance-wide list (which has many priorities this project never uses). In
@@ -380,29 +438,46 @@ export function CreateEditIssueModal({
     parentInheritMap,
     epicLinkFieldKey,
     storyPointsFieldKey,
-    stagedFiles,
+    stagedFiles: staged.files,
     onStagedUploadError: (failedNames) => {
       const msg = `Issue created, but ${failedNames.length} file(s) failed to upload: ${failedNames.join(', ')}`;
       stagedUploadErrorRef.current = msg;
       setStagedUploadError(msg);
     },
-    onSuccess: () => {
+    onSuccess: (created) => {
       dispatch({ type: 'SET_FIELD', field: 'apiError', value: null });
       if (mode === 'edit') draft.discard();
+      if (mode === 'create') {
+        // The issue exists now: its draft and the disk copies are done, including when a
+        // staged upload failed below (the issue is created; the files stay in memory).
+        const id = draftIdRef.current;
+        issueDraft.discard();
+        if (id) void removeDraftFiles(id);
+      }
       // If a staged-file upload failed post-create, the issue was still created
       // successfully (locked decision: never roll back). Keep the modal open so the
       // failure message stays visible instead of auto-closing over it — there is no
       // toast/notification convention in this app to surface it after close.
       if (stagedUploadErrorRef.current) {
-        setStagedFiles([]);
+        staged.reset();
         stagedUploadErrorRef.current = null;
         setHasCreatedWithError(true);
+        return;
+      }
+      if (mode === 'create' && createAnother) {
+        dispatch({ type: 'RESET_KEEP', keep: keptFieldsAfterCreate(latestRef.current.state) });
+        staged.reset();
+        issueDraft.adopt(null);
+        setEditTick(0);
+        setCreatedKey(created?.key ?? null);
+        setFocusSummary(true);
         return;
       }
       onClose();
     },
     onError: (msg) => {
       draft.flush();
+      if (mode === 'create') issueDraft.flush();
       dispatch({
         type: 'SET_FIELD',
         field: 'apiError',
@@ -413,6 +488,13 @@ export function CreateEditIssueModal({
       });
     },
   });
+
+  // Focus Summary once the post-create reset has rendered and the input is enabled again.
+  useEffect(() => {
+    if (!focusSummary || isPending) return;
+    summaryRef.current?.focus();
+    setFocusSummary(false);
+  }, [focusSummary, isPending]);
 
   const canSubmit =
     !!state.summary.trim() &&
@@ -471,7 +553,7 @@ export function CreateEditIssueModal({
                       <IssueTypeSelector
                         selectedIssueType={state.selectedIssueType}
                         defaultIssueType={defaultIssueType}
-                        dispatch={dispatch}
+                        dispatch={userDispatch}
                       />
                     </div>
                     <Dialog.Title className="text-lg font-semibold leading-tight">
@@ -512,9 +594,14 @@ export function CreateEditIssueModal({
                       ref={summaryRef}
                       id="issue-summary"
                       value={state.summary}
-                      onChange={(e) =>
-                        dispatch({ type: 'SET_FIELD', field: 'summary', value: e.target.value })
-                      }
+                      onChange={(e) => {
+                        userDispatch({
+                          type: 'SET_FIELD',
+                          field: 'summary',
+                          value: e.target.value,
+                        });
+                        setCreatedKey(null);
+                      }}
                       placeholder="Issue summary"
                       required
                       autoFocus={mode === 'create'}
@@ -545,7 +632,7 @@ export function CreateEditIssueModal({
                       />
                     </div>
                     {/* biome-ignore lint/a11y/noStaticElementInteractions: focusout flushes the draft */}
-                    <div onBlur={draft.flush} className="flex min-h-[240px] flex-1 flex-col">
+                    <div onBlur={flushAll} className="flex min-h-[240px] flex-1 flex-col">
                       <WikiEditorLazy
                         ref={editorRef}
                         value={state.description}
@@ -572,8 +659,10 @@ export function CreateEditIssueModal({
                   </div>
 
                   <StagedFilesStrip
-                    files={stagedFiles}
-                    onRemove={handleRemoveStagedFile}
+                    files={staged.files}
+                    onRemove={staged.remove}
+                    missing={staged.missing}
+                    onRemoveMissing={staged.removeMissing}
                     disabled={isPending}
                   />
                   {stagedUploadError && (
@@ -582,11 +671,17 @@ export function CreateEditIssueModal({
                     </p>
                   )}
 
-                  {state.apiError && (
-                    <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                      {state.apiError}
-                    </p>
-                  )}
+                  {state.apiError &&
+                    (mode === 'create' ? (
+                      <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                        <p>Couldn't create the issue. Your draft is kept, try again.</p>
+                        <p className="text-xs">{state.apiError}</p>
+                      </div>
+                    ) : (
+                      <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                        {state.apiError}
+                      </p>
+                    ))}
 
                   <div className="flex flex-col gap-1">
                     <h3 className="text-xs font-semibold text-muted-foreground">Links</h3>
@@ -595,16 +690,19 @@ export function CreateEditIssueModal({
                       linkTypes={linkTypes}
                       linkTypesLoading={linkTypesLoading}
                       isPending={isPending}
-                      dispatch={dispatch}
+                      dispatch={userDispatch}
                     />
                   </div>
                 </div>
 
-                <aside className="w-[300px] shrink-0 overflow-y-auto border-l bg-muted/30 p-4 @max-[900px]:w-[240px] max-[720px]:w-full max-[720px]:overflow-visible max-[720px]:border-l-0 max-[720px]:border-t">
+                <aside
+                  onBlur={flushAll}
+                  className="w-[300px] shrink-0 overflow-y-auto border-l bg-muted/30 p-4 @max-[900px]:w-[240px] max-[720px]:w-full max-[720px]:overflow-visible max-[720px]:border-l-0 max-[720px]:border-t"
+                >
                   <ModalSidebar
                     mode={mode}
                     state={state}
-                    dispatch={dispatch}
+                    dispatch={userDispatch}
                     isSubtask={isSubtask}
                     isPending={isPending}
                     projectKey={projectKey}
@@ -627,7 +725,48 @@ export function CreateEditIssueModal({
                 <div
                   data-testid="modal-footer-status"
                   className="flex min-w-0 flex-1 items-center gap-3"
-                />
+                >
+                  {mode === 'create' && (
+                    <>
+                      <div className="flex h-8 shrink-0 items-center gap-2">
+                        <input
+                          type="checkbox"
+                          id="create-another"
+                          className="size-4 accent-primary focus-visible:ring-2 focus-visible:ring-ring"
+                          checked={createAnother}
+                          disabled={isPending}
+                          onChange={(e) => setCreateAnother(e.target.checked)}
+                        />
+                        <label htmlFor="create-another" className="text-sm">
+                          Create another
+                        </label>
+                      </div>
+                      {createdKey ? (
+                        <div className="flex min-h-6 min-w-0 items-center gap-1 text-xs text-muted-foreground">
+                          <span className="truncate">✓ Created {createdKey}</span>
+                          <span aria-hidden>·</span>
+                          <button
+                            type="button"
+                            className="py-1 underline-offset-2 hover:text-foreground hover:underline"
+                            onClick={() => onOpenIssue?.(createdKey)}
+                          >
+                            Open
+                          </button>
+                        </div>
+                      ) : issueDraft.saveFailed || staged.copyFailed ? (
+                        <span className="min-w-0 truncate text-xs text-muted-foreground">
+                          Couldn't save your draft
+                        </span>
+                      ) : savedDraft ? (
+                        <DraftNote
+                          state="draft"
+                          onDiscard={handleDiscardIssueDraft}
+                          onUseJira={() => {}}
+                        />
+                      ) : null}
+                    </>
+                  )}
+                </div>
                 <Tooltip>
                   <TooltipTrigger
                     render={

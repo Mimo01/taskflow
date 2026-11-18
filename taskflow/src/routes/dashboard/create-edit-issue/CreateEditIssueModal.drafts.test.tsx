@@ -295,7 +295,10 @@ describe('edit mode description draft', () => {
     flushDraft();
     expect(Object.keys(useDraftsStore.getState().drafts)).toEqual([KEY]);
     expect(useDraftsStore.getState().drafts[KEY].text).toBe('Draft text');
-    expect(screen.queryByText('Draft saved')).not.toBeInTheDocument();
+    // The only note is the footer's issue-draft note (Phase 101), never the editor's
+    // description note: exactly one, rendered in the footer status slot.
+    expect(screen.getAllByText('Draft saved')).toHaveLength(1);
+    expect(screen.getByTestId('modal-footer-status')).toHaveTextContent('Draft saved');
   });
 });
 
