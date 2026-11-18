@@ -56,6 +56,23 @@ Commit 7dae38d7. `npm test` passed (6730 tests at the time), and `tsc` and `carg
 - `IssueTypeSelector` rendered a visible "Issue Type" label above the select, which split the header row. Its read-only variant was also 36px tall against the select's 32px, a 4px jump between fresh and resumed modals.
 - The user tried a quiet pill beside the title and a "Create Story" title. They then chose to move the type into the sidebar. The header is now just "Create issue" and close. "Issue type" is the first sidebar field, with type icons, and is read-only when the opener fixes the type.
 
+## User approval and later fixes
+
+The user approved the phase on 2026-11-18 ("approved, everything looks correct") after the following follow-up fixes requested during the walkthrough:
+
+- **2b184fd0:**
+  - Create issue offers Story, Bug and Defect, filtered to the issue types the project has. ESHOP has no Defect type.
+  - Subtask create shows no type field.
+  - The type menu opens below the field, and type icons keep their colour on highlight.
+- **5272c7c8:**
+  - Priority shows icons and only the project's priorities. Priority is not on the ESHOP create screen, so the list comes from a reference issue's editmeta, under its own query key.
+  - Account is a portaled picker with server-side search, so it no longer overflows the sidebar.
+  - Fix version, Labels and Account match the shared field look.
+  - Labels commit on comma, Tab and blur as well as Enter.
+- **3375b52b:** the fixed parent in Create subtask shows its type icon and summary beside the key.
+
+Account inheritance (subtask from its parent, story from the selected epic) was already in place and is covered by the epic-story tests.
+
 ## Notes for later
 
 - **Version mismatch warning:** `tauri dev` warns that `tauri-plugin-fs` 2.4.5 (Cargo.lock) does not match `@tauri-apps/plugin-fs` 2.7.1 (npm). The same warning already existed for `tauri` against `@tauri-apps/api`. It is non-blocking; a `cargo update -p tauri-plugin-fs` would align them.
