@@ -28,6 +28,10 @@ export function useExpandOnFocus({ hasContent, onBlur }: Options) {
       onFocus: () => setOpen(true),
       onBlur: (e: FocusEvent<HTMLDivElement>) => {
         onBlur?.();
+        // The window losing focus (the native file panel opened by Attach, app switch) is not
+        // the user leaving the composer: collapsing then would unmount the file input and drop
+        // the chosen files. Focus returns to the editor when the window does.
+        if (!document.hasFocus()) return;
         if (!e.currentTarget.contains(e.relatedTarget as Node | null) && !hasContent) {
           setOpen(false);
         }

@@ -54,6 +54,9 @@ export function CommentActionRow({
               size="icon-sm"
               aria-label="Attach files"
               disabled={attachDisabled}
+              // Keep focus in the editor: WebKit does not focus a clicked button, so the
+              // editor's blur would otherwise collapse an empty composer before the click lands.
+              onMouseDown={(e) => e.preventDefault()}
               onClick={() => inputRef.current?.click()}
             />
           }

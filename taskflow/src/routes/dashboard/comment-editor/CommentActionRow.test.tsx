@@ -68,6 +68,12 @@ describe('CommentActionRow', () => {
     expect((screen.getByRole('button', { name: 'Save' }) as HTMLButtonElement).disabled).toBe(true);
   });
 
+  it('Attach does not take focus on mousedown (keeps an empty composer expanded in WebKit)', () => {
+    setup();
+    const notPrevented = fireEvent.mouseDown(screen.getByRole('button', { name: 'Attach files' }));
+    expect(notPrevented).toBe(false);
+  });
+
   it('attachDisabled disables Attach', () => {
     setup({ attachDisabled: true });
     expect(

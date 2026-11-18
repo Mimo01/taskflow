@@ -1,5 +1,5 @@
 import { act, fireEvent, render, renderHook, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useExpandOnFocus } from './useExpandOnFocus';
 
 function Harness({ hasContent, onBlur }: { hasContent: boolean; onBlur?: () => void }) {
@@ -19,6 +19,14 @@ function Harness({ hasContent, onBlur }: { hasContent: boolean; onBlur?: () => v
 const state = () => screen.getByTestId('state').textContent;
 
 describe('useExpandOnFocus', () => {
+  // jsdom reports the window as unfocused; a real page has focus while the user clicks around.
+  beforeEach(() => {
+    vi.spyOn(document, 'hasFocus').mockReturnValue(true);
+  });
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it('is collapsed without content and expanded with content', () => {
     expect(renderHook(() => useExpandOnFocus({ hasContent: false })).result.current.expanded).toBe(
       false,
@@ -48,6 +56,14 @@ describe('useExpandOnFocus', () => {
     render(<Harness hasContent={false} />);
     fireEvent.focus(screen.getByText('inner'));
     fireEvent.blur(screen.getByText('inner'), { relatedTarget: screen.getByText('inner2') });
+    expect(state()).toBe('open');
+  });
+
+  it('blur while the window loses focus (native file panel) keeps expanded', () => {
+    vi.spyOn(document, 'hasFocus').mockReturnValue(false);
+    render(<Harness hasContent={false} />);
+    fireEvent.focus(screen.getByText('inner'));
+    fireEvent.blur(screen.getByText('inner'), { relatedTarget: null });
     expect(state()).toBe('open');
   });
 
