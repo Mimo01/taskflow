@@ -3,6 +3,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { apiFetch } from '@/lib/apiFetch';
 import * as jiraService from '@/services/jira';
 import { CreateEditIssueModal } from './CreateEditIssueModal';
 
@@ -150,5 +151,42 @@ describe('Create labels', () => {
     await waitFor(() => expect(jiraService.createIssue).toHaveBeenCalled());
     const options = vi.mocked(jiraService.createIssue).mock.calls[0][4] as Record<string, unknown>;
     expect(options.labels).toEqual(['alpha']);
+  });
+
+  it('Cmd+Enter from the label input keeps the typed label (WR-07)', async () => {
+    renderModal('create');
+    fireEvent.change(screen.getByLabelText(/summary/i), { target: { value: 'New story' } });
+    const input = screen.getByPlaceholderText('Add label');
+    fireEvent.change(input, { target: { value: 'alpha' } });
+    fireEvent.keyDown(input, { key: 'Enter', metaKey: true });
+    await waitFor(() => expect(jiraService.createIssue).toHaveBeenCalled());
+    const options = vi.mocked(jiraService.createIssue).mock.calls[0][4] as Record<string, unknown>;
+    expect(options.labels).toEqual(['alpha']);
+  });
+
+  it('Cmd+Enter submits when the typed label is the required one (WR-07)', async () => {
+    vi.mocked(apiFetch).mockImplementation(
+      async (_s: string, url: string) =>
+        ({
+          ok: true,
+          status: 200,
+          json: async () =>
+            url.includes('/issuetypes')
+              ? { values: [{ id: '1', name: 'Story', subtask: false }] }
+              : {},
+        }) as Response,
+    );
+    vi.mocked(jiraService.fetchCreatemeta).mockResolvedValue([
+      { fieldId: 'labels', name: 'Labels', required: true, schema: { type: 'array' } },
+    ] as never);
+    renderModal('create');
+    await waitFor(() => expect(jiraService.fetchCreatemeta).toHaveBeenCalled());
+    fireEvent.change(screen.getByLabelText(/summary/i), { target: { value: 'New story' } });
+    const input = screen.getByPlaceholderText('Add label');
+    fireEvent.change(input, { target: { value: 'beta' } });
+    fireEvent.keyDown(input, { key: 'Enter', ctrlKey: true });
+    await waitFor(() => expect(jiraService.createIssue).toHaveBeenCalled());
+    const options = vi.mocked(jiraService.createIssue).mock.calls[0][4] as Record<string, unknown>;
+    expect(options.labels).toEqual(['beta']);
   });
 });

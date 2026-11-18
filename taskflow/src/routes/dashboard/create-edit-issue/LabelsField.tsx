@@ -1,5 +1,6 @@
 import { X } from 'lucide-react';
 import { type Dispatch, useState } from 'react';
+import { flushSync } from 'react-dom';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import type { FormAction } from './useCreateEditForm';
@@ -56,6 +57,9 @@ export function LabelsField({ id, labels, dispatch, disabled }: LabelsFieldProps
           if ((e.key === 'Enter' && !e.metaKey && !e.ctrlKey) || e.key === ',') {
             e.preventDefault();
             commit();
+          } else if (e.key === 'Enter' && text.trim()) {
+            // Cmd/Ctrl+Enter submits from the form: commit synchronously so the label is in it.
+            flushSync(commit);
           } else if (e.key === 'Tab' && text.trim()) {
             commit();
           } else if (e.key === 'Escape' && text) {

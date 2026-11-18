@@ -606,6 +606,10 @@ export function CreateEditIssueModal({
     }
     formRef.current?.requestSubmit();
   }
+  // The form's key handler reads the latest guard: a field may commit (flushSync) on the
+  // same Cmd+Enter keypress before it bubbles up (LabelsField pending text).
+  const trySubmitRef = useRef(trySubmit);
+  trySubmitRef.current = trySubmit;
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
@@ -635,7 +639,7 @@ export function CreateEditIssueModal({
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && !e.nativeEvent.isComposing) {
                   e.preventDefault();
-                  trySubmit();
+                  trySubmitRef.current();
                 }
               }}
               className="flex min-h-0 flex-1 flex-col"
