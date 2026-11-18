@@ -33,6 +33,16 @@ describe('WikiEditorLazy', () => {
     expect(container.innerHTML).toContain('min-h-[160px]');
   });
 
+  it('skeleton uses the shared field surface', async () => {
+    const WikiEditorLazy = await loadWrapper('pending');
+    const { container } = render(<WikiEditorLazy value="" onChange={() => {}} />);
+    const cls = container.querySelector('[data-testid="wiki-editor-skeleton"]')?.className ?? '';
+    for (const c of ['bg-transparent', 'dark:bg-input/30', 'rounded-lg', 'border-input']) {
+      expect(cls).toContain(c);
+    }
+    expect(cls).not.toContain('bg-background');
+  });
+
   it('imports nothing from the editor stack', () => {
     for (const f of ['WikiEditorLazy.tsx', 'types.ts']) {
       const src = readFileSync(resolve(process.cwd(), 'src/components/wiki-editor', f), 'utf8');
