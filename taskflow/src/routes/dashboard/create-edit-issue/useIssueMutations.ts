@@ -10,6 +10,7 @@ import {
 import { createIssueLink } from '@/services/jira/links';
 import type { CreatemetaField } from '@/services/jira/types';
 import { readSecret } from '@/services/stronghold';
+import { labelsFixVersionsCreateFields, labelsFixVersionsEditFields } from './issue-field-diff';
 import type { EditInitialValues, FormState } from './useCreateEditForm';
 import { extractCustomFieldId } from './useCreateEditForm';
 
@@ -31,7 +32,7 @@ interface UseIssueMutationsOptions {
   /** Called with the filenames that failed to upload post-create. A partial upload
    *  failure never rolls back or fails issue creation (locked decision). */
   onStagedUploadError?: (failedNames: string[]) => void;
-  onSuccess: () => void;
+  onSuccess: (created?: { id: string; key: string }) => void;
   onError: (message: string) => void;
 }
 
@@ -78,6 +79,8 @@ export function useIssueMutations({
       } else {
         if (state.epicLinkKey && epicLinkFieldKey) options[epicLinkFieldKey] = state.epicLinkKey;
       }
+
+      Object.assign(options, labelsFixVersionsCreateFields(state, state.selectedIssueType));
 
       // Add custom field values
       for (const [k, v] of Object.entries(state.customFieldValues)) {
@@ -137,7 +140,7 @@ export function useIssueMutations({
 
       return newIssue;
     },
-    onSuccess: () => {
+    onSuccess: (newIssue) => {
       if (isSubtask && state.parentKey && jiraBaseUrl) {
         queryClient.invalidateQueries({
           queryKey: ['jira-issue-detail', state.parentKey, jiraBaseUrl],
@@ -151,7 +154,7 @@ export function useIssueMutations({
         });
       }
       queryClient.invalidateQueries({ queryKey: ['jira-epic-stories'] });
-      onSuccess();
+      onSuccess(newIssue);
     },
     onError: (err: Error) => {
       onError(err.message);
@@ -190,6 +193,8 @@ export function useIssueMutations({
       if (state.epicLinkKey !== initialValues.epicLinkKey && epicLinkFieldKey) {
         fields[epicLinkFieldKey] = state.epicLinkKey;
       }
+
+      Object.assign(fields, labelsFixVersionsEditFields(state, initialValues));
 
       // Only send custom fields that: are on the edit screen (in creatmetaFields),
       // have a non-empty value, and were actually changed by the user.
