@@ -53,13 +53,13 @@
 
 ### Issue Drafts (DRAFT)
 
-- [ ] **DRAFT-01**: Closing the Create Issue modal (Story, Epic, Subtask or any type) with content auto-saves it as a draft without a prompt
-- [ ] **DRAFT-02**: User can keep several independent issue drafts at once
-- [ ] **DRAFT-03**: A header "Drafts" chip with a count, styled differently from the pinned tabs, appears whenever drafts exist and opens a list of them (type icon, summary or "Untitled", parent/epic, last edited, Resume/Discard)
-- [ ] **DRAFT-04**: User can resume a draft from anywhere in the app, and the modal reopens with every field restored (type, summary, description, assignee, priority, labels, custom fields, parent/epic)
-- [ ] **DRAFT-05**: Staged attachments are kept with the draft (copied to app storage) and upload when the issue is created
-- [ ] **DRAFT-06**: Drafts persist across app restarts until the issue is created or the draft is discarded
-- [ ] **DRAFT-07**: User can discard a draft from the list, and a successful create removes its draft automatically
+- [x] **DRAFT-01**: Closing the Create Issue modal (Story, Epic, Subtask or any type) with content auto-saves it as a draft without a prompt
+- [x] **DRAFT-02**: User can keep several independent issue drafts at once
+- [x] **DRAFT-03**: A header "Drafts" chip with a count, styled differently from the pinned tabs, appears whenever drafts exist and opens a list of them (type icon, summary or "Untitled", parent/epic, last edited, Resume/Discard)
+- [x] **DRAFT-04**: User can resume a draft from anywhere in the app, and the modal reopens with every field restored (type, summary, description, assignee, priority, labels, custom fields, parent/epic)
+- [x] **DRAFT-05**: Staged attachments are kept with the draft (copied to app storage) and upload when the issue is created
+- [x] **DRAFT-06**: Drafts persist across app restarts until the issue is created or the draft is discarded
+- [x] **DRAFT-07**: User can discard a draft from the list, and a successful create removes its draft automatically
 
 ### Host Adoption (HOST)
 
@@ -71,8 +71,8 @@
 
 ### Polished Surfaces (UI)
 
-- [ ] **UI-01**: The Create/Edit Issue modal is a large two-column dialog: summary, editor, staged files and links in the main column, a fields sidebar and a sticky footer (subtasks dropped by user decision 2026-11-17, Phase 101 D-03)
-- [ ] **UI-02**: User can tick "Create another" to keep the modal open for the next issue, with common fields kept
+- [x] **UI-01**: The Create/Edit Issue modal is a large two-column dialog: summary, editor, staged files and links in the main column, a fields sidebar and a sticky footer (subtasks dropped by user decision 2026-11-17, Phase 101 D-03)
+- [x] **UI-02**: User can tick "Create another" to keep the modal open for the next issue, with common fields kept
 - [ ] **UI-03**: Comment hosts have an expanding editor and a consistent, clean action row
 - [~] **UI-04**: ~~Inline description editing is in place and larger, with sticky Save/Cancel~~ — Dropped by user decision 2026-11-17 (Phase 100 D-01).
 - [ ] **UI-05**: Create Epic, Bulk Create Subtasks and Edit Release modals are bigger and visually consistent with the new modal (Edit Release keeps its plain-text/Markdown fields, with no wiki editor)
@@ -131,20 +131,20 @@
 | FLOW-02 | Phase 100 | Complete |
 | FLOW-03 | Phase 100 | Complete |
 | FLOW-04 | Phase 98 | Complete |
-| DRAFT-01 | Phase 101 | Pending |
-| DRAFT-02 | Phase 101 | Pending |
-| DRAFT-03 | Phase 101 | Pending |
-| DRAFT-04 | Phase 101 | Pending |
-| DRAFT-05 | Phase 101 | Pending |
-| DRAFT-06 | Phase 101 | Pending |
-| DRAFT-07 | Phase 101 | Pending |
+| DRAFT-01 | Phase 101 | Complete |
+| DRAFT-02 | Phase 101 | Complete |
+| DRAFT-03 | Phase 101 | Complete |
+| DRAFT-04 | Phase 101 | Complete |
+| DRAFT-05 | Phase 101 | Complete |
+| DRAFT-06 | Phase 101 | Complete |
+| DRAFT-07 | Phase 101 | Complete |
 | HOST-01 | Phase 100 | Complete |
 | HOST-02 | Phase 100 | Dropped |
 | HOST-03 | Phase 100 | Complete |
 | HOST-04 | Phase 100 | Complete |
 | HOST-05 | Phase 100 | Complete |
-| UI-01 | Phase 101 | Pending |
-| UI-02 | Phase 101 | Pending |
+| UI-01 | Phase 101 | Complete |
+| UI-02 | Phase 101 | Complete |
 | UI-03 | Phase 102 | Pending |
 | UI-04 | Phase 102 | Dropped |
 | UI-05 | Phase 102 | Pending |

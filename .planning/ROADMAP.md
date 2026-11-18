@@ -33,7 +33,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 98: Editor Shell** - Lazy TipTap WikiEditor with toolbar, shortcuts, input rules, blocks, source toggle and runtime guard, proven in a dev-tools preview tab
 - [x] **Phase 99: Mentions, Media & Smart Input** - @mentions, attachments, image paste/drop, rich-HTML paste, issue keys, emoticons, slash menu, bubble menu (completed 2026-11-17)
 - [x] **Phase 100: Host Adoption & Editing Workflow** - Swap every wiki host to the new editor one at a time, add local drafts, dirty guards and Cmd+Enter/Esc, delete the textarea code (completed 2026-11-17)
-- [ ] **Phase 101: Issue Drafts & Large Create/Edit Modal** - Two-column Create/Edit Issue modal with Create another, plus auto-saved multi-draft issue creation with a header Drafts chip
+- [x] **Phase 101: Issue Drafts & Large Create/Edit Modal** - Two-column Create/Edit Issue modal with Create another, plus auto-saved multi-draft issue creation with a header Drafts chip (completed 2026-11-18)
 - [ ] **Phase 102: Polished Surfaces** - Comment hosts, Create Epic, Bulk Subtasks and Edit Release restyled to match
 
 <details>
@@ -442,7 +442,7 @@ Plans:
 | 98. Editor Shell | 15/16 | In Progress|  |
 | 99. Mentions, Media & Smart Input | 14/14 | Complete    | 2026-11-17 |
 | 100. Host Adoption & Editing Workflow | 9/9 | Complete    | 2026-11-17 |
-| 101. Issue Drafts & Large Create/Edit Modal | 12/12 | Complete   | 2026-11-18 |
+| 101. Issue Drafts & Large Create/Edit Modal | 12/12 | Complete    | 2026-11-18 |
 | 102. Polished Surfaces | 0/TBD | Not started | - |
 
 ### Shipped milestones
