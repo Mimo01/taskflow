@@ -39,6 +39,16 @@ export interface IssueDraftSnapshot {
 export interface EpicDraftSnapshot {
   epicName: string;
   description: string;
+  /** Sidebar fields (optional: drafts saved before the Create Epic upgrade lack them). */
+  selectedAssignee?: PersonValue | null;
+  selectedAssigneeName?: string | null;
+  priority?: string | null;
+  storyPoints?: string;
+  labels?: string[];
+  fixVersions?: { id: string; name: string }[];
+  customFieldValues?: Record<string, string>;
+  customFieldInputValues?: Record<string, string>;
+  customFieldNames?: Record<string, string>;
 }
 
 export type IssueDraft = {
@@ -108,6 +118,55 @@ function isIssueSnapshot(s: Record<string, unknown>): boolean {
   );
 }
 
+function strRecord(v: unknown): Record<string, string> | undefined {
+  if (!isObj(v)) return undefined;
+  const out: Record<string, string> = {};
+  for (const [k, val] of Object.entries(v)) {
+    if (!isStr(val)) return undefined;
+    out[k] = val;
+  }
+  return out;
+}
+
+/** Keeps epicName/description and each optional sidebar field only when well-formed. */
+function sanitizeEpicSnapshot(s: Record<string, unknown>): EpicDraftSnapshot | null {
+  if (!isStr(s.epicName) || !isStr(s.description)) return null;
+  const out: EpicDraftSnapshot = { epicName: s.epicName, description: s.description };
+  if (s.selectedAssignee === null) out.selectedAssignee = null;
+  else if (isObj(s.selectedAssignee)) {
+    const a = s.selectedAssignee;
+    const name = a.name;
+    if (isStr(name)) {
+      out.selectedAssignee = {
+        name,
+        displayName: isStr(a.displayName) ? a.displayName : name,
+        avatarUrl: isStr(a.avatarUrl) ? a.avatarUrl : null,
+      };
+    }
+  }
+  const assigneeName = s.selectedAssigneeName;
+  if (assigneeName === null || isStr(assigneeName)) out.selectedAssigneeName = assigneeName;
+  const priority = s.priority;
+  if (priority === null || isStr(priority)) out.priority = priority;
+  if (isStr(s.storyPoints)) out.storyPoints = s.storyPoints;
+  if (Array.isArray(s.labels) && s.labels.every(isStr)) out.labels = s.labels.filter(isStr);
+  if (Array.isArray(s.fixVersions)) {
+    const fv: { id: string; name: string }[] = [];
+    for (const v of s.fixVersions) {
+      if (!isObj(v) || !isStr(v.id) || !isStr(v.name)) break;
+      fv.push({ id: v.id, name: v.name });
+    }
+    if (fv.length === s.fixVersions.length) out.fixVersions = fv;
+  }
+  const values = strRecord(s.customFieldValues);
+  if (values) out.customFieldValues = values;
+  const inputs = strRecord(s.customFieldInputValues);
+  if (inputs) out.customFieldInputValues = inputs;
+  const names = strRecord(s.customFieldNames);
+  if (names) out.customFieldNames = names;
+  return out;
+}
+
 /** Persisted drafts are untrusted JSON: keep only well-formed drafts and safe file refs. */
 export function sanitizePersistedDrafts(raw: unknown): Record<string, IssueDraft> {
   const out: Record<string, IssueDraft> = {};
@@ -117,12 +176,22 @@ export function sanitizePersistedDrafts(raw: unknown): Record<string, IssueDraft
       continue;
     if (!Array.isArray(d.files) || !isObj(d.snapshot)) continue;
     const s = d.snapshot;
-    const ok =
-      d.kind === 'issue'
-        ? isIssueSnapshot(s)
-        : d.kind === 'epic' && isStr(s.epicName) && isStr(s.description);
-    if (!ok) continue;
-    out[key] = { ...d, files: d.files.filter(isFileRef) } as IssueDraft;
+    const files = d.files.filter(isFileRef);
+    if (d.kind === 'epic') {
+      const snapshot = sanitizeEpicSnapshot(s);
+      if (!snapshot) continue;
+      out[key] = {
+        id: key,
+        kind: 'epic',
+        updatedAt: d.updatedAt,
+        projectKey: d.projectKey,
+        files,
+        snapshot,
+      };
+      continue;
+    }
+    if (d.kind !== 'issue' || !isIssueSnapshot(s)) continue;
+    out[key] = { ...d, files } as IssueDraft;
   }
   return out;
 }

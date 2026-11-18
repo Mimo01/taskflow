@@ -2,10 +2,13 @@ import { describe, expect, it } from 'vitest';
 import { buildInitialState } from '@/routes/dashboard/create-edit-issue/useCreateEditForm';
 import type { CreatemetaField } from '@/services/jira';
 import {
+  epicSnapshotToFormPatch,
+  epicSnapshotToIssueSnapshot,
   hasEpicContent,
   hasUserContent,
   keptFieldsAfterCreate,
   snapshotToFormPatch,
+  toEpicSnapshot,
   toIssueSnapshot,
   validateSnapshot,
 } from './issue-draft-snapshot';
@@ -202,5 +205,77 @@ describe('validateSnapshot', () => {
     expect(r.snapshot).toEqual(s);
     expect(r.notes).toEqual({ customFields: {} });
     expect(s).toEqual(copy);
+  });
+});
+
+describe('epic snapshot helpers (D-09)', () => {
+  it('toEpicSnapshot maps summary to epicName and resolves field names', () => {
+    const state = {
+      ...base(),
+      summary: 'My epic',
+      description: 'D',
+      priority: 'High',
+      labels: ['a'],
+      customFieldValues: { cf1: '1', cf2: '2' },
+    };
+    const s = toEpicSnapshot(state, { cf1: 'Team' });
+    expect(s.epicName).toBe('My epic');
+    expect(s.description).toBe('D');
+    expect(s.priority).toBe('High');
+    expect(s.labels).toEqual(['a']);
+    expect(s.customFieldNames).toEqual({ cf1: 'Team', cf2: 'cf2' });
+  });
+
+  it('epicSnapshotToIssueSnapshot fills defaults for an old-shape draft', () => {
+    expect(epicSnapshotToIssueSnapshot({ epicName: 'E', description: 'D' })).toEqual({
+      selectedIssueType: 'Epic',
+      summary: 'E',
+      description: 'D',
+      selectedAssignee: null,
+      selectedAssigneeName: null,
+      timeEstimate: '',
+      priority: null,
+      storyPoints: '',
+      epicLinkKey: null,
+      parentKey: null,
+      labels: [],
+      fixVersions: [],
+      customFieldValues: {},
+      customFieldInputValues: {},
+      customFieldNames: {},
+      linkRows: [],
+    });
+  });
+
+  it('validateSnapshot drops an epic custom field missing from createmeta with the stale note', () => {
+    const issue = epicSnapshotToIssueSnapshot({
+      epicName: 'E',
+      description: '',
+      customFieldValues: { cfX: '1' },
+      customFieldInputValues: { cfX: 'One' },
+      customFieldNames: { cfX: 'Team' },
+    });
+    const r = validateSnapshot(issue, { ...ctx, createmetaFields: [meta('other')] });
+    expect(r.snapshot.customFieldValues).toEqual({});
+    expect(r.notes.customFields.cfX).toBe('Team is no longer available on this screen');
+  });
+
+  it('epicSnapshotToFormPatch carries only stored sidebar fields', () => {
+    const patch = epicSnapshotToFormPatch({ epicName: 'E', description: 'D', labels: ['x'] });
+    expect(patch).toEqual({
+      selectedIssueType: 'Epic',
+      summary: 'E',
+      description: 'D',
+      labels: ['x'],
+    });
+  });
+
+  it('epicSnapshotToFormPatch omits issue-only keys', () => {
+    const patch = epicSnapshotToFormPatch({ epicName: 'E', description: 'D', priority: null });
+    expect('linkRows' in patch).toBe(false);
+    expect('epicLinkKey' in patch).toBe(false);
+    expect('parentKey' in patch).toBe(false);
+    expect('timeEstimate' in patch).toBe(false);
+    expect(patch.priority).toBeNull();
   });
 });
