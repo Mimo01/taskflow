@@ -380,7 +380,7 @@ Plans:
 **Requirements**: UI-01, UI-02, DRAFT-01, DRAFT-02, DRAFT-03, DRAFT-04, DRAFT-05, DRAFT-06, DRAFT-07
 **Success Criteria** (what must be TRUE):
 
-  1. Create/Edit Issue opens as a large dialog with summary, editor, subtasks and links in the main column, a fields sidebar and a sticky footer
+  1. Create/Edit Issue opens as a large dialog with summary, editor, staged files and links in the main column (no subtasks, D-03), a fields sidebar and a sticky footer
   2. User can tick "Create another" and the modal stays open for the next issue with common fields kept
   3. Closing the modal with content saves a draft without a prompt, and several independent drafts can exist at once
   4. A header Drafts chip with a count, styled apart from pinned tabs, appears whenever drafts exist and lists them (type icon, summary or "Untitled", parent/epic, last edited, Resume/Discard)

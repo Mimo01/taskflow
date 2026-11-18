@@ -71,7 +71,7 @@
 
 ### Polished Surfaces (UI)
 
-- [ ] **UI-01**: The Create/Edit Issue modal is a large two-column dialog: summary, editor, subtasks and links in the main column, a fields sidebar and a sticky footer
+- [ ] **UI-01**: The Create/Edit Issue modal is a large two-column dialog: summary, editor, staged files and links in the main column, a fields sidebar and a sticky footer (subtasks dropped by user decision 2026-11-17, Phase 101 D-03)
 - [ ] **UI-02**: User can tick "Create another" to keep the modal open for the next issue, with common fields kept
 - [ ] **UI-03**: Comment hosts have an expanding editor and a consistent, clean action row
 - [~] **UI-04**: ~~Inline description editing is in place and larger, with sticky Save/Cancel~~ — Dropped by user decision 2026-11-17 (Phase 100 D-01).
