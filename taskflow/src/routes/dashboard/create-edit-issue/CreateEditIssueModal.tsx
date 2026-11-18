@@ -55,6 +55,10 @@ export interface CreateEditIssueModalProps {
   defaultParentKey?: string;
   /** Epic key to prefill the Epic Link field in create mode (epic-child flow). */
   defaultEpicLinkKey?: string;
+  /** Draft to restore on open (Phase 101) */
+  resumeDraftId?: string | null;
+  /** Opens a just-created issue in the peek (Create another feedback) */
+  onOpenIssue?: (key: string) => void;
 }
 
 // ── Component ────────────────────────────────────────────────────────────────

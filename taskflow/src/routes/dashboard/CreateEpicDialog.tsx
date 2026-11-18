@@ -18,6 +18,8 @@ import { StagedFilesStrip } from './StagedFilesStrip';
 export interface CreateEpicDialogProps {
   open: boolean;
   onClose: () => void;
+  /** Draft to restore on open (Phase 101) */
+  resumeDraftId?: string | null;
 }
 
 export function CreateEpicDialog({ open, onClose }: CreateEpicDialogProps) {

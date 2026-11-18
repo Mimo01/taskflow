@@ -26,8 +26,8 @@ import type { EpicEnriched, EpicEnrichmentCounts } from '@/services/jira';
 import { EPICS_PAGE_ORDER, fetchEpicEnrichmentMap, fetchEpicsBasic } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
+import { useCreateModalStore } from '@/stores/create-modal.store';
 import { useSettingsStore } from '@/stores/settings.store';
-import { CreateEpicDialog } from './CreateEpicDialog';
 import type { EnrichmentCellState } from './EpicProgressCells';
 import { EpicPointsCell, EpicProgressCell } from './EpicProgressCells';
 import { EpicsSkeleton } from './EpicsSkeleton';
@@ -138,7 +138,6 @@ export default function EpicsPage() {
   }, [loadToken]);
 
   const queryClient = useQueryClient();
-  const [createOpen, setCreateOpen] = useState(false);
   const [bannerDismissed, setBannerDismissed] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -257,7 +256,7 @@ export default function EpicsPage() {
         actions={
           <button
             type="button"
-            onClick={() => setCreateOpen(true)}
+            onClick={() => useCreateModalStore.getState().openEpic()}
             className="rounded border border-border bg-background px-3 py-1.5 text-sm hover:bg-accent transition-colors"
           >
             + Create Epic
@@ -324,14 +323,16 @@ export default function EpicsPage() {
                 icon={Layers}
                 title="No epics yet"
                 subtitle="Epics will appear once they are created in your project"
-                action={<Button onClick={() => setCreateOpen(true)}>Create Epic</Button>}
+                action={
+                  <Button onClick={() => useCreateModalStore.getState().openEpic()}>
+                    Create Epic
+                  </Button>
+                }
               />
             )}
           </>
         ) : null}
       </div>
-
-      <CreateEpicDialog open={createOpen} onClose={() => setCreateOpen(false)} />
     </div>
   );
 }

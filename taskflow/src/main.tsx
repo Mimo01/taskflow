@@ -44,6 +44,7 @@ import {
   CreateEditIssueModal,
   type EditInitialValues,
 } from './routes/dashboard/CreateEditIssueModal';
+import { CreateEpicDialog } from './routes/dashboard/CreateEpicDialog';
 import ErrorPage from './routes/error/ErrorPage';
 import { routes } from './routes/routes';
 import { initAvatarCache } from './services/avatarCache';
@@ -53,6 +54,7 @@ import { loadAppearance, loadTheme } from './services/theme';
 import { updaterService } from './services/updater';
 import { useAuthStore } from './stores/auth.store';
 import { useBreadcrumbStore } from './stores/breadcrumb.store';
+import { useCreateModalStore } from './stores/create-modal.store';
 import { useOnboardingStore } from './stores/onboarding.store';
 import { usePeekStore } from './stores/peek.store';
 import { usePinnedTabsStore } from './stores/pinned-tabs.store';
@@ -129,21 +131,15 @@ function AppLayout() {
   const { onboardingComplete } = useSettingsStore();
   const rerunActive = useOnboardingStore((s) => s.rerunActive);
   const { jiraConnected, jiraBaseUrl, gitlabConnected, _hasHydrated } = useAuthStore();
-  const [createModalOpen, setCreateModalOpen] = useState(false);
-  const [createModalMode, setCreateModalMode] = useState<'create' | 'edit'>('create');
-  const [createModalInitialValues, setCreateModalInitialValues] = useState<
-    EditInitialValues | undefined
-  >(undefined);
-  const [createModalDefaultType, setCreateModalDefaultType] = useState<
-    'Story' | 'Subtask' | 'Bug' | undefined
-  >(undefined);
-  const [createModalDefaultParent, setCreateModalDefaultParent] = useState<string | undefined>(
-    undefined,
-  );
-  const [createModalDefaultEpic, setCreateModalDefaultEpic] = useState<string | undefined>(
-    undefined,
-  );
-  const wasStoryCreate = useRef(false);
+  const createModalOpen = useCreateModalStore((s) => s.open);
+  const createModalMode = useCreateModalStore((s) => s.mode);
+  const createModalInitialValues = useCreateModalStore((s) => s.initialValues);
+  const createModalDefaultType = useCreateModalStore((s) => s.defaultIssueType);
+  const createModalDefaultParent = useCreateModalStore((s) => s.defaultParentKey);
+  const createModalDefaultEpic = useCreateModalStore((s) => s.defaultEpicLinkKey);
+  const createModalResumeDraftId = useCreateModalStore((s) => s.resumeDraftId);
+  const epicOpen = useCreateModalStore((s) => s.epicOpen);
+  const epicResumeDraftId = useCreateModalStore((s) => s.epicResumeDraftId);
   const isFullscreenRef = useRef(false);
   const queryClient = useQueryClient();
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
@@ -576,71 +572,43 @@ function AppLayout() {
   };
 
   const handleOpenCreate = () => {
-    wasStoryCreate.current = false;
-    setCreateModalMode('create');
-    setCreateModalInitialValues(undefined);
-    setCreateModalDefaultType(undefined);
-    setCreateModalDefaultParent(undefined);
-    setCreateModalDefaultEpic(undefined);
-    setCreateModalOpen(true);
+    useCreateModalStore.getState().openCreate();
   };
 
   const handleOpenEdit = (vals: EditInitialValues) => {
-    wasStoryCreate.current = false;
-    setCreateModalMode('edit');
-    setCreateModalInitialValues(vals);
-    setCreateModalDefaultType(undefined);
-    setCreateModalDefaultParent(undefined);
-    setCreateModalDefaultEpic(undefined);
-    setCreateModalOpen(true);
+    useCreateModalStore.getState().openEdit(vals);
   };
 
   const handleOpenClone = (vals: EditInitialValues) => {
-    wasStoryCreate.current = false;
-    setCreateModalMode('create');
-    setCreateModalInitialValues(vals);
-    setCreateModalDefaultType(undefined);
-    setCreateModalDefaultParent(undefined);
-    setCreateModalDefaultEpic(undefined);
-    setCreateModalOpen(true);
+    useCreateModalStore.getState().openCreate({ initialValues: vals });
   };
 
   const handleOpenAddSubtask = (parentKey: string) => {
-    wasStoryCreate.current = false;
-    setCreateModalMode('create');
-    setCreateModalDefaultType('Subtask');
-    setCreateModalDefaultParent(parentKey);
-    setCreateModalDefaultEpic(undefined);
-    setCreateModalInitialValues(undefined);
-    setCreateModalOpen(true);
+    useCreateModalStore
+      .getState()
+      .openCreate({ defaultIssueType: 'Subtask', defaultParentKey: parentKey });
   };
 
   const handleOpenCreateStory = () => {
-    wasStoryCreate.current = true;
-    setCreateModalMode('create');
-    setCreateModalDefaultType('Story');
-    setCreateModalInitialValues(undefined);
-    setCreateModalDefaultParent(undefined);
-    setCreateModalDefaultEpic(undefined);
-    setCreateModalOpen(true);
+    useCreateModalStore
+      .getState()
+      .openCreate({ defaultIssueType: 'Story', refreshBacklogOnClose: true });
   };
 
   const handleOpenAddEpicStory = (epicKey: string) => {
     // Same as Create story: refresh backlog data on close.
-    wasStoryCreate.current = true;
-    setCreateModalMode('create');
-    setCreateModalDefaultType('Story');
-    setCreateModalDefaultParent(undefined);
-    setCreateModalInitialValues(undefined);
-    setCreateModalDefaultEpic(epicKey);
-    setCreateModalOpen(true);
+    useCreateModalStore.getState().openCreate({
+      defaultIssueType: 'Story',
+      defaultEpicLinkKey: epicKey,
+      refreshBacklogOnClose: true,
+    });
   };
 
   const handleCreateModalClose = () => {
-    // Close first so a throwing invalidation can never leave the modal open.
-    const refreshBacklog = wasStoryCreate.current;
-    wasStoryCreate.current = false;
-    setCreateModalOpen(false);
+    // Read the flag BEFORE close(), and close first so a throwing invalidation
+    // can never leave the modal open.
+    const refreshBacklog = useCreateModalStore.getState().refreshBacklogOnClose;
+    useCreateModalStore.getState().close();
     if (refreshBacklog) {
       // Phase 74 GH-CUT-01: backlog data lives under ['gh-backlog'].
       invalidateGhBacklogData(queryClient);
@@ -810,6 +778,13 @@ function AppLayout() {
         defaultIssueType={createModalDefaultType}
         defaultParentKey={createModalDefaultParent}
         defaultEpicLinkKey={createModalDefaultEpic}
+        resumeDraftId={createModalResumeDraftId}
+        onOpenIssue={handleOpenPeek}
+      />
+      <CreateEpicDialog
+        open={epicOpen}
+        resumeDraftId={epicResumeDraftId}
+        onClose={() => useCreateModalStore.getState().closeEpic()}
       />
       <KeyboardShortcutsPanel open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
       <AboutDialog open={aboutOpen} onClose={() => setAboutOpen(false)} />
