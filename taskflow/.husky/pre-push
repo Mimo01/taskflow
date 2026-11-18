@@ -1,1 +1,25 @@
-# Pre-push hook — quality gates are enforced at commit time (pre-commit)
+# Pre-push hook: pre-commit only runs tests related to staged files (261118-kbp),
+# so the full suite runs once here, before anything leaves the machine.
+# Skipped when no pushed commit touches taskflow/ (docs-only pushes).
+cd taskflow
+
+zero=0000000000000000000000000000000000000000
+needs_tests=""
+while read -r _local_ref local_sha _remote_ref remote_sha; do
+  [ "$local_sha" = "$zero" ] && continue # branch deletion
+  if [ "$remote_sha" = "$zero" ]; then
+    range="origin/HEAD..$local_sha" # new remote branch
+  else
+    range="$remote_sha..$local_sha"
+  fi
+  # Unknown base (e.g. remote sha not fetched) counts as "app changed": fail safe.
+  n=$(git rev-list --count "$range" -- . 2>/dev/null || echo 1)
+  [ "$n" != "0" ] && needs_tests=1
+done
+
+if [ -z "$needs_tests" ]; then
+  echo "pre-push: no app commits in this push, skipping tests"
+  exit 0
+fi
+
+npm run test
