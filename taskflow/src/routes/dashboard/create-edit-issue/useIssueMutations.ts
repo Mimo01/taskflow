@@ -80,12 +80,24 @@ export function useIssueMutations({
         if (state.epicLinkKey && epicLinkFieldKey) options[epicLinkFieldKey] = state.epicLinkKey;
       }
 
-      Object.assign(options, labelsFixVersionsCreateFields(state, state.selectedIssueType));
+      // Values kept from another issue type stay in form state (switching back restores
+      // them) but are only sent when this type's create screen offers the field. An empty
+      // createmeta is unknown, never "offers nothing".
+      const offered =
+        creatmetaFields && creatmetaFields.length > 0
+          ? new Set(creatmetaFields.map((f) => f.fieldId))
+          : null;
+
+      Object.assign(
+        options,
+        labelsFixVersionsCreateFields(state, state.selectedIssueType, offered),
+      );
 
       // Add custom field values
       for (const [k, v] of Object.entries(state.customFieldValues)) {
         if (v.trim() === '') continue;
         const fieldMeta = creatmetaFields?.find((f) => f.fieldId === k);
+        if (offered && !fieldMeta) continue;
         options[k] = fieldMeta ? wrapCustomFieldValue(fieldMeta, v) : v;
       }
 

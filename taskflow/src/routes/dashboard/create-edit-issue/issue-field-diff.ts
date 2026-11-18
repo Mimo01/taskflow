@@ -18,13 +18,19 @@ function sameSet(a: string[], b: string[]): boolean {
   return a.every((x) => bs.has(x));
 }
 
+/** `offered` is the current type's createmeta field ids; null means unknown (send as before). */
 export function labelsFixVersionsCreateFields(
   state: LabelsFixVersions,
   issueType: IssueType,
+  offered: Set<string> | null = null,
 ): Record<string, unknown> {
   const out: Record<string, unknown> = {};
-  if (state.labels.length > 0) out.labels = state.labels;
-  if (issueType !== 'Subtask' && state.fixVersions.length > 0) {
+  if (state.labels.length > 0 && (!offered || offered.has('labels'))) out.labels = state.labels;
+  if (
+    issueType !== 'Subtask' &&
+    state.fixVersions.length > 0 &&
+    (!offered || offered.has('fixVersions'))
+  ) {
     out.fixVersions = state.fixVersions.map((v) => ({ id: v.id }));
   }
   return out;

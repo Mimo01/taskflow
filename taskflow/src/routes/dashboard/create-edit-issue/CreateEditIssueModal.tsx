@@ -323,6 +323,7 @@ export function CreateEditIssueModal({
     linkTypes,
     linkTypesLoading,
     labelsRequired,
+    labelsOffered,
     fixVersionsOffered,
     fixVersionsRequired,
   } = useCreateEditQueries({
@@ -784,6 +785,7 @@ export function CreateEditIssueModal({
                     creatmetaLoading={creatmetaLoading}
                     customRequiredFields={customRequiredFields}
                     labelsRequired={labelsRequired}
+                    labelsOffered={labelsOffered}
                     fixVersionsOffered={fixVersionsOffered}
                     fixVersionsRequired={fixVersionsRequired}
                     open={open}

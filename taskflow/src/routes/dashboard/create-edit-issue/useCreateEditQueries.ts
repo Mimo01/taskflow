@@ -107,6 +107,11 @@ export function useCreateEditQueries({
   });
 
   const labelsRequired = (creatmetaFields ?? []).some((f) => f.fieldId === 'labels' && f.required);
+  // Unknown (loading or empty) createmeta keeps Labels visible; a known screen without it hides it.
+  const labelsOffered =
+    !creatmetaFields ||
+    creatmetaFields.length === 0 ||
+    creatmetaFields.some((f) => f.fieldId === 'labels');
   const fixVersionsField = (creatmetaFields ?? []).find((f) => f.fieldId === 'fixVersions');
   const fixVersionsOffered = !!fixVersionsField;
   const fixVersionsRequired = !!fixVersionsField?.required;
@@ -149,6 +154,7 @@ export function useCreateEditQueries({
     issueTypesLoading,
     customRequiredFields,
     labelsRequired,
+    labelsOffered,
     fixVersionsOffered,
     fixVersionsRequired,
     selectedIssueTypeId,

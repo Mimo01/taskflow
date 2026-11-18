@@ -31,6 +31,8 @@ interface ModalSidebarProps {
   creatmetaLoading: boolean;
   customRequiredFields: CreatemetaField[];
   labelsRequired: boolean;
+  /** False only when the current type's create screen is known and has no Labels field. */
+  labelsOffered?: boolean;
   fixVersionsOffered: boolean;
   fixVersionsRequired: boolean;
   open: boolean;
@@ -82,6 +84,7 @@ export function ModalSidebar({
   creatmetaLoading,
   customRequiredFields,
   labelsRequired,
+  labelsOffered = true,
   fixVersionsOffered,
   fixVersionsRequired,
   open,
@@ -201,14 +204,16 @@ export function ModalSidebar({
         </Row>
       )}
 
-      <Row htmlFor="modal-labels" label="Labels" required={labelsRequired}>
-        <LabelsField
-          id="modal-labels"
-          labels={state.labels}
-          dispatch={dispatch}
-          disabled={isPending}
-        />
-      </Row>
+      {(mode !== 'create' || labelsOffered) && (
+        <Row htmlFor="modal-labels" label="Labels" required={labelsRequired}>
+          <LabelsField
+            id="modal-labels"
+            labels={state.labels}
+            dispatch={dispatch}
+            disabled={isPending}
+          />
+        </Row>
+      )}
 
       {mode === 'create' && creatmetaLoading && !creatmetaFields && (
         <Skeleton className="h-9 w-full" />

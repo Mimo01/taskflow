@@ -2,6 +2,7 @@
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DRAFT_DEBOUNCE_MS } from '@/hooks/useEditorDraft';
 import { readDraftFile } from '@/lib/issue-draft-files';
@@ -111,6 +112,7 @@ vi.mock('@/lib/apiFetch', () => ({
             values: [
               { id: '1', name: 'Story', subtask: false },
               { id: '2', name: 'Subtask', subtask: true },
+              { id: '3', name: 'Bug', subtask: false },
             ],
           }
         : { values: [] },
@@ -347,6 +349,58 @@ describe('Resuming an issue draft', () => {
     expect(drafts()).toHaveLength(1);
     expect(drafts()[0].id).toBe(DRAFT_ID);
     expect(drafts()[0]).toMatchObject({ snapshot: { summary: 'Edited after resume' } });
+  });
+
+  it('never sends values the switched-to issue type does not offer (CR-01)', async () => {
+    vi.mocked(fetchCreatemeta).mockImplementation(async (_b, _t, _p, _id, typeName) =>
+      typeName === 'Story'
+        ? ([
+            {
+              fieldId: 'customfield_1',
+              name: 'Account',
+              required: false,
+              schema: { type: 'string' },
+            },
+            { fieldId: 'labels', name: 'Labels', required: false, schema: { type: 'array' } },
+            {
+              fieldId: 'fixVersions',
+              name: 'Fix versions',
+              required: false,
+              schema: { type: 'array' },
+            },
+          ] as never)
+        : ([
+            { fieldId: 'summary', name: 'Summary', required: true, schema: { type: 'string' } },
+          ] as never),
+    );
+    vi.mocked(createIssue).mockResolvedValue({ id: '1', key: 'PROJ-1' } as never);
+    seed({
+      epicLinkKey: null,
+      linkRows: [],
+      customFieldValues: { customfield_1: 'abc' },
+      customFieldInputValues: { customfield_1: 'Abc' },
+      customFieldNames: { customfield_1: 'Account' },
+    });
+    const user = userEvent.setup();
+    renderModal();
+    await waitFor(() => expect(summary().value).toBe('Resumed summary'));
+    await waitFor(() =>
+      expect(vi.mocked(fetchCreatemeta).mock.calls.some((c) => c[4] === 'Story')).toBe(true),
+    );
+    await user.click(document.getElementById('issue-type-select') as HTMLElement);
+    await user.click(await screen.findByRole('option', { name: 'Bug' }));
+    await waitFor(() =>
+      expect(vi.mocked(fetchCreatemeta).mock.calls.some((c) => c[4] === 'Bug')).toBe(true),
+    );
+    await waitFor(() => expect(screen.queryByText('Fix version')).not.toBeInTheDocument());
+    expect(screen.queryByPlaceholderText('Add label')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Create Issue' }));
+    await waitFor(() => expect(createIssue).toHaveBeenCalled());
+    const options = vi.mocked(createIssue).mock.calls[0][4] as Record<string, unknown>;
+    expect(options).toMatchObject({ issuetype: 'Bug' });
+    expect(options).not.toHaveProperty('customfield_1');
+    expect(options).not.toHaveProperty('labels');
+    expect(options).not.toHaveProperty('fixVersions');
   });
 
   it("creates in the draft's own project", async () => {
