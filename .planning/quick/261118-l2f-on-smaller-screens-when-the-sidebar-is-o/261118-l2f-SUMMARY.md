@@ -49,3 +49,8 @@ Run `npm run tauri dev` in taskflow/taskflow, open My Tasks:
 
 ## Self-Check: PASSED
 Tests (58) pass, tsc clean, biome clean on touched files (pre-existing warnings only).
+
+## Orchestrator follow-up
+
+- `e939a13d` fix: with the persisted `sidebarCollapsed=true` at a narrow width, the overlay opened as a 64px rail (`effectiveCollapsed = sidebarCollapsed || …`). Now `effectiveCollapsed = autoRail ? !overlayOpen : sidebarCollapsed`; regression test added (failed before the fix).
+- The pre-commit hook skipped tsc/tests for the executor's commits inside the agent worktree ("no TypeScript changes staged"); checks were run manually there and the hook ran normally on main.

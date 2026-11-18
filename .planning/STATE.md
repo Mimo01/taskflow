@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-11-16)
 Phase: 102
 Plan: Not started
 Status: Milestone complete
-Last activity: 2026-11-18 - Completed quick task 261118-kbp: pre-commit hook scoped (docs-only skip, related tests)
+Last activity: 2026-11-18 - Completed quick task 261118-l2f: sidebar auto-rails at narrow widths (overlay expand)
 
 Progress: [██████████] 97%
 
@@ -144,6 +144,7 @@ Carried from the v1.14 close (`.planning/todos/pending/`):
 
 | # | Description | Date | Commit | Status | Directory |
 |---|-------------|------|--------|--------|-----------|
+| 261118-l2f | Sidebar auto-collapses to the icon rail when main would drop below 720px (window − expanded sidebar − peek); expand opens an overlay without reflow; saved collapse flag untouched. My Tasks tiles use @[40rem] | 2026-11-18 | ef1edccf, e88544b0, e939a13d | Needs Review | [261118-l2f-on-smaller-screens-when-the-sidebar-is-o](./quick/261118-l2f-on-smaller-screens-when-the-sidebar-is-o/) |
 | 261118-kbp | Pre-commit hook: docs-only commits skip tsc+tests; code commits run `vitest related` on staged src; deps/config/test-setup/deleted src → full suite; pre-push runs full suite unless docs-only | 2026-11-18 | dca0e4a5, 7f2fc079 | Verified | [261118-kbp-pre-commit-hook-skip-docs-only-commits-r](./quick/261118-kbp-pre-commit-hook-skip-docs-only-commits-r/) |
 | 261116-fe7 | Notifications data loss: Jira polls page past maxResults=20 (50/page, ≤20 pages), due reminders no longer advance the Jira cursor (WR-06), due-day reminder gets its own -today id and local-date label (WR-05 + UTC-midnight label bug) | 2026-11-16 | 741073c9 | Verified | [261116-fe7-notifications-data-loss-fixes-paged-jira](./quick/261116-fe7-notifications-data-loss-fixes-paged-jira/) |
 | 261116-ez8 | v1.14 audit tech debt: both PAT readers (useGhBacklogData, useGlobalSearchSources) tie the token to its credentialsRevision, so no old-token refetch after a credential save; RM-refresh and breakdown-seed items verified non-defects | 2026-11-16 | 0b497f51 | Verified | [261116-ez8-fix-v1-14-audit-tech-debt-edit-release-r](./quick/261116-ez8-fix-v1-14-audit-tech-debt-edit-release-r/) |
