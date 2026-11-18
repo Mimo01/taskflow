@@ -22,6 +22,7 @@ import { Label } from '@/components/ui/label';
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import { TokenLinkHint } from '@/components/ui/token-link-hint';
 import { draftOwnerFrom } from '@/hooks/useDraftsAccountGuard';
+import { purgeAllDraftFiles } from '@/lib/issue-draft-files';
 import { gitlabTokenUrl, jiraTokenUrl } from '@/lib/token-links';
 import type { GitLabProject } from '@/services/gitlab';
 import { listGitLabProjects, validateGitLab } from '@/services/gitlab';
@@ -31,6 +32,7 @@ import { type JiraBoard, listProjectBoards } from '@/services/jira/sprints';
 import { readSecret, storeSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useDraftsStore } from '@/stores/drafts.store';
+import { useIssueDraftsStore } from '@/stores/issue-drafts.store';
 
 type TestStatus = 'idle' | 'pending' | 'success' | 'error';
 
@@ -532,7 +534,10 @@ export default function ConnectionsSection() {
           // D-21: drafts are cleared only if the Jira account differs; replacing
           // the token for the same account keeps them.
           const owner = draftOwnerFrom(useAuthStore.getState());
-          if (owner) useDraftsStore.getState().reconcileOwner(owner);
+          if (owner) {
+            useDraftsStore.getState().reconcileOwner(owner);
+            if (useIssueDraftsStore.getState().reconcileOwner(owner)) void purgeAllDraftFiles();
+          }
         }}
         onProjectSelected={(key) => setActiveJiraProject(key)}
         onBoardSelected={(key, boardId, boardName) => {
