@@ -1,10 +1,11 @@
 ---
 phase: 98
 slug: editor-shell
-status: draft
-nyquist_compliant: false
-wave_0_complete: false
+status: complete
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-11-17
+audited: 2026-11-18
 ---
 
 # Phase 98 — Validation Strategy
@@ -36,31 +37,31 @@ created: 2026-11-17
 
 ## Per-Task Verification Map
 
-Task IDs are filled in once plans exist; rows are keyed by requirement.
+Rows are keyed by requirement. EDIT-07 marks live in `commands.test.ts` (planned `marks-commands.test.ts` was folded in); Settings row also covers the shortcut registry `Editor` category.
 
 | Requirement | Behavior | Threat Ref | Test Type | Automated Command | File Exists | Status |
 |-------------|----------|------------|-----------|-------------------|-------------|--------|
-| D-04 no-op | New Editor over `loadWiki` doc → `saveWiki` `unchanged`; no onChange before a user transaction | — | unit | `npx vitest run src/lib/wiki/editor/engine.test.ts` | extend | ⬜ pending |
-| Schema parity | `getSchema(editorExtensions)` matches `wikiSchema` | — | unit | `npx vitest run src/components/wiki-editor/schema-parity.test.ts` | ❌ W0 | ⬜ pending |
-| EDIT-01 | Rich view and WikiRenderer share prose classes | — | unit | `npx vitest run src/lib/wiki/prose.test.ts` | ❌ W0 | ⬜ pending |
-| EDIT-02/03 | Source textarea + live preview, preview toggle, narrow auto-hide | — | component | `npx vitest run src/components/wiki-editor/source` | ❌ W0 | ⬜ pending |
-| EDIT-04 | Keymap binds contract keys; registry entries exist | — | unit | `npx vitest run src/components/wiki-editor/keymap.test.ts` | ❌ W0 | ⬜ pending |
-| EDIT-05 | Heading/list/quote/rule/hardbreak commands + input rules emit canonical wiki | — | unit | `npx vitest run src/components/wiki-editor/input-rules.test.ts` | ❌ W0 | ⬜ pending |
-| EDIT-06 | Link set/edit/remove; scheme validation | T-98 link scheme | unit | `npx vitest run src/components/wiki-editor/link.test.ts` | ❌ W0 | ⬜ pending |
-| EDIT-07 | Marks incl. mono/sub/sup, canonical delimiters | — | unit | `npx vitest run src/components/wiki-editor/marks-commands.test.ts` | ❌ W0 | ⬜ pending |
-| EDIT-08 | One undo reverts a source session; no history for same-text toggle | — | unit | `npx vitest run src/components/wiki-editor/editor-session.test.ts` | ❌ W0 | ⬜ pending |
-| EDIT-09 | Toolbar presets, overflow order, mode toggle never overflows | — | component | `npx vitest run src/components/wiki-editor/toolbar` | ❌ W0 | ⬜ pending |
-| SAFE-05 | Failed load opens source, Rich disabled, preference unchanged | T-98 lossy round-trip | unit+component | `npx vitest run src/components/wiki-editor/forced-source.test.tsx` | ❌ W0 | ⬜ pending |
-| D-08 | `saveWiki` failed keeps doc, no onChange, reason + Fix in source | T-98 lossy round-trip | component | `npx vitest run src/components/wiki-editor/save-failed.test.tsx` | ❌ W0 | ⬜ pending |
-| BLOCK-01 | Table insert, Tab nav, header toggle keeps `headerless` round-trip | — | unit | `npx vitest run src/components/wiki-editor/tables.test.ts` | ❌ W0 | ⬜ pending |
-| BLOCK-02 | Code languages parse; noformat has none | T-98 markup injection | unit | `npx vitest run src/components/wiki-editor/code-block.test.ts` | ❌ W0 | ⬜ pending |
-| BLOCK-03 | Panel title ↔ params, `}`/newline stripped, type switch, remove | T-98 markup injection | unit | `npx vitest run src/components/wiki-editor/panel.test.ts` | ❌ W0 | ⬜ pending |
-| BLOCK-04 | Palette passes `isSafeColor`; off-palette kept; remove colour | T-98 CSS injection | unit | `npx vitest run src/components/wiki-editor/colour.test.ts` | ❌ W0 | ⬜ pending |
-| FLOW-04 | contenteditable keydown doesn't trigger raw listeners/hotkeys | — | unit | `npx vitest run src/lib/typing-target.test.ts` | ❌ W0 | ⬜ pending |
-| Bundle | main/dev-tools static graphs reach no tiptap/prosemirror | — | unit | `npx vitest run src/lib/wiki/editor/bundle-guard.test.ts` | extend | ⬜ pending |
-| Compiler | Editor files compile with `panicThreshold: all_errors` | — | unit | `npx vitest run src/components/wiki-editor/compiler-compat.test.ts` | ❌ W0 | ⬜ pending |
-| Settings | `wikiEditorMode` default + migration | — | unit | `npx vitest run src/stores/settings.store.test.ts` | extend | ⬜ pending |
-| Folded todos | WR-01, table-cell `{code}` escape, WR-02 even-run | — | unit | `npx vitest run src/lib/wiki/editor` | extend | ⬜ pending |
+| D-04 no-op | New Editor over `loadWiki` doc → `saveWiki` `unchanged`; no onChange before a user transaction | — | unit | `npx vitest run src/lib/wiki/editor/engine.test.ts` | ✅ | ✅ green |
+| Schema parity | `getSchema(editorExtensions)` matches `wikiSchema` | — | unit | `npx vitest run src/components/wiki-editor/schema-parity.test.ts` | ✅ | ✅ green |
+| EDIT-01 | Rich view and WikiRenderer share prose classes | — | unit | `npx vitest run src/lib/wiki/prose.test.ts` | ✅ | ✅ green |
+| EDIT-02/03 | Source textarea + live preview, preview toggle, narrow auto-hide | — | component | `npx vitest run src/components/wiki-editor/source` | ✅ | ✅ green |
+| EDIT-04 | Keymap binds contract keys; registry entries exist | — | unit | `npx vitest run src/components/wiki-editor/keymap.test.ts` | ✅ | ✅ green |
+| EDIT-05 | Heading/list/quote/rule/hardbreak commands + input rules emit canonical wiki | — | unit | `npx vitest run src/components/wiki-editor/input-rules.test.ts` | ✅ | ✅ green |
+| EDIT-06 | Link set/edit/remove; scheme validation | T-98 link scheme | unit | `npx vitest run src/components/wiki-editor/link.test.ts` | ✅ | ✅ green |
+| EDIT-07 | Marks incl. mono/sub/sup, canonical delimiters | — | unit | `npx vitest run src/components/wiki-editor/commands.test.ts src/components/wiki-editor/input-rules.test.ts` | ✅ | ✅ green |
+| EDIT-08 | One undo reverts a source session; no history for same-text toggle | — | unit | `npx vitest run src/components/wiki-editor/editor-session.test.ts` | ✅ | ✅ green |
+| EDIT-09 | Toolbar presets, overflow order, mode toggle never overflows | — | component | `npx vitest run src/components/wiki-editor/toolbar` | ✅ | ✅ green |
+| SAFE-05 | Failed load opens source, Rich disabled, preference unchanged | T-98 lossy round-trip | unit+component | `npx vitest run src/components/wiki-editor/forced-source.test.tsx` | ✅ | ✅ green |
+| D-08 | `saveWiki` failed keeps doc, no onChange, reason + Fix in source | T-98 lossy round-trip | component | `npx vitest run src/components/wiki-editor/save-failed.test.tsx` | ✅ | ✅ green |
+| BLOCK-01 | Table insert, Tab nav, header toggle keeps `headerless` round-trip | — | unit | `npx vitest run src/components/wiki-editor/tables.test.ts` | ✅ | ✅ green |
+| BLOCK-02 | Code languages parse; noformat has none | T-98 markup injection | unit | `npx vitest run src/components/wiki-editor/code-block.test.ts` | ✅ | ✅ green |
+| BLOCK-03 | Panel title ↔ params, `}`/newline stripped, type switch, remove | T-98 markup injection | unit | `npx vitest run src/components/wiki-editor/panel.test.ts` | ✅ | ✅ green |
+| BLOCK-04 | Palette passes `isSafeColor`; off-palette kept; remove colour | T-98 CSS injection | unit | `npx vitest run src/components/wiki-editor/colour.test.ts` | ✅ | ✅ green |
+| FLOW-04 | contenteditable keydown doesn't trigger raw listeners/hotkeys | — | unit | `npx vitest run src/lib/typing-target.test.ts` | ✅ | ✅ green |
+| Bundle | main/dev-tools static graphs reach no tiptap/prosemirror | — | unit | `npx vitest run src/lib/wiki/editor/bundle-guard.test.ts` | ✅ | ✅ green |
+| Compiler | Editor files compile with `panicThreshold: all_errors` | — | unit | `npx vitest run src/components/wiki-editor/compiler-compat.test.ts` | ✅ | ✅ green |
+| Settings | `wikiEditorMode` default + migration | — | unit | `npx vitest run src/stores/settings.store.test.ts src/lib/shortcuts.test.ts` | ✅ | ✅ green |
+| Folded todos | WR-01, table-cell `{code}` escape, WR-02 even-run | — | unit | `npx vitest run src/lib/wiki/editor` | ✅ | ✅ green |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -68,12 +69,12 @@ Task IDs are filled in once plans exist; rows are keyed by requirement.
 
 ## Wave 0 Requirements
 
-- [ ] Engine schema-identity fix + test (blocks everything else)
-- [ ] `lib/wiki/prose.ts` extraction + WikiRenderer import
-- [ ] `components/wiki-editor/` test files above + headless `makeEditor(text)` helper
-- [ ] Extend `bundle-guard.test.ts`
-- [ ] Settings migration test; shortcut registry 'Editor' category
-- [ ] `npm install @tiptap/react@3.34.0 @tiptap/extensions@3.34.0`
+- [x] Engine schema-identity fix + test (blocks everything else)
+- [x] `lib/wiki/prose.ts` extraction + WikiRenderer import
+- [x] `components/wiki-editor/` test files above + headless `makeEditor(text)` helper
+- [x] Extend `bundle-guard.test.ts`
+- [x] Settings migration test; shortcut registry 'Editor' category
+- [x] `npm install @tiptap/react@3.34.0 @tiptap/extensions@3.34.0`
 
 ---
 
@@ -89,11 +90,23 @@ Task IDs are filled in once plans exist; rows are keyed by requirement.
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 120s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references
+- [x] No watch-mode flags
+- [x] Feedback latency < 120s
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** approved 2026-11-18
+
+---
+
+## Validation Audit 2026-11-18
+
+| Metric | Count |
+|--------|-------|
+| Gaps found | 0 |
+| Resolved | 0 |
+| Escalated | 0 |
+
+All 21 rows COVERED: 84 test files / 1214 tests green (`npx vitest run src/components/wiki-editor src/lib/wiki src/lib/typing-target.test.ts src/lib/shortcuts.test.ts src/stores/settings.store.test.ts`, 8.6 s). Manual-only rows done in 98-HUMAN-UAT.md (status complete, 2 WKWebView rounds).
