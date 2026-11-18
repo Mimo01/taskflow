@@ -9,6 +9,7 @@ let mockAioEnabled = false;
 let mockSelectedAioProjectKey: string | null = null;
 let mockTempoEnabled = false;
 const mockToggleSidebarCollapsed = vi.fn();
+let mockSidebarCollapsed = false;
 
 // Mock NavLink as a plain anchor for test isolation
 vi.mock('react-router-dom', async (importOriginal) => {
@@ -101,7 +102,7 @@ vi.mock('@/stores/settings.store', () => ({
         { id: 'worklogs', visible: true },
         { id: 'aio-projects', visible: true },
       ],
-      sidebarCollapsed: false,
+      sidebarCollapsed: mockSidebarCollapsed,
       toggleSidebarCollapsed: mockToggleSidebarCollapsed,
       sidebarWidth: 220,
       setSidebarWidth: vi.fn(),
@@ -324,6 +325,7 @@ describe('Sidebar — auto-rail', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     useSidebarOverlayStore.setState({ overlayOpen: false });
+    mockSidebarCollapsed = false;
   });
   afterEach(() => {
     setWidth(originalWidth);
@@ -361,6 +363,15 @@ describe('Sidebar — auto-rail', () => {
     fireEvent.click(getByLabelText('Expand sidebar'));
     fireEvent.click(getByText('Dashboard'));
     expect(getByText('Dashboard').className).toContain('hidden');
+  });
+
+  it('overlay expands fully even when the persisted flag is collapsed', async () => {
+    mockSidebarCollapsed = true;
+    setWidth(900);
+    const { getByLabelText, getByText } = await renderIt();
+    fireEvent.click(getByLabelText('Expand sidebar'));
+    expect(getByText('Dashboard').className).not.toContain('hidden');
+    expect(getByLabelText('Collapse sidebar')).toBeDefined();
   });
 
   it('wide window keeps the persisted toggle behaviour', async () => {

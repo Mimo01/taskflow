@@ -92,7 +92,8 @@ export default function Sidebar() {
   const setOverlayOpen = useSidebarOverlayStore((s) => s.setOverlayOpen);
   const toggleOverlay = useSidebarOverlayStore((s) => s.toggleOverlay);
   const overlayMode = autoRail && overlayOpen;
-  const effectiveCollapsed = sidebarCollapsed || (autoRail && !overlayOpen);
+  // In auto-rail mode the overlay alone decides; the persisted flag only applies when there is room.
+  const effectiveCollapsed = autoRail ? !overlayOpen : sidebarCollapsed;
   const asideRef = useRef<HTMLElement | null>(null);
 
   // Dismiss the auto-rail overlay on Esc or a pointerdown outside the aside.
