@@ -28,6 +28,22 @@ describe('WikiEditor', () => {
     expect(onChange).not.toHaveBeenCalled();
   });
 
+  it('frame uses the shared field surface with the ring-3 focus treatment', () => {
+    const { container } = renderEditor({ value: VALUE, onChange: vi.fn() });
+    const cls = container.querySelector('[data-slot="wiki-editor-frame"]')?.className ?? '';
+    for (const c of [
+      'focus-within:border-ring',
+      'focus-within:ring-3',
+      'focus-within:ring-ring/50',
+      'bg-transparent',
+      'dark:bg-input/30',
+      'transition-colors',
+    ]) {
+      expect(cls).toContain(c);
+    }
+    expect(cls).not.toContain('focus-within:ring-1');
+  });
+
   it('emits once on typing, ignores the echo, and keeps undo', () => {
     const onChange = vi.fn();
     const props = { value: 'hello', onChange };

@@ -444,7 +444,8 @@ export default function WikiEditor({
         ref={frameRef}
         onKeyDownCapture={onKeyDownCapture}
         onKeyDown={onKeyDown}
-        className="rounded-lg border border-input bg-background focus-within:ring-1 focus-within:ring-ring"
+        data-slot="wiki-editor-frame"
+        className="rounded-lg border border-input bg-transparent dark:bg-input/30 transition-colors focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50"
       >
         <div className={cn('relative overflow-auto', maxClass)}>
           {preset === 'compact' ? (

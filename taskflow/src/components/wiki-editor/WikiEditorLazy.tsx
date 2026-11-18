@@ -4,7 +4,7 @@ import type { WikiEditorPreset, WikiEditorProps } from './types';
 
 const WikiEditor = lazy(() => import('./WikiEditor'));
 
-const FRAME = 'rounded-lg border border-input bg-background';
+const FRAME = 'rounded-lg border border-input bg-transparent dark:bg-input/30';
 const MIN_HEIGHT: Record<WikiEditorPreset, string> = {
   full: 'min-h-[160px]',
   compact: 'min-h-[96px]',
