@@ -210,7 +210,7 @@ describe('Create mode issue drafts', () => {
     typeSummary('Ship it');
     flushDraft();
     const id = issueDrafts()[0].id;
-    fireEvent.click(screen.getByRole('button', { name: 'Create Issue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Create issue' }));
     await waitFor(() => expect(onClose).toHaveBeenCalled());
     expect(issueDrafts()).toHaveLength(0);
     expect(removeDraftFiles).toHaveBeenCalledWith(id);
@@ -220,7 +220,7 @@ describe('Create mode issue drafts', () => {
     vi.mocked(createIssue).mockRejectedValue(new Error('Jira said no'));
     const { onClose } = renderModal();
     typeSummary('Will fail');
-    fireEvent.click(screen.getByRole('button', { name: 'Create Issue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Create issue' }));
     expect(
       await screen.findByText("Couldn't create the issue. Your draft is kept, try again."),
     ).toBeInTheDocument();

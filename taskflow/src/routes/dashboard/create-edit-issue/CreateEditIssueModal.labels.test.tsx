@@ -96,7 +96,7 @@ function renderModal(mode: 'create' | 'edit') {
 }
 
 async function saveEdit() {
-  fireEvent.click(screen.getByRole('button', { name: 'Save Changes' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
   await waitFor(() => expect(jiraService.bulkUpdateIssue).toHaveBeenCalled());
   return vi.mocked(jiraService.bulkUpdateIssue).mock.calls[0][3] as Record<string, unknown>;
 }
@@ -147,7 +147,7 @@ describe('Create labels', () => {
     const input = screen.getByPlaceholderText('Add label');
     fireEvent.change(input, { target: { value: 'alpha' } });
     fireEvent.keyDown(input, { key: 'Enter' });
-    fireEvent.click(screen.getByRole('button', { name: 'Create Issue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Create issue' }));
     await waitFor(() => expect(jiraService.createIssue).toHaveBeenCalled());
     const options = vi.mocked(jiraService.createIssue).mock.calls[0][4] as Record<string, unknown>;
     expect(options.labels).toEqual(['alpha']);
