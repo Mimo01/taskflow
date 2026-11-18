@@ -89,6 +89,17 @@ export function CreateEditIssueModal({
   else if (storedDraftProject && resumedProjectRef.current === null)
     resumedProjectRef.current = storedDraftProject;
   const projectKey = resumedProjectRef.current ?? activeJiraProject ?? '';
+  // A resumed Subtask draft's parent is fixed like defaultParentKey (latched the same way).
+  const storedDraftParent = useIssueDraftsStore((s) => {
+    const d = resumeDraftId ? s.drafts[resumeDraftId] : undefined;
+    return d?.kind === 'issue' && d.snapshot.selectedIssueType === 'Subtask'
+      ? (d.snapshot.parentKey ?? undefined)
+      : undefined;
+  });
+  const resumedParentRef = useRef<string | null>(null);
+  if (!open || mode !== 'create' || !resumeDraftId) resumedParentRef.current = null;
+  else if (storedDraftParent && resumedParentRef.current === null)
+    resumedParentRef.current = storedDraftParent;
 
   const { state, dispatch, isSubtask } = useCreateEditForm({
     open,
@@ -302,12 +313,19 @@ export function CreateEditIssueModal({
     e.target.value = '';
   }
 
+  // Fixed parent: the caller's, or a resumed Subtask draft's while it still holds that parent
+  // (resume validation clears a deleted parent, which brings back the free-text input).
+  const resumedParent = resumedParentRef.current;
+  const fixedParentKey =
+    defaultParentKey ??
+    (resumedParent && state.parentKey === resumedParent ? resumedParent : undefined);
+
   // Epic stories inherit required custom fields (e.g. Account) from their epic, the same
   // way subtasks inherit from their parent. Follows the Epic Link the user may change;
   // edit mode never inherits.
   const inheritFromKey =
     state.selectedIssueType === 'Subtask'
-      ? defaultParentKey
+      ? fixedParentKey
       : mode === 'create'
         ? (state.epicLinkKey ?? undefined)
         : undefined;
@@ -339,10 +357,8 @@ export function CreateEditIssueModal({
   // The fixed parent (subtask create) is shown with its summary; parentFields already
   // holds the parent's navigable fields for inheritance.
   const parentSummary =
-    defaultParentKey && typeof parentFields?.summary === 'string'
-      ? parentFields.summary
-      : undefined;
-  const parentTypeName = defaultParentKey
+    fixedParentKey && typeof parentFields?.summary === 'string' ? parentFields.summary : undefined;
+  const parentTypeName = fixedParentKey
     ? (parentFields?.issuetype as { name?: string } | undefined)?.name
     : undefined;
 
@@ -779,7 +795,7 @@ export function CreateEditIssueModal({
                     isPending={isPending}
                     projectKey={projectKey}
                     jiraBaseUrl={jiraBaseUrl ?? ''}
-                    defaultParentKey={defaultParentKey}
+                    defaultParentKey={fixedParentKey}
                     priorityOptions={priorityOptions}
                     creatmetaFields={creatmetaFields}
                     creatmetaLoading={creatmetaLoading}

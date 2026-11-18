@@ -107,15 +107,23 @@ vi.mock('@/lib/apiFetch', () => ({
     ok: true,
     status: 200,
     json: async () =>
-      url.includes('/issuetypes')
+      url.includes('/rest/api/2/issue/P-1?')
         ? {
-            values: [
-              { id: '1', name: 'Story', subtask: false },
-              { id: '2', name: 'Subtask', subtask: true },
-              { id: '3', name: 'Bug', subtask: false },
-            ],
+            fields: {
+              summary: 'Parent summary',
+              issuetype: { name: 'Story' },
+              customfield_7: { id: '77', name: 'Acme account' },
+            },
           }
-        : { values: [] },
+        : url.includes('/issuetypes')
+          ? {
+              values: [
+                { id: '1', name: 'Story', subtask: false },
+                { id: '2', name: 'Subtask', subtask: true },
+                { id: '3', name: 'Bug', subtask: false },
+              ],
+            }
+          : { values: [] },
   })),
 }));
 
@@ -303,6 +311,24 @@ describe('Resuming an issue draft', () => {
     expect(drafts()[0]).toMatchObject({
       snapshot: { customFieldValues: { customfield_1: 'abc' } },
     });
+  });
+
+  it('a resumed Subtask shows its fixed parent and inherits from it (WR-03)', async () => {
+    vi.mocked(fetchCreatemeta).mockResolvedValue([
+      { fieldId: 'customfield_7', name: 'Account', required: true, schema: { type: 'string' } },
+    ] as never);
+    vi.mocked(createIssue).mockResolvedValue({ id: '1', key: 'PROJ-2' } as never);
+    seed({ selectedIssueType: 'Subtask', parentKey: 'P-1', epicLinkKey: null, linkRows: [] });
+    renderModal();
+    expect(await screen.findByText('Parent summary')).toBeInTheDocument();
+    expect(
+      screen.queryByPlaceholderText('Parent issue key (e.g. PROJ-123)'),
+    ).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Create Issue' })).toBeEnabled());
+    fireEvent.click(screen.getByRole('button', { name: 'Create Issue' }));
+    await waitFor(() => expect(createIssue).toHaveBeenCalled());
+    const options = vi.mocked(createIssue).mock.calls[0][4] as Record<string, unknown>;
+    expect(options).toMatchObject({ parent: { key: 'P-1' }, customfield_7: '77' });
   });
 
   it('notes a custom field that is no longer on the create screen', async () => {
