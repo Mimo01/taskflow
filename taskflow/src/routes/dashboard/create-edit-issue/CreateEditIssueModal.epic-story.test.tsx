@@ -129,7 +129,7 @@ const fillSummary = () =>
   fireEvent.change(screen.getByPlaceholderText('Issue summary'), {
     target: { value: 'New story' },
   });
-const createBtn = () => screen.getByRole('button', { name: /^create$/i });
+const createBtn = () => screen.getByRole('button', { name: /^create issue$/i });
 const lastCreateOptions = () =>
   vi.mocked(jiraService.createIssue).mock.calls[0][4] as Record<string, unknown>;
 

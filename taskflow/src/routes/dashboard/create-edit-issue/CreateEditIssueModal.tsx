@@ -6,17 +6,9 @@ import { flushSync } from 'react-dom';
 import { Button } from '@/components/ui/button';
 import { DiscardChangesDialog } from '@/components/ui/discard-changes-dialog';
 import { DraftNote } from '@/components/ui/draft-note';
-import { EpicPicker } from '@/components/ui/epic-picker';
 import { Input } from '@/components/ui/input';
+import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
 import { Keycap } from '@/components/ui/keycap';
-import { PersonPicker, toPersonValue } from '@/components/ui/person-picker';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import type { WikiEditorHandle, WikiEditorHost } from '@/components/wiki-editor/types';
 import { WikiEditorLazy } from '@/components/wiki-editor/WikiEditorLazy';
@@ -35,9 +27,9 @@ import { useDraftsStore } from '@/stores/drafts.store';
 import { useSettingsStore } from '@/stores/settings.store';
 import { useIssueEditorHost } from '../issue-detail/useIssueEditorHost';
 import { StagedFilesStrip } from '../StagedFilesStrip';
-import { CustomFieldsSection } from './CustomFieldsSection';
 import { IssueTypeSelector } from './IssueTypeSelector';
 import { LinkRowsSection } from './LinkRowsSection';
+import { ModalSidebar } from './ModalSidebar';
 import { type EditInitialValues, useCreateEditForm } from './useCreateEditForm';
 import { useCreateEditQueries } from './useCreateEditQueries';
 import { useIssueMutations } from './useIssueMutations';
@@ -267,6 +259,9 @@ export function CreateEditIssueModal({
     parentFields,
     linkTypes,
     linkTypesLoading,
+    labelsRequired,
+    fixVersionsOffered,
+    fixVersionsRequired,
   } = useCreateEditQueries({
     open,
     projectKey,
@@ -420,7 +415,12 @@ export function CreateEditIssueModal({
   });
 
   const canSubmit =
-    !!state.summary.trim() && requiredCustomFieldsFilled && !isPending && !hasCreatedWithError;
+    !!state.summary.trim() &&
+    requiredCustomFieldsFilled &&
+    (!labelsRequired || state.labels.length > 0) &&
+    (!fixVersionsRequired || isSubtask || state.fixVersions.length > 0) &&
+    !isPending &&
+    !hasCreatedWithError;
 
   // Cmd+Enter from any field: same guard as the primary button (T-100-15).
   function trySubmit() {
@@ -451,326 +451,243 @@ export function CreateEditIssueModal({
     >
       <Dialog.Portal>
         <Dialog.Backdrop className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm" />
-        <Dialog.Popup className="fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 w-[680px] max-h-[85vh] overflow-y-auto bg-background border rounded-lg shadow-xl flex flex-col">
-          <div className="flex items-center justify-between border-b px-6 py-4">
-            <h2 className="text-lg font-semibold">
-              {mode === 'create' ? 'Create Issue' : 'Edit Issue'}
-            </h2>
-            <Dialog.Close
-              render={
-                <button type="button" className="rounded p-1 hover:bg-accent" aria-label="Close">
-                  <X className="h-4 w-4" />
-                </button>
-              }
-            />
-          </div>
-
-          <form
-            ref={formRef}
-            onSubmit={handleSubmit}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && !e.nativeEvent.isComposing) {
-                e.preventDefault();
-                trySubmit();
-              }
-            }}
-            className="flex flex-col gap-4 px-6 py-4"
-          >
-            {mode === 'create' && (
-              <IssueTypeSelector
-                selectedIssueType={state.selectedIssueType}
-                defaultIssueType={defaultIssueType}
-                dispatch={dispatch}
-              />
-            )}
-
-            <div className="flex flex-col gap-1">
-              <label htmlFor="issue-summary" className="text-sm font-medium">
-                Summary <span className="text-destructive">*</span>
-              </label>
-              <Input
-                ref={summaryRef}
-                id="issue-summary"
-                value={state.summary}
-                onChange={(e) =>
-                  dispatch({ type: 'SET_FIELD', field: 'summary', value: e.target.value })
+        <Dialog.Popup className="fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 w-[min(1080px,94vw)] h-[88vh] min-h-[480px] max-h-[calc(100vh-2rem)] overflow-hidden bg-background border rounded-lg shadow-xl flex flex-col">
+          <div className="@container flex min-h-0 flex-1 flex-col">
+            <form
+              ref={formRef}
+              onSubmit={handleSubmit}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && !e.nativeEvent.isComposing) {
+                  e.preventDefault();
+                  trySubmit();
                 }
-                placeholder="Issue summary"
-                required
-                disabled={isPending}
-              />
-            </div>
-
-            <div className="flex flex-col gap-1">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Description</span>
-                <button
-                  type="button"
-                  disabled={isPending}
-                  onClick={() => fileInputRef.current?.click()}
-                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
-                >
-                  <Paperclip className="h-3 w-3" />
-                  Attach file
-                </button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  multiple
-                  className="hidden"
-                  onChange={handleFileInputChange}
-                />
-              </div>
-              {/* biome-ignore lint/a11y/noStaticElementInteractions: focusout flushes the draft */}
-              <div onBlur={draft.flush}>
-                <WikiEditorLazy
-                  ref={editorRef}
-                  value={state.description}
-                  onChange={handleDescriptionChange}
-                  onCancel={mode === 'edit' ? requestCancel : undefined}
-                  preset="full"
-                  aria-label="Description"
-                  host={host}
-                  onSubmit={(text) => {
-                    flushSync(() =>
-                      dispatch({ type: 'SET_FIELD', field: 'description', value: text }),
-                    );
-                    trySubmit();
-                  }}
-                />
-              </div>
-              {mode === 'edit' && (
-                <DraftNote
-                  state={draft.state}
-                  onDiscard={handleDiscardDraft}
-                  onUseJira={handleUseJiraVersion}
-                />
-              )}
-              <StagedFilesStrip
-                files={stagedFiles}
-                onRemove={handleRemoveStagedFile}
-                disabled={isPending}
-              />
-              {stagedUploadError && (
-                <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                  {stagedUploadError}
-                </p>
-              )}
-            </div>
-
-            {isSubtask && (
-              <div className="flex flex-col gap-1">
-                <label htmlFor="parent-key" className="text-sm font-medium">
-                  Parent <span className="text-destructive">*</span>
-                </label>
-                {defaultParentKey ? (
-                  <div className="flex h-9 w-full items-center rounded-md border bg-muted px-3 py-2 text-sm text-muted-foreground font-mono">
-                    {state.parentKey}
-                  </div>
+              }}
+              className="flex min-h-0 flex-1 flex-col"
+            >
+              <div className="flex items-center gap-3 border-b px-6 py-4">
+                {mode === 'create' ? (
+                  <>
+                    <div className="w-40 shrink-0">
+                      <IssueTypeSelector
+                        selectedIssueType={state.selectedIssueType}
+                        defaultIssueType={defaultIssueType}
+                        dispatch={dispatch}
+                      />
+                    </div>
+                    <Dialog.Title className="text-lg font-semibold leading-tight">
+                      Create issue
+                    </Dialog.Title>
+                  </>
                 ) : (
-                  <Input
-                    id="parent-key"
-                    value={state.parentKey ?? ''}
-                    onChange={(e) =>
-                      dispatch({
-                        type: 'SET_FIELD',
-                        field: 'parentKey',
-                        value: e.target.value || null,
-                      })
-                    }
-                    placeholder="Parent issue key (e.g. PROJ-123)"
-                    disabled={isPending}
-                  />
+                  <>
+                    <IssueTypeIcon typeName={initialValues?.issueTypeName ?? 'Task'} />
+                    <Dialog.Title className="text-lg font-semibold leading-tight">
+                      Edit {initialValues?.issueKey}
+                    </Dialog.Title>
+                  </>
                 )}
-              </div>
-            )}
-
-            {!isSubtask && (
-              <div className="flex flex-col gap-1">
-                <label htmlFor="modal-epic-link" className="text-sm font-medium">
-                  Epic Link
-                </label>
-                <EpicPicker
-                  variant="field"
-                  id="modal-epic-link"
-                  value={state.epicLinkKey}
-                  projectKey={projectKey}
-                  disabled={isPending}
-                  onChange={(epic) =>
-                    dispatch({ type: 'SET_FIELD', field: 'epicLinkKey', value: epic?.key ?? null })
-                  }
-                />
-              </div>
-            )}
-
-            <div className="flex flex-col gap-1">
-              <label htmlFor="modal-assignee" className="text-sm font-medium">
-                Assignee
-              </label>
-              <PersonPicker
-                variant="field"
-                id="modal-assignee"
-                aria-label="Assignee"
-                projectKey={projectKey}
-                jiraBaseUrl={jiraBaseUrl ?? ''}
-                value={state.selectedAssignee}
-                allowUnassign
-                showAssignToMe
-                disabled={isPending}
-                emptyLabel={mode === 'create' ? 'Select assignee (optional)' : 'Unassigned'}
-                onChange={(user) =>
-                  dispatch(
-                    user
-                      ? { type: 'ASSIGNEE_PICK', user: toPersonValue(user) }
-                      : { type: 'ASSIGNEE_PICK_UNASSIGNED' },
-                  )
-                }
-              />
-            </div>
-
-            <div className="flex flex-col gap-1">
-              <label htmlFor="modal-priority" className="text-sm font-medium">
-                Priority
-              </label>
-              <Select
-                value={state.priority ?? ''}
-                onValueChange={(v) =>
-                  dispatch({ type: 'SET_FIELD', field: 'priority', value: v || null })
-                }
-              >
-                <SelectTrigger id="modal-priority" className="w-full">
-                  <SelectValue placeholder="Select priority (optional)" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">None</SelectItem>
-                  {priorityOptions.map((p) => (
-                    <SelectItem key={p.id} value={p.name}>
-                      {p.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {!isSubtask && (
-              <div className="flex flex-col gap-1">
-                <label htmlFor="story-points" className="text-sm font-medium">
-                  Story Points
-                </label>
-                <Input
-                  id="story-points"
-                  type="number"
-                  min="0"
-                  step="0.5"
-                  value={state.storyPoints}
-                  onChange={(e) =>
-                    dispatch({ type: 'SET_FIELD', field: 'storyPoints', value: e.target.value })
-                  }
-                  placeholder="Optional"
-                  disabled={isPending}
-                />
-              </div>
-            )}
-
-            {isSubtask && (
-              <div className="flex flex-col gap-1">
-                <label htmlFor="time-estimate" className="text-sm font-medium">
-                  Time Estimate
-                </label>
-                <Input
-                  id="time-estimate"
-                  value={state.timeEstimate}
-                  onChange={(e) =>
-                    dispatch({ type: 'SET_FIELD', field: 'timeEstimate', value: e.target.value })
-                  }
-                  placeholder="e.g. 2h, 1d 3h, 30m"
-                  disabled={isPending}
-                />
-              </div>
-            )}
-
-            <CustomFieldsSection
-              customRequiredFields={customRequiredFields}
-              creatmetaFields={creatmetaFields}
-              creatmetaLoading={creatmetaLoading}
-              state={state}
-              dispatch={dispatch}
-              projectKey={projectKey}
-              jiraBaseUrl={jiraBaseUrl ?? ''}
-              isPending={isPending}
-            />
-            <LinkRowsSection
-              linkRows={state.linkRows}
-              linkTypes={linkTypes}
-              linkTypesLoading={linkTypesLoading}
-              isPending={isPending}
-              dispatch={dispatch}
-            />
-
-            {state.apiError && (
-              <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                {state.apiError}
-              </p>
-            )}
-
-            <div className="flex justify-end gap-2 border-t pt-4">
-              <Tooltip>
-                <TooltipTrigger
+                <Dialog.Close
                   render={
-                    <Button
+                    <button
                       type="button"
-                      variant="outline"
-                      onClick={requestCancel}
+                      className="ml-auto rounded p-1 hover:bg-accent"
+                      aria-label="Close"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  }
+                />
+              </div>
+
+              <div className="flex min-h-0 flex-1 max-[720px]:flex-col max-[720px]:overflow-y-auto">
+                <div className="flex min-w-0 flex-1 flex-col gap-4 overflow-y-auto px-6 py-4 max-[720px]:overflow-visible">
+                  <div className="flex flex-col gap-1">
+                    <label
+                      htmlFor="issue-summary"
+                      className="text-xs font-semibold text-muted-foreground"
+                    >
+                      Summary <span className="text-destructive">*</span>
+                    </label>
+                    <Input
+                      ref={summaryRef}
+                      id="issue-summary"
+                      value={state.summary}
+                      onChange={(e) =>
+                        dispatch({ type: 'SET_FIELD', field: 'summary', value: e.target.value })
+                      }
+                      placeholder="Issue summary"
+                      required
+                      autoFocus={mode === 'create'}
                       disabled={isPending}
                     />
-                  }
-                >
-                  Cancel
-                </TooltipTrigger>
-                <TooltipContent>
-                  <span className="flex items-center gap-2">
-                    <span className="font-medium">Cancel</span>
-                    <Keycap>Esc</Keycap>
-                  </span>
-                </TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger
-                  render={<Button type="submit" disabled={!canSubmit} className="gap-1.5" />}
-                >
-                  {isPending && <Loader2 className="size-3.5 animate-spin" />}
-                  {isPending
-                    ? mode === 'create'
-                      ? 'Creating...'
-                      : 'Saving...'
-                    : mode === 'create'
-                      ? 'Create'
-                      : 'Save'}
-                </TooltipTrigger>
-                <TooltipContent>
-                  <span className="flex items-center gap-2">
-                    <span className="font-medium">{mode === 'create' ? 'Create' : 'Save'}</span>
-                    <span className="flex items-center gap-1">
-                      <Keycap>⌘</Keycap>
-                      <Keycap>↵</Keycap>
+                  </div>
+
+                  <div className="flex min-h-0 flex-1 flex-col gap-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-muted-foreground">
+                        Description
+                      </span>
+                      <button
+                        type="button"
+                        disabled={isPending}
+                        onClick={() => fileInputRef.current?.click()}
+                        className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
+                      >
+                        <Paperclip className="h-3 w-3" />
+                        Attach file
+                      </button>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        multiple
+                        className="hidden"
+                        onChange={handleFileInputChange}
+                      />
+                    </div>
+                    {/* biome-ignore lint/a11y/noStaticElementInteractions: focusout flushes the draft */}
+                    <div onBlur={draft.flush} className="flex min-h-[240px] flex-1 flex-col">
+                      <WikiEditorLazy
+                        ref={editorRef}
+                        value={state.description}
+                        onChange={handleDescriptionChange}
+                        onCancel={mode === 'edit' ? requestCancel : undefined}
+                        preset="full"
+                        aria-label="Description"
+                        host={host}
+                        onSubmit={(text) => {
+                          flushSync(() =>
+                            dispatch({ type: 'SET_FIELD', field: 'description', value: text }),
+                          );
+                          trySubmit();
+                        }}
+                      />
+                    </div>
+                    {mode === 'edit' && (
+                      <DraftNote
+                        state={draft.state}
+                        onDiscard={handleDiscardDraft}
+                        onUseJira={handleUseJiraVersion}
+                      />
+                    )}
+                  </div>
+
+                  <StagedFilesStrip
+                    files={stagedFiles}
+                    onRemove={handleRemoveStagedFile}
+                    disabled={isPending}
+                  />
+                  {stagedUploadError && (
+                    <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                      {stagedUploadError}
+                    </p>
+                  )}
+
+                  {state.apiError && (
+                    <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                      {state.apiError}
+                    </p>
+                  )}
+
+                  <div className="flex flex-col gap-1">
+                    <h3 className="text-xs font-semibold text-muted-foreground">Links</h3>
+                    <LinkRowsSection
+                      linkRows={state.linkRows}
+                      linkTypes={linkTypes}
+                      linkTypesLoading={linkTypesLoading}
+                      isPending={isPending}
+                      dispatch={dispatch}
+                    />
+                  </div>
+                </div>
+
+                <aside className="w-[300px] shrink-0 overflow-y-auto border-l bg-muted/30 p-4 @max-[900px]:w-[240px] max-[720px]:w-full max-[720px]:overflow-visible max-[720px]:border-l-0 max-[720px]:border-t">
+                  <ModalSidebar
+                    mode={mode}
+                    state={state}
+                    dispatch={dispatch}
+                    isSubtask={isSubtask}
+                    isPending={isPending}
+                    projectKey={projectKey}
+                    jiraBaseUrl={jiraBaseUrl ?? ''}
+                    defaultParentKey={defaultParentKey}
+                    priorityOptions={priorityOptions}
+                    creatmetaFields={creatmetaFields}
+                    creatmetaLoading={creatmetaLoading}
+                    customRequiredFields={customRequiredFields}
+                    labelsRequired={labelsRequired}
+                    fixVersionsOffered={fixVersionsOffered}
+                    fixVersionsRequired={fixVersionsRequired}
+                    open={open}
+                    issueTypeName={initialValues?.issueTypeName}
+                  />
+                </aside>
+              </div>
+
+              <div className="flex items-center gap-2 border-t px-6 py-4">
+                <div
+                  data-testid="modal-footer-status"
+                  className="flex min-w-0 flex-1 items-center gap-3"
+                />
+                <Tooltip>
+                  <TooltipTrigger
+                    render={
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={requestCancel}
+                        disabled={isPending}
+                      />
+                    }
+                  >
+                    Cancel
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <span className="flex items-center gap-2">
+                      <span className="font-medium">Cancel</span>
+                      <Keycap>Esc</Keycap>
                     </span>
-                  </span>
-                </TooltipContent>
-              </Tooltip>
-            </div>
-          </form>
-          <DiscardChangesDialog
-            open={discardOpen}
-            onKeepEditing={() => {
-              setDiscardOpen(false);
-              editorRef.current?.focus({ toEnd: true });
-            }}
-            onDiscard={() => {
-              setDiscardOpen(false);
-              draft.discard();
-              onClose();
-            }}
-          />
+                  </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger
+                    render={<Button type="submit" disabled={!canSubmit} className="gap-1.5" />}
+                  >
+                    {isPending && <Loader2 className="size-3.5 animate-spin" />}
+                    {isPending
+                      ? mode === 'create'
+                        ? 'Creating...'
+                        : 'Saving...'
+                      : mode === 'create'
+                        ? 'Create Issue'
+                        : 'Save Changes'}
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <span className="flex items-center gap-2">
+                      <span className="font-medium">
+                        {mode === 'create' ? 'Create Issue' : 'Save Changes'}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Keycap>⌘</Keycap>
+                        <Keycap>↵</Keycap>
+                      </span>
+                    </span>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+            </form>
+            <DiscardChangesDialog
+              open={discardOpen}
+              onKeepEditing={() => {
+                setDiscardOpen(false);
+                editorRef.current?.focus({ toEnd: true });
+              }}
+              onDiscard={() => {
+                setDiscardOpen(false);
+                draft.discard();
+                onClose();
+              }}
+            />
+          </div>
         </Dialog.Popup>
       </Dialog.Portal>
     </Dialog.Root>

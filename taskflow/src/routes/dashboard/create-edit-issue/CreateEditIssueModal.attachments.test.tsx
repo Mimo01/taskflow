@@ -153,7 +153,7 @@ describe('CreateEditIssueModal attachments', () => {
       await waitFor(() => expect(screen.getByText('shot.png')).toBeInTheDocument());
 
       await fillSummary();
-      fireEvent.click(screen.getByRole('button', { name: /^create$/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^create issue$/i }));
 
       await waitFor(() => {
         expect(uploadAttachment).toHaveBeenCalledWith(
@@ -178,7 +178,7 @@ describe('CreateEditIssueModal attachments', () => {
       await waitFor(() => expect(screen.getByText('shot.png')).toBeInTheDocument());
 
       await fillSummary();
-      fireEvent.click(screen.getByRole('button', { name: /^create$/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^create issue$/i }));
 
       await waitFor(() => expect(uploadAttachment).toHaveBeenCalled());
       await waitFor(() => {

@@ -237,7 +237,7 @@ describe('edit mode description draft', () => {
     });
     const { onClose } = renderModal();
     await screen.findByText('Draft saved');
-    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save Changes' }));
     await waitFor(() => expect(onClose).toHaveBeenCalled());
     expect(bulkUpdateIssue).toHaveBeenCalled();
     expect(useDraftsStore.getState().drafts[KEY]).toBeUndefined();
@@ -254,7 +254,7 @@ describe('edit mode description draft', () => {
     });
     const { onClose } = renderModal();
     await screen.findByText('Draft saved');
-    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save Changes' }));
     expect(
       await screen.findByText(
         "Couldn't save your changes. Your text is kept as a draft, try again.",
@@ -365,7 +365,7 @@ describe('edit mode discard guard', () => {
     await user.click(await screen.findByRole('button', { name: 'Keep editing' }));
     await waitFor(() => expect(screen.queryByText('Discard changes?')).not.toBeInTheDocument());
     expect(onClose).not.toHaveBeenCalled();
-    expect(screen.getByText('Edit Issue')).toBeInTheDocument();
+    expect(screen.getByText('Edit PROJ-1')).toBeInTheDocument();
     expect(document.activeElement).toBe(editor());
     expect(editor().value).toBe('Original text changed');
   });
@@ -379,7 +379,7 @@ describe('edit mode discard guard', () => {
     await user.keyboard('{Escape}');
     await waitFor(() => expect(screen.queryByText('Discard changes?')).not.toBeInTheDocument());
     expect(onClose).not.toHaveBeenCalled();
-    expect(screen.getByText('Edit Issue')).toBeInTheDocument();
+    expect(screen.getByText('Edit PROJ-1')).toBeInTheDocument();
   });
 
   it('Discard clears the draft and closes the modal', async () => {

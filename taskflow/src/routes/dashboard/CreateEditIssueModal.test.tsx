@@ -99,13 +99,13 @@ describe('CreateEditIssueModal', () => {
       // Parent label is rendered for Subtask
       expect(screen.getByText('Parent')).toBeInTheDocument();
       // Epic Link label is NOT rendered for Subtask
-      expect(screen.queryByText('Epic Link')).not.toBeInTheDocument();
+      expect(screen.queryByText('Epic')).not.toBeInTheDocument();
     });
 
     it('Story type (default) shows Epic Link and hides Parent field', () => {
       render(<CreateEditIssueModal open={true} onClose={vi.fn()} mode="create" />, { wrapper });
       // Story is the default — Epic Link section should be present
-      expect(screen.getByText('Epic Link')).toBeInTheDocument();
+      expect(screen.getByText('Epic')).toBeInTheDocument();
       // Parent field should NOT be present for Story
       expect(screen.queryByText('Parent')).not.toBeInTheDocument();
     });
@@ -150,7 +150,7 @@ describe('CreateEditIssueModal', () => {
       });
 
       // Submit button should be disabled because the required "Account" field is empty
-      const submitBtn = screen.getByRole('button', { name: /^create$/i });
+      const submitBtn = screen.getByRole('button', { name: /^create issue$/i });
       expect(submitBtn).toBeDisabled();
 
       // Reset mocks for other tests
@@ -193,7 +193,7 @@ describe('CreateEditIssueModal', () => {
       expect(screen.getByRole('button', { name: 'Assignee' })).toHaveTextContent('janesmith');
 
       // Edit mode shows "Save" button, not "Create"
-      expect(screen.getByRole('button', { name: /^save$/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /^save changes$/i })).toBeInTheDocument();
     });
   });
 
@@ -239,7 +239,7 @@ describe('CreateEditIssueModal', () => {
     }
 
     async function save() {
-      fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^save changes$/i }));
       await waitFor(() => expect(jiraService.bulkUpdateIssue).toHaveBeenCalled());
     }
 
@@ -383,11 +383,13 @@ describe('CreateEditIssueModal', () => {
         target: { value: 'My test issue' },
       });
       const trigger = await screen.findByRole('button', { name: 'Approver' });
-      expect(screen.getByRole('button', { name: /^create$/i })).toBeDisabled();
+      expect(screen.getByRole('button', { name: /^create issue$/i })).toBeDisabled();
       fireEvent.click(trigger);
       fireEvent.click(await screen.findByRole('button', { name: /Bob Brown/ }));
       await waitFor(() => expect(trigger).toHaveTextContent('Bob Brown'));
-      await waitFor(() => expect(screen.getByRole('button', { name: /^create$/i })).toBeEnabled());
+      await waitFor(() =>
+        expect(screen.getByRole('button', { name: /^create issue$/i })).toBeEnabled(),
+      );
 
       vi.mocked(jiraService.fetchCreatemeta).mockResolvedValue([]);
       vi.mocked(apiFetchModule.apiFetch).mockResolvedValue({
@@ -582,7 +584,7 @@ describe('D-14/D-15: Cmd+Enter submit', () => {
   it('primary button tooltip shows its label with keycaps', async () => {
     render(<CreateEditIssueModal open={true} onClose={vi.fn()} mode="create" />, { wrapper });
     fireEvent.change(summary(), { target: { value: 'New one' } });
-    const btn = screen.getByRole('button', { name: /^create$/i });
+    const btn = screen.getByRole('button', { name: /^create issue$/i });
     fireEvent.mouseEnter(btn);
     fireEvent.focus(btn);
     await waitFor(() => expect(screen.getByText('⌘')).toBeInTheDocument());
