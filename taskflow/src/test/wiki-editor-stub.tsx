@@ -29,6 +29,7 @@ export function WikiEditorLazyStub(props: WikiEditorProps) {
         if (opts?.toEnd) el.setSelectionRange(el.value.length, el.value.length);
       },
       blur: () => textareaRef.current?.blur(),
+      setLocalPreview: () => {},
       insertFiles: (files) => {
         for (const file of files) {
           if (host?.staged && host.stageFile) host.stageFile(file);

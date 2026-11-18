@@ -45,6 +45,58 @@ vi.mock('@tauri-apps/plugin-store', () => {
   return { LazyStore };
 });
 
+// Mock @tauri-apps/plugin-fs globally -- in-memory byte store keyed by the
+// BaseDirectory-relative path (the baseDir option is ignored).
+vi.mock('@tauri-apps/plugin-fs', () => {
+  const files = new Map<string, Uint8Array>();
+  const dirs = new Set<string>();
+  const norm = (p: string) => p.replace(/\/+$/, '');
+  return {
+    BaseDirectory: { AppData: 'AppData' },
+    mkdir: async (p: string) => {
+      dirs.add(norm(p));
+    },
+    writeFile: async (p: string, data: Uint8Array) => {
+      files.set(norm(p), data);
+    },
+    readFile: async (p: string) => {
+      const d = files.get(norm(p));
+      if (!d) throw new Error('No such file');
+      return d;
+    },
+    exists: async (p: string) => files.has(norm(p)) || dirs.has(norm(p)),
+    remove: async (p: string, opts?: { recursive?: boolean }) => {
+      const k = norm(p);
+      files.delete(k);
+      dirs.delete(k);
+      if (opts?.recursive) {
+        for (const f of [...files.keys()]) if (f.startsWith(`${k}/`)) files.delete(f);
+        for (const d of [...dirs]) if (d.startsWith(`${k}/`)) dirs.delete(d);
+      }
+    },
+    readDir: async (p: string) => {
+      const k = `${norm(p)}/`;
+      const out = new Map<string, boolean>();
+      for (const f of files.keys()) {
+        if (!f.startsWith(k)) continue;
+        const rest = f.slice(k.length);
+        const i = rest.indexOf('/');
+        if (i === -1) out.set(rest, out.get(rest) ?? false);
+        else out.set(rest.slice(0, i), true);
+      }
+      for (const d of dirs) {
+        if (d.startsWith(k)) out.set(d.slice(k.length).split('/')[0], true);
+      }
+      return [...out].map(([name, isDirectory]) => ({
+        name,
+        isDirectory,
+        isFile: !isDirectory,
+        isSymlink: false,
+      }));
+    },
+  };
+});
+
 // ResizeObserver mock — required for Recharts ResponsiveContainer in jsdom.
 // jsdom never lays out elements, so a real observer would report 0x0 and
 // Recharts would refuse to render its SVG surface. This mock matches the real

@@ -45,6 +45,11 @@ export interface WikiEditorHandle {
   blur(): void;
   /** Same path as paste/drop: uploads live, or stages when `host.staged`. */
   insertFiles(files: File[]): void;
+  /**
+   * Register a preview for a staged file restored from a draft; use blob: only
+   * for images, data: for anything rendered in iframe/embed.
+   */
+  setLocalPreview(name: string, url: string): void;
 }
 
 export interface WikiEditorProps {
