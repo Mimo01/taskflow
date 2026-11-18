@@ -47,9 +47,10 @@ export interface WikiEditorHandle {
   insertFiles(files: File[]): void;
   /**
    * Register a preview for a staged file restored from a draft; use blob: only
-   * for images, data: for anything rendered in iframe/embed.
+   * for images, data: for anything rendered in iframe/embed. Returns false when the
+   * underlying editor instance was destroyed (e.g. a StrictMode remount); retry next frame.
    */
-  setLocalPreview(name: string, url: string): void;
+  setLocalPreview(name: string, url: string): boolean;
 }
 
 export interface WikiEditorProps {

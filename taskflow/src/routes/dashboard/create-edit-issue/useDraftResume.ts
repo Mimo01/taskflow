@@ -104,11 +104,8 @@ export function useDraftResume({
         blobUrlsRef.current.push(url);
         let frames = 0;
         const apply = () => {
-          const handle = editorRef.current;
-          if (handle) {
-            handle.setLocalPreview(file.name, url);
-            return;
-          }
+          // The handle can briefly point at a destroyed editor instance; retry until one takes it.
+          if (editorRef.current?.setLocalPreview(file.name, url)) return;
           if (++frames < PREVIEW_MAX_FRAMES) requestAnimationFrame(apply);
         };
         apply();

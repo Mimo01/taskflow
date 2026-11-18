@@ -1,6 +1,7 @@
 import { QueryClient } from '@tanstack/react-query';
+import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import { getHost, getLocalPreview, setLocalPreview, WIKI_HOST_META } from './host';
+import { getHost, getLocalPreview, setLocalPreview, useLocalPreview, WIKI_HOST_META } from './host';
 import { makeEditor } from './test-utils';
 
 describe('wiki host store', () => {
@@ -74,5 +75,23 @@ describe('wiki host store', () => {
     const b = makeEditor('').editor;
     a.storage.wikiHost.set({ projectKey: 'A' }, undefined);
     expect(getHost(b).projectKey).toBeUndefined();
+  });
+});
+
+describe('preview lookups', () => {
+  it('setLocalPreview reports false on a destroyed editor instead of throwing', () => {
+    const { editor } = makeEditor('');
+    editor.destroy();
+    expect(setLocalPreview(editor, 'a.png', 'blob:x')).toBe(false);
+  });
+
+  it('useLocalPreview re-renders when a preview is registered after mount', () => {
+    const { editor } = makeEditor('');
+    const { result } = renderHook(() => useLocalPreview(editor, 'late.png'));
+    expect(result.current).toBeUndefined();
+    act(() => {
+      setLocalPreview(editor, 'late.png', 'blob:late');
+    });
+    expect(result.current).toBe('blob:late');
   });
 });

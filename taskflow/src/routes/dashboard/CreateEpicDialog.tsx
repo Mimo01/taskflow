@@ -96,20 +96,17 @@ export function CreateEpicDialog({ open, onClose, resumeDraftId = null }: Create
     if (!pendingPreviewsRef.current || staged.files.length === 0) return;
     pendingPreviewsRef.current = false;
     const images = staged.files.filter((f) => f.type.startsWith('image/'));
-    let frames = 0;
-    const apply = () => {
-      const handle = editorRef.current;
-      if (!handle) {
+    for (const f of images) {
+      const url = URL.createObjectURL(f);
+      previewUrlsRef.current.push(url);
+      let frames = 0;
+      // The handle can be missing or briefly point at a destroyed editor; retry until one takes it.
+      const apply = () => {
+        if (editorRef.current?.setLocalPreview(f.name, url)) return;
         if (frames++ < 60) requestAnimationFrame(apply);
-        return;
-      }
-      for (const f of images) {
-        const url = URL.createObjectURL(f);
-        previewUrlsRef.current.push(url);
-        handle.setLocalPreview(f.name, url);
-      }
-    };
-    if (images.length > 0) apply();
+      };
+      apply();
+    }
   }, [staged.files]);
 
   // Autosave on user edits only, never from a state effect (avoids stale writes on reopen).

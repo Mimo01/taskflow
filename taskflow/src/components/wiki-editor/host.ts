@@ -138,10 +138,25 @@ export function useHost(editor: Editor): ResolvedHost {
   return useSyncExternalStore(store.subscribe, store.get, store.get);
 }
 
-export function setLocalPreview(editor: Editor, name: string, url: string): void {
-  editor.storage.wikiHost.setPreview(name, url);
+/** False when the editor is gone (tiptap resets storage to {} on destroy); callers may retry. */
+export function setLocalPreview(editor: Editor, name: string, url: string): boolean {
+  const store = editor.isDestroyed ? undefined : editor.storage.wikiHost;
+  if (!store) return false;
+  store.setPreview(name, url);
+  return true;
 }
 
 export function getLocalPreview(editor: Editor, name: string): string | undefined {
   return editor.storage.wikiHost.previews.get(name);
+}
+
+/**
+ * Reactive preview lookup for node views. A plain getLocalPreview() call in render is
+ * memoized by React Compiler on (editor, name) and never sees a preview registered after
+ * the node mounted (resumed drafts); subscribing makes the read re-run on setPreview.
+ */
+export function useLocalPreview(editor: Editor, name: string): string | undefined {
+  const store = editor.storage.wikiHost;
+  const read = () => store.previews.get(name);
+  return useSyncExternalStore(store.subscribe, read, read);
 }

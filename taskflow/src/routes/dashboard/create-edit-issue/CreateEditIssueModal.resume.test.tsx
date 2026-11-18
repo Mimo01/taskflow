@@ -192,7 +192,7 @@ beforeEach(() => {
   vi.mocked(fetchCreatemeta).mockReset().mockResolvedValue([]);
   vi.mocked(createIssue).mockReset();
   vi.mocked(readDraftFile).mockReset();
-  previewSpy.mockReset();
+  previewSpy.mockReset().mockReturnValue(true);
   URL.createObjectURL = vi.fn(() => 'blob:preview');
   URL.revokeObjectURL = vi.fn();
 });
@@ -229,6 +229,24 @@ describe('Resuming an issue draft', () => {
     expect(await screen.findByText('shot.png')).toBeInTheDocument();
     expect(await screen.findByText('Draft saved')).toBeInTheDocument();
     await waitFor(() => expect(previewSpy).toHaveBeenCalledWith('shot.png', 'blob:preview'));
+  });
+
+  it('retries the restored image preview when the editor instance was destroyed', async () => {
+    // A StrictMode remount can leave the handle on a destroyed editor for a frame
+    // (setLocalPreview returns false); the preview must still land on the live one.
+    previewSpy.mockReturnValueOnce(false);
+    vi.mocked(readDraftFile).mockResolvedValue(
+      new File(['bytes'], 'shot.png', { type: 'image/png' }),
+    );
+    seed(
+      {},
+      {
+        files: [{ name: 'shot.png', size: 5, type: 'image/png', path: 'issue-drafts/d/shot.png' }],
+      },
+    );
+    renderModal();
+    await waitFor(() => expect(previewSpy).toHaveBeenCalledTimes(2));
+    expect(previewSpy).toHaveBeenLastCalledWith('shot.png', 'blob:preview');
   });
 
   it('clears an epic that no longer exists, shows a note and keeps Create enabled', async () => {

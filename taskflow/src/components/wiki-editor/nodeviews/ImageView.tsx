@@ -1,6 +1,6 @@
 import { type NodeViewProps, NodeViewWrapper } from '@tiptap/react';
 import { AuthImage } from '@/routes/dashboard/AuthImage';
-import { getLocalPreview, useHost } from '../host';
+import { useHost, useLocalPreview } from '../host';
 
 const CHIP_CLASS = 'rounded bg-muted px-1 text-xs text-muted-foreground';
 const IMG_CLASS = 'max-w-full rounded-md';
@@ -13,7 +13,7 @@ export function ImageView({ node, editor, selected }: NodeViewProps) {
   const { attachments } = useHost(editor);
   const name = String(node.attrs.name);
   const ring = selected ? ' ring-1 ring-ring' : '';
-  const local = getLocalPreview(editor, name);
+  const local = useLocalPreview(editor, name);
   const attachment = attachments.find((a) => a.filename === name);
   let body: React.ReactNode;
   if (local) {
