@@ -48,6 +48,7 @@ import { CommentComposer } from './CommentComposer';
 import type { EditInitialValues } from './CreateEditIssueModal';
 import { CommentActionRow } from './comment-editor/CommentActionRow';
 import { COMMENT_EDITOR_MAX_HEIGHT } from './comment-editor/comment-editor-sizing';
+import { useKeepContentAboveSticky } from './comment-editor/useKeepContentAboveSticky';
 import { IssueDetailContent, relativeTime } from './IssueDetailContent';
 import { IssueDetailSidebar } from './IssueDetailSidebar';
 import { ActivityTimeline } from './issue-detail/ActivityTimeline';
@@ -675,6 +676,9 @@ export function IssueDetailView({
     />
   );
 
+  // Expanding the sticky composer must not cover the activity just above it.
+  const composerStripRef = useKeepContentAboveSticky();
+
   // Single-column (peek) uses tighter horizontal padding than two-column. The activity
   // feed and its sticky composer break-out margin must track the same value to stay aligned.
   const activityPadX = layout === 'single-column' ? 'px-4' : 'px-6';
@@ -790,6 +794,7 @@ export function IssueDetailView({
 
       {(timelineFilter === 'comment' || timelineFilter === 'all') && (
         <div
+          ref={composerStripRef}
           className={`sticky bottom-0 z-20 border-t py-3 ${activityNegMx} ${activityPadX} bg-(--detail-surface,var(--background))`}
         >
           <CommentComposer
