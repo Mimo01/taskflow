@@ -61,7 +61,16 @@ function settled(q: { status: string; fetchStatus: string }): boolean {
 export function CreateEpicDialog({ open, onClose, resumeDraftId = null }: CreateEpicDialogProps) {
   const { epicNameFieldKey, epicLinkFieldKey, storyPointsFieldKey } = useSettingsStore();
   const { jiraBaseUrl, activeJiraProject } = useAuthStore();
-  const projectKey = activeJiraProject ?? '';
+  // A resumed draft is created in its own project, like the Issue modal (101 D-14). Latched for
+  // the session so discarding or creating the draft never flips the project under the open form.
+  const storedDraftProject = useIssueDraftsStore((s) =>
+    resumeDraftId ? s.drafts[resumeDraftId]?.projectKey : undefined,
+  );
+  const resumedProjectRef = useRef<string | null>(null);
+  if (!open || !resumeDraftId) resumedProjectRef.current = null;
+  else if (storedDraftProject && resumedProjectRef.current === null)
+    resumedProjectRef.current = storedDraftProject;
+  const projectKey = resumedProjectRef.current ?? activeJiraProject ?? '';
 
   const { state, dispatch } = useCreateEditForm({
     open,
@@ -137,8 +146,13 @@ export function CreateEpicDialog({ open, onClose, resumeDraftId = null }: Create
     creatmetaLoading,
     issueTypesLoading,
   });
+  // Same rule as buildEpicCreateFields and labelsOffered: unknown (loading or empty) createmeta
+  // keeps the row visible, so a value that will be sent can always be seen and cleared.
   const storyPointsOffered =
-    !!storyPointsFieldKey && (creatmetaFields ?? []).some((f) => f.fieldId === storyPointsFieldKey);
+    !!storyPointsFieldKey &&
+    (!creatmetaFields ||
+      creatmetaFields.length === 0 ||
+      creatmetaFields.some((f) => f.fieldId === storyPointsFieldKey));
 
   const revokePreviews = useCallback(() => {
     for (const url of previewUrlsRef.current) URL.revokeObjectURL(url);
@@ -184,7 +198,7 @@ export function CreateEpicDialog({ open, onClose, resumeDraftId = null }: Create
 
   // Validate the resumed sidebar values once against live Epic createmeta and fix versions.
   const hasFixVersions = (resumedSnapshot?.fixVersions?.length ?? 0) > 0;
-  const fixVersionsQuery = useProjectFixVersions(open && hasFixVersions, activeJiraProject);
+  const fixVersionsQuery = useProjectFixVersions(open && hasFixVersions, projectKey || null);
   useEffect(() => {
     if (!open || !resumedSnapshot || validatedRef.current) return;
     if (creatmetaLoading || issueTypesLoading) return;
@@ -245,8 +259,8 @@ export function CreateEpicDialog({ open, onClose, resumeDraftId = null }: Create
   }, [staged.files]);
 
   // Autosave on user edits only, never from a state effect (avoids stale writes on reopen).
-  const latestRef = useRef({ state, staged, activeJiraProject, creatmetaFields, open });
-  latestRef.current = { state, staged, activeJiraProject, creatmetaFields, open };
+  const latestRef = useRef({ state, staged, projectKey, creatmetaFields, open });
+  latestRef.current = { state, staged, projectKey, creatmetaFields, open };
   // biome-ignore lint/correctness/useExhaustiveDependencies: keyed on user edits only
   useEffect(() => {
     if (editTick === 0) return;
@@ -255,7 +269,7 @@ export function CreateEpicDialog({ open, onClose, resumeDraftId = null }: Create
     const fieldNames: Record<string, string> = {};
     for (const f of cur.creatmetaFields ?? []) fieldNames[f.fieldId] = f.name;
     epicDraft.schedule({
-      projectKey: cur.activeJiraProject ?? '',
+      projectKey: cur.projectKey,
       snapshot: toEpicSnapshot(cur.state, fieldNames),
       files: cur.staged.refs,
       hasContent: hasEpicContent(cur.state.summary, cur.state.description, cur.staged.files.length),
@@ -291,11 +305,11 @@ export function CreateEpicDialog({ open, onClose, resumeDraftId = null }: Create
 
   const host = useMemo<WikiEditorHost>(
     () => ({
-      projectKey: activeJiraProject,
+      projectKey: projectKey || null,
       staged: true,
       stageFile: (f) => staged.stage(f),
     }),
-    [activeJiraProject, staged.stage],
+    [projectKey, staged.stage],
   );
 
   const queryClient = useQueryClient();
@@ -303,13 +317,13 @@ export function CreateEpicDialog({ open, onClose, resumeDraftId = null }: Create
   const mutation = useMutation({
     mutationFn: async () => {
       const jiraToken = await readSecret('jira-pat').catch(() => null);
-      if (!jiraBaseUrl || !jiraToken || !activeJiraProject || !epicNameFieldKey) {
+      if (!jiraBaseUrl || !jiraToken || !projectKey || !epicNameFieldKey) {
         throw new Error('Not configured');
       }
       const newIssue = await createIssue(
         jiraBaseUrl,
         jiraToken,
-        activeJiraProject,
+        projectKey,
         state.summary.trim(),
         buildEpicCreateFields({ state, epicNameFieldKey, storyPointsFieldKey, creatmetaFields }),
       );

@@ -7,11 +7,12 @@ import { useCreateModalStore } from '@/stores/create-modal.store';
 import { type IssueDraft, useIssueDraftsStore } from '@/stores/issue-drafts.store';
 import { lastStubProps } from '@/test/wiki-editor-stub';
 
+const settings = vi.hoisted(() => ({ storyPointsFieldKey: null as string | null }));
 vi.mock('@/stores/settings.store', () => ({
   useSettingsStore: () => ({
     epicNameFieldKey: 'customfield_10015',
     epicLinkFieldKey: 'customfield_10014',
-    storyPointsFieldKey: null,
+    storyPointsFieldKey: settings.storyPointsFieldKey,
   }),
 }));
 vi.mock('@/stores/auth.store', () => ({
@@ -183,6 +184,7 @@ describe('CreateEpicDialog', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    settings.storyPointsFieldKey = null;
   });
 
   it('EPIC-04: submits createIssue with issuetype Epic, summary, and epicNameFieldKey', async () => {
@@ -668,6 +670,76 @@ describe('CreateEpicDialog', () => {
         labels: ['alpha'],
         fixVersions: [{ id: '77' }],
       });
+    });
+
+    it('WR-01: a resumed draft from another project uses that project for meta, versions and create', async () => {
+      const { createIssue, fetchCreatemeta } = await import('@/services/jira');
+      const { fetchFixVersions } = await import('@/services/jira/versions');
+      (createIssue as ReturnType<typeof vi.fn>).mockResolvedValue({ id: '9', key: 'OTHER-9' });
+      useIssueDraftsStore.getState().upsertDraft(
+        epicDraft({
+          projectKey: 'OTHER',
+          snapshot: {
+            epicName: 'Placeholder epic',
+            description: '',
+            fixVersions: [{ id: '77', name: '1.0' }],
+          },
+        }),
+      );
+      const { onClose } = renderDialog({ resumeDraftId: 'd1' });
+      await waitFor(() => expect(fetchFixVersions).toHaveBeenCalled());
+      await waitFor(() => expect(fetchCreatemeta).toHaveBeenCalled());
+      for (const call of vi.mocked(fetchFixVersions).mock.calls) expect(call[2]).toBe('OTHER');
+      for (const call of vi.mocked(fetchCreatemeta).mock.calls) expect(call[2]).toBe('OTHER');
+      expect(lastStubProps.current?.host?.projectKey).toBe('OTHER');
+      await waitFor(() =>
+        expect(
+          (screen.getByRole('button', { name: /^create epic$/i }) as HTMLButtonElement).disabled,
+        ).toBe(false),
+      );
+      fireEvent.click(screen.getByRole('button', { name: /^create epic$/i }));
+      await waitFor(() => expect(onClose).toHaveBeenCalled());
+      expect(vi.mocked(createIssue).mock.calls[0][2]).toBe('OTHER');
+      expect(vi.mocked(createIssue).mock.calls[0][4]).toMatchObject({
+        fixVersions: [{ id: '77' }],
+      });
+    });
+
+    it('WR-01: editing a resumed draft from another project keeps it in that project', () => {
+      useIssueDraftsStore.getState().upsertDraft(epicDraft({ projectKey: 'OTHER' }));
+      renderDialog({ resumeDraftId: 'd1' });
+      fireEvent.change(screen.getByRole('textbox', { name: /epic name/i }), {
+        target: { value: 'Renamed epic' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+      expect(drafts()).toHaveLength(1);
+      expect(drafts()[0].projectKey).toBe('OTHER');
+      expect((drafts()[0].snapshot as { epicName: string }).epicName).toBe('Renamed epic');
+    });
+
+    it('WR-02: shows resumed story points when Epic createmeta is empty, and sends them', async () => {
+      settings.storyPointsFieldKey = 'customfield_10016';
+      await mockCreatemeta([]);
+      const { createIssue, fetchCreatemeta } = await import('@/services/jira');
+      (createIssue as ReturnType<typeof vi.fn>).mockResolvedValue({ id: '9', key: 'PROJ-9' });
+      useIssueDraftsStore.getState().upsertDraft(
+        epicDraft({
+          snapshot: { epicName: 'Placeholder epic', description: '', storyPoints: '5' },
+        }),
+      );
+      const { onClose } = renderDialog({ resumeDraftId: 'd1' });
+      await waitFor(() => expect(fetchCreatemeta).toHaveBeenCalled());
+      // Let the empty createmeta settle, then the value that will be sent must be visible.
+      await waitFor(() =>
+        expect(
+          (screen.getByRole('button', { name: /^create epic$/i }) as HTMLButtonElement).disabled,
+        ).toBe(false),
+      );
+      const sp = (await screen.findByLabelText('Story points')) as HTMLInputElement;
+      expect(sp.value).toBe('5');
+      fireEvent.click(screen.getByRole('button', { name: /^create epic$/i }));
+      await waitFor(() => expect(onClose).toHaveBeenCalled());
+      expect(vi.mocked(createIssue).mock.calls[0][4]).toMatchObject({ customfield_10016: 5 });
     });
 
     it('resumes an old-shape draft with only name and description', () => {
