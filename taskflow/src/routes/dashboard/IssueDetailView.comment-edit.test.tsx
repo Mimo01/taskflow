@@ -68,6 +68,11 @@ vi.mock('@/services/jira', () => ({
   filterTransitionsForStatus: vi.fn().mockReturnValue([]),
 }));
 
+const mockUploadAttachment = vi.fn().mockResolvedValue({ id: 'a1', filename: 'x.png' });
+vi.mock('@/services/jira/attachments', () => ({
+  uploadAttachment: (...args: unknown[]) => mockUploadAttachment(...args),
+  deleteAttachment: vi.fn(),
+}));
 vi.mock('@/services/jira/changelog', () => ({
   fetchIssueChangelog: vi.fn(),
 }));
@@ -364,6 +369,27 @@ describe('comment edit host (Task 1)', () => {
     fireEvent.focus(screen.getByRole('button', { name: 'Cancel' }));
     const esc = await screen.findByText('Esc');
     expect(esc.closest('[data-slot="tooltip-content"]')?.textContent).toContain('Cancel');
+  });
+
+  it('edit uses the shared action row order and the shared height cap', async () => {
+    renderView();
+    await startEdit();
+    expect(lastStubProps.current?.maxHeightClass).toBe('max-h-[min(50vh,480px)]');
+    const attach = screen.getByRole('button', { name: 'Attach files' });
+    const cancel = screen.getByRole('button', { name: 'Cancel' });
+    const save = screen.getByRole('button', { name: 'Save' });
+    expect(attach.compareDocumentPosition(cancel) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(cancel.compareDocumentPosition(save) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('Attach inserts the picked files into the edit editor', async () => {
+    const { container } = renderView();
+    await startEdit();
+    const input = container.querySelector('input[type=file]') as HTMLInputElement;
+    const file = new File(['x'], 'x.png', { type: 'image/png' });
+    fireEvent.change(input, { target: { files: [file] } });
+    await waitFor(() => expect(mockUploadAttachment).toHaveBeenCalled());
+    expect(mockUploadAttachment.mock.calls[0]?.[3]).toBe(file);
   });
 
   it('Cancel and Esc without changes exit silently', async () => {
