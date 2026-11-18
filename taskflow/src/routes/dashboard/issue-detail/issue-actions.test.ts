@@ -14,6 +14,9 @@ const issue = {
     customfield_100: 'x',
     customfield_200: null,
     attachment: [{ id: 'a' }],
+    issuetype: { name: 'Story' },
+    labels: ['a', 'b'],
+    fixVersions: [{ id: '10', name: 'v1', releaseDate: '2026-01-01' }],
     issuelinks: [
       { type: { id: '10' }, outwardIssue: { key: 'PROJ-2' } },
       { type: { id: '11' }, inwardIssue: { key: 'PROJ-3' } },
@@ -37,7 +40,17 @@ describe('issue-actions', () => {
       epicLinkKey: 'EPIC-1',
       customFields: { customfield_100: 'x' },
       attachments: [{ id: 'a' }],
+      issueTypeName: 'Story',
+      labels: ['a', 'b'],
+      fixVersions: [{ id: '10', name: 'v1' }],
     });
+  });
+
+  it('buildEditInitialValues yields [] when labels/fixVersions are missing', () => {
+    const bare = { id: '2', key: 'P-2', fields: { summary: 's' } } as never;
+    const v = buildEditInitialValues(bare, 'sp', 'ep');
+    expect(v.labels).toEqual([]);
+    expect(v.fixVersions).toEqual([]);
   });
 
   it('buildCloneInitialValues prefixes the summary and copies links with fresh ids', () => {
@@ -47,6 +60,8 @@ describe('issue-actions', () => {
     const v = buildCloneInitialValues(issue, 'story_points', 'epic_link');
     expect(v.issueKey).toBe('');
     expect(v.summary).toBe('Clone - Hello');
+    expect(v.labels).toEqual(['a', 'b']);
+    expect(v.fixVersions).toEqual([]);
     expect(v.linkRows).toEqual([
       { id: 'u1', linkTypeId: '10', issueKey: 'PROJ-2' },
       { id: 'u2', linkTypeId: '11', issueKey: 'PROJ-3' },

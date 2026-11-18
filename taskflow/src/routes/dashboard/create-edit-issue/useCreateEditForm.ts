@@ -25,6 +25,11 @@ export interface EditInitialValues {
    *  paperclip picker and reference resolution work. Not applicable to create
    *  mode (no attachments exist yet); Clone intentionally omits this too. */
   attachments?: JiraAttachment[];
+  /** Issue type name (edit mode) — header icon and Fix version visibility. */
+  issueTypeName?: string;
+  /** Edit seeds these from Jira; absent means unknown, and the edit diff then never sends the field. */
+  labels?: string[];
+  fixVersions?: { id: string; name: string }[];
 }
 
 const ISSUE_TYPES = ['Story', 'Subtask', 'Bug'] as const;
@@ -55,9 +60,14 @@ export interface FormState {
   customFieldShowResults: Record<string, boolean>;
   apiError: string | null;
   linkRows: IssueLinkRowValue[];
+  labels: string[];
+  /** Keeps `name` so the trigger renders without the versions query. */
+  fixVersions: { id: string; name: string }[];
 }
 
 export type FormAction =
+  | { type: 'HYDRATE'; state: Partial<FormState> }
+  | { type: 'RESET_KEEP'; keep: Partial<FormState> }
   | { type: 'SET_FIELD'; field: keyof FormState; value: FormState[keyof FormState] }
   | {
       type: 'RESET';
@@ -110,7 +120,7 @@ export function extractCustomFieldId(raw: unknown): string {
   return String(item);
 }
 
-function buildInitialState(
+export function buildInitialState(
   defaultIssueType?: IssueType,
   defaultParentKey?: string | null,
   initialValues?: EditInitialValues,
@@ -151,15 +161,23 @@ function buildInitialState(
     customFieldShowResults: {},
     apiError: null,
     linkRows: initialValues?.linkRows ?? [],
+    labels: initialValues?.labels ?? [],
+    fixVersions: initialValues?.fixVersions ?? [],
   };
 }
 
 // ── Reducer ──────────────────────────────────────────────────────────────────
 
-function formReducer(state: FormState, action: FormAction): FormState {
+export function formReducer(state: FormState, action: FormAction): FormState {
   switch (action.type) {
     case 'SET_FIELD':
       return { ...state, [action.field]: action.value };
+
+    case 'HYDRATE':
+      return { ...state, ...action.state };
+
+    case 'RESET_KEEP':
+      return { ...buildInitialState(), ...action.keep };
 
     case 'RESET':
       return buildInitialState(

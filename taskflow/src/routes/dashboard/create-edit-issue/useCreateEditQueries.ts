@@ -39,6 +39,8 @@ const CORE_FIELD_IDS = new Set([
   'reporter',
   'parent',
   'timetracking',
+  'labels',
+  'fixVersions',
 ]);
 
 // ── Hook ─────────────────────────────────────────────────────────────────────
@@ -104,6 +106,11 @@ export function useCreateEditQueries({
     return true;
   });
 
+  const labelsRequired = (creatmetaFields ?? []).some((f) => f.fieldId === 'labels' && f.required);
+  const fixVersionsField = (creatmetaFields ?? []).find((f) => f.fieldId === 'fixVersions');
+  const fixVersionsOffered = !!fixVersionsField;
+  const fixVersionsRequired = !!fixVersionsField?.required;
+
   const { data: linkTypes = [], isLoading: linkTypesLoading } = useQuery<IssueLinkType[]>({
     queryKey: ['jira-link-types', jiraBaseUrl],
     queryFn: async () => {
@@ -139,6 +146,9 @@ export function useCreateEditQueries({
     creatmetaFields,
     creatmetaLoading,
     customRequiredFields,
+    labelsRequired,
+    fixVersionsOffered,
+    fixVersionsRequired,
     selectedIssueTypeId,
     parentFields,
     linkTypes,

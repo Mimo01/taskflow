@@ -24,6 +24,9 @@ export function buildEditInitialValues(
     epicLinkKey: (issue.fields[epicLinkFieldKey] as string) ?? null,
     customFields,
     attachments: issue.fields.attachment ?? [],
+    issueTypeName: issue.fields.issuetype?.name,
+    labels: issue.fields.labels ?? [],
+    fixVersions: (issue.fields.fixVersions ?? []).map((v) => ({ id: v.id, name: v.name })),
   };
 }
 
@@ -43,6 +46,9 @@ export function buildCloneInitialValues(
     priority: issue.fields.priority?.name ?? null,
     storyPoints: (issue.fields[storyPointsFieldKey] as number) ?? null,
     epicLinkKey: (issue.fields[epicLinkFieldKey] as string) ?? null,
+    // Clone copies labels; fix versions are release-specific, so a clone starts with none (Phase 101 decision)
+    labels: issue.fields.labels ?? [],
+    fixVersions: [],
     linkRows: (issue.fields.issuelinks ?? []).map((link: JiraIssueLink) => ({
       id: crypto.randomUUID(),
       linkTypeId: link.type.id,
