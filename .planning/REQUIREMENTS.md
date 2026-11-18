@@ -73,9 +73,9 @@
 
 - [x] **UI-01**: The Create/Edit Issue modal is a large two-column dialog: summary, editor, staged files and links in the main column, a fields sidebar and a sticky footer (subtasks dropped by user decision 2026-11-17, Phase 101 D-03)
 - [x] **UI-02**: User can tick "Create another" to keep the modal open for the next issue, with common fields kept
-- [ ] **UI-03**: Comment hosts have an expanding editor and a consistent, clean action row
+- [x] **UI-03**: Comment hosts have an expanding editor and a consistent, clean action row
 - [~] **UI-04**: ~~Inline description editing is in place and larger, with sticky Save/Cancel~~ — Dropped by user decision 2026-11-17 (Phase 100 D-01).
-- [ ] **UI-05**: Create Epic, Bulk Create Subtasks and Edit Release modals are bigger and visually consistent with the new modal (Edit Release keeps its plain-text/Markdown fields, with no wiki editor)
+- [x] **UI-05**: Create Epic, Bulk Create Subtasks and Edit Release modals are bigger and visually consistent with the new modal (Edit Release keeps its plain-text/Markdown fields, with no wiki editor)
 
 ## Future Requirements
 
@@ -145,9 +145,9 @@
 | HOST-05 | Phase 100 | Complete |
 | UI-01 | Phase 101 | Complete |
 | UI-02 | Phase 101 | Complete |
-| UI-03 | Phase 102 | Pending |
+| UI-03 | Phase 102 | Complete |
 | UI-04 | Phase 102 | Dropped |
-| UI-05 | Phase 102 | Pending |
+| UI-05 | Phase 102 | Complete |
 
 **Coverage:**
 - v1.15 requirements: 48 total
