@@ -52,7 +52,9 @@ describe('issue-draft-files', () => {
   });
 
   it('returns null for a missing copy', async () => {
-    expect(await readDraftFile({ name: 'n', size: 0, type: '', path: 'issue-drafts/zz/n' })).toBeNull();
+    expect(
+      await readDraftFile({ name: 'n', size: 0, type: '', path: 'issue-drafts/zz/n' }),
+    ).toBeNull();
   });
 
   it('removes one draft dir and swallows a missing one', async () => {
