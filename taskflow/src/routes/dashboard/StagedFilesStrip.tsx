@@ -6,12 +6,17 @@ export function StagedFilesStrip({
   files,
   onRemove,
   disabled,
+  missing = [],
+  onRemoveMissing,
 }: {
   files: readonly File[];
   onRemove: (index: number) => void;
   disabled?: boolean;
+  /** Draft attachments whose stored copy is gone. */
+  missing?: readonly string[];
+  onRemoveMissing?: (name: string) => void;
 }) {
-  if (files.length === 0) return null;
+  if (files.length === 0 && missing.length === 0) return null;
   return (
     <div className="flex flex-wrap gap-1.5">
       {files.map((file, index) => (
@@ -31,6 +36,23 @@ export function StagedFilesStrip({
             disabled={disabled}
             className="shrink-0 rounded p-0.5 hover:bg-accent"
             onClick={() => onRemove(index)}
+          >
+            <X className="h-3 w-3" />
+          </button>
+        </div>
+      ))}
+      {missing.map((name) => (
+        <div
+          key={`missing-${name}`}
+          className="flex items-center gap-1.5 rounded border border-dashed px-2 py-1 text-xs text-muted-foreground bg-muted/30"
+        >
+          <span className="truncate max-w-[220px]">{name} is missing</span>
+          <button
+            type="button"
+            aria-label={`Remove ${name}`}
+            disabled={disabled}
+            className="shrink-0 rounded p-0.5 hover:bg-accent"
+            onClick={() => onRemoveMissing?.(name)}
           >
             <X className="h-3 w-3" />
           </button>
