@@ -4,6 +4,7 @@
  * drafts may contain customer data.
  */
 import { BaseDirectory, mkdir, readDir, readFile, remove, writeFile } from '@tauri-apps/plugin-fs';
+import { isDraftFilePath } from './draft-file-path';
 
 export type StagedFileRef = { name: string; size: number; type: string; path: string };
 
@@ -36,6 +37,8 @@ export async function stageDraftFile(draftId: string, file: File): Promise<Stage
 
 /** Rebuilds the File, or null when the copy is missing. */
 export async function readDraftFile(ref: StagedFileRef): Promise<File | null> {
+  // The ref comes from persisted JSON: never rely on the fs scope alone.
+  if (!isDraftFilePath(ref.path)) return null;
   try {
     const bytes = await readFile(ref.path, { baseDir: BaseDirectory.AppData });
     return new File([bytes as BlobPart], ref.name, { type: ref.type });
@@ -46,7 +49,7 @@ export async function readDraftFile(ref: StagedFileRef): Promise<File | null> {
 
 /** Removes one staged copy; best effort. */
 export async function removeDraftFile(ref: StagedFileRef): Promise<void> {
-  if (!ref.path.startsWith(`${ROOT}/`) || ref.path.split('/').includes('..')) return;
+  if (!isDraftFilePath(ref.path)) return;
   try {
     await remove(ref.path, { baseDir: BaseDirectory.AppData });
   } catch {

@@ -4,6 +4,7 @@ import { type PersistStorage, persist } from 'zustand/middleware';
 import type { PersonValue } from '@/components/ui/person-picker';
 import type { IssueType } from '@/routes/dashboard/create-edit-issue/useCreateEditForm';
 import type { IssueLinkRowValue } from '@/routes/dashboard/IssueLinkRow';
+import { isDraftFilePath } from '../lib/draft-file-path';
 import { createTauriStorage } from '../lib/tauri-storage';
 
 /** Structurally identical to StagedFileRef in lib/issue-draft-files.ts. */
@@ -66,6 +67,66 @@ interface IssueDraftsState {
 
 type Persisted = Pick<IssueDraftsState, 'drafts' | 'owner'>;
 
+const isObj = (v: unknown): v is Record<string, unknown> =>
+  typeof v === 'object' && v !== null && !Array.isArray(v);
+const isStr = (v: unknown): v is string => typeof v === 'string';
+const isStrOrNull = (v: unknown) => v === null || isStr(v);
+const isStrRecord = (v: unknown) => isObj(v) && Object.values(v).every(isStr);
+
+function isFileRef(v: unknown): v is DraftFileRef {
+  return (
+    isObj(v) &&
+    isStr(v.name) &&
+    typeof v.size === 'number' &&
+    isStr(v.type) &&
+    isDraftFilePath(v.path)
+  );
+}
+
+function isIssueSnapshot(s: Record<string, unknown>): boolean {
+  return (
+    isStr(s.selectedIssueType) &&
+    isStr(s.summary) &&
+    isStr(s.description) &&
+    isStr(s.timeEstimate) &&
+    isStr(s.storyPoints) &&
+    isStrOrNull(s.selectedAssigneeName) &&
+    isStrOrNull(s.priority) &&
+    isStrOrNull(s.epicLinkKey) &&
+    isStrOrNull(s.parentKey) &&
+    (s.selectedAssignee === null ||
+      (isObj(s.selectedAssignee) && isStr(s.selectedAssignee.name))) &&
+    Array.isArray(s.labels) &&
+    s.labels.every(isStr) &&
+    Array.isArray(s.fixVersions) &&
+    s.fixVersions.every((v) => isObj(v) && isStr(v.id) && isStr(v.name)) &&
+    isStrRecord(s.customFieldValues) &&
+    isStrRecord(s.customFieldInputValues) &&
+    isStrRecord(s.customFieldNames) &&
+    Array.isArray(s.linkRows) &&
+    s.linkRows.every((r) => isObj(r) && isStr(r.id) && isStr(r.linkTypeId) && isStr(r.issueKey))
+  );
+}
+
+/** Persisted drafts are untrusted JSON: keep only well-formed drafts and safe file refs. */
+export function sanitizePersistedDrafts(raw: unknown): Record<string, IssueDraft> {
+  const out: Record<string, IssueDraft> = {};
+  if (!isObj(raw)) return out;
+  for (const [key, d] of Object.entries(raw)) {
+    if (!isObj(d) || d.id !== key || !isStr(d.projectKey) || typeof d.updatedAt !== 'number')
+      continue;
+    if (!Array.isArray(d.files) || !isObj(d.snapshot)) continue;
+    const s = d.snapshot;
+    const ok =
+      d.kind === 'issue'
+        ? isIssueSnapshot(s)
+        : d.kind === 'epic' && isStr(s.epicName) && isStr(s.description);
+    if (!ok) continue;
+    out[key] = { ...d, files: d.files.filter(isFileRef) } as IssueDraft;
+  }
+  return out;
+}
+
 function createDraftStorage(): PersistStorage<Persisted> | undefined {
   const base = createTauriStorage('issue-drafts.json');
   if (!base) return undefined;
@@ -124,6 +185,14 @@ export const useIssueDraftsStore = create<IssueDraftsState>()(
       storage: createDraftStorage(),
       version: 1,
       partialize: (s) => ({ drafts: s.drafts, owner: s.owner }),
+      merge: (persisted, current) => {
+        const p = isObj(persisted) ? persisted : {};
+        return {
+          ...current,
+          drafts: sanitizePersistedDrafts(p.drafts),
+          owner: isStr(p.owner) ? p.owner : current.owner,
+        };
+      },
     },
   ),
 );

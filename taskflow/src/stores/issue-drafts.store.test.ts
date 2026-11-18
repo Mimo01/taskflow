@@ -62,6 +62,45 @@ describe('issue drafts store', () => {
     expect(mod.useIssueDraftsStore.getState().drafts.a?.updatedAt).toBe(7);
   });
 
+  it('drops malformed drafts and unsafe file refs on rehydrate (WR-05)', async () => {
+    const good = {
+      id: 'ok',
+      kind: 'issue',
+      updatedAt: 3,
+      projectKey: 'PROJ',
+      files: [
+        { name: 'a.png', size: 1, type: 'image/png', path: 'issue-drafts/ok/1-a.png' },
+        { name: 'evil', size: 1, type: '', path: 'issue-drafts/../../secret.txt' },
+      ],
+      snapshot: {
+        selectedIssueType: 'Story',
+        summary: 's',
+        description: '',
+        selectedAssignee: null,
+        selectedAssigneeName: null,
+        timeEstimate: '',
+        priority: null,
+        storyPoints: '',
+        epicLinkKey: null,
+        parentKey: null,
+        labels: [],
+        fixVersions: [{ id: '1', name: 'v1' }],
+        customFieldValues: {},
+        customFieldInputValues: {},
+        customFieldNames: {},
+        linkRows: [],
+      },
+    };
+    const bad = { ...good, id: 'bad', snapshot: { ...good.snapshot, fixVersions: 'nope' } };
+    await new LazyStore('issue-drafts.json').set(
+      'issue-drafts-store',
+      JSON.stringify({ state: { drafts: { ok: good, bad, junk: 42 }, owner: null }, version: 1 }),
+    );
+    await useIssueDraftsStore.persist.rehydrate();
+    expect(Object.keys(get().drafts)).toEqual(['ok']);
+    expect(get().drafts.ok.files.map((f) => f.name)).toEqual(['a.png']);
+  });
+
   it('useSortedIssueDrafts is newest first and referentially stable', () => {
     get().upsertDraft(mk('old', 1));
     get().upsertDraft(mk('new', 9));

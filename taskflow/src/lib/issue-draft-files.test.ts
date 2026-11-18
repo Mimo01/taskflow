@@ -64,6 +64,20 @@ describe('issue-draft-files', () => {
     expect(await readDir('issue-drafts')).toEqual([]);
   });
 
+  it('never reads a path outside issue-drafts/<id>/ (WR-05)', async () => {
+    const spy = vi.spyOn(fs, 'readFile');
+    for (const path of [
+      'issue-drafts/../../secret.txt',
+      'issue-drafts/id1/../../x',
+      '/etc/passwd',
+      'issue-drafts/id1/sub/x.png',
+      'other/id1/x.png',
+    ]) {
+      expect(await readDraftFile({ name: 'x', size: 0, type: '', path })).toBeNull();
+    }
+    expect(spy).not.toHaveBeenCalled();
+  });
+
   it('returns null for a missing copy', async () => {
     expect(
       await readDraftFile({ name: 'n', size: 0, type: '', path: 'issue-drafts/zz/n' }),
