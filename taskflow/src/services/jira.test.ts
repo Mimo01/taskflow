@@ -1361,6 +1361,33 @@ describe('jira service', () => {
       expect(result).toEqual(mockFields);
     });
 
+    it('pages through the paginated endpoint so fields past the first page are kept (CR-02)', async () => {
+      const page = (ids: string[], startAt: number, isLast: boolean) =>
+        ({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            startAt,
+            total: 3,
+            isLast,
+            values: ids.map((id) => ({
+              fieldId: id,
+              name: id,
+              required: false,
+              schema: { type: 'string' },
+            })),
+          }),
+        }) as Response;
+      vi.mocked(mockFetch)
+        .mockResolvedValueOnce(page(['summary', 'customfield_1'], 0, false))
+        .mockResolvedValueOnce(page(['customfield_2'], 2, true));
+
+      const result = await fetchCreatemeta(BASE, TOKEN, 'PROJ', '10001', 'Story');
+
+      expect(result.map((f) => f.fieldId)).toEqual(['summary', 'customfield_1', 'customfield_2']);
+      expect(vi.mocked(mockFetch).mock.calls[1][0] as string).toContain('startAt=2');
+    });
+
     it('falls back to legacy flat endpoint when new endpoint returns 404', async () => {
       const legacyFields = {
         summary: {

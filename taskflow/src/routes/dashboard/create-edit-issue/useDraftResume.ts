@@ -156,7 +156,8 @@ export function useDraftResume({
     const fixVersionIds =
       sameProject && fixVersionsQuery.data ? new Set(fixVersionsQuery.data.map((v) => v.id)) : null;
     const result = validateSnapshot(snapshot, {
-      createmetaFields: creatmetaFields,
+      // Empty means the fetch failed or returned nothing: unknown, never "field removed".
+      createmetaFields: creatmetaFields && creatmetaFields.length > 0 ? creatmetaFields : undefined,
       epicExists: epicKey ? (epicQuery.data ?? null) : null,
       parentExists: parentKey ? (parentQuery.data ?? null) : null,
       fixVersionIds,

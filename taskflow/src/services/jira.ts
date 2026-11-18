@@ -2574,13 +2574,30 @@ export async function fetchCreatemeta(
   const enrich = (fields: CreatemetaField[]) =>
     fields.map((f) => ({ ...f, autoCompleteUrl: deriveAutoCompleteUrl(f, base) }));
 
-  // Strategy A: Jira 8.4+ paginated endpoint
+  // Strategy A: Jira 8.4+ paginated endpoint. Pages are followed so fields past the first
+  // page are not mistaken for "not on the screen" (resume validation strips those).
   const newEndpoint = `${base}/rest/api/2/issue/createmeta/${projectKey}/issuetypes/${issueTypeId}?maxResults=50`;
-  const resp = await apiFetch('jira', newEndpoint, { headers }, 'Load Fields');
-  if (resp.ok) {
-    const data = await resp.json();
-    return enrich((data.values ?? []) as CreatemetaField[]);
+  const collected: CreatemetaField[] = [];
+  for (let page = 0; page < 20; page++) {
+    const url = `${newEndpoint}&startAt=${collected.length}`;
+    const resp = await apiFetch('jira', url, { headers }, 'Load Fields');
+    if (!resp.ok) {
+      if (page === 0) break;
+      return enrich(collected);
+    }
+    const data = (await resp.json()) as {
+      values?: CreatemetaField[];
+      total?: number;
+      isLast?: boolean;
+    };
+    const values = data.values ?? [];
+    collected.push(...values);
+    const more =
+      values.length > 0 &&
+      (data.isLast === false || (typeof data.total === 'number' && collected.length < data.total));
+    if (!more) return enrich(collected);
   }
+  if (collected.length > 0) return enrich(collected);
 
   // Strategy B: Legacy flat endpoint (pre-8.4 or 9.0+ with re-enabled flag)
   const legacyUrl = `${base}/rest/api/2/issue/createmeta?projectKeys=${projectKey}&issuetypeNames=${encodeURIComponent(issueTypeName)}&expand=projects.issuetypes.fields`;

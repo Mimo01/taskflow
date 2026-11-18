@@ -282,7 +282,32 @@ describe('Resuming an issue draft', () => {
     expect(screen.getByLabelText('Estimate')).toBeInTheDocument();
   });
 
+  it('keeps custom fields with no note when createmeta comes back empty (CR-02)', async () => {
+    seed({
+      epicLinkKey: null,
+      customFieldValues: { customfield_1: 'abc' },
+      customFieldInputValues: { customfield_1: 'Abc' },
+      customFieldNames: { customfield_1: 'Account' },
+    });
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    renderModal();
+    await waitFor(() => expect(summary().value).toBe('Resumed summary'));
+    await waitFor(() => expect(fetchCreatemeta).toHaveBeenCalled());
+    await act(async () => {});
+    expect(screen.queryByText(/no longer available/)).not.toBeInTheDocument();
+    fireEvent.change(summary(), { target: { value: 'Edited' } });
+    act(() => {
+      vi.advanceTimersByTime(DRAFT_DEBOUNCE_MS + 10);
+    });
+    expect(drafts()[0]).toMatchObject({
+      snapshot: { customFieldValues: { customfield_1: 'abc' } },
+    });
+  });
+
   it('notes a custom field that is no longer on the create screen', async () => {
+    vi.mocked(fetchCreatemeta).mockResolvedValue([
+      { fieldId: 'customfield_9', name: 'Other', required: false, schema: { type: 'string' } },
+    ] as never);
     seed({
       epicLinkKey: null,
       customFieldValues: { customfield_1: 'abc' },
