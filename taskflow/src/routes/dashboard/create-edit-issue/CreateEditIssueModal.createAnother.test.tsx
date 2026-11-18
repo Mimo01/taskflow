@@ -102,7 +102,7 @@ async function submitAnother(key = 'ABC-1') {
   fireEvent.change(summary(), { target: { value: 'First issue' } });
   fireEvent.change(description(), { target: { value: 'Body' } });
   fireEvent.click(checkbox());
-  fireEvent.click(screen.getByRole('button', { name: 'Create Issue' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Create issue' }));
   await screen.findByText(`✓ Created ${key}`);
 }
 
@@ -162,7 +162,7 @@ describe('Create another', () => {
     const firstId = issueDrafts()[0].id;
     vi.mocked(createIssue).mockResolvedValue({ id: '1', key: 'ABC-1' });
     fireEvent.click(checkbox());
-    fireEvent.click(screen.getByRole('button', { name: 'Create Issue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Create issue' }));
     await screen.findByText('✓ Created ABC-1');
     expect(issueDrafts()).toHaveLength(0);
 
@@ -199,19 +199,19 @@ describe('Create another', () => {
     vi.mocked(createIssue).mockResolvedValue({ id: '1', key: 'ABC-2' });
     fireEvent.change(summary(), { target: { value: 'Has file' } });
     fireEvent.click(checkbox());
-    fireEvent.click(screen.getByRole('button', { name: 'Create Issue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Create issue' }));
     expect(await screen.findByText(/failed to upload/)).toBeInTheDocument();
     expect(onClose).not.toHaveBeenCalled();
     expect(summary().value).toBe('Has file');
     expect(screen.queryByText('✓ Created ABC-2')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Create Issue' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Create issue' })).toBeDisabled();
   });
 
   it('disables the checkbox while the create is pending', async () => {
     vi.mocked(createIssue).mockReturnValue(new Promise(() => {}));
     renderModal();
     fireEvent.change(summary(), { target: { value: 'Pending' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Create Issue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Create issue' }));
     await waitFor(() => expect(checkbox()).toBeDisabled());
   });
 });

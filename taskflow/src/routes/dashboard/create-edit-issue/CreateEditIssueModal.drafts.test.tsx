@@ -237,7 +237,7 @@ describe('edit mode description draft', () => {
     });
     const { onClose } = renderModal();
     await screen.findByText('Draft saved');
-    fireEvent.click(screen.getByRole('button', { name: 'Save Changes' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
     await waitFor(() => expect(onClose).toHaveBeenCalled());
     expect(bulkUpdateIssue).toHaveBeenCalled();
     expect(useDraftsStore.getState().drafts[KEY]).toBeUndefined();
@@ -254,7 +254,7 @@ describe('edit mode description draft', () => {
     });
     const { onClose } = renderModal();
     await screen.findByText('Draft saved');
-    fireEvent.click(screen.getByRole('button', { name: 'Save Changes' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
     expect(
       await screen.findByText(
         "Couldn't save your changes. Your text is kept as a draft, try again.",

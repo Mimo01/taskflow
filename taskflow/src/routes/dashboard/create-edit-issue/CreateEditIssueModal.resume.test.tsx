@@ -268,7 +268,7 @@ describe('Resuming an issue draft', () => {
     renderModal();
     expect(await screen.findByText('Epic EP-1 no longer exists')).toBeInTheDocument();
     expect(screen.getByTestId('epic-value')).toHaveTextContent('none');
-    expect(screen.getByRole('button', { name: 'Create Issue' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Create issue' })).toBeEnabled();
   });
 
   it('keeps the epic with no note when the lookup fails', async () => {
@@ -324,8 +324,8 @@ describe('Resuming an issue draft', () => {
     expect(
       screen.queryByPlaceholderText('Parent issue key (e.g. PROJ-123)'),
     ).not.toBeInTheDocument();
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Create Issue' })).toBeEnabled());
-    fireEvent.click(screen.getByRole('button', { name: 'Create Issue' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Create issue' })).toBeEnabled());
+    fireEvent.click(screen.getByRole('button', { name: 'Create issue' }));
     await waitFor(() => expect(createIssue).toHaveBeenCalled());
     const options = vi.mocked(createIssue).mock.calls[0][4] as Record<string, unknown>;
     expect(options).toMatchObject({ parent: { key: 'P-1' }, customfield_7: '77' });
@@ -446,7 +446,7 @@ describe('Resuming an issue draft', () => {
     );
     await waitFor(() => expect(screen.queryByText('Fix version')).not.toBeInTheDocument());
     expect(screen.queryByPlaceholderText('Add label')).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Create Issue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Create issue' }));
     await waitFor(() => expect(createIssue).toHaveBeenCalled());
     const options = vi.mocked(createIssue).mock.calls[0][4] as Record<string, unknown>;
     expect(options).toMatchObject({ issuetype: 'Bug' });
@@ -461,7 +461,7 @@ describe('Resuming an issue draft', () => {
     renderModal();
     await waitFor(() => expect(summary().value).toBe('Resumed summary'));
     await waitFor(() => expect(fetchCreatemeta).toHaveBeenCalled());
-    fireEvent.click(screen.getByRole('button', { name: 'Create Issue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Create issue' }));
     await waitFor(() => expect(createIssue).toHaveBeenCalled());
     expect(JSON.stringify(vi.mocked(createIssue).mock.calls[0])).toContain('OTHER');
   });

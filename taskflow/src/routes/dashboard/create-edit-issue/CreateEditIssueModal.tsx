@@ -1,15 +1,11 @@
-import { Dialog } from '@base-ui/react/dialog';
 import { useQuery } from '@tanstack/react-query';
-import { Loader2, Paperclip, X } from 'lucide-react';
+import { Paperclip } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
-import { Button } from '@/components/ui/button';
 import { DiscardChangesDialog } from '@/components/ui/discard-changes-dialog';
 import { DraftNote } from '@/components/ui/draft-note';
 import { Input } from '@/components/ui/input';
 import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
-import { Keycap } from '@/components/ui/keycap';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import type { WikiEditorHandle, WikiEditorHost } from '@/components/wiki-editor/types';
 import { WikiEditorLazy } from '@/components/wiki-editor/WikiEditorLazy';
 import { useDraftStagedFiles } from '@/hooks/useDraftStagedFiles';
@@ -28,6 +24,7 @@ import { useSettingsStore } from '@/stores/settings.store';
 import { useIssueEditorHost } from '../issue-detail/useIssueEditorHost';
 import { StagedFilesStrip } from '../StagedFilesStrip';
 import { LinkRowsSection } from './LinkRowsSection';
+import { ModalCancelButton, ModalPrimaryButton, ModalShell } from './ModalShell';
 import { ModalSidebar } from './ModalSidebar';
 import { type EditInitialValues, type FormAction, useCreateEditForm } from './useCreateEditForm';
 import { useCreateEditQueries } from './useCreateEditQueries';
@@ -562,7 +559,7 @@ export function CreateEditIssueModal({
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
-    <Dialog.Root
+    <ModalShell
       open={open}
       onOpenChange={(o, details) => {
         if (o) return;
@@ -576,304 +573,214 @@ export function CreateEditIssueModal({
         // X and backdrop close silently; the draft stays stored (D-13).
         closeSilently();
       }}
-    >
-      <Dialog.Portal>
-        <Dialog.Backdrop className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm" />
-        <Dialog.Popup className="fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 w-[min(1080px,94vw)] h-[88vh] min-h-[480px] max-h-[calc(100vh-2rem)] overflow-hidden bg-background border rounded-lg shadow-xl flex flex-col">
-          <div className="@container flex min-h-0 flex-1 flex-col">
-            <form
-              ref={formRef}
-              onSubmit={handleSubmit}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && !e.nativeEvent.isComposing) {
-                  e.preventDefault();
-                  trySubmitRef.current();
-                }
-              }}
-              className="flex min-h-0 flex-1 flex-col"
-            >
-              <div className="flex items-center gap-3 border-b px-6 py-4">
-                {mode === 'create' ? (
-                  <Dialog.Title className="text-lg font-semibold leading-tight">
-                    Create issue
-                  </Dialog.Title>
-                ) : (
-                  <>
-                    <IssueTypeIcon
-                      typeName={initialValues?.issueTypeName ?? 'Task'}
-                      className="h-4 w-4 shrink-0"
-                    />
-                    <Dialog.Title className="text-lg font-semibold leading-tight">
-                      Edit {initialValues?.issueKey}
-                    </Dialog.Title>
-                  </>
-                )}
-                <Dialog.Close
-                  render={
-                    <button
-                      type="button"
-                      className="ml-auto rounded p-1 hover:bg-accent"
-                      aria-label="Close"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  }
+      title={mode === 'create' ? 'Create issue' : `Edit ${initialValues?.issueKey}`}
+      headerLeading={
+        mode === 'edit' ? (
+          <IssueTypeIcon
+            typeName={initialValues?.issueTypeName ?? 'Task'}
+            className="h-4 w-4 shrink-0"
+          />
+        ) : undefined
+      }
+      formRef={formRef}
+      onSubmit={handleSubmit}
+      onSubmitShortcut={() => trySubmitRef.current()}
+      onAsideBlur={flushAll}
+      aside={
+        <ModalSidebar
+          mode={mode}
+          state={state}
+          dispatch={userDispatch}
+          isSubtask={isSubtask}
+          isPending={isPending}
+          projectKey={projectKey}
+          jiraBaseUrl={jiraBaseUrl ?? ''}
+          defaultParentKey={fixedParentKey}
+          priorityOptions={priorityOptions}
+          creatmetaFields={creatmetaFields}
+          creatmetaLoading={creatmetaLoading}
+          customRequiredFields={customRequiredFields}
+          labelsRequired={labelsRequired}
+          labelsOffered={labelsOffered}
+          fixVersionsOffered={fixVersionsOffered}
+          fixVersionsRequired={fixVersionsRequired}
+          open={open}
+          issueTypeName={initialValues?.issueTypeName}
+          staleNotes={staleNotes}
+          availableTypeNames={issueTypeNames}
+          parentSummary={parentSummary}
+          parentTypeName={parentTypeName}
+        />
+      }
+      footerStatus={
+        <>
+          {mode === 'create' && (
+            <>
+              <div className="flex h-8 shrink-0 items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="create-another"
+                  className="size-4 accent-primary focus-visible:ring-2 focus-visible:ring-ring"
+                  checked={createAnother}
+                  disabled={isPending}
+                  onChange={(e) => setCreateAnother(e.target.checked)}
                 />
+                <label htmlFor="create-another" className="text-sm">
+                  Create another
+                </label>
               </div>
-
-              <div className="flex min-h-0 flex-1 max-[720px]:flex-col max-[720px]:overflow-y-auto">
-                <div className="flex min-w-0 flex-1 flex-col gap-4 overflow-y-auto px-6 py-4 max-[720px]:overflow-visible">
-                  <div className="flex flex-col gap-1">
-                    <label
-                      htmlFor="issue-summary"
-                      className="text-xs font-semibold text-muted-foreground"
-                    >
-                      Summary <span className="text-destructive">*</span>
-                    </label>
-                    <Input
-                      ref={summaryRef}
-                      id="issue-summary"
-                      value={state.summary}
-                      onChange={(e) => {
-                        userDispatch({
-                          type: 'SET_FIELD',
-                          field: 'summary',
-                          value: e.target.value,
-                        });
-                        setCreatedKey(null);
-                      }}
-                      placeholder="Issue summary"
-                      required
-                      autoFocus={mode === 'create'}
-                      disabled={isPending}
-                    />
-                  </div>
-
-                  <div className="flex min-h-0 flex-1 flex-col gap-1">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-muted-foreground">
-                        Description
-                      </span>
-                      <button
-                        type="button"
-                        disabled={isPending}
-                        onClick={() => fileInputRef.current?.click()}
-                        className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
-                      >
-                        <Paperclip className="h-3 w-3" />
-                        Attach file
-                      </button>
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        multiple
-                        className="hidden"
-                        onChange={handleFileInputChange}
-                      />
-                    </div>
-                    {/* biome-ignore lint/a11y/noStaticElementInteractions: focusout flushes the draft */}
-                    <div onBlur={flushAll} className="flex min-h-[240px] flex-1 flex-col">
-                      <WikiEditorLazy
-                        ref={editorRef}
-                        value={state.description}
-                        onChange={handleDescriptionChange}
-                        onCancel={mode === 'edit' ? requestCancel : undefined}
-                        preset="full"
-                        aria-label="Description"
-                        host={host}
-                        onSubmit={(text) => {
-                          flushSync(() =>
-                            dispatch({ type: 'SET_FIELD', field: 'description', value: text }),
-                          );
-                          trySubmit();
-                        }}
-                      />
-                    </div>
-                    {mode === 'edit' && (
-                      <DraftNote
-                        state={draft.state}
-                        onDiscard={handleDiscardDraft}
-                        onUseJira={handleUseJiraVersion}
-                      />
-                    )}
-                  </div>
-
-                  <StagedFilesStrip
-                    files={staged.files}
-                    onRemove={staged.remove}
-                    missing={staged.missing}
-                    onRemoveMissing={staged.removeMissing}
-                    disabled={isPending}
-                  />
-                  {stagedUploadError && (
-                    <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                      {stagedUploadError}
-                    </p>
-                  )}
-
-                  {state.apiError &&
-                    (mode === 'create' ? (
-                      <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                        <p>Couldn't create the issue. Your draft is kept, try again.</p>
-                        <p className="text-xs">{state.apiError}</p>
-                      </div>
-                    ) : (
-                      <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                        {state.apiError}
-                      </p>
-                    ))}
-
-                  <div className="flex flex-col gap-1">
-                    <h3 className="text-xs font-semibold text-muted-foreground">Links</h3>
-                    <LinkRowsSection
-                      linkRows={state.linkRows}
-                      linkTypes={linkTypes}
-                      linkTypesLoading={linkTypesLoading}
-                      isPending={isPending}
-                      dispatch={userDispatch}
-                    />
-                  </div>
-                </div>
-
-                <aside
-                  onBlur={flushAll}
-                  className="w-[300px] shrink-0 overflow-y-auto border-l bg-muted/30 p-4 min-[721px]:@max-[900px]:w-[240px] max-[720px]:w-full max-[720px]:overflow-visible max-[720px]:border-l-0 max-[720px]:border-t"
-                >
-                  <ModalSidebar
-                    mode={mode}
-                    state={state}
-                    dispatch={userDispatch}
-                    isSubtask={isSubtask}
-                    isPending={isPending}
-                    projectKey={projectKey}
-                    jiraBaseUrl={jiraBaseUrl ?? ''}
-                    defaultParentKey={fixedParentKey}
-                    priorityOptions={priorityOptions}
-                    creatmetaFields={creatmetaFields}
-                    creatmetaLoading={creatmetaLoading}
-                    customRequiredFields={customRequiredFields}
-                    labelsRequired={labelsRequired}
-                    labelsOffered={labelsOffered}
-                    fixVersionsOffered={fixVersionsOffered}
-                    fixVersionsRequired={fixVersionsRequired}
-                    open={open}
-                    issueTypeName={initialValues?.issueTypeName}
-                    staleNotes={staleNotes}
-                    availableTypeNames={issueTypeNames}
-                    parentSummary={parentSummary}
-                    parentTypeName={parentTypeName}
-                  />
-                </aside>
-              </div>
-
-              <div className="flex items-center gap-2 border-t px-6 py-4">
-                <div
-                  data-testid="modal-footer-status"
-                  className="flex min-w-0 flex-1 items-center gap-3"
-                >
-                  {mode === 'create' && (
-                    <>
-                      <div className="flex h-8 shrink-0 items-center gap-2">
-                        <input
-                          type="checkbox"
-                          id="create-another"
-                          className="size-4 accent-primary focus-visible:ring-2 focus-visible:ring-ring"
-                          checked={createAnother}
-                          disabled={isPending}
-                          onChange={(e) => setCreateAnother(e.target.checked)}
-                        />
-                        <label htmlFor="create-another" className="text-sm">
-                          Create another
-                        </label>
-                      </div>
-                      {createdKey ? (
-                        <div className="flex min-h-6 min-w-0 items-center gap-1 text-xs text-muted-foreground">
-                          <span className="truncate">✓ Created {createdKey}</span>
-                          <span aria-hidden>·</span>
-                          <button
-                            type="button"
-                            className="py-1 underline-offset-2 hover:text-foreground hover:underline"
-                            onClick={() => onOpenIssue?.(createdKey)}
-                          >
-                            Open
-                          </button>
-                        </div>
-                      ) : issueDraft.saveFailed || staged.copyFailed ? (
-                        <span className="min-w-0 truncate text-xs text-muted-foreground">
-                          Couldn't save your draft
-                        </span>
-                      ) : savedDraft ? (
-                        <DraftNote
-                          state="draft"
-                          onDiscard={handleDiscardIssueDraft}
-                          onUseJira={() => {}}
-                        />
-                      ) : null}
-                    </>
-                  )}
-                </div>
-                <Tooltip>
-                  <TooltipTrigger
-                    render={
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={requestCancel}
-                        disabled={isPending}
-                      />
-                    }
+              {createdKey ? (
+                <div className="flex min-h-6 min-w-0 items-center gap-1 text-xs text-muted-foreground">
+                  <span className="truncate">✓ Created {createdKey}</span>
+                  <span aria-hidden>·</span>
+                  <button
+                    type="button"
+                    className="py-1 underline-offset-2 hover:text-foreground hover:underline"
+                    onClick={() => onOpenIssue?.(createdKey)}
                   >
-                    Cancel
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <span className="flex items-center gap-2">
-                      <span className="font-medium">Cancel</span>
-                      <Keycap>Esc</Keycap>
-                    </span>
-                  </TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger
-                    render={<Button type="submit" disabled={!canSubmit} className="gap-1.5" />}
-                  >
-                    {isPending && <Loader2 className="size-3.5 animate-spin" />}
-                    {isPending
-                      ? mode === 'create'
-                        ? 'Creating...'
-                        : 'Saving...'
-                      : mode === 'create'
-                        ? 'Create Issue'
-                        : 'Save Changes'}
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <span className="flex items-center gap-2">
-                      <span className="font-medium">
-                        {mode === 'create' ? 'Create Issue' : 'Save Changes'}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Keycap>⌘</Keycap>
-                        <Keycap>↵</Keycap>
-                      </span>
-                    </span>
-                  </TooltipContent>
-                </Tooltip>
-              </div>
-            </form>
-            <DiscardChangesDialog
-              open={discardOpen}
-              onKeepEditing={() => {
-                setDiscardOpen(false);
-                editorRef.current?.focus({ toEnd: true });
-              }}
-              onDiscard={() => {
-                setDiscardOpen(false);
-                draft.discard();
-                onClose();
-              }}
-            />
+                    Open
+                  </button>
+                </div>
+              ) : issueDraft.saveFailed || staged.copyFailed ? (
+                <span className="min-w-0 truncate text-xs text-muted-foreground">
+                  Couldn't save your draft
+                </span>
+              ) : savedDraft ? (
+                <DraftNote state="draft" onDiscard={handleDiscardIssueDraft} onUseJira={() => {}} />
+              ) : null}
+            </>
+          )}
+        </>
+      }
+      footerActions={
+        <>
+          <ModalCancelButton onClick={requestCancel} disabled={isPending} />
+          <ModalPrimaryButton
+            label={mode === 'create' ? 'Create issue' : 'Save changes'}
+            pendingLabel={mode === 'create' ? 'Creating…' : 'Saving…'}
+            pending={isPending}
+            disabled={!canSubmit}
+          />
+        </>
+      }
+      afterContent={
+        <DiscardChangesDialog
+          open={discardOpen}
+          onKeepEditing={() => {
+            setDiscardOpen(false);
+            editorRef.current?.focus({ toEnd: true });
+          }}
+          onDiscard={() => {
+            setDiscardOpen(false);
+            draft.discard();
+            onClose();
+          }}
+        />
+      }
+    >
+      <div className="flex flex-col gap-1">
+        <label htmlFor="issue-summary" className="text-xs font-semibold text-muted-foreground">
+          Summary <span className="text-destructive">*</span>
+        </label>
+        <Input
+          ref={summaryRef}
+          id="issue-summary"
+          value={state.summary}
+          onChange={(e) => {
+            userDispatch({
+              type: 'SET_FIELD',
+              field: 'summary',
+              value: e.target.value,
+            });
+            setCreatedKey(null);
+          }}
+          placeholder="Issue summary"
+          required
+          autoFocus={mode === 'create'}
+          disabled={isPending}
+        />
+      </div>
+
+      <div className="flex min-h-0 flex-1 flex-col gap-1">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-semibold text-muted-foreground">Description</span>
+          <button
+            type="button"
+            disabled={isPending}
+            onClick={() => fileInputRef.current?.click()}
+            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
+          >
+            <Paperclip className="h-3 w-3" />
+            Attach file
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            className="hidden"
+            onChange={handleFileInputChange}
+          />
+        </div>
+        {/* biome-ignore lint/a11y/noStaticElementInteractions: focusout flushes the draft */}
+        <div onBlur={flushAll} className="flex min-h-[240px] flex-1 flex-col">
+          <WikiEditorLazy
+            ref={editorRef}
+            value={state.description}
+            onChange={handleDescriptionChange}
+            onCancel={mode === 'edit' ? requestCancel : undefined}
+            preset="full"
+            aria-label="Description"
+            host={host}
+            onSubmit={(text) => {
+              flushSync(() => dispatch({ type: 'SET_FIELD', field: 'description', value: text }));
+              trySubmit();
+            }}
+          />
+        </div>
+        {mode === 'edit' && (
+          <DraftNote
+            state={draft.state}
+            onDiscard={handleDiscardDraft}
+            onUseJira={handleUseJiraVersion}
+          />
+        )}
+      </div>
+
+      <StagedFilesStrip
+        files={staged.files}
+        onRemove={staged.remove}
+        missing={staged.missing}
+        onRemoveMissing={staged.removeMissing}
+        disabled={isPending}
+      />
+      {stagedUploadError && (
+        <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          {stagedUploadError}
+        </p>
+      )}
+
+      {state.apiError &&
+        (mode === 'create' ? (
+          <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            <p>Couldn't create the issue. Your draft is kept, try again.</p>
+            <p className="text-xs">{state.apiError}</p>
           </div>
-        </Dialog.Popup>
-      </Dialog.Portal>
-    </Dialog.Root>
+        ) : (
+          <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            {state.apiError}
+          </p>
+        ))}
+
+      <div className="flex flex-col gap-1">
+        <h3 className="text-xs font-semibold text-muted-foreground">Links</h3>
+        <LinkRowsSection
+          linkRows={state.linkRows}
+          linkTypes={linkTypes}
+          linkTypesLoading={linkTypesLoading}
+          isPending={isPending}
+          dispatch={userDispatch}
+        />
+      </div>
+    </ModalShell>
   );
 }

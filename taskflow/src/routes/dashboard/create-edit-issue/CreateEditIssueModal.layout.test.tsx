@@ -110,19 +110,19 @@ describe('CreateEditIssueModal layout (UI-01)', () => {
     expect(screen.queryByText(/subtasks/i)).not.toBeInTheDocument();
   });
 
-  it('footer shows Cancel then Create Issue', () => {
+  it('footer shows Cancel then Create issue', () => {
     renderModal();
     const footer = screen.getByTestId('modal-footer-status').parentElement as HTMLElement;
     const buttons = within(footer)
       .getAllByRole('button')
       .map((b) => b.textContent);
-    expect(buttons).toEqual(['Cancel', 'Create Issue']);
+    expect(buttons).toEqual(['Cancel', 'Create issue']);
   });
 
-  it('Edit shows "Edit ABC-1" and Save Changes', () => {
+  it('Edit shows "Edit ABC-1" and Save changes', () => {
     renderModal({ mode: 'edit', initialValues: editValues });
     expect(screen.getByRole('heading', { name: 'Edit ABC-1' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Save Changes' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Save changes' })).toBeInTheDocument();
     expect(screen.getByText('Fix version')).toBeInTheDocument();
   });
 
