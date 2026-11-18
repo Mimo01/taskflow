@@ -61,6 +61,22 @@ describe('useDraftStagedFiles', () => {
     expect(result.current.refs.map((r) => r.name)).toEqual(['b.txt']);
   });
 
+  it('a file removed while its copy is still being written stays out of the draft (WR-01)', async () => {
+    let finish: (r: ReturnType<typeof ref>) => void = () => {};
+    vi.mocked(stageDraftFile).mockImplementation(
+      () =>
+        new Promise((res) => {
+          finish = res;
+        }),
+    );
+    const { result } = setup();
+    act(() => result.current.stage(file('a.txt')));
+    act(() => result.current.remove(0));
+    await act(async () => finish(ref('a.txt')));
+    expect(result.current.files).toEqual([]);
+    expect(result.current.refs).toEqual([]);
+  });
+
   it('restore splits found files from missing names', async () => {
     vi.mocked(readDraftFile).mockImplementation(async (r) =>
       r.name === 'gone.png' ? null : file(r.name),

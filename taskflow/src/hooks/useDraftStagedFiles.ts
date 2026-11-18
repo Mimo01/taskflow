@@ -19,6 +19,8 @@ export function useDraftStagedFiles({ ensureDraftId, onChange }: Options) {
   const [copyFailed, setCopyFailed] = useState(false);
   // Bumped on reset so a copy that resolves after a reset is ignored.
   const generationRef = useRef(0);
+  // Files still staged: a copy that resolves after its file was removed is ignored.
+  const liveRef = useRef(new Set<File>());
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
   const ensureRef = useRef(ensureDraftId);
@@ -26,6 +28,7 @@ export function useDraftStagedFiles({ ensureDraftId, onChange }: Options) {
 
   const stage = useCallback((file: File) => {
     const generation = generationRef.current;
+    liveRef.current.add(file);
     setFiles((prev) => [...prev, file]);
     onChangeRef.current?.();
     let draftId: string;
@@ -38,7 +41,7 @@ export function useDraftStagedFiles({ ensureDraftId, onChange }: Options) {
     }
     stageDraftFile(draftId, file).then(
       (ref) => {
-        if (generation !== generationRef.current) return;
+        if (generation !== generationRef.current || !liveRef.current.has(file)) return;
         setRefs((prev) => [...prev.filter((r) => r.name !== ref.name), ref]);
         onChangeRef.current?.();
       },
@@ -54,6 +57,7 @@ export function useDraftStagedFiles({ ensureDraftId, onChange }: Options) {
     (index: number) => {
       const target = files[index];
       if (!target) return;
+      liveRef.current.delete(target);
       setFiles((prev) => prev.filter((_, i) => i !== index));
       setRefs((prev) => prev.filter((r) => r.name !== target.name));
       onChangeRef.current?.();
@@ -76,6 +80,7 @@ export function useDraftStagedFiles({ ensureDraftId, onChange }: Options) {
         gone.push(toRestore[i].name);
       }
     });
+    liveRef.current = new Set(found);
     setFiles(found);
     setRefs(keptRefs);
     setMissing(gone);
@@ -89,6 +94,7 @@ export function useDraftStagedFiles({ ensureDraftId, onChange }: Options) {
 
   const reset = useCallback(() => {
     generationRef.current += 1;
+    liveRef.current = new Set();
     setFiles([]);
     setRefs([]);
     setMissing([]);
