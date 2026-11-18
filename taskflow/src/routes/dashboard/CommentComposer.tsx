@@ -1,10 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { DraftNote } from '@/components/ui/draft-note';
-import { Keycap } from '@/components/ui/keycap';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { TooltipBody } from '@/components/ui/tooltip-body';
+import { Input } from '@/components/ui/input';
 import type { WikiEditorHandle } from '@/components/wiki-editor/types';
 import { WikiEditorLazy } from '@/components/wiki-editor/WikiEditorLazy';
 import { useEditorDraft } from '@/hooks/useEditorDraft';
@@ -13,6 +9,9 @@ import type { JiraAttachment } from '@/services/jira';
 import { postComment } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
 import { useComposerFocus } from '@/stores/composer-focus.store';
+import { CommentActionRow } from './comment-editor/CommentActionRow';
+import { COMMENT_EDITOR_MAX_HEIGHT } from './comment-editor/comment-editor-sizing';
+import { useExpandOnFocus } from './comment-editor/useExpandOnFocus';
 import { useIssueEditorHost } from './issue-detail/useIssueEditorHost';
 
 interface CommentComposerProps {
@@ -61,14 +60,22 @@ export function CommentComposer({
     setEditorReady(handle !== null);
   }, []);
 
-  // One-shot "Reply" request from a notification: focus once the lazy editor is ready, then clear.
+  const expand = useExpandOnFocus({ hasContent: text.trim() !== '', onBlur: draft.flush });
+  const { wantsFocus, focusHandled, expand: expandComposer } = expand;
+
+  // One-shot "Reply" request from a notification: expand, then focus once the lazy editor is ready.
   const composerFocus = useComposerFocus((s) => s.composerFocus);
   const clearComposerFocus = useComposerFocus((s) => s.clearComposerFocus);
   useEffect(() => {
-    if (composerFocus !== issueKey || !editorReady) return;
-    handleRef.current?.focus({ toEnd: true });
+    if (composerFocus !== issueKey) return;
+    expandComposer();
     clearComposerFocus();
-  }, [composerFocus, issueKey, editorReady, clearComposerFocus]);
+  }, [composerFocus, issueKey, expandComposer, clearComposerFocus]);
+  useEffect(() => {
+    if (!wantsFocus || !editorReady) return;
+    handleRef.current?.focus({ toEnd: true });
+    focusHandled();
+  }, [wantsFocus, editorReady, focusHandled]);
 
   const mutation = useMutation({
     mutationFn: async (body: string) => {
@@ -105,51 +112,51 @@ export function CommentComposer({
   }
 
   return (
-    <div className="space-y-2">
-      {/* biome-ignore lint/a11y/noStaticElementInteractions: focusout bubbles to flush the draft */}
-      <div onBlur={draft.flush}>
-        <WikiEditorLazy
-          ref={setEditorHandle}
-          value={text}
-          onChange={handleChange}
-          preset="compact"
-          placeholder="Add a comment…"
-          aria-label="Add a comment"
-          host={host}
-          onSubmit={send}
-          onCancel={() => handleRef.current?.blur()}
-        />
+    <div className="space-y-2" {...expand.wrapperProps}>
+      <div>
+        {expand.expanded ? (
+          <WikiEditorLazy
+            ref={setEditorHandle}
+            value={text}
+            onChange={handleChange}
+            preset="compact"
+            placeholder="Add a comment…"
+            aria-label="Add a comment"
+            host={host}
+            maxHeightClass={COMMENT_EDITOR_MAX_HEIGHT}
+            onSubmit={send}
+            onCancel={() => handleRef.current?.blur()}
+          />
+        ) : (
+          <Input
+            readOnly
+            placeholder="Add a comment…"
+            aria-label="Add a comment"
+            className="h-8 cursor-text"
+            onFocus={expand.expand}
+            onClick={expand.expand}
+          />
+        )}
       </div>
-      {mutation.isError && (
-        <p className="text-xs text-destructive">Failed to post comment — please try again</p>
+      {expand.expanded && (
+        <>
+          {mutation.isError && (
+            <p className="text-xs text-destructive">Failed to post comment — please try again</p>
+          )}
+          <CommentActionRow
+            draftState={text.trim() ? draft.state : null}
+            onDiscard={handleDiscard}
+            onUseJira={() => {}}
+            onAttachFiles={(files) => handleRef.current?.insertFiles(files)}
+            attachDisabled={mutation.isPending}
+            primaryLabel="Comment"
+            pendingLabel="Posting…"
+            pending={mutation.isPending}
+            primaryDisabled={!text.trim()}
+            onPrimary={() => send()}
+          />
+        </>
       )}
-      <div className="flex items-center justify-end gap-2">
-        <DraftNote
-          state={text.trim() ? draft.state : null}
-          onDiscard={handleDiscard}
-          onUseJira={() => {}}
-          className="mr-auto"
-        />
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <Button
-                size="sm"
-                disabled={!text.trim() || mutation.isPending}
-                onClick={() => send()}
-              />
-            }
-          >
-            {mutation.isPending ? 'Saving…' : 'Comment'}
-          </TooltipTrigger>
-          <TooltipContent>
-            <TooltipBody>
-              Comment <Keycap>⌘</Keycap>
-              <Keycap>↵</Keycap>
-            </TooltipBody>
-          </TooltipContent>
-        </Tooltip>
-      </div>
     </div>
   );
 }

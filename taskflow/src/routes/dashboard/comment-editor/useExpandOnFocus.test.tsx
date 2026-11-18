@@ -6,7 +6,6 @@ function Harness({ hasContent, onBlur }: { hasContent: boolean; onBlur?: () => v
   const x = useExpandOnFocus({ hasContent, onBlur });
   return (
     <div>
-      {/* biome-ignore lint/a11y/noStaticElementInteractions: test harness for focusout containment */}
       <div {...x.wrapperProps}>
         <button type="button">inner</button>
         <button type="button">inner2</button>
