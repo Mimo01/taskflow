@@ -1,8 +1,9 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { JiraIssueDetail } from '@/services/jira';
+import { createIssue, type JiraIssueDetail } from '@/services/jira';
+import { readSecret } from '@/services/stronghold';
 import { BulkCreateSubtasksModal } from './BulkCreateSubtasksModal';
 
 vi.mock('@/stores/auth.store', () => {
@@ -37,6 +38,11 @@ vi.mock('@/hooks/useBoardId', () => ({
 vi.mock('@/services/jira/users', () => ({
   fetchAssignableUsers: vi.fn().mockResolvedValue([]),
   fetchJiraUserByName: vi.fn().mockResolvedValue(null),
+}));
+
+vi.mock('@/services/jira', async (orig) => ({
+  ...(await orig<typeof import('@/services/jira')>()),
+  createIssue: vi.fn(),
 }));
 
 const parent = { key: 'ABC-1', fields: {} } as unknown as JiraIssueDetail;
@@ -104,5 +110,49 @@ describe('BulkCreateSubtasksModal shell layout', () => {
     const { onClose } = renderModal();
     fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape' });
     expect(onClose).toHaveBeenCalled();
+  });
+});
+
+describe('BulkCreateSubtasksModal close lock while creating', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('disables footer Close and the X, and ignores Escape, until the create run finishes', async () => {
+    vi.mocked(readSecret).mockResolvedValue('tok');
+    let resolveCreate: (v: { key: string }) => void = () => {};
+    vi.mocked(createIssue).mockImplementation(
+      () =>
+        new Promise((res) => {
+          resolveCreate = res as typeof resolveCreate;
+        }) as ReturnType<typeof createIssue>,
+    );
+    try {
+      const { onClose } = renderModal();
+      fireEvent.click(screen.getByRole('button', { name: 'Add row' }));
+
+      // Idle: every Close control is enabled (proves the later assertion can flip).
+      const closes = () => screen.getAllByRole('button', { name: 'Close' });
+      expect(closes().length).toBeGreaterThanOrEqual(2);
+      for (const b of closes()) expect(b).toBeEnabled();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Create subtasks' }));
+      await waitFor(() => expect(createIssue).toHaveBeenCalled());
+
+      await waitFor(() => {
+        for (const b of closes()) expect(b).toBeDisabled();
+      });
+      fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape' });
+      for (const b of closes()) fireEvent.click(b);
+      expect(onClose).not.toHaveBeenCalled();
+
+      // Run finishes: Close controls re-enable.
+      await act(async () => {
+        resolveCreate({ key: 'ABC-2' });
+      });
+      await waitFor(() => {
+        for (const b of closes()) expect(b).toBeEnabled();
+      });
+    } finally {
+      vi.mocked(readSecret).mockResolvedValue(null as unknown as string);
+    }
   });
 });
