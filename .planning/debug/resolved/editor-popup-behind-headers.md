@@ -1,5 +1,6 @@
 ---
 status: resolved
+approved: 2026-11-18 (user UAT)
 trigger: "In the new editors when i open the popup menu it can be behind things like section headers. this is especially visible in the comments"
 created: 2026-11-18
 updated: 2026-11-18
