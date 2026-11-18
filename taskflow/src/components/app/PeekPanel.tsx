@@ -19,6 +19,7 @@ import { X } from 'lucide-react';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { Button } from '@/components/ui/button';
 import { useResizable } from '@/hooks/useResizable';
+import { PEEK_PANEL_DEFAULT_WIDTH } from '@/lib/sidebar-layout';
 import type { EditInitialValues } from '@/routes/dashboard/CreateEditIssueModal';
 import { IssueDetailView } from '@/routes/dashboard/IssueDetailView';
 
@@ -54,7 +55,7 @@ export function PeekPanel({
     isDragging,
     handleMouseDown,
   } = useResizable({
-    initialWidth: width ?? 480,
+    initialWidth: width ?? PEEK_PANEL_DEFAULT_WIDTH,
     min: 360,
     max: 720,
     onCommit: onWidthChange,
