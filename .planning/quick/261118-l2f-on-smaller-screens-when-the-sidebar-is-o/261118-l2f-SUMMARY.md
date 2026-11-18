@@ -61,3 +61,7 @@ User rejected the sidebar auto-collapsing. `8c649f00` reverts ef1edccf/e88544b0/
 - Stat tiles always 3 across; below 40rem compact (smaller padding/number, no watermark). The earlier `@[40rem]:grid-cols-3` stacked them into a ~330px column with peek open — worse.
 - Status pill capped at 6.5rem below 45rem ("Selected for Development" ellipsizes, full name in title).
 - Below 32rem: issue key hidden (row click still opens peek), subtask indent ml-9 → ml-5.
+
+## UAT
+
+Approved by user 2026-11-18.
