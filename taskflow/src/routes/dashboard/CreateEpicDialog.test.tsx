@@ -1,7 +1,11 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { DraftsChip } from '@/components/app/DraftsChip';
+import { readDraftFile, removeDraftFiles, stageDraftFile } from '@/lib/issue-draft-files';
+import { useCreateModalStore } from '@/stores/create-modal.store';
+import { type IssueDraft, useIssueDraftsStore } from '@/stores/issue-drafts.store';
 import { lastStubProps } from '@/test/wiki-editor-stub';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@/stores/settings.store', () => ({
   useSettingsStore: () => ({
@@ -28,6 +32,12 @@ vi.mock('@/lib/upload-staged-files', () => ({
   uploadStagedFiles: vi.fn().mockResolvedValue([]),
 }));
 
+vi.mock('@/lib/issue-draft-files', () => ({
+  stageDraftFile: vi.fn(),
+  readDraftFile: vi.fn(),
+  removeDraftFiles: vi.fn().mockResolvedValue(undefined),
+}));
+
 function makeClient() {
   return new QueryClient({ defaultOptions: { queries: { retry: false } } });
 }
@@ -35,6 +45,18 @@ function makeClient() {
 describe('CreateEpicDialog', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    useIssueDraftsStore.setState({ drafts: {}, owner: null, saveFailed: false });
+    vi.spyOn(useIssueDraftsStore.persist, 'hasHydrated').mockReturnValue(true);
+    vi.mocked(stageDraftFile).mockImplementation(async (_id, f) => ({
+      name: f.name,
+      size: f.size,
+      type: f.type,
+      path: `p/${f.name}`,
+    }));
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it('EPIC-04: submits createIssue with issuetype Epic, summary, and epicNameFieldKey', async () => {
@@ -237,6 +259,175 @@ describe('CreateEpicDialog', () => {
       const tip = await screen.findByText('⌘', {}, { timeout: 2000 });
       expect(tip.tagName).toBe('KBD');
       expect(screen.getByText('↵')).toBeTruthy();
+    });
+  });
+
+  describe('drafts', () => {
+    const drafts = () => Object.values(useIssueDraftsStore.getState().drafts);
+    const epicDraft = (over: Partial<IssueDraft> = {}): IssueDraft =>
+      ({
+        id: 'd1',
+        kind: 'epic',
+        updatedAt: 1,
+        projectKey: 'PROJ',
+        snapshot: { epicName: 'Placeholder epic', description: 'Placeholder text' },
+        files: [],
+        ...over,
+      }) as IssueDraft;
+
+    function renderDialog(props: { resumeDraftId?: string | null; onClose?: () => void } = {}) {
+      const onClose = props.onClose ?? vi.fn();
+      const ui = (open: boolean) => (
+        <QueryClientProvider client={makeClient()}>
+          <CreateEpicDialogRef.current
+            open={open}
+            onClose={onClose}
+            resumeDraftId={props.resumeDraftId}
+          />
+        </QueryClientProvider>
+      );
+      const r = render(ui(true));
+      return { ...r, onClose, setOpen: (o: boolean) => r.rerender(ui(o)) };
+    }
+    const CreateEpicDialogRef: { current: typeof import('./CreateEpicDialog').CreateEpicDialog } = {
+      current: (() => null) as never,
+    };
+    beforeEach(async () => {
+      CreateEpicDialogRef.current = (await import('./CreateEpicDialog')).CreateEpicDialog;
+    });
+
+    it('keeps a draft with kind epic when closed with content, no prompt', async () => {
+      const { onClose } = renderDialog();
+      fireEvent.change(screen.getByRole('textbox', { name: /epic name/i }), {
+        target: { value: 'Placeholder epic' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+      expect(onClose).toHaveBeenCalled();
+      expect(drafts()).toHaveLength(1);
+      expect(drafts()[0].kind).toBe('epic');
+      expect((drafts()[0].snapshot as { epicName: string }).epicName).toBe('Placeholder epic');
+    });
+
+    it('stores nothing when closed without content', () => {
+      renderDialog();
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+      expect(drafts()).toHaveLength(0);
+    });
+
+    it('opens blank without resumeDraftId even when an epic draft exists', () => {
+      useIssueDraftsStore.getState().upsertDraft(epicDraft());
+      renderDialog();
+      expect((screen.getByRole('textbox', { name: /epic name/i }) as HTMLInputElement).value).toBe(
+        '',
+      );
+      expect(screen.queryByText('Draft saved')).toBeNull();
+    });
+
+    it('restores name, description and files on resume; flags missing files', async () => {
+      useIssueDraftsStore.getState().upsertDraft(
+        epicDraft({
+          files: [
+            { name: 'ok.txt', size: 1, type: 'text/plain', path: 'p/ok.txt' },
+            { name: 'photo.png', size: 1, type: 'image/png', path: 'p/photo.png' },
+          ],
+        }),
+      );
+      vi.mocked(readDraftFile).mockImplementation(async (ref) =>
+        ref.name === 'ok.txt' ? new File(['x'], 'ok.txt', { type: 'text/plain' }) : null,
+      );
+      renderDialog({ resumeDraftId: 'd1' });
+      expect((screen.getByRole('textbox', { name: /epic name/i }) as HTMLInputElement).value).toBe(
+        'Placeholder epic',
+      );
+      expect(
+        (screen.getByRole('textbox', { name: 'Description' }) as HTMLTextAreaElement).value,
+      ).toBe('Placeholder text');
+      expect(await screen.findByText('ok.txt')).toBeTruthy();
+      expect(screen.getByText('photo.png is missing')).toBeTruthy();
+      expect(screen.getByText('Draft saved')).toBeTruthy();
+    });
+
+    it('creates a local preview for restored images', async () => {
+      const create = vi.fn(() => 'blob:x');
+      const revoke = vi.fn();
+      Object.assign(URL, { createObjectURL: create, revokeObjectURL: revoke });
+      useIssueDraftsStore.getState().upsertDraft(
+        epicDraft({
+          files: [{ name: 'photo.png', size: 1, type: 'image/png', path: 'p/photo.png' }],
+        }),
+      );
+      vi.mocked(readDraftFile).mockResolvedValue(
+        new File(['x'], 'photo.png', { type: 'image/png' }),
+      );
+      renderDialog({ resumeDraftId: 'd1' });
+      await screen.findByText('photo.png');
+      await waitFor(() => expect(create).toHaveBeenCalled());
+    });
+
+    it('Discard removes the draft and its files and closes', () => {
+      useIssueDraftsStore.getState().upsertDraft(epicDraft());
+      const { onClose } = renderDialog({ resumeDraftId: 'd1' });
+      fireEvent.click(screen.getByRole('button', { name: 'Discard' }));
+      expect(drafts()).toHaveLength(0);
+      expect(removeDraftFiles).toHaveBeenCalledWith('d1');
+      expect(onClose).toHaveBeenCalled();
+    });
+
+    it('successful create removes the draft and its files', async () => {
+      const { createIssue } = await import('@/services/jira');
+      (createIssue as ReturnType<typeof vi.fn>).mockResolvedValue({ id: '9', key: 'PROJ-9' });
+      useIssueDraftsStore.getState().upsertDraft(epicDraft());
+      const { onClose } = renderDialog({ resumeDraftId: 'd1' });
+      fireEvent.click(screen.getByRole('button', { name: /create epic/i }));
+      await waitFor(() => expect(onClose).toHaveBeenCalled());
+      expect(drafts()).toHaveLength(0);
+      expect(removeDraftFiles).toHaveBeenCalledWith('d1');
+    });
+
+    it('upload failure still removes the draft and keeps the error behaviour', async () => {
+      const { createIssue } = await import('@/services/jira');
+      const { uploadStagedFiles } = await import('@/lib/upload-staged-files');
+      (createIssue as ReturnType<typeof vi.fn>).mockResolvedValue({ id: '9', key: 'PROJ-9' });
+      (uploadStagedFiles as ReturnType<typeof vi.fn>).mockResolvedValueOnce(['a.png']);
+      useIssueDraftsStore.getState().upsertDraft(epicDraft());
+      const { onClose } = renderDialog({ resumeDraftId: 'd1' });
+      act(() => lastStubProps.current?.host?.stageFile?.(new File(['x'], 'a.png')));
+      fireEvent.click(screen.getByRole('button', { name: /create epic/i }));
+      await screen.findByText(/Issue created, but 1 file\(s\) failed to upload: a.png/);
+      expect(onClose).not.toHaveBeenCalled();
+      await waitFor(() => expect(drafts()).toHaveLength(0));
+      expect(removeDraftFiles).toHaveBeenCalledWith('d1');
+    });
+
+    it('resumes an epic draft from the chip through the create-modal store', async () => {
+      const { CreateEpicDialog } = await import('./CreateEpicDialog');
+      useIssueDraftsStore.getState().upsertDraft(epicDraft());
+      useCreateModalStore.setState({ epicOpen: false, epicResumeDraftId: null });
+      function Harness() {
+        const epicOpen = useCreateModalStore((s) => s.epicOpen);
+        const epicResumeDraftId = useCreateModalStore((s) => s.epicResumeDraftId);
+        const closeEpic = useCreateModalStore((s) => s.closeEpic);
+        return (
+          <>
+            <DraftsChip />
+            <CreateEpicDialog
+              open={epicOpen}
+              resumeDraftId={epicResumeDraftId}
+              onClose={closeEpic}
+            />
+          </>
+        );
+      }
+      render(
+        <QueryClientProvider client={makeClient()}>
+          <Harness />
+        </QueryClientProvider>,
+      );
+      fireEvent.click(screen.getByRole('button', { name: /^Drafts, 1/ }));
+      fireEvent.click(await screen.findByText('Placeholder epic'));
+      const input = await screen.findByRole('textbox', { name: /epic name/i });
+      expect((input as HTMLInputElement).value).toBe('Placeholder epic');
+      await waitFor(() => expect(screen.queryByRole('listbox', { name: 'Drafts' })).toBeNull());
     });
   });
 });
