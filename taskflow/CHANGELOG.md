@@ -2,6 +2,30 @@
 
 All notable changes to Taskflow are documented here.
 
+## [1.15.0] — 2026-11-19
+
+Write in a rich editor that keeps your Jira formatting intact.
+
+### New
+- Rich text editor for descriptions and comments
+- Switch to wiki markup with a live preview
+- Mention people and paste or drop images as you type
+- Slash menu plus issue key and emoticon autocomplete
+- Closing Create Issue saves your work as a draft
+- Resume drafts from the Drafts chip in the top bar
+
+### Improved
+- Create and Edit Issue open in a larger two-column window
+- Create another keeps the window open for the next issue
+- Unsent comments and description edits are kept as drafts
+- Cmd+Enter submits and Esc cancels in every editor
+- Other create and edit dialogs match the new look
+- My Tasks compacts neatly on narrow windows
+
+### Fixed
+- Notifications no longer go missing on busy days
+- Search uses your new Jira token right after you save it
+
 ## [1.14.23] — 2026-11-16
 
 Worklogs, epic stories and MR search work more smoothly.
