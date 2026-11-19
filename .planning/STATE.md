@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-11-19)
 Phase: Milestone v1.15 complete
 Plan: —
 Status: Awaiting next milestone
-Last activity: 2026-11-19 - Completed quick task 261119-sfh: Restyle drafts button in the top bar
+Last activity: 2026-11-19 - Completed quick task 261119-sws: Redesign and polish Developer Tools
 
 ## Performance Metrics
 
@@ -351,6 +351,7 @@ Acknowledged and deferred at v1.14 milestone close (2026-08-13) — 111 open art
 | 261119-ol5 | Developer Tools → Editor tab: in-memory wiki editor log (open/close, mode switches, submits, save-failed/recovered, load-failed, load/render crash); failures carry reason, stack and original/produced markup, routine events metadata only; captured only with dev tools on; Clear Logs clears it; failed saves show the failing block (expected vs read-back structure) and original/produced markup as side-by-side diffs | 2026-11-19 | 568762e6, 5fa0aa15, c9737a4b, 1b07a702, f6bca04d | Approved | [261119-ol5-add-dev-tools-tab-with-editor-logs-for-d](./quick/261119-ol5-add-dev-tools-tab-with-editor-logs-for-d/) |
 | 261119-rgb | Polished wiki editor toolbar: toolbar/scroller follow the frame's rounded corners; clear neutral pressed state (fill + hairline ring) shared by formatting buttons and Rich|Source toggle; order is formatting → ⋯ More → divider → + Insert; overflow fits measured room instead of fixed breakpoints (sub/sup now inline when space allows); toolbar tooltips hug their content; quiet ghost language trigger in code block header | 2026-11-19 | ed1aa48a, 4b128d5d, 57a8997f, 4b9d146a, 61050bff, af6b345d | Approved | [261119-rgb-polish-wiki-editor-toolbar-visuals](./quick/261119-rgb-polish-wiki-editor-toolbar-visuals/) |
 | 261119-sfh | Drafts button in the top bar matches its neighbours: same icon button as Search/Recent/Bell with a NotebookText icon, bell-shaped count badge in soft blue (red stays for notifications), hairline divider before the icon group; count also in tooltip and list header; sibling buttons untouched | 2026-11-19 | 08132ed7, ecdb37dc | Approved | [261119-sfh-make-the-drafts-button-in-the-navigation](./quick/261119-sfh-make-the-drafts-button-in-the-navigation/) |
+| 261119-sws | Developer Tools redesign: full-height PageHeader shell with settings gear popover + tab counts; Logs as Network-style list + inspector (filters, pause, stats strip, Copy URL/cURL/response, keyboard nav); Operations + Waterfall + profiler removed (settings v40) and replaced by a live TanStack Query Cache inspector; Notifications and Editor on the same list + inspector pattern | 2026-11-19 | e498fb11, e63be1bb, 9c4d6f34, 56449247 | Needs Review | [261119-sws-redesign-and-polish-developer-tools](./quick/261119-sws-redesign-and-polish-developer-tools/) |
 
 ## Session Continuity
 
