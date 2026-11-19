@@ -137,7 +137,9 @@ export default function WikiEditor({
       const res = evaluateSave(load, e.state.doc, lastEmittedRef.current);
       const previousError = saveErrorRef.current;
       if (res.kind === 'failed') {
-        if (previousError !== res.error) {
+        // Log the transition into failure only: the reason embeds document text, so it changes
+        // on every keystroke and keying on it would flood the capped log.
+        if (previousError === null) {
           logWikiEditor(() => {
             let produced: string | undefined;
             let emitError: string | undefined;

@@ -48,6 +48,10 @@ describe('editor log', () => {
     expect(failed[0].markup?.original).toBe('hello');
     expect(failed[0].markup?.produced).toContain('h1. hello');
 
+    act(() => typeAt(editor, 5, 'x'));
+    act(() => typeAt(editor, 5, 'y'));
+    expect(entries().filter((e) => e.event === 'save-failed')).toHaveLength(1);
+
     fireEvent.keyDown(editor.view.dom, { key: 'Enter', metaKey: true });
     expect(entries().filter((e) => e.event === 'submit-blocked')).toHaveLength(1);
 
