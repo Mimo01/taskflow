@@ -50,6 +50,13 @@ export function unspellableReason(text: string, lineStart: boolean): string | nu
     if (m)
       return `The text starts with \`${m[1]} \`, which has no escape spelling. Wrap the text in monospace (for example \`{{${text}}}\`) to keep it literal.`;
   }
+  const bs = /\\[*_\-+^~?{}[\]|!#\\]/.exec(text);
+  if (bs) {
+    const seq = bs[0];
+    const reads =
+      seq === '\\\\' ? 'a line break' : `an escaped \`${seq[1]}\`, which drops the backslash`;
+    return `The text contains \`${seq}\`, which Jira reads as ${reads}. A backslash has no escape spelling, and monospace does not help. Put the text in a code block to keep it literal.`;
+  }
   for (const token of JIRA_EMOTICON_TOKENS) {
     if (text.includes(token) && innerEscapable(token) === -1)
       return `The emoticon token \`${token}\` has no literal spelling, and monospace does not help (\`{{${token}}}\` still renders the emoticon). Insert it as an emoticon or reword the text.`;

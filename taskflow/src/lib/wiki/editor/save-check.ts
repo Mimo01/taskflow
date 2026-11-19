@@ -249,11 +249,17 @@ function unspellableIn(block: Json): string | null {
     if (found) return;
     if (n.type === 'paragraph' || n.type === 'heading') {
       let lineStart = true;
+      // Adjacent text nodes (differing marks) are emitted side by side, so a
+      // backslash at the end of one fuses with the start of the next.
+      let run = '';
       for (const c of n.content ?? []) {
         if (c.type === 'text') {
           found = unspellableReason(c.text ?? '', lineStart);
           if (found) return;
-        }
+          run += c.text ?? '';
+          found = unspellableReason(run, false);
+          if (found) return;
+        } else run = '';
         lineStart = c.type === 'hardBreak';
       }
       return;
@@ -313,6 +319,13 @@ export function diagnoseSave(current: WikiDocJSON, emitted: string): SaveDiagnos
       savedSlice: got ? got.slice : null,
     };
   };
+  // Typed text with no spelling (a typed `\\` reads as a line break) can merge or drop whole blocks.
+  const countReason = (i: number): string => {
+    const count = `the saved text has ${back.length} top-level blocks, the edit has ${cur.length}`;
+    const want = cur[i];
+    const why = want ? unspellableIn(want) : null;
+    return why ? `block ${i}: ${why} (${count})` : count;
+  };
   for (let i = 0; i < cur.length; i++) {
     const want = cur[i] as Json;
     const got = back[i];
@@ -325,11 +338,7 @@ export function diagnoseSave(current: WikiDocJSON, emitted: string): SaveDiagnos
       )
         continue;
     } else if (JSON.stringify(shape(want)) === JSON.stringify(shape(got.block))) continue;
-    if (cur.length !== back.length)
-      return at(
-        i,
-        `the saved text has ${back.length} top-level blocks, the edit has ${cur.length}`,
-      );
+    if (cur.length !== back.length) return at(i, countReason(i));
     const why = unspellableIn(want);
     return at(
       i,
@@ -338,11 +347,10 @@ export function diagnoseSave(current: WikiDocJSON, emitted: string): SaveDiagnos
         : `block ${i} (${String(want.type)}) does not read back as the edited structure`,
     );
   }
-  if (cur.length !== back.length)
-    return at(
-      Math.min(cur.length, back.length),
-      `the saved text has ${back.length} top-level blocks, the edit has ${cur.length}`,
-    );
+  if (cur.length !== back.length) {
+    const i = Math.min(cur.length, back.length);
+    return at(i, countReason(i));
+  }
   return null;
 }
 

@@ -95,6 +95,25 @@ describe('checkSaved rejects unwritable shapes (WR-01)', () => {
     expect(reason).toContain('h1.');
     expect(reason).toContain('{{h1. hi}}');
   });
+  it('typed double backslash names the line break and the code-block workaround', () => {
+    // The saved \\ reads back as a hard break, so the paragraph is empty and dropped.
+    const reason = check(doc(p(t('intro')), p(t('\\\\'))));
+    expect(reason).toContain('block 1:');
+    expect(reason).toContain('`\\\\`');
+    expect(reason).toContain('a line break');
+    expect(reason).toContain('code block');
+    expect(reason).toContain('the saved text has 1 top-level blocks, the edit has 2');
+  });
+  it('typed backslash before a markup character says the backslash is dropped', () => {
+    const reason = check(doc(p(t('a \\* b'))));
+    expect(reason).toContain('`\\*`');
+    expect(reason).toContain('drops the backslash');
+  });
+  it('a backslash split across two marked text nodes still names the fusion', () => {
+    const bold: J = { type: 'text', text: '\\b', marks: [{ type: 'bold' }] };
+    const reason = check(doc(p(t('a\\'), bold)));
+    expect(reason).toContain('a line break');
+  });
   it('typed unspellable emoticon names the token and says monospace does not help', () => {
     const reason = check(doc(p(t('see (x) here'))));
     expect(reason).toContain('(x)');

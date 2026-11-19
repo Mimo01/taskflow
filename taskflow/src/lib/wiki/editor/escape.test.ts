@@ -266,6 +266,9 @@ describe('typed text escaping (SAFE-06)', () => {
     expect(h).toContain('{{h1. hi}}');
     expect(unspellableReason('h1. hi', false)).toBeNull();
     expect(unspellableReason('see (+) here', false)).toBeNull();
+    expect(unspellableReason('\\\\', false)).toContain('a line break');
+    expect(unspellableReason('a\\_b', false)).toContain('drops the backslash');
+    expect(unspellableReason('C:\\Users', false)).toBeNull();
     const blocks = parseWiki('{{h1. hi}}').doc.content ?? [];
     expect(blocks).toHaveLength(1);
     expect(blocks[0]?.type).toBe('paragraph');
