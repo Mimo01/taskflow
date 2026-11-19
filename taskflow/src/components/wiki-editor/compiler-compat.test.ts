@@ -22,7 +22,6 @@ const files = [
   ...walk(join(ROOT, 'src/components/wiki-editor')).filter(
     (f) => f.endsWith('.tsx') && !f.endsWith('.test.tsx'),
   ),
-  join(ROOT, 'src/routes/dev-tools/EditorTab.tsx'),
 ];
 
 describe('React Compiler acceptance', () => {

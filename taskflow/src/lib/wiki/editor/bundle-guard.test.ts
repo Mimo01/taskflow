@@ -133,8 +133,6 @@ describe('WikiRenderer bundle isolation', () => {
   });
 });
 
-// routes/dev-tools/EditorTab.tsx is reached only through lazy(() => import('./EditorTab'))
-// (98-12), which specifiersOf ignores by design, so it is not part of these eager graphs.
 describe.each([
   'main.tsx',
   'routes/dev-tools/index.tsx',
