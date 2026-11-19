@@ -1,5 +1,5 @@
 /**
- * DraftsChip -- "Drafts N" pill in the TopBar (left of Search) listing saved
+ * DraftsChip -- "Drafts" ghost button (with a neutral corner count badge) in the TopBar (left of Search) listing saved
  * create-issue / create-epic drafts. A row resumes the draft in the right
  * dialog; the trailing X discards it with a 5s inline Undo. Staged attachment
  * copies are deleted only when a discard commits (expiry, popover close,
@@ -138,8 +138,8 @@ export function DraftsChip() {
           render={
             <PopoverTrigger
               className={cn(
-                'flex items-center gap-1.5 rounded-full border bg-muted h-8 px-3 text-sm hover:bg-muted/70 transition-colors',
-                open && 'text-foreground',
+                'relative flex items-center gap-1.5 h-8 px-2 rounded text-sm hover:bg-muted transition-colors',
+                open && 'bg-muted text-foreground',
               )}
               data-active={open ? 'true' : undefined}
               aria-haspopup="dialog"
@@ -147,9 +147,14 @@ export function DraftsChip() {
             />
           }
         >
-          <PenLine size={14} />
+          <PenLine className="w-5 h-5" />
           <span>Drafts</span>
-          <span className="text-xs text-muted-foreground">{count}</span>
+          <span
+            aria-hidden="true"
+            className="absolute -top-1 -right-1 bg-muted-foreground text-background text-xs rounded-full min-w-[1.1rem] h-[1.1rem] flex items-center justify-center px-0.5"
+          >
+            {count > 99 ? '99+' : count}
+          </span>
         </TooltipTrigger>
         <TooltipContent>Resume a saved draft</TooltipContent>
       </Tooltip>

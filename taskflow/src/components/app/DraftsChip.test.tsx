@@ -78,6 +78,30 @@ afterEach(() => {
 });
 
 describe('DraftsChip', () => {
+  it('caps the neutral corner badge at 99+', () => {
+    seed(...Array.from({ length: 100 }, (_, n) => issueDraft(`d${n}`, NOW - n)));
+    render(<DraftsChip />);
+    const trigger = screen.getByRole('button', { name: 'Drafts, 100' });
+    expect(trigger.textContent).toContain('99+');
+    const badge = Array.from(trigger.querySelectorAll('span')).find(
+      (el) => el.textContent === '99+',
+    );
+    expect(badge).toBeDefined();
+    expect(badge?.className).not.toMatch(/red/);
+  });
+
+  it('is a ghost button at rest and pressed when open', () => {
+    seed(issueDraft('a', NOW));
+    render(<DraftsChip />);
+    const trigger = screen.getByRole('button', { name: 'Drafts, 1' });
+    expect(trigger.classList.contains('border')).toBe(false);
+    expect(trigger.classList.contains('rounded-full')).toBe(false);
+    expect(trigger.classList.contains('bg-muted')).toBe(false);
+    fireEvent.click(trigger);
+    expect(trigger.getAttribute('data-active')).toBe('true');
+    expect(trigger.classList.contains('bg-muted')).toBe(true);
+  });
+
   it('renders nothing with 0 drafts', () => {
     const { container } = render(<DraftsChip />);
     expect(container).toBeEmptyDOMElement();
