@@ -28,7 +28,7 @@ export interface ApiLogEntry {
   state?: EntryState; // lifecycle; absent on legacy entries (derived from status)
   startedAt?: number; // epoch ms with fractions (high resolution) at request start
   endedAt?: number; // epoch ms with fractions at completion; absent while pending
-  route?: string; // app route path at request start, used for burst labels
+  route?: string; // app route path at request start, used for timeline load grouping
   queuedAt?: number; // epoch ms the call was enqueued on the Jira limiter, when it waited for a slot
 }
 
