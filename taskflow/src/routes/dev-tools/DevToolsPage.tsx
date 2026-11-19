@@ -2,13 +2,15 @@
  * DevToolsPage — Developer Tools page shell.
  *
  * Provides header with Clear Logs button, collapsible settings panel,
- * and four tabs: Logs, Operations, Waterfall, Notifications.
+ * and five tabs: Logs, Operations, Waterfall, Notifications, Editor.
  */
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 import { useDebugLogStore } from '../../stores/debug-log.store';
 import { useNotificationDispatchLogStore } from '../../stores/notification-dispatch-log.store';
 import { useOperationProfilerStore } from '../../stores/operation-profiler.store';
+import { useWikiEditorLogStore } from '../../stores/wiki-editor-log.store';
+import EditorTab from './EditorTab';
 import LogsTab from './LogsTab';
 import NotificationsTab from './NotificationsTab';
 import OperationsTab from './OperationsTab';
@@ -19,11 +21,13 @@ export default function DevToolsPage() {
   const operations = useOperationProfilerStore((s) => s.operations);
   const ungrouped = useOperationProfilerStore((s) => s.ungrouped);
   const notificationCount = useNotificationDispatchLogStore((s) => s.entries.length);
+  const editorCount = useWikiEditorLogStore((s) => s.entries.length);
 
   const handleClear = () => {
     useDebugLogStore.getState().clear();
     useOperationProfilerStore.getState().clear();
     useNotificationDispatchLogStore.getState().clear();
+    useWikiEditorLogStore.getState().clear();
   };
 
   return (
@@ -33,7 +37,8 @@ export default function DevToolsPage() {
         <div>
           <h1 className="text-3xl font-semibold">Developer Tools</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            API debugging, operation profiling, performance analysis, and desktop notifications.
+            API debugging, operation profiling, performance analysis, desktop notifications, and
+            wiki editor events.
           </p>
         </div>
         <button
@@ -43,7 +48,8 @@ export default function DevToolsPage() {
             entries.length === 0 &&
             operations.length === 0 &&
             ungrouped.length === 0 &&
-            notificationCount === 0
+            notificationCount === 0 &&
+            editorCount === 0
           }
           className="shrink-0 rounded-md border border-border px-3 py-1.5 text-sm hover:bg-accent transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
         >
@@ -58,6 +64,7 @@ export default function DevToolsPage() {
           <TabsTrigger value="operations">Operations</TabsTrigger>
           <TabsTrigger value="waterfall">Waterfall</TabsTrigger>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
+          <TabsTrigger value="editor">Editor</TabsTrigger>
         </TabsList>
         <TabsContent value="logs">
           <LogsTab />
@@ -70,6 +77,9 @@ export default function DevToolsPage() {
         </TabsContent>
         <TabsContent value="notifications">
           <NotificationsTab />
+        </TabsContent>
+        <TabsContent value="editor">
+          <EditorTab />
         </TabsContent>
       </Tabs>
     </div>
