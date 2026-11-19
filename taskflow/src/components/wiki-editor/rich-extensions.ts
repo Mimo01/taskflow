@@ -1,4 +1,5 @@
 import { ReactNodeViewRenderer } from '@tiptap/react';
+import { WikiCaretRepaint } from './caret-repaint';
 import { buildEditorExtensions } from './extensions';
 import { WIKI_INPUT_EXTENSIONS } from './input-extensions';
 import { WikiEmbedRemoval } from './media/embed-removal';
@@ -26,5 +27,6 @@ export const richExtensions = [
   }),
   WikiUpload,
   WikiEmbedRemoval,
+  WikiCaretRepaint,
   ...WIKI_INPUT_EXTENSIONS,
 ];
