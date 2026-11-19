@@ -143,3 +143,59 @@ describe('block inserts mid-text in a list item or cell never split the containe
     expect(editor.state.selection.$from.parent.type.name).toBe('codeBlock');
   });
 });
+
+describe('block inserts inside a code block never split it', () => {
+  const text = '{code:java}\nint a = 1;\nint b = 2;\n{code}\n\nafter';
+  it.each(INSERT_ITEMS.map((i) => i.id))('%s mid-code lands after the code block', (id) => {
+    const { editor, load } = makeEditor(text);
+    editor.commands.setTextSelection(12); // inside "int a = 1;"
+    expect(INSERT_ITEMS.find((i) => i.id === id)?.run(editor, { rows: 2, cols: 2 })).toBe(true);
+    const tops = (editor.getJSON().content ?? []).map((n) => n.type);
+    expect(tops.filter((t) => t === 'codeBlock')).toHaveLength(
+      id === 'code' || id === 'noformat' ? 2 : 1,
+    );
+    expect(tops[0]).toBe('codeBlock');
+    const saved = saveText(editor, load);
+    expect(saved.kind).toBe('saved');
+    expect(
+      'text' in saved && saved.text.startsWith('{code:java}\nint a = 1;\nint b = 2;\n{code}\n\n'),
+    ).toBe(true);
+    expect('text' in saved && saved.text.endsWith('\n\nafter')).toBe(true);
+  });
+
+  it('a rule inside a code block in a panel lands after the code block, in the panel', () => {
+    const { editor, load } = makeEditor('{panel}\n{code}\nx = 1\n{code}\n{panel}');
+    const at = (() => {
+      let p = -1;
+      editor.state.doc.descendants((n, pos) => {
+        if (n.isText && n.text?.includes('x = 1')) p = pos + 1;
+      });
+      return p;
+    })();
+    editor.commands.setTextSelection(at);
+    INSERT_ITEMS.find((i) => i.id === 'rule')?.run(editor);
+    const panel = editor.getJSON().content?.[0];
+    expect(panel?.type).toBe('panel');
+    expect(panel?.content?.map((n) => n.type)).toEqual(['codeBlock', 'horizontalRule']);
+    expect(saveText(editor, load).kind).toBe('saved');
+  });
+});
+
+describe('block inserts inside a panel in a table cell', () => {
+  const text = '||Step||Notes||\n|Step one|{info}Check the config first{info}|';
+  const caret = (editor: ReturnType<typeof makeEditor>['editor']) => {
+    let p = -1;
+    editor.state.doc.descendants((n, pos) => {
+      if (n.isText && n.text?.includes('Check')) p = pos + 3;
+    });
+    return p;
+  };
+  it.each(['rule', 'code', 'noformat', 'table'])('%s lands after the table and saves', (id) => {
+    const { editor, load } = makeEditor(text);
+    editor.commands.setTextSelection(caret(editor));
+    INSERT_ITEMS.find((i) => i.id === id)?.run(editor, { rows: 2, cols: 2 });
+    const saved = saveText(editor, load);
+    expect(saved.kind).toBe('saved');
+    expect('text' in saved && saved.text.startsWith(`${text}\n\n`)).toBe(true);
+  });
+});
