@@ -175,8 +175,10 @@
   content: none;
 }
 
-/* Wiki editor placeholder (Tiptap Placeholder decorates the empty first block). */
-.ProseMirror .is-editor-empty:first-child::before {
+/* Wiki editor placeholder (Tiptap Placeholder decorates the empty first block).
+   Paragraph only: Tiptap treats a doc holding just an empty code block / list /
+   quote as empty too, and the floated text would overlap that block. */
+.ProseMirror p.is-editor-empty:first-child::before {
   content: attr(data-placeholder);
   float: left;
   height: 0;
