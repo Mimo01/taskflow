@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-11-19)
 Phase: Milestone v1.15 complete
 Plan: —
 Status: Awaiting next milestone
-Last activity: 2026-11-19 - Completed quick task 261119-sws: Redesign and polish Developer Tools
+Last activity: 2026-11-19 - Completed quick task 261119-tvz: Dev Tools polish pass + request timeline
 
 ## Performance Metrics
 
@@ -352,6 +352,7 @@ Acknowledged and deferred at v1.14 milestone close (2026-08-13) — 111 open art
 | 261119-rgb | Polished wiki editor toolbar: toolbar/scroller follow the frame's rounded corners; clear neutral pressed state (fill + hairline ring) shared by formatting buttons and Rich|Source toggle; order is formatting → ⋯ More → divider → + Insert; overflow fits measured room instead of fixed breakpoints (sub/sup now inline when space allows); toolbar tooltips hug their content; quiet ghost language trigger in code block header | 2026-11-19 | ed1aa48a, 4b128d5d, 57a8997f, 4b9d146a, 61050bff, af6b345d | Approved | [261119-rgb-polish-wiki-editor-toolbar-visuals](./quick/261119-rgb-polish-wiki-editor-toolbar-visuals/) |
 | 261119-sfh | Drafts button in the top bar matches its neighbours: same icon button as Search/Recent/Bell with a NotebookText icon, bell-shaped count badge in soft blue (red stays for notifications), hairline divider before the icon group; count also in tooltip and list header; sibling buttons untouched | 2026-11-19 | 08132ed7, ecdb37dc | Approved | [261119-sfh-make-the-drafts-button-in-the-navigation](./quick/261119-sfh-make-the-drafts-button-in-the-navigation/) |
 | 261119-sws | Developer Tools redesign: full-height PageHeader shell with settings gear popover + tab counts; Logs as Network-style list + inspector (filters, pause, stats strip, Copy URL/cURL/response, keyboard nav); Operations + Waterfall + profiler removed (settings v40) and replaced by a live TanStack Query Cache inspector; Notifications and Editor on the same list + inspector pattern | 2026-11-19 | e498fb11, e63be1bb, 9c4d6f34, 56449247 | Needs Review | [261119-sws-redesign-and-polish-developer-tools](./quick/261119-sws-redesign-and-polish-developer-tools/) |
+| 261119-tvz | Dev Tools polish + timeline: coloured collapsible JSON tree everywhere; organized log inspector (Overview/Body/Timing, request and response side by side); copy menu (URL, cURL, body, entry JSON, Markdown) + Copy all/Export; settings deduped (master toggle in Settings only, capture options in gear only); dead Jira concurrency setting removed (v41); in-flight + queue-wait capture; query-cache activity capture; Logs Timeline view (lanes, concurrency strip with brush + limit line, bursts, Live, cache-lane correlation) + waterfall column; "Clear logs" | 2026-11-19 | 6cbcb2a3..3dccf3e1, 0c69b9d2 | Needs Review | [261119-tvz-dev-tools-polish-pass-json-viewer-side-b](./quick/261119-tvz-dev-tools-polish-pass-json-viewer-side-b/) |
 
 ## Session Continuity
 
