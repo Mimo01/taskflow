@@ -6,7 +6,6 @@ import { nowMs } from '../../lib/dev-tools/log-entry';
 import { saveBytes } from '../../lib/save-attachment';
 import type { ApiLogEntry } from '../../stores/debug-log.store';
 import { useDebugLogStore } from '../../stores/debug-log.store';
-import { useQueryActivityStore } from '../../stores/query-activity.store';
 import { useSettingsStore } from '../../stores/settings.store';
 import DevToolsPage from './DevToolsPage';
 import { LOG_FACETS, useDevToolsViewStore } from './dev-tools-view.store';
@@ -54,7 +53,7 @@ describe('DevToolsPage', () => {
       useDevToolsViewStore.getState().setSearch('logs', '');
       useDevToolsViewStore.getState().resetFacets(LOG_FACETS);
       useDevToolsViewStore.getState().setLogView('list');
-      useDevToolsViewStore.getState().resetTimeline();
+      useDevToolsViewStore.getState().resetLoadOpen();
       useDevToolsViewStore.getState().setSelected('cache', null);
       useSettingsStore.getState().setDevToolsInspectorWidth(440);
       useDevToolsViewStore.getState().setInspectorMaximized(false);
@@ -339,35 +338,7 @@ describe('DevToolsPage', () => {
     });
   });
 
-  describe('query activity and waterfall', () => {
-    const activity = {
-      id: 'ev1',
-      at: 1,
-      kind: 'fetch' as const,
-      queryHash: 'h',
-      keyLabel: 'k',
-    };
-
-    it('the header Clear logs button also empties the query-activity store', () => {
-      act(() => {
-        useDebugLogStore.getState().append(entry);
-        useQueryActivityStore.getState().append(activity);
-      });
-      renderPage();
-      fireEvent.click(screen.getByRole('button', { name: 'Clear logs' }));
-      expect(useQueryActivityStore.getState().events).toHaveLength(0);
-    });
-
-    it('the Logs toolbar Clear button also empties the query-activity store', () => {
-      act(() => {
-        useDebugLogStore.getState().append(entry);
-        useQueryActivityStore.getState().append(activity);
-      });
-      renderPage();
-      fireEvent.click(screen.getByRole('button', { name: 'Clear' }));
-      expect(useQueryActivityStore.getState().events).toHaveLength(0);
-    });
-
+  describe('waterfall and header', () => {
     it('list rows have no waterfall bar (load order lives in the Timeline view)', () => {
       act(() => {
         useDebugLogStore.getState().append(entry);

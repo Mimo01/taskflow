@@ -11,7 +11,6 @@ import { PageHeader } from '../../components/ui/page-header';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 import { useDebugLogStore } from '../../stores/debug-log.store';
 import { useNotificationDispatchLogStore } from '../../stores/notification-dispatch-log.store';
-import { useQueryActivityStore } from '../../stores/query-activity.store';
 import { useWikiEditorLogStore } from '../../stores/wiki-editor-log.store';
 import CacheTab from './CacheTab';
 import {
@@ -46,9 +45,9 @@ export default function DevToolsPage() {
     useDebugLogStore.getState().clear();
     useNotificationDispatchLogStore.getState().clear();
     useWikiEditorLogStore.getState().clear();
-    useQueryActivityStore.getState().clear();
     const view = useDevToolsViewStore.getState();
     view.setPausedEntries(null);
+    view.resetLoadOpen();
     view.resetFacets([...LOG_FACETS, ...NOTIFICATION_FACETS, ...EDITOR_FACETS]);
     for (const tab of ['logs', 'notifications', 'editor'] as const) view.setSelected(tab, null);
   };

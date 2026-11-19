@@ -1,583 +1,301 @@
 /**
  * LogsTimeline — the Timeline view of the Logs tab.
  *
- * One bar per request on a shared time axis, packed into lanes so overlapping requests stack and
- * sequential ones share a lane. Requests are grouped into bursts (idle gap), the win defaults
- * to the latest burst and follows it while Live is on. Colour is status only. Hand-rolled absolute
- * divs: layout is memoized and only spans intersecting the win are rendered.
+ * A simple load waterfall: requests grouped by page load (newest on top), one line per request on a
+ * name | bar | duration grid. Only the newest load is open by default; the user's choice per load
+ * lives in the dev-tools view store. Colour is status only. Bars are percent-positioned, so there is
+ * no measuring; closed loads render just their header.
  */
-import { Bug } from 'lucide-react';
-import {
-  Fragment,
-  type KeyboardEvent,
-  type PointerEvent as ReactPointerEvent,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
-import { Button } from '../../components/ui/button';
-import { EmptyState } from '../../components/ui/empty-state';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '../../components/ui/select';
-import { entryEnd, entryStart, isPending } from '../../lib/dev-tools/log-entry';
+import { ChevronRight } from 'lucide-react';
+import { type PointerEvent as ReactPointerEvent, useRef, useState } from 'react';
+import { isPending } from '../../lib/dev-tools/log-entry';
 import { urlPath } from '../../lib/dev-tools/log-stats';
-import { correlatedRequestIds } from '../../lib/dev-tools/query-activity';
 import { queueSplit } from '../../lib/dev-tools/queue-handoff';
 import {
-  createTimeScale,
-  fitWindow,
-  formatOffset,
-  timeTicks,
-  zoomWindow,
-} from '../../lib/dev-tools/time-scale';
-import { type Burst, groupBursts, packLanes } from '../../lib/dev-tools/timeline-layout';
+  barGeometry,
+  formatMs,
+  isLoadOpen,
+  type Load,
+  loadSpan,
+  loadTicks,
+  type RowTone,
+  requestLabel,
+  rowStatus,
+  tooltipLines,
+  visibleRequestIds,
+} from '../../lib/dev-tools/timeline-loads';
 import { cn } from '../../lib/utils';
 import type { ApiLogEntry } from '../../stores/debug-log.store';
-import { useQueryActivityStore } from '../../stores/query-activity.store';
+import { isTabStop } from './dev-tools-ui';
 import { useDevToolsViewStore } from './dev-tools-view.store';
-import TimelineConcurrencyStrip, { type StripSpan } from './TimelineConcurrencyStrip';
-import { statusText, timelineBarClass } from './utils';
 
-const LANE_STEP = 20;
-const BAR_HEIGHT = 18;
-const LABEL_MIN_WIDTH = 60;
-const TOOLTIP_WIDTH = 240;
-const BURST_PICKER_LIMIT = 20;
+const GRID = 'grid grid-cols-[minmax(11rem,30%)_1fr_4.5rem] items-center';
+const TIP_WIDTH = 320;
 
-const PENDING_BAR_CLASS =
-  'bg-[repeating-linear-gradient(135deg,color-mix(in_oklab,var(--muted-foreground)_45%,transparent)_0_4px,transparent_4px_8px)] ring-1 ring-inset ring-muted-foreground/40';
+const BAR_TONE: Record<RowTone, string> = {
+  ok: 'bg-foreground/30',
+  warn: 'bg-amber-500/55',
+  error: 'bg-red-500/60',
+  pending: 'bg-foreground/10 ring-1 ring-inset ring-foreground/30 motion-safe:animate-pulse',
+};
+const WAIT_TONE: Record<RowTone, string> = {
+  ok: 'bg-foreground/10',
+  warn: 'bg-amber-500/15',
+  error: 'bg-red-500/15',
+  pending: 'bg-foreground/10',
+};
+const STATUS_TEXT = {
+  warn: 'text-amber-700 dark:text-amber-400',
+  error: 'text-red-600 dark:text-red-400',
+  pending: 'text-muted-foreground/70',
+} as const;
 
-interface TimelineProps {
-  entries: ApiLogEntry[];
+interface TipState {
+  entryId: string;
+  x: number;
+  y: number;
+}
+
+interface LogsTimelineProps {
+  loads: Load[];
   selectedId: string | null;
   onSelect: (id: string) => void;
   now: number;
-  /** Plot width in px; measured with a ResizeObserver when omitted. */
-  width?: number;
 }
 
-type TooltipState = { x: number; y: number } & (
-  | { kind: 'bar'; id: string }
-  | { kind: 'marker'; label: string; keyLabel: string }
-);
-
-const CACHE_MARKER_KINDS = new Set(['fetch', 'invalidated', 'error']);
-const CACHE_LANE_HEIGHT = 16;
-const MARKER_SIZE = 8;
-
-const QUEUED_LEAD_IN_CLASS =
-  'bg-[repeating-linear-gradient(135deg,color-mix(in_oklab,var(--muted-foreground)_35%,transparent)_0_3px,transparent_3px_6px)] opacity-60';
-
-function markerClass(kind: string): string {
-  if (kind === 'error') return 'rounded-full bg-red-500';
-  if (kind === 'invalidated') return 'rotate-45 bg-muted-foreground/60';
-  return 'rounded-full border border-muted-foreground bg-background';
-}
-
-/** Last two path segments, e.g. '/rest/api/2/issue/ABC-1' becomes 'issue/ABC-1'. */
-function shortPath(url: string): string {
-  const parts = urlPath(url).split('/').filter(Boolean);
-  return parts.slice(-2).join('/') || '/';
-}
-
-function burstLabel(b: Burst): string {
-  return `${b.route} · ${b.count} ${b.count === 1 ? 'request' : 'requests'} · ${Math.round(b.totalMs)} ms`;
-}
-
-/**
- * Keyboard handler for the timeline: ArrowRight / ArrowLeft move to the next / previous request
- * by start time, Escape clears the selection.
- */
-export function timelineKeyDown(
-  orderedIds: string[],
-  selectedId: string | null,
-  setSelected: (id: string | null) => void,
-) {
-  return (e: KeyboardEvent<HTMLDivElement>) => {
-    if (e.key === 'Escape') {
-      setSelected(null);
-      return;
-    }
-    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
-    if (orderedIds.length === 0) return;
-    e.preventDefault();
-    const idx = selectedId === null ? -1 : orderedIds.indexOf(selectedId);
-    const next =
-      e.key === 'ArrowRight'
-        ? Math.min(orderedIds.length - 1, idx + 1)
-        : Math.max(0, idx === -1 ? 0 : idx - 1);
-    const nextId = orderedIds[next];
-    setSelected(nextId);
-    const bar = [
-      ...e.currentTarget.querySelectorAll<HTMLElement>('[data-testid="timeline-bar"]'),
-    ].find((el) => el.dataset.id === nextId);
-    bar?.focus?.();
-    bar?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
-  };
-}
-
-export default function LogsTimeline({
-  entries,
-  selectedId,
-  onSelect,
-  now,
-  width: widthProp,
-}: TimelineProps) {
-  const burstId = useDevToolsViewStore((s) => s.timelineBurstId);
-  const timelineWindow = useDevToolsViewStore((s) => s.timelineWindow);
-  const live = useDevToolsViewStore((s) => s.timelineLive);
-  const setBurstId = useDevToolsViewStore((s) => s.setTimelineBurstId);
-  const setTimelineWindow = useDevToolsViewStore((s) => s.setTimelineWindow);
-  const setLive = useDevToolsViewStore((s) => s.setTimelineLive);
-
+export default function LogsTimeline({ loads, selectedId, onSelect, now }: LogsTimelineProps) {
+  const loadOpen = useDevToolsViewStore((s) => s.loadOpen);
+  const setLoadOpen = useDevToolsViewStore((s) => s.setLoadOpen);
   const rootRef = useRef<HTMLDivElement>(null);
-  const plotRef = useRef<HTMLDivElement>(null);
-  const [measured, setMeasured] = useState(800);
-  const width = widthProp ?? measured;
-  const [tooltip, setTooltip] = useState<TooltipState | null>(null);
-  // Set while hovering a cache marker: requests it likely caused stay full, the rest dim.
-  const [highlight, setHighlight] = useState<Set<string> | null>(null);
-  const activity = useQueryActivityStore((s) => s.events);
+  const [tip, setTip] = useState<TipState | null>(null);
 
-  useEffect(() => {
-    const el = plotRef.current;
-    if (!el || widthProp !== undefined || typeof ResizeObserver === 'undefined') return;
-    const ro = new ResizeObserver(([entry]) => {
-      const w = Math.floor(entry.contentRect.width);
-      if (w > 0) setMeasured(w);
-    });
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [widthProp]);
+  const visibleIds = visibleRequestIds(loads, loadOpen);
 
-  const entryById = useMemo(() => new Map(entries.map((e) => [e.id, e])), [entries]);
-
-  // Packing and bursts use `queuedAt ?? start` so a queued lead-in never overlaps a neighbour.
-  const spans = useMemo(
-    () =>
-      entries.map((e) => {
-        const start = entryStart(e);
-        return {
-          id: e.id,
-          start: e.queuedAt ?? start,
-          end: entryEnd(e, now),
-          route: e.route,
-        };
-      }),
-    [entries, now],
-  );
-  const bursts = useMemo(() => groupBursts(spans), [spans]);
-
-  const baseWindow = useMemo<[number, number] | null>(() => {
-    if (burstId === 'all') return fitWindow(spans);
-    const target = (burstId ? bursts.find((b) => b.id === burstId) : undefined) ?? bursts[0];
-    return target ? fitWindow([target]) : null;
-  }, [burstId, bursts, spans]);
-  const win = timelineWindow ?? baseWindow;
-  const allBounds = useMemo(() => fitWindow(spans, 0.5), [spans]);
-
-  const scale = useMemo(() => (win ? createTimeScale(win, width) : null), [win, width]);
-
-  const { visible, lane, laneCount } = useMemo(() => {
-    if (!win) return { visible: [], lane: new Map<string, number>(), laneCount: 0 };
-    const [w0, w1] = win;
-    const inWindow = spans.filter((s) => s.start < w1 && s.end > w0);
-    const packed = packLanes(inWindow);
-    return { visible: inWindow, lane: packed.lane, laneCount: packed.laneCount };
-  }, [spans, win]);
-
-  const stripSpans = useMemo<StripSpan[]>(
-    () =>
-      visible.flatMap((s) => {
-        const e = entryById.get(s.id);
-        return e ? [{ start: entryStart(e), end: s.end, queuedAt: e.queuedAt }] : [];
-      }),
-    [visible, entryById],
-  );
-  const markers = useMemo(
-    () =>
-      win
-        ? activity.filter(
-            (ev) => CACHE_MARKER_KINDS.has(ev.kind) && ev.at >= win[0] && ev.at <= win[1],
-          )
-        : [],
-    [activity, win],
-  );
-  const visibleEntries = useMemo(
-    () => visible.flatMap((s) => entryById.get(s.id) ?? []),
-    [visible, entryById],
-  );
-
-  const ticks = useMemo(
-    () => (win ? timeTicks(win, Math.max(2, Math.floor(width / 110))) : []),
-    [win, width],
-  );
-  const visibleBursts = useMemo(
-    () => (win ? bursts.filter((b) => b.start < win[1] && b.end > win[0]) : []),
-    [bursts, win],
-  );
-
-  // Latest-ref so the native wheel listener never re-subscribes.
-  const wheelCtx = useRef({ win, scale, allBounds });
-  wheelCtx.current = { win, scale, allBounds };
-  useEffect(() => {
-    const el = plotRef.current;
-    if (!el) return;
-    const onWheel = (e: WheelEvent) => {
-      if (!(e.ctrlKey || e.metaKey)) return;
-      const { win: w, scale: sc, allBounds: bounds } = wheelCtx.current;
-      if (!w || !sc) return;
-      e.preventDefault();
-      const rect = el.getBoundingClientRect();
-      const anchor = sc.invert(e.clientX - rect.left);
-      setTimelineWindow(zoomWindow(w, anchor, e.deltaY < 0 ? 0.8 : 1.25, bounds ?? undefined));
-      setLive(false);
-    };
-    el.addEventListener('wheel', onWheel, { passive: false });
-    return () => el.removeEventListener('wheel', onWheel);
-  }, [setTimelineWindow, setLive]);
-
-  const selectedBurstId = burstId ?? bursts[0]?.id ?? 'all';
-  const pickerItems = useMemo(
-    () => [
-      { value: 'all', label: 'All' },
-      ...bursts.slice(0, BURST_PICKER_LIMIT).map((b) => ({ value: b.id, label: burstLabel(b) })),
-    ],
-    [bursts],
-  );
-
-  const choose = (value: string | null) => {
-    if (value === null) return;
-    setLive(false);
-    setBurstId(value);
-    if (value === 'all') {
-      setTimelineWindow(fitWindow(spans));
+  const onPointer = (e: ReactPointerEvent<HTMLDivElement>) => {
+    const row = (e.target as HTMLElement).closest<HTMLElement>('[data-timeline-row]');
+    const id = row?.dataset.id;
+    if (!id) {
+      setTip(null);
       return;
     }
-    const b = bursts.find((x) => x.id === value);
-    setTimelineWindow(b ? fitWindow([b]) : null);
-  };
-  const fit = () => {
-    setTimelineWindow(live ? null : baseWindow);
-  };
-  const toggleLive = () => {
-    if (live) {
-      setTimelineWindow(win);
-      setLive(false);
-    } else {
-      setLive(true);
-      setBurstId(null);
-      setTimelineWindow(null);
-    }
-  };
-
-  const tabStopId = useMemo(() => {
-    if (selectedId !== null && visible.some((s) => s.id === selectedId)) return selectedId;
-    return visible.length > 0 ? [...visible].sort((a, b) => a.start - b.start)[0].id : null;
-  }, [visible, selectedId]);
-
-  const showTooltip = (e: ReactPointerEvent<HTMLElement>) => {
-    const bar = (e.target as HTMLElement).closest<HTMLElement>('[data-testid="timeline-bar"]');
     const root = rootRef.current;
-    if (!bar || !root || !bar.dataset.id) {
-      setTooltip(null);
-      return;
+    const rect = root?.getBoundingClientRect();
+    const maxX = Math.max(0, (root?.clientWidth ?? TIP_WIDTH) - TIP_WIDTH);
+    const x = Math.min(Math.max(0, (e.clientX || 0) - (rect?.left ?? 0) + 12), maxX);
+    const y = (e.clientY || 0) - (rect?.top ?? 0) + 14;
+    setTip({ entryId: id, x, y });
+  };
+
+  let tipLines: string[] | null = null;
+  if (tip) {
+    for (const load of loads) {
+      const entry = load.entries.find((en) => en.id === tip.entryId);
+      if (entry) {
+        tipLines = tooltipLines(entry, load, load.hasPending ? now : load.doneEnd);
+        break;
+      }
     }
-    const rect = root.getBoundingClientRect();
-    setTooltip({
-      kind: 'bar',
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
-      id: bar.dataset.id,
-    });
-  };
-
-  const tipEntry = tooltip?.kind === 'bar' ? entryById.get(tooltip.id) : undefined;
-
-  const brush = (next: [number, number]) => {
-    setTimelineWindow(next);
-    setLive(false);
-  };
-  const hoverMarker = (e: ReactPointerEvent<HTMLElement>, ev: (typeof markers)[number]) => {
-    const rect = rootRef.current?.getBoundingClientRect();
-    setTooltip({
-      kind: 'marker',
-      x: e.clientX - (rect?.left ?? 0),
-      y: e.clientY - (rect?.top ?? 0),
-      label: ev.kind,
-      keyLabel: ev.keyLabel,
-    });
-    setHighlight(ev.kind === 'error' ? null : correlatedRequestIds(ev.at, visibleEntries));
-  };
-  const leaveMarker = () => {
-    setTooltip(null);
-    setHighlight(null);
-  };
+  }
 
   return (
     <div
       ref={rootRef}
       data-testid="logs-timeline"
-      className="relative flex min-w-0 flex-col gap-2 p-2"
+      className="relative"
+      onPointerOver={onPointer}
+      onPointerMove={onPointer}
+      onPointerLeave={() => setTip(null)}
     >
-      <div className="flex flex-wrap items-center gap-2">
-        <Select items={pickerItems} value={selectedBurstId} onValueChange={choose}>
-          <SelectTrigger size="sm" aria-label="Burst" className="max-w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent alignItemWithTrigger={false} className="w-auto min-w-64">
-            {pickerItems.map((o) => (
-              <SelectItem key={o.value} value={o.value}>
-                {o.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Button
-          type="button"
-          variant="outline"
-          size="xs"
-          aria-pressed={live}
-          className="aria-pressed:bg-muted aria-pressed:text-foreground"
-          onClick={toggleLive}
-        >
-          Live
-        </Button>
-        <Button type="button" variant="outline" size="xs" onClick={fit}>
-          Fit
-        </Button>
-        <span className="text-xs text-muted-foreground">⌘ + scroll to zoom</span>
-      </div>
-
-      {win && scale && visible.length > 0 && (
-        <TimelineConcurrencyStrip
-          spans={stripSpans}
-          range={win}
-          scale={scale}
-          width={width}
-          onBrush={brush}
-        />
-      )}
-      <div
-        ref={plotRef}
-        data-testid="timeline-plot"
-        className="relative overflow-hidden rounded-md border bg-background"
-        style={{ width: widthProp ?? undefined }}
-        onPointerOver={showTooltip}
-        onPointerMove={showTooltip}
-        onPointerLeave={() => setTooltip(null)}
-      >
-        {!win || visible.length === 0 || !scale ? (
-          <EmptyState compact icon={Bug} title="No requests in this window" />
-        ) : (
-          <>
-            {/* Axis and gridlines */}
-            <div className="relative h-5 border-b text-[10px] text-muted-foreground">
-              {ticks.map((t) => (
-                <span
-                  key={t.t}
-                  className="absolute top-1 whitespace-nowrap pl-1 tabular-nums"
-                  style={{ left: scale.x(t.t) }}
-                >
-                  {t.label}
-                </span>
-              ))}
-            </div>
-            <div aria-hidden="true" className="pointer-events-none absolute inset-0 top-5">
-              {ticks.map((t) => (
-                <div
-                  key={t.t}
-                  className="absolute inset-y-0 border-l border-border/60"
-                  style={{ left: scale.x(t.t) }}
-                />
-              ))}
-              {visibleBursts.length > 1 &&
-                visibleBursts.map((b) => (
-                  <div
-                    key={b.id}
-                    className="absolute inset-y-0 border-l border-muted-foreground/50"
-                    style={{ left: scale.x(b.start) }}
-                  />
-                ))}
-            </div>
-            {visibleBursts.length > 1 && (
-              <div className="relative h-4 text-[10px] text-muted-foreground">
-                {visibleBursts.map((b) => (
-                  <span
-                    key={b.id}
-                    className="absolute top-0 truncate pl-1"
-                    style={{
-                      left: Math.max(0, scale.x(b.start)),
-                      maxWidth: Math.max(0, scale.x(b.end) - Math.max(0, scale.x(b.start))) || 80,
-                    }}
-                  >
-                    {burstLabel(b)}
-                  </span>
-                ))}
-              </div>
-            )}
-
-            {markers.length > 0 && (
-              <div className="relative border-b" style={{ height: CACHE_LANE_HEIGHT }}>
-                <span className="pointer-events-none absolute top-0.5 left-1 text-[11px] text-muted-foreground">
-                  Cache
-                </span>
-                {markers.map((ev) => (
-                  <button
-                    key={ev.id}
-                    type="button"
-                    data-testid="cache-marker"
-                    aria-label={`${ev.kind} ${ev.keyLabel}`}
-                    className={cn(
-                      'absolute outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                      markerClass(ev.kind),
-                    )}
-                    style={{
-                      left: scale.x(ev.at) - MARKER_SIZE / 2,
-                      top: (CACHE_LANE_HEIGHT - MARKER_SIZE) / 2,
-                      width: MARKER_SIZE,
-                      height: MARKER_SIZE,
-                    }}
-                    onPointerEnter={(e) => hoverMarker(e, ev)}
-                    onPointerLeave={leaveMarker}
-                  />
-                ))}
-              </div>
-            )}
-
-            {/* Request lanes */}
-            <div className="relative my-1" style={{ height: laneCount * LANE_STEP }}>
-              {visible.map((s) => {
-                const e = entryById.get(s.id);
-                if (!e) return null;
-                const start = entryStart(e);
-                const x0 = Math.max(-2, scale.x(start));
-                const x1 = Math.min(width + 2, scale.x(s.end));
-                const w = Math.max(2, x1 - x0);
-                const top = (lane.get(s.id) ?? 0) * LANE_STEP;
-                const pending = isPending(e);
-                const dimmed = highlight !== null && !highlight.has(s.id);
-                const queuedX0 =
-                  e.queuedAt === undefined ? null : Math.max(-2, scale.x(e.queuedAt));
-                return (
-                  <Fragment key={s.id}>
-                    {queuedX0 !== null && (
-                      <div
-                        aria-hidden="true"
-                        data-testid="timeline-queued"
-                        data-dimmed={dimmed ? 'true' : undefined}
-                        className={cn(
-                          'pointer-events-none absolute rounded-l-sm data-[dimmed=true]:opacity-20',
-                          QUEUED_LEAD_IN_CLASS,
-                        )}
-                        style={{
-                          left: queuedX0,
-                          width: Math.max(0, x0 - queuedX0),
-                          top,
-                          height: BAR_HEIGHT,
-                        }}
-                      />
-                    )}
-                    <button
-                      type="button"
-                      data-testid="timeline-bar"
-                      data-id={s.id}
-                      data-highlighted={highlight?.has(s.id) ? 'true' : undefined}
-                      data-dimmed={dimmed ? 'true' : undefined}
-                      aria-label={`${e.method} ${urlPath(e.url)}`}
-                      aria-pressed={s.id === selectedId}
-                      tabIndex={s.id === tabStopId ? 0 : -1}
-                      onClick={() => onSelect(s.id)}
-                      className={cn(
-                        'absolute flex items-center overflow-hidden rounded-sm px-1 text-left font-mono text-[11px] outline-none focus-visible:ring-2 focus-visible:ring-ring data-[dimmed=true]:opacity-30',
-                        pending ? PENDING_BAR_CLASS : timelineBarClass(e),
-                        s.id === selectedId && 'ring-2 ring-primary',
-                      )}
-                      style={{ left: x0, width: w, top, height: BAR_HEIGHT }}
-                    >
-                      {w >= LABEL_MIN_WIDTH && (
-                        <span className="truncate text-foreground">
-                          {e.method} {shortPath(e.url)}
-                        </span>
-                      )}
-                    </button>
-                  </Fragment>
-                );
-              })}
-            </div>
-          </>
-        )}
-      </div>
-
-      {tooltip?.kind === 'marker' && (
+      {loads.map((load, index) => {
+        const open = isLoadOpen(loadOpen, load.id, index);
+        const effNow = load.hasPending ? now : load.doneEnd;
+        const span = loadSpan(load, effNow);
+        const ticks = loadTicks(span);
+        const count = load.entries.length;
+        return (
+          <LoadGroup
+            key={load.id}
+            load={load}
+            open={open}
+            effNow={effNow}
+            span={span}
+            ticks={ticks}
+            count={count}
+            selectedId={selectedId}
+            visibleIds={visibleIds}
+            onToggle={() => setLoadOpen(load.id, !open)}
+            onSelect={onSelect}
+          />
+        );
+      })}
+      {tip && tipLines && (
         <div
           role="tooltip"
           data-testid="timeline-tooltip"
-          className="pointer-events-none absolute z-30 flex max-w-[320px] flex-col gap-0.5 rounded-md border bg-popover px-2 py-1.5 text-xs text-popover-foreground shadow-md"
-          style={{
-            left: Math.max(
-              0,
-              Math.min(tooltip.x + 12, (rootRef.current?.clientWidth ?? width) - TOOLTIP_WIDTH),
-            ),
-            top: tooltip.y + 14,
-          }}
+          className="pointer-events-none absolute z-30 grid gap-0.5 rounded-md border bg-popover px-2 py-1.5 text-xs text-popover-foreground shadow-md"
+          style={{ left: tip.x, top: tip.y, width: TIP_WIDTH }}
         >
-          <div className="text-muted-foreground">{tooltip.label}</div>
-          <div className="break-all font-mono">{tooltip.keyLabel}</div>
-        </div>
-      )}
-      {tooltip && tipEntry && scale && win && (
-        <div
-          role="tooltip"
-          data-testid="timeline-tooltip"
-          className="pointer-events-none absolute z-30 flex flex-col gap-0.5 rounded-md border bg-popover px-2 py-1.5 text-xs text-popover-foreground shadow-md"
-          style={{
-            width: TOOLTIP_WIDTH,
-            left: Math.max(
-              0,
-              Math.min(tooltip.x + 12, (rootRef.current?.clientWidth ?? width) - TOOLTIP_WIDTH),
-            ),
-            top: tooltip.y + 14,
-          }}
-        >
-          <TooltipRows entry={tipEntry} now={now} windowStart={win[0]} />
+          <div className="truncate font-mono">{tipLines[0]}</div>
+          <div>{tipLines[1]}</div>
+          <div className="text-muted-foreground">{tipLines[2]}</div>
         </div>
       )}
     </div>
   );
 }
 
-/** Exactly four rows: path, status, duration (queue folded in) and start offset. */
-function TooltipRows({
-  entry,
-  now,
-  windowStart,
+function LoadGroup({
+  load,
+  open,
+  effNow,
+  span,
+  ticks,
+  count,
+  selectedId,
+  visibleIds,
+  onToggle,
+  onSelect,
 }: {
-  entry: ApiLogEntry;
-  now: number;
-  windowStart: number;
+  load: Load;
+  open: boolean;
+  effNow: number;
+  span: number;
+  ticks: ReturnType<typeof loadTicks>;
+  count: number;
+  selectedId: string | null;
+  visibleIds: string[];
+  onToggle: () => void;
+  onSelect: (id: string) => void;
 }) {
-  const pending = isPending(entry);
-  const start = entryStart(entry);
-  const { queuedMs, networkMs } = queueSplit(entry);
-  const ms = pending ? Math.max(0, Math.round(now - start)) : Math.round(networkMs);
-  const duration = queuedMs === null || pending ? `${ms} ms` : `${ms} ms (queued ${queuedMs})`;
   return (
     <>
-      <div className="truncate font-mono">{urlPath(entry.url)}</div>
-      <div className={cn('font-mono font-semibold', statusText(entry.status, pending))}>
-        {pending ? 'pending' : (entry.status ?? 'ERR')}
-      </div>
-      <div className="tabular-nums text-muted-foreground">{duration}</div>
-      <div className="tabular-nums text-muted-foreground">
-        {`starts +${formatOffset(start - windowStart)}`}
-      </div>
+      <button
+        type="button"
+        data-testid="timeline-load"
+        aria-expanded={open}
+        onClick={onToggle}
+        className={cn(
+          GRID,
+          'sticky top-0 z-20 h-8 w-full border-t bg-background text-left text-xs first:border-t-0 hover:bg-accent/50',
+        )}
+      >
+        <span className="flex min-w-0 items-center gap-1.5 whitespace-nowrap pl-2.5">
+          <ChevronRight
+            className={cn('size-3 shrink-0 text-muted-foreground', open && 'rotate-90')}
+            aria-hidden
+          />
+          <span className="truncate font-medium">{load.name}</span>
+          <span className="text-muted-foreground tabular-nums">
+            · {count} {count === 1 ? 'request' : 'requests'} · {formatMs(span)}
+          </span>
+        </span>
+        <span className="relative h-full text-[11px] text-muted-foreground/80 tabular-nums">
+          {open && (
+            <>
+              <span className="absolute bottom-1 left-0">0</span>
+              {ticks.map((t) => (
+                <span
+                  key={t.t}
+                  className="absolute bottom-1 -translate-x-1/2"
+                  style={{ left: `${t.pct}%` }}
+                >
+                  {t.label}
+                </span>
+              ))}
+            </>
+          )}
+        </span>
+        <span className="pr-4 text-right text-muted-foreground/80 tabular-nums">
+          {new Date(load.start).toLocaleTimeString()}
+        </span>
+      </button>
+      {open &&
+        load.entries.map((entry) => (
+          <TimelineRow
+            key={entry.id}
+            entry={entry}
+            load={load}
+            span={span}
+            ticks={ticks}
+            now={effNow}
+            selected={entry.id === selectedId}
+            tabStop={isTabStop(visibleIds, selectedId, entry.id)}
+            onSelect={onSelect}
+          />
+        ))}
     </>
+  );
+}
+
+function TimelineRow({
+  entry,
+  load,
+  span,
+  ticks,
+  now,
+  selected,
+  tabStop,
+  onSelect,
+}: {
+  entry: ApiLogEntry;
+  load: Load;
+  span: number;
+  ticks: ReturnType<typeof loadTicks>;
+  now: number;
+  selected: boolean;
+  tabStop: boolean;
+  onSelect: (id: string) => void;
+}) {
+  const status = rowStatus(entry);
+  const geo = barGeometry(entry, load, span, now);
+  return (
+    <div
+      data-timeline-row
+      data-id={entry.id}
+      className={cn(
+        'group relative h-[26px] text-xs hover:bg-accent/50',
+        selected && 'bg-accent shadow-[inset_2px_0_0_var(--primary)]',
+      )}
+    >
+      <button
+        type="button"
+        data-testid="devtools-row"
+        aria-label={`${entry.method} ${urlPath(entry.url)}`}
+        aria-current={selected ? 'true' : undefined}
+        tabIndex={tabStop ? 0 : -1}
+        onClick={() => onSelect(entry.id)}
+        className="absolute inset-0 z-0 cursor-default outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+      />
+      <div className={cn(GRID, 'pointer-events-none relative z-10 h-full')}>
+        <div className="truncate pl-7 pr-2.5">
+          {requestLabel(entry)}
+          {status && <span className={cn('ml-1.5', STATUS_TEXT[status.tone])}>{status.text}</span>}
+        </div>
+        <div className="relative h-full">
+          {ticks.map((t) => (
+            <span
+              key={t.t}
+              className="absolute inset-y-0 w-px bg-border/70"
+              style={{ left: `${t.pct}%` }}
+            />
+          ))}
+          {geo.wait && (
+            <span
+              data-testid="timeline-queued"
+              className={cn('absolute top-2 h-2.5 rounded-l-sm', WAIT_TONE[geo.tone])}
+              style={{ left: `${geo.wait.left}%`, width: `${geo.wait.width}%` }}
+            />
+          )}
+          <span
+            data-testid="timeline-bar"
+            className={cn('absolute top-2 h-2.5 rounded-sm', BAR_TONE[geo.tone])}
+            style={{ left: `${geo.left}%`, width: `${geo.width}%` }}
+          />
+        </div>
+        <div className="pr-4 text-right text-muted-foreground tabular-nums">
+          {isPending(entry) ? '…' : formatMs(queueSplit(entry).networkMs)}
+        </div>
+      </div>
+    </div>
   );
 }

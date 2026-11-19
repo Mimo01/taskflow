@@ -20,10 +20,10 @@ import {
   STATUS_FACETS,
 } from '../../lib/dev-tools/log-filters';
 import { computeLogStats, urlPath } from '../../lib/dev-tools/log-stats';
+import { groupLoads, visibleRequestIds } from '../../lib/dev-tools/timeline-loads';
 import { saveBytes } from '../../lib/save-attachment';
 import { cn } from '../../lib/utils';
 import { type ApiLogEntry, useDebugLogStore } from '../../stores/debug-log.store';
-import { useQueryActivityStore } from '../../stores/query-activity.store';
 import { useSettingsStore } from '../../stores/settings.store';
 import { SectionSegmented } from '../dashboard/issue-detail/SectionHeader';
 import {
@@ -37,7 +37,7 @@ import {
 import { facetSetter, LOG_FACETS, useDevToolsViewStore } from './dev-tools-view.store';
 import ListInspectorLayout from './ListInspectorLayout';
 import LogInspector from './LogInspector';
-import LogsTimeline, { timelineKeyDown } from './LogsTimeline';
+import LogsTimeline from './LogsTimeline';
 import { useNow } from './useNow';
 import { sourceBadgeClass, statusText } from './utils';
 
@@ -101,16 +101,13 @@ export default function LogsTab() {
   }, [entries, search, sources, statuses, methods, operations]);
   const selected = filtered.find((e) => e.id === selectedId) ?? null;
   const listKeyDown = useListKeyboard(ids, selectedId, (id) => setSelected('logs', id));
-  const startOrderedIds = useMemo(
-    () =>
-      [...filtered]
-        .sort((a, b) => entryStart(a) - entryStart(b) || (a.id < b.id ? -1 : 1))
-        .map((e) => e.id),
-    [filtered],
+  const loadOpen = useDevToolsViewStore((s) => s.loadOpen);
+  const loads = useMemo(
+    () => (logView === 'timeline' ? groupLoads(filtered) : []),
+    [logView, filtered],
   );
-  const timelineKeys = timelineKeyDown(startOrderedIds, selectedId, (id) =>
-    setSelected('logs', id),
-  );
+  const timelineIds = useMemo(() => visibleRequestIds(loads, loadOpen), [loads, loadOpen]);
+  const timelineKeys = useListKeyboard(timelineIds, selectedId, (id) => setSelected('logs', id));
   const onKeyDown = logView === 'timeline' ? timelineKeys : listKeyDown;
 
   if (!devToolsEnabled) {
@@ -246,7 +243,7 @@ export default function LogsTab() {
           size="xs"
           onClick={() => {
             useDebugLogStore.getState().clear();
-            useQueryActivityStore.getState().clear();
+            useDevToolsViewStore.getState().resetLoadOpen();
             setPausedEntries(null);
             setSelected('logs', null);
             useDevToolsViewStore.getState().resetFacets(LOG_FACETS);
@@ -297,7 +294,7 @@ export default function LogsTab() {
       />
     ) : logView === 'timeline' ? (
       <LogsTimeline
-        entries={filtered}
+        loads={loads}
         selectedId={selectedId}
         onSelect={(id) => setSelected('logs', id)}
         now={now}
