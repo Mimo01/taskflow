@@ -54,7 +54,7 @@ export function OverflowMenu({ items }: OverflowMenuProps) {
           <MoreHorizontal className="size-4" />
         </TooltipTrigger>
         <TooltipContent>
-          <TooltipBody>
+          <TooltipBody fit>
             <span className="font-medium">More</span>
           </TooltipBody>
         </TooltipContent>

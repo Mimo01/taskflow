@@ -12,13 +12,16 @@ export function TooltipBody({
   title,
   children,
   note,
+  fit = false,
 }: {
   title?: ReactNode;
   children?: ReactNode;
   note?: ReactNode;
+  /** Hug the content (label + keycaps) instead of the row-tooltip minimum width. */
+  fit?: boolean;
 }) {
   return (
-    <div className="grid min-w-36 gap-1">
+    <div className={fit ? 'grid gap-1' : 'grid min-w-36 gap-1'}>
       {title ? <div className="font-medium">{title}</div> : null}
       {children}
       {note ? (

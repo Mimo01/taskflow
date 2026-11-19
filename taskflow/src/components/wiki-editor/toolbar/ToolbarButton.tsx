@@ -62,7 +62,7 @@ export function ToolbarButton({
         {children}
       </TooltipTrigger>
       <TooltipContent>
-        <TooltipBody>
+        <TooltipBody fit>
           <div className="flex items-center gap-2">
             <span className="font-medium">{label}</span>
             {keys && keys.length > 0 ? (

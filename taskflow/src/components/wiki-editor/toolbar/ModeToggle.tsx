@@ -57,7 +57,7 @@ function Segment({ label, target, active, disabled, tip, onSelect }: SegmentProp
         {button}
       </TooltipTrigger>
       <TooltipContent>
-        <TooltipBody>
+        <TooltipBody fit>
           {disabled ? (
             <span>{DISABLED_COPY}</span>
           ) : (
