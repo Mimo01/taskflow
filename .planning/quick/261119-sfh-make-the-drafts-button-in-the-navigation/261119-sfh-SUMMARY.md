@@ -15,3 +15,9 @@ vitest DraftsChip + TopBar: 31 passed. biome check on both files: clean. tsc --n
 ## Deviations
 - Worktree HEAD was at 02466a34, so it was reset to base 7e951d2f per instructions.
 - Ran `biome check --write` on the one touched test file only, to fix formatting.
+
+## UAT iterations (2026-11-19) — Approved
+
+Rejected along the way: ghost "Drafts" + grey corner badge (badge/icon too big), shrinking all top-bar icons (siblings must not be edited), outline button, inline grey pill, muted inline count, "2 drafts" label variants, pen + count, label-only with count in tooltip, pen + badge (badge sits on the pen tip), FileText (badge on the folded corner).
+
+**Final (ecdb37dc):** icon button identical to Search/Recent/Bell (w-8 h-8 rounded, hover/open bg-muted), `NotebookText` icon at w-5 h-5, bell-shaped badge (same size/position) in soft blue `bg-blue-200 text-blue-800 dark:bg-blue-500/55 dark:text-white`, capped 99+; hairline divider before the icon group; tooltip "N saved drafts"; list header "Drafts N". Sibling buttons unchanged.
