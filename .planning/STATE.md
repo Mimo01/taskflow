@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-11-19)
 Phase: Milestone v1.15 complete
 Plan: —
 Status: Awaiting next milestone
-Last activity: 2026-11-19 - Completed quick task 261119-nm6: Fix stray backticks after {noformat} blocks in WikiRenderer
+Last activity: 2026-11-19 - Completed quick task 261119-ol5: Add Developer Tools Editor tab with wiki editor logs
 
 ## Performance Metrics
 
@@ -348,6 +348,7 @@ Acknowledged and deferred at v1.14 milestone close (2026-08-13) — 111 open art
 | 261119-lx0 | Removed dev tools Editor tab (EditorTab + test) and its Editor-only WikiEditor onVerdict/WikiEditorVerdict plumbing; production wiki editor unchanged | 2026-11-19 | 2a37c7e6, 2861b9ac | Approved | [261119-lx0-remove-dev-tools-editor-and-supporting-c](./quick/261119-lx0-remove-dev-tools-editor-and-supporting-c/) |
 | 261119-m2i | Fixed unreadable wiki code blocks (prose `pre` colours leaked onto a light frame) with a shared theme-aware `not-prose` frame in editor + WikiRenderer, and added lowlight syntax highlighting for 27 Jira code languages (no auto-detect; noformat/bare/coldfusion stay plain); review fixes: kept VS Code paste plugin, nested editor spans, size caps | 2026-11-19 | 8356c964, 17b8093c, c0dc021e | Approved | [261119-m2i-fix-jira-editor-code-block-styles-and-ad](./quick/261119-m2i-fix-jira-editor-code-block-styles-and-ad/) |
 | 261119-nm6 | Fixed {noformat} close fence gluing onto the last body line (stray ``` and, mid-document, swallowed following prose): newline restored before {noformat} close in preprocess; fences widened when a body contains ``` runs | 2026-11-19 | 3990b8c3 | Approved | [261119-nm6-fix-stray-backticks-after-noformat-block](./quick/261119-nm6-fix-stray-backticks-after-noformat-block/) |
+| 261119-ol5 | Developer Tools → Editor tab: in-memory wiki editor log (open/close, mode switches, submits, save-failed/recovered, load-failed, load/render crash); failures carry reason, stack and original/produced markup, routine events metadata only; captured only with dev tools on; Clear Logs clears it | 2026-11-19 | 568762e6, 5fa0aa15, c9737a4b | | [261119-ol5-add-dev-tools-tab-with-editor-logs-for-d](./quick/261119-ol5-add-dev-tools-tab-with-editor-logs-for-d/) |
 
 ## Session Continuity
 
