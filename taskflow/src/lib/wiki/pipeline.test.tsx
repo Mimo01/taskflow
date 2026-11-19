@@ -418,3 +418,51 @@ describe('Jira backslash escapes in inline code (CR-02)', () => {
     expect(pre?.textContent?.trim()).toBe('\\*x\\*');
   });
 });
+
+// 261119-nm6: jira2md turns {noformat} into ``` by plain substitution (unlike
+// {code}, whose template adds the \n before the closing fence), so the close
+// fence used to glue onto the last body line: "foo bar```".
+describe('{noformat} close fence (261119-nm6)', () => {
+  function codeBlocks(wiki: string): string[] {
+    const div = document.createElement('div');
+    div.innerHTML = wikiToHtml(wiki);
+    return Array.from(div.querySelectorAll('pre > code')).map((c) => c.textContent ?? '');
+  }
+
+  it('trailing block at end of document', () => {
+    expect(codeBlocks('{noformat}\nfoo bar\n{noformat}')).toEqual(['foo bar\n']);
+  });
+
+  it('block without a trailing newline after the close tag', () => {
+    expect(codeBlocks('intro\n{noformat}\nfoo bar\n{noformat}')).toEqual(['foo bar\n']);
+  });
+
+  it('block with a trailing newline', () => {
+    expect(codeBlocks('{noformat}\nfoo bar\n{noformat}\n')).toEqual(['foo bar\n']);
+  });
+
+  it('mid-document block keeps the following prose outside the block', () => {
+    const html = wikiToHtml('before\n{noformat}\nfoo bar\n{noformat}\nafter');
+    expect(codeBlocks('before\n{noformat}\nfoo bar\n{noformat}\nafter')).toEqual(['foo bar\n']);
+    expect(html).toContain('<p>after</p>');
+  });
+
+  it('two consecutive blocks stay separate', () => {
+    expect(codeBlocks('{noformat}\none\n{noformat}\n{noformat}\ntwo\n{noformat}')).toEqual([
+      'one\n',
+      'two\n',
+    ]);
+  });
+
+  it('body without a newline before the close tag', () => {
+    expect(codeBlocks('{noformat}foo bar{noformat}')).toEqual(['foo bar\n']);
+  });
+
+  it('literal ``` in the body is shown, not treated as a fence', () => {
+    expect(codeBlocks('{noformat}\na\n```\nb\n{noformat}\nafter')).toEqual(['a\n```\nb\n']);
+  });
+
+  it('{code} blocks are unchanged', () => {
+    expect(codeBlocks('{code}\nfoo bar\n{code}\nafter')).toEqual(['foo bar\n']);
+  });
+});

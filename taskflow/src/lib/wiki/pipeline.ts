@@ -248,6 +248,20 @@ export function wikiToMarkdown(
   return preprocessed
     ? fixMarkdownLinkUnderscores(j2m.to_markdown(preprocessed))
         .replace(
+          // 261119-nm6: a body containing a run of 3+ backticks on its own line would
+          // close jira2md's ``` fence early. Widen both fences of that block past the
+          // longest run (CommonMark: a closing fence must be at least as long).
+          // biome-ignore lint/suspicious/noControlCharactersInRegex: \x00 (null byte) sentinel, see preprocessJiraMarkup
+          /```([^\n`]*)(\n?)\x00CODEBODY(\d+)\x00\n```/g,
+          (match, info: string, nl: string, i: string) => {
+            const body = codeBlockBodies[Number.parseInt(i, 10)];
+            const longest = Math.max(0, ...(body.match(/`{3,}/g) ?? []).map((r) => r.length));
+            if (longest === 0) return match;
+            const fence = '`'.repeat(longest + 1);
+            return `${fence}${info}${nl}\x00CODEBODY${i}\x00\n${fence}`;
+          },
+        )
+        .replace(
           // biome-ignore lint/suspicious/noControlCharactersInRegex: \x00 (null byte) sentinel, see preprocessJiraMarkup
           /\x00CODEBODY(\d+)\x00/g,
           (_, i) => codeBlockBodies[Number.parseInt(i, 10)],

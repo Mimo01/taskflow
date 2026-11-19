@@ -716,7 +716,12 @@ export function preprocessJiraMarkup(
       // stray blank line at the bottom of the rendered code block.
       const trimmedBody = body.endsWith('\n') ? body.slice(0, -1) : body;
       const idx = codeBlockBodies.push(trimmedBody) - 1;
-      return `${open}${leadingNewline}\x00CODEBODY${idx}\x00${close}`;
+      // 261119-nm6: jira2md converts {noformat} by plain `{noformat}` → ``` substitution
+      // (no `\n` in a template, unlike {code}), so the newline stripped above must be put
+      // back outside the placeholder or the closing fence glues onto the last body line
+      // (`foo bar````), never closes, and swallows the rest of the document.
+      const trailingNewline = close === '{noformat}' ? '\n' : '';
+      return `${open}${leadingNewline}\x00CODEBODY${idx}\x00${trailingNewline}${close}`;
     },
   );
 
