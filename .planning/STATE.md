@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-11-19)
 Phase: Milestone v1.15 complete
 Plan: —
 Status: Awaiting next milestone
-Last activity: 2026-11-19 - Completed quick task 261119-tvz: Dev Tools polish pass + request timeline
+Last activity: 2026-11-19 - Completed quick task 261119-vds: Dev Tools settings to Settings, persisted pane width
 
 ## Performance Metrics
 
@@ -353,6 +353,7 @@ Acknowledged and deferred at v1.14 milestone close (2026-08-13) — 111 open art
 | 261119-sfh | Drafts button in the top bar matches its neighbours: same icon button as Search/Recent/Bell with a NotebookText icon, bell-shaped count badge in soft blue (red stays for notifications), hairline divider before the icon group; count also in tooltip and list header; sibling buttons untouched | 2026-11-19 | 08132ed7, ecdb37dc | Approved | [261119-sfh-make-the-drafts-button-in-the-navigation](./quick/261119-sfh-make-the-drafts-button-in-the-navigation/) |
 | 261119-sws | Developer Tools redesign: full-height PageHeader shell with settings gear popover + tab counts; Logs as Network-style list + inspector (filters, pause, stats strip, Copy URL/cURL/response, keyboard nav); Operations + Waterfall + profiler removed (settings v40) and replaced by a live TanStack Query Cache inspector; Notifications and Editor on the same list + inspector pattern | 2026-11-19 | e498fb11, e63be1bb, 9c4d6f34, 56449247 | Needs Review | [261119-sws-redesign-and-polish-developer-tools](./quick/261119-sws-redesign-and-polish-developer-tools/) |
 | 261119-tvz | Dev Tools polish + timeline: coloured collapsible JSON tree everywhere; organized log inspector (Overview/Body/Timing, request and response side by side); copy menu (URL, cURL, body, entry JSON, Markdown) + Copy all/Export; settings deduped (master toggle in Settings only, capture options in gear only); dead Jira concurrency setting removed (v41); in-flight + queue-wait capture; query-cache activity capture; Logs Timeline view (lanes, concurrency strip with brush + limit line, bursts, Live, cache-lane correlation) + waterfall column; "Clear logs" | 2026-11-19 | 6cbcb2a3..3dccf3e1, 0c69b9d2 | Needs Review | [261119-tvz-dev-tools-polish-pass-json-viewer-side-b](./quick/261119-tvz-dev-tools-polish-pass-json-viewer-side-b/) |
+| 261119-vds | Dev Tools follow-up: all settings back in Settings → Advanced (gear popover removed), inspector pane width persists across reloads (settings v42), unreadable per-row waterfall bars removed from the Logs list | 2026-11-19 | 807822f3 | Needs Review | [261119-vds-dev-tools-settings-to-settings-persisted](./quick/261119-vds-dev-tools-settings-to-settings-persisted/) |
 
 ## Session Continuity
 
