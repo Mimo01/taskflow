@@ -41,7 +41,20 @@ interface DevToolsViewState extends FacetSets {
   pausedEntries: ApiLogEntry[] | null;
   /** Epoch ms the log was paused at (freezes pending rows' elapsed time); null when live. */
   pausedAt: number | null;
+  /** Logs tab presentation: the request list or the timeline. */
+  logView: 'list' | 'timeline';
+  /** Chosen burst id, 'all', or null to follow the latest burst. */
+  timelineBurstId: string | 'all' | null;
+  /** Zoom override of the timeline window (epoch ms); null derives it from the burst. */
+  timelineWindow: [number, number] | null;
+  /** Live follow: the window tracks the latest burst and pending requests. */
+  timelineLive: boolean;
 
+  setLogView: (view: 'list' | 'timeline') => void;
+  setTimelineBurstId: (id: string | 'all' | null) => void;
+  setTimelineWindow: (window: [number, number] | null) => void;
+  setTimelineLive: (live: boolean) => void;
+  resetTimeline: () => void;
   setSelected: (tab: DevToolsTabId, id: string | null) => void;
   setSearch: (tab: DevToolsTabId, search: string) => void;
   setFacet: (key: FacetKey, next: Set<string>) => void;
@@ -74,7 +87,16 @@ export const useDevToolsViewStore = create<DevToolsViewState>((set) => ({
   inspectorMaximized: false,
   pausedEntries: null,
   pausedAt: null,
+  logView: 'list',
+  timelineBurstId: null,
+  timelineWindow: null,
+  timelineLive: true,
 
+  setLogView: (logView) => set({ logView }),
+  setTimelineBurstId: (timelineBurstId) => set({ timelineBurstId }),
+  setTimelineWindow: (timelineWindow) => set({ timelineWindow }),
+  setTimelineLive: (timelineLive) => set({ timelineLive }),
+  resetTimeline: () => set({ timelineBurstId: null, timelineWindow: null, timelineLive: true }),
   setSelected: (tab, id) =>
     set((s) => ({ tabs: { ...s.tabs, [tab]: { ...s.tabs[tab], selectedId: id } } })),
   setSearch: (tab, search) =>

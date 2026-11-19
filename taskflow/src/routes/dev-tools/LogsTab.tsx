@@ -26,6 +26,7 @@ import { cn } from '../../lib/utils';
 import { type ApiLogEntry, useDebugLogStore } from '../../stores/debug-log.store';
 import { useQueryActivityStore } from '../../stores/query-activity.store';
 import { useSettingsStore } from '../../stores/settings.store';
+import { SectionSegmented } from '../dashboard/issue-detail/SectionHeader';
 import {
   CopyButton,
   isTabStop,
@@ -37,8 +38,14 @@ import {
 import { facetSetter, LOG_FACETS, useDevToolsViewStore } from './dev-tools-view.store';
 import ListInspectorLayout from './ListInspectorLayout';
 import LogInspector from './LogInspector';
+import LogsTimeline, { timelineKeyDown } from './LogsTimeline';
 import { useNow } from './useNow';
 import { sourceBadgeClass, statusText, timelineBarClass } from './utils';
+
+const LOG_VIEW_OPTIONS = [
+  { value: 'list', label: 'List' },
+  { value: 'timeline', label: 'Timeline' },
+] as const;
 
 /** Decoded path + query with the host stripped. */
 export function displayPath(url: string): string {
@@ -71,6 +78,8 @@ export default function LogsTab() {
   const statuses = useDevToolsViewStore((s) => s.logStatuses);
   const methods = useDevToolsViewStore((s) => s.logMethods);
   const operations = useDevToolsViewStore((s) => s.logOperations);
+  const logView = useDevToolsViewStore((s) => s.logView);
+  const setLogView = useDevToolsViewStore((s) => s.setLogView);
 
   const [exportState, setExportState] = useState<'idle' | 'done' | 'failed'>('idle');
   const exportTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -106,7 +115,18 @@ export default function LogsTab() {
     return map;
   }, [filtered, now]);
   const selected = filtered.find((e) => e.id === selectedId) ?? null;
-  const onKeyDown = useListKeyboard(ids, selectedId, (id) => setSelected('logs', id));
+  const listKeyDown = useListKeyboard(ids, selectedId, (id) => setSelected('logs', id));
+  const startOrderedIds = useMemo(
+    () =>
+      [...filtered]
+        .sort((a, b) => entryStart(a) - entryStart(b) || (a.id < b.id ? -1 : 1))
+        .map((e) => e.id),
+    [filtered],
+  );
+  const timelineKeys = timelineKeyDown(startOrderedIds, selectedId, (id) =>
+    setSelected('logs', id),
+  );
+  const onKeyDown = logView === 'timeline' ? timelineKeys : listKeyDown;
 
   if (!devToolsEnabled) {
     return (
@@ -167,6 +187,12 @@ export default function LogsTab() {
         value={search}
         onChange={(v) => setSearch('logs', v)}
         placeholder="Search URL or body"
+      />
+      <SectionSegmented
+        label="Logs view"
+        options={LOG_VIEW_OPTIONS}
+        value={logView}
+        onChange={setLogView}
       />
       <FilterPopover
         dimension="Source"
@@ -283,6 +309,13 @@ export default function LogsTab() {
         icon={Bug}
         title="No requests match the filters"
         subtitle={hasFilters ? undefined : 'Nothing to show.'}
+      />
+    ) : logView === 'timeline' ? (
+      <LogsTimeline
+        entries={filtered}
+        selectedId={selectedId}
+        onSelect={(id) => setSelected('logs', id)}
+        now={now}
       />
     ) : (
       <div className="@container">

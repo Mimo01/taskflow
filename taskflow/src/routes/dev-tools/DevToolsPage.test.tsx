@@ -53,6 +53,8 @@ describe('DevToolsPage', () => {
       useDevToolsViewStore.getState().setSelected('logs', null);
       useDevToolsViewStore.getState().setSearch('logs', '');
       useDevToolsViewStore.getState().resetFacets(LOG_FACETS);
+      useDevToolsViewStore.getState().setLogView('list');
+      useDevToolsViewStore.getState().resetTimeline();
       useDevToolsViewStore.getState().setSelected('cache', null);
       useDevToolsViewStore.getState().setInspectorWidth(440);
       useDevToolsViewStore.getState().setInspectorMaximized(false);
