@@ -285,7 +285,18 @@ function markedSegments(
   ctx: InlineCtx = 'para',
 ): Segment[] {
   const kids = hoistEdgeSpace(nodes ?? []);
-  const keySets = kids.map((k) => new Set((k.marks ?? []).map(markKey)));
+  // Monospace content is literal (parse/marks.ts: no nested marks), so a mono run must not
+  // hold another mark's delimiters: key it by the child's other marks too, so it closes and
+  // reopens where they change, and always open it innermost (below).
+  const keyOf = (k: JSONContent, m: MarkJSON): string =>
+    m.type === 'mono'
+      ? `${markKey(m)}\u0000${(k.marks ?? [])
+          .filter((o) => o.type !== 'mono')
+          .map(markKey)
+          .sort()
+          .join('\u0001')}`
+      : markKey(m);
+  const keySets = kids.map((k) => new Set((k.marks ?? []).map((m) => keyOf(k, m))));
   const stack: { mark: MarkJSON; key: string; closeAt: string }[] = [];
   const out: Segment[] = [];
   const closeTo = (depth: number): void => {
@@ -300,9 +311,9 @@ function markedSegments(
     const bad = stack.findIndex((e) => !want.has(e.key));
     if (bad !== -1) closeTo(bad);
     const have = new Set(stack.map((e) => e.key));
-    const toOpen = (kid.marks ?? []).filter((m) => !have.has(markKey(m)));
+    const toOpen = (kid.marks ?? []).filter((m) => !have.has(keyOf(kid, m)));
     const spanLen = (m: MarkJSON): number => {
-      const key = markKey(m);
+      const key = keyOf(kid, m);
       let n = 0;
       while (idx + n < kids.length && (keySets[idx + n] as Set<string>).has(key)) n++;
       return n;
@@ -313,18 +324,20 @@ function markedSegments(
     };
     toOpen.sort(
       (a, b) =>
+        Number(a.type === 'mono') - Number(b.type === 'mono') ||
         spanLen(b) - spanLen(a) ||
         order(a) - order(b) ||
         MARK_RANK.indexOf(a.type) - MARK_RANK.indexOf(b.type),
     );
     for (const m of toOpen) {
+      const key = keyOf(kid, m);
       let run = '';
-      for (let n = idx; n < kids.length && (keySets[n] as Set<string>).has(markKey(m)); n++) {
+      for (let n = idx; n < kids.length && (keySets[n] as Set<string>).has(key); n++) {
         run += textOf(kids[n] as JSONContent);
       }
       const [open, close] = markDelims(m, run);
       out.push(prose(open));
-      stack.push({ mark: m, key: markKey(m), closeAt: close });
+      stack.push({ mark: m, key, closeAt: close });
     }
     out.push(...nodeSegments(kid, ctx));
   });

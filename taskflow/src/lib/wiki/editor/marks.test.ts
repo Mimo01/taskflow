@@ -4,6 +4,7 @@ import { WIKI_CORPUS } from '../corpus.fixtures';
 import { wikiToHtml } from '../pipeline';
 import { emitWiki } from './emit';
 import { parseWiki } from './parse/blocks';
+import { checkSaved } from './save-check';
 import { wikiSchema } from './schema';
 
 const fixture = (path: string): string => WIKI_CORPUS.find((f) => f.path === path)?.wiki ?? '';
@@ -145,5 +146,31 @@ describe('user-created marks (D-08)', () => {
       { type: 'text', text: 'b' },
     );
     expect(emitWiki(wikiSchema.nodeFromJSON(doc))).toBe('*a(/)*b');
+  });
+
+  // Monospace content is literal (no nested marks), so mono must be the innermost mark and
+  // must close where the other marks of its run change (debug: mono-bold-literal).
+  it('keeps monospace innermost so marks inside it read back', () => {
+    const cases: JSONContent[][] = [
+      [
+        { type: 'text', text: 'dv', marks: [m('bold'), m('mono')] },
+        { type: 'text', text: 'fdv', marks: [m('mono')] },
+      ],
+      [
+        { type: 'text', text: 'ab', marks: [m('mono')] },
+        { type: 'text', text: 'cd', marks: [m('italic'), m('mono')] },
+      ],
+      [{ type: 'text', text: 'x', marks: [m('mono', { span: 0 }), m('bold')] }],
+      [
+        ...Array.from({ length: 7 }, () => ({ type: 'hardBreak' })),
+        { type: 'text', text: 'dv', marks: [m('bold'), m('mono')] },
+        { type: 'text', text: 'fdv', marks: [m('mono')] },
+      ],
+    ];
+    for (const content of cases) {
+      const doc = wikiSchema.nodeFromJSON(para(...content));
+      const out = emitWiki(doc);
+      expect(checkSaved(doc.toJSON(), out), out).toBeNull();
+    }
   });
 });
