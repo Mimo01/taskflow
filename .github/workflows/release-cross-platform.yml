@@ -208,7 +208,11 @@ jobs:
 
   create-release:
     needs: build
-    if: always() && !cancelled()
+    # Publish only when every build job succeeded. A platform deselected via
+    # workflow_dispatch skips its steps, and the job still succeeds. always() let
+    # v1.15.0 publish an empty "Latest" release + platform-less latest.json after
+    # all builds failed, which the in-app updater then served to every install.
+    if: needs.build.result == 'success'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -280,7 +284,7 @@ jobs:
 
   upload-to-releases:
     needs: [build, create-release]
-    if: always() && !cancelled()
+    if: needs.build.result == 'success' && needs.create-release.result == 'success'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -439,6 +443,12 @@ jobs:
           printf '%s' "$TAG_BODY" > /tmp/tag-body.txt
           python3 /tmp/build-latest.py "$VERSION" "$TAG" "$PUB_DATE" "/tmp/tag-body.txt" > /tmp/latest.json
           cat /tmp/latest.json
+          # Never publish an update feed with nothing to install: the updater
+          # reads releases/latest/download/latest.json and errors on every install.
+          if ! python3 -c "import json,sys; sys.exit(0 if json.load(open('/tmp/latest.json'))['platforms'] else 1)"; then
+            echo "ERROR: latest.json has no platforms; refusing to upload" >&2
+            exit 1
+          fi
 
           # Delete old latest.json asset if present
           ASSETS=$(curl -s -H "Authorization: token $RELEASES_TOKEN" "$API_BASE/$RELEASE_ID/assets")
