@@ -3,6 +3,7 @@ import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { type ApiLogEntry, useDebugLogStore } from '../../stores/debug-log.store';
+import { useQueryActivityStore } from '../../stores/query-activity.store';
 import { useSettingsStore } from '../../stores/settings.store';
 import DevToolsPage from './DevToolsPage';
 import { LOG_FACETS, useDevToolsViewStore } from './dev-tools-view.store';
@@ -83,6 +84,7 @@ beforeEach(() => {
     v.resetFacets(LOG_FACETS);
     v.setLogView('timeline');
     v.resetTimeline();
+    useQueryActivityStore.getState().clear();
   });
 });
 
@@ -288,5 +290,115 @@ describe('LogsTimeline', () => {
     const many = Array.from({ length: 1000 }, (_, i) => mk(`r${i}`, i * 3, 40));
     renderTimeline(many);
     expect(screen.getAllByTestId('timeline-bar').length).toBeGreaterThan(0);
+  });
+
+  describe('concurrency strip', () => {
+    it('shows peak, the limit line and no queued series without queued requests', () => {
+      renderTimeline([mk('a', 0, 300), mk('b', 100, 300), mk('c', 150, 100)]);
+      expect(screen.getByText('peak 3')).toBeTruthy();
+      expect(screen.getByTestId('limit-line').textContent).toBe('limit 6');
+      expect(screen.queryByTestId('queued-series')).toBeNull();
+    });
+
+    it('draws the queued series when a visible request has queuedAt', () => {
+      renderTimeline([mk('a', 0, 300, { queuedAt: T0 - 100 })]);
+      expect(screen.getByTestId('queued-series')).toBeTruthy();
+    });
+
+    it('brushing the strip zooms the window and turns Live off', () => {
+      renderTimeline([mk('a', 0, 100), mk('z', 600, 100)]);
+      expect(screen.getAllByTestId('timeline-bar')).toHaveLength(2);
+      const strip = screen.getByTestId('concurrency-strip');
+      fireEvent.pointerDown(strip, { clientX: 100, pointerId: 1 });
+      fireEvent.pointerMove(strip, { clientX: 300, pointerId: 1 });
+      fireEvent.pointerUp(strip, { clientX: 300, pointerId: 1 });
+      const bars = screen.getAllByTestId('timeline-bar');
+      expect(bars).toHaveLength(1);
+      expect(bars[0].dataset.id).toBe('a');
+      expect(useDevToolsViewStore.getState().timelineLive).toBe(false);
+    });
+
+    it('ignores a drag shorter than 4 px', () => {
+      renderTimeline([mk('a', 0, 100), mk('z', 600, 100)]);
+      const strip = screen.getByTestId('concurrency-strip');
+      fireEvent.pointerDown(strip, { clientX: 100, pointerId: 1 });
+      fireEvent.pointerUp(strip, { clientX: 102, pointerId: 1 });
+      expect(screen.getAllByTestId('timeline-bar')).toHaveLength(2);
+      expect(useDevToolsViewStore.getState().timelineLive).toBe(true);
+    });
+  });
+
+  describe('queued lead-ins', () => {
+    const queued = () => mk('q', 0, 192, { queuedAt: T0 - 120 });
+
+    it('renders a lead-in as wide as the queue wait before the network segment', () => {
+      renderTimeline([queued(), mk('z', 500, 50)]);
+      const lead = screen.getByTestId('timeline-queued');
+      const bar = screen.getByRole('button', { name: 'GET /rest/api/2/q' });
+      expect(widthOf(lead) / widthOf(bar)).toBeCloseTo(120 / 192, 3);
+      expect(Number.parseFloat(lead.style.left) + widthOf(lead)).toBeCloseTo(
+        Number.parseFloat(bar.style.left),
+        3,
+      );
+    });
+
+    it('folds the queue into the tooltip duration row without adding a row', () => {
+      renderTimeline([queued()]);
+      fireEvent.pointerOver(screen.getByTestId('timeline-bar'));
+      const tip = screen.getByTestId('timeline-tooltip');
+      expect(tip.textContent).toContain('192 ms (queued 120)');
+      expect(tip.children.length).toBeLessThanOrEqual(4);
+    });
+
+    it('packs the queued lead-in so it does not overlap a neighbour', () => {
+      renderTimeline([mk('prev', -300, 150), mk('q', 0, 100, { queuedAt: T0 - 200 })]);
+      const top = (n: string) =>
+        topOf(screen.getByRole('button', { name: `GET /rest/api/2/${n}` }));
+      expect(top('q')).not.toBe(top('prev'));
+    });
+  });
+
+  describe('cache lane', () => {
+    const seedCache = () => {
+      act(() => {
+        const a = useQueryActivityStore.getState().append;
+        a({ id: 'e1', at: T0 + 90, kind: 'fetch', queryHash: 'h1', keyLabel: 'issue / ABC-1' });
+        a({ id: 'e2', at: T0 + 500, kind: 'error', queryHash: 'h2', keyLabel: 'sprint / 9' });
+        a({ id: 'e3', at: T0 + 600, kind: 'success', queryHash: 'h3', keyLabel: 'ignored' });
+      });
+    };
+    const entries = () => [mk('r1', 100, 50), mk('r2', 1000, 50)];
+
+    it('renders markers for fetch, invalidated and error only', () => {
+      renderTimeline(entries());
+      seedCache();
+      expect(screen.getAllByTestId('cache-marker')).toHaveLength(2);
+    });
+
+    it('hovering a fetch marker highlights correlated requests and dims the rest', () => {
+      renderTimeline(entries());
+      seedCache();
+      const marker = screen.getByRole('button', { name: 'fetch issue / ABC-1' });
+      fireEvent.pointerEnter(marker);
+      const r1 = screen.getByRole('button', { name: 'GET /rest/api/2/r1' });
+      const r2 = screen.getByRole('button', { name: 'GET /rest/api/2/r2' });
+      expect(r1.dataset.highlighted).toBe('true');
+      expect(r2.dataset.dimmed).toBe('true');
+      fireEvent.pointerLeave(marker);
+      expect(r1.dataset.highlighted).toBeUndefined();
+      expect(r2.dataset.dimmed).toBeUndefined();
+    });
+
+    it('hovering an error marker shows its key and does not highlight', () => {
+      renderTimeline(entries());
+      seedCache();
+      fireEvent.pointerEnter(screen.getByRole('button', { name: 'error sprint / 9' }));
+      expect(screen.getByTestId('timeline-tooltip').textContent).toContain('sprint / 9');
+      expect(
+        screen
+          .getAllByTestId('timeline-bar')
+          .some((b) => b.dataset.highlighted || b.dataset.dimmed),
+      ).toBe(false);
+    });
   });
 });

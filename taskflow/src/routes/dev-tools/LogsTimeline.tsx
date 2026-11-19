@@ -8,6 +8,7 @@
  */
 import { Bug } from 'lucide-react';
 import {
+  Fragment,
   type KeyboardEvent,
   type PointerEvent as ReactPointerEvent,
   useEffect,
@@ -26,6 +27,7 @@ import {
 } from '../../components/ui/select';
 import { entryEnd, entryStart, isPending } from '../../lib/dev-tools/log-entry';
 import { urlPath } from '../../lib/dev-tools/log-stats';
+import { correlatedRequestIds } from '../../lib/dev-tools/query-activity';
 import { queueSplit } from '../../lib/dev-tools/queue-handoff';
 import {
   createTimeScale,
@@ -37,7 +39,9 @@ import {
 import { type Burst, groupBursts, packLanes } from '../../lib/dev-tools/timeline-layout';
 import { cn } from '../../lib/utils';
 import type { ApiLogEntry } from '../../stores/debug-log.store';
+import { useQueryActivityStore } from '../../stores/query-activity.store';
 import { useDevToolsViewStore } from './dev-tools-view.store';
+import TimelineConcurrencyStrip, { type StripSpan } from './TimelineConcurrencyStrip';
 import { statusText, timelineBarClass } from './utils';
 
 const LANE_STEP = 20;
@@ -58,10 +62,22 @@ interface TimelineProps {
   width?: number;
 }
 
-interface TooltipState {
-  x: number;
-  y: number;
-  id: string;
+type TooltipState = { x: number; y: number } & (
+  | { kind: 'bar'; id: string }
+  | { kind: 'marker'; label: string; keyLabel: string }
+);
+
+const CACHE_MARKER_KINDS = new Set(['fetch', 'invalidated', 'error']);
+const CACHE_LANE_HEIGHT = 16;
+const MARKER_SIZE = 8;
+
+const QUEUED_LEAD_IN_CLASS =
+  'bg-[repeating-linear-gradient(135deg,color-mix(in_oklab,var(--muted-foreground)_35%,transparent)_0_3px,transparent_3px_6px)] opacity-60';
+
+function markerClass(kind: string): string {
+  if (kind === 'error') return 'rounded-full bg-red-500';
+  if (kind === 'invalidated') return 'rotate-45 bg-muted-foreground/60';
+  return 'rounded-full border border-muted-foreground bg-background';
 }
 
 /** Last two path segments, e.g. '/rest/api/2/issue/ABC-1' becomes 'issue/ABC-1'. */
@@ -125,8 +141,9 @@ export default function LogsTimeline({
   const [measured, setMeasured] = useState(800);
   const width = widthProp ?? measured;
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
-  // Set by the cache lane (see below) to dim requests that are not correlated with a marker.
-  const [highlight] = useState<Set<string> | null>(null);
+  // Set while hovering a cache marker: requests it likely caused stay full, the rest dim.
+  const [highlight, setHighlight] = useState<Set<string> | null>(null);
+  const activity = useQueryActivityStore((s) => s.events);
 
   useEffect(() => {
     const el = plotRef.current;
@@ -174,6 +191,28 @@ export default function LogsTimeline({
     const packed = packLanes(inWindow);
     return { visible: inWindow, lane: packed.lane, laneCount: packed.laneCount };
   }, [spans, win]);
+
+  const stripSpans = useMemo<StripSpan[]>(
+    () =>
+      visible.flatMap((s) => {
+        const e = entryById.get(s.id);
+        return e ? [{ start: entryStart(e), end: s.end, queuedAt: e.queuedAt }] : [];
+      }),
+    [visible, entryById],
+  );
+  const markers = useMemo(
+    () =>
+      win
+        ? activity.filter(
+            (ev) => CACHE_MARKER_KINDS.has(ev.kind) && ev.at >= win[0] && ev.at <= win[1],
+          )
+        : [],
+    [activity, win],
+  );
+  const visibleEntries = useMemo(
+    () => visible.flatMap((s) => entryById.get(s.id) ?? []),
+    [visible, entryById],
+  );
 
   const ticks = useMemo(
     () => (win ? timeTicks(win, Math.max(2, Math.floor(width / 110))) : []),
@@ -251,10 +290,35 @@ export default function LogsTimeline({
       return;
     }
     const rect = root.getBoundingClientRect();
-    setTooltip({ x: e.clientX - rect.left, y: e.clientY - rect.top, id: bar.dataset.id });
+    setTooltip({
+      kind: 'bar',
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+      id: bar.dataset.id,
+    });
   };
 
-  const tipEntry = tooltip ? entryById.get(tooltip.id) : undefined;
+  const tipEntry = tooltip?.kind === 'bar' ? entryById.get(tooltip.id) : undefined;
+
+  const brush = (next: [number, number]) => {
+    setTimelineWindow(next);
+    setLive(false);
+  };
+  const hoverMarker = (e: ReactPointerEvent<HTMLElement>, ev: (typeof markers)[number]) => {
+    const rect = rootRef.current?.getBoundingClientRect();
+    setTooltip({
+      kind: 'marker',
+      x: e.clientX - (rect?.left ?? 0),
+      y: e.clientY - (rect?.top ?? 0),
+      label: ev.kind,
+      keyLabel: ev.keyLabel,
+    });
+    setHighlight(ev.kind === 'error' ? null : correlatedRequestIds(ev.at, visibleEntries));
+  };
+  const leaveMarker = () => {
+    setTooltip(null);
+    setHighlight(null);
+  };
 
   return (
     <div
@@ -291,6 +355,15 @@ export default function LogsTimeline({
         <span className="text-xs text-muted-foreground">⌘ + scroll to zoom</span>
       </div>
 
+      {win && scale && visible.length > 0 && (
+        <TimelineConcurrencyStrip
+          spans={stripSpans}
+          range={win}
+          scale={scale}
+          width={width}
+          onBrush={brush}
+        />
+      )}
       <div
         ref={plotRef}
         data-testid="timeline-plot"
@@ -350,6 +423,34 @@ export default function LogsTimeline({
               </div>
             )}
 
+            {markers.length > 0 && (
+              <div className="relative border-b" style={{ height: CACHE_LANE_HEIGHT }}>
+                <span className="pointer-events-none absolute top-0.5 left-1 text-[11px] text-muted-foreground">
+                  Cache
+                </span>
+                {markers.map((ev) => (
+                  <button
+                    key={ev.id}
+                    type="button"
+                    data-testid="cache-marker"
+                    aria-label={`${ev.kind} ${ev.keyLabel}`}
+                    className={cn(
+                      'absolute outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                      markerClass(ev.kind),
+                    )}
+                    style={{
+                      left: scale.x(ev.at) - MARKER_SIZE / 2,
+                      top: (CACHE_LANE_HEIGHT - MARKER_SIZE) / 2,
+                      width: MARKER_SIZE,
+                      height: MARKER_SIZE,
+                    }}
+                    onPointerEnter={(e) => hoverMarker(e, ev)}
+                    onPointerLeave={leaveMarker}
+                  />
+                ))}
+              </div>
+            )}
+
             {/* Request lanes */}
             <div className="relative my-1" style={{ height: laneCount * LANE_STEP }}>
               {visible.map((s) => {
@@ -362,31 +463,51 @@ export default function LogsTimeline({
                 const top = (lane.get(s.id) ?? 0) * LANE_STEP;
                 const pending = isPending(e);
                 const dimmed = highlight !== null && !highlight.has(s.id);
+                const queuedX0 =
+                  e.queuedAt === undefined ? null : Math.max(-2, scale.x(e.queuedAt));
                 return (
-                  <button
-                    key={s.id}
-                    type="button"
-                    data-testid="timeline-bar"
-                    data-id={s.id}
-                    data-highlighted={highlight?.has(s.id) ? 'true' : undefined}
-                    data-dimmed={dimmed ? 'true' : undefined}
-                    aria-label={`${e.method} ${urlPath(e.url)}`}
-                    aria-pressed={s.id === selectedId}
-                    tabIndex={s.id === tabStopId ? 0 : -1}
-                    onClick={() => onSelect(s.id)}
-                    className={cn(
-                      'absolute flex items-center overflow-hidden rounded-sm px-1 text-left font-mono text-[11px] outline-none focus-visible:ring-2 focus-visible:ring-ring data-[dimmed=true]:opacity-30',
-                      pending ? PENDING_BAR_CLASS : timelineBarClass(e),
-                      s.id === selectedId && 'ring-2 ring-primary',
+                  <Fragment key={s.id}>
+                    {queuedX0 !== null && (
+                      <div
+                        aria-hidden="true"
+                        data-testid="timeline-queued"
+                        data-dimmed={dimmed ? 'true' : undefined}
+                        className={cn(
+                          'pointer-events-none absolute rounded-l-sm data-[dimmed=true]:opacity-20',
+                          QUEUED_LEAD_IN_CLASS,
+                        )}
+                        style={{
+                          left: queuedX0,
+                          width: Math.max(0, x0 - queuedX0),
+                          top,
+                          height: BAR_HEIGHT,
+                        }}
+                      />
                     )}
-                    style={{ left: x0, width: w, top, height: BAR_HEIGHT }}
-                  >
-                    {w >= LABEL_MIN_WIDTH && (
-                      <span className="truncate text-foreground">
-                        {e.method} {shortPath(e.url)}
-                      </span>
-                    )}
-                  </button>
+                    <button
+                      type="button"
+                      data-testid="timeline-bar"
+                      data-id={s.id}
+                      data-highlighted={highlight?.has(s.id) ? 'true' : undefined}
+                      data-dimmed={dimmed ? 'true' : undefined}
+                      aria-label={`${e.method} ${urlPath(e.url)}`}
+                      aria-pressed={s.id === selectedId}
+                      tabIndex={s.id === tabStopId ? 0 : -1}
+                      onClick={() => onSelect(s.id)}
+                      className={cn(
+                        'absolute flex items-center overflow-hidden rounded-sm px-1 text-left font-mono text-[11px] outline-none focus-visible:ring-2 focus-visible:ring-ring data-[dimmed=true]:opacity-30',
+                        pending ? PENDING_BAR_CLASS : timelineBarClass(e),
+                        s.id === selectedId && 'ring-2 ring-primary',
+                      )}
+                      style={{ left: x0, width: w, top, height: BAR_HEIGHT }}
+                    >
+                      {w >= LABEL_MIN_WIDTH && (
+                        <span className="truncate text-foreground">
+                          {e.method} {shortPath(e.url)}
+                        </span>
+                      )}
+                    </button>
+                  </Fragment>
                 );
               })}
             </div>
@@ -394,6 +515,23 @@ export default function LogsTimeline({
         )}
       </div>
 
+      {tooltip?.kind === 'marker' && (
+        <div
+          role="tooltip"
+          data-testid="timeline-tooltip"
+          className="pointer-events-none absolute z-30 flex max-w-[320px] flex-col gap-0.5 rounded-md border bg-popover px-2 py-1.5 text-xs text-popover-foreground shadow-md"
+          style={{
+            left: Math.max(
+              0,
+              Math.min(tooltip.x + 12, (rootRef.current?.clientWidth ?? width) - TOOLTIP_WIDTH),
+            ),
+            top: tooltip.y + 14,
+          }}
+        >
+          <div className="text-muted-foreground">{tooltip.label}</div>
+          <div className="break-all font-mono">{tooltip.keyLabel}</div>
+        </div>
+      )}
       {tooltip && tipEntry && scale && win && (
         <div
           role="tooltip"
