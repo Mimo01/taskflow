@@ -46,6 +46,22 @@ describe('redactUrl', () => {
     );
   });
 
+  it('redacts secret-looking param names by pattern, not a fixed list', () => {
+    expect(
+      redactUrl(
+        'https://h/p?client_secret=c&apikey=k&api-key=k2&private-token=t&refresh_token=r&signature=s&sig=s2&auth=a&x=1',
+      ),
+    ).toBe(
+      'https://h/p?client_secret=REDACTED&apikey=REDACTED&api-key=REDACTED&private-token=REDACTED&refresh_token=REDACTED&signature=REDACTED&sig=REDACTED&auth=REDACTED&x=1',
+    );
+  });
+
+  it('keeps ordinary params that merely contain short substrings', () => {
+    expect(redactUrl('https://h/p?jql=a&maxResults=50&fields=summary&expand=names')).toBe(
+      'https://h/p?jql=a&maxResults=50&fields=summary&expand=names',
+    );
+  });
+
   it('leaves clean URLs unchanged', () => {
     expect(redactUrl('https://h/p?x=1&y=2')).toBe('https://h/p?x=1&y=2');
   });

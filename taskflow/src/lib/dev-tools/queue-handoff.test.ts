@@ -1,5 +1,19 @@
 import { describe, expect, it } from 'vitest';
-import { queueSplit, runWithQueuedAt, takeQueuedAt } from './queue-handoff';
+import { meaningfulQueuedAt, queueSplit, runWithQueuedAt, takeQueuedAt } from './queue-handoff';
+
+describe('meaningfulQueuedAt', () => {
+  it('drops scheduling noise when a slot was free (no real wait)', () => {
+    expect(meaningfulQueuedAt(1000, 1000.4)).toBeUndefined();
+    expect(meaningfulQueuedAt(1000, 1001.9)).toBeUndefined();
+  });
+  it('keeps a real wait', () => {
+    expect(meaningfulQueuedAt(1000, 1002)).toBe(1000);
+    expect(meaningfulQueuedAt(1000, 1120)).toBe(1000);
+  });
+  it('passes through undefined', () => {
+    expect(meaningfulQueuedAt(undefined, 1000)).toBeUndefined();
+  });
+});
 
 describe('queue-handoff', () => {
   it('hands the value to the first take only', () => {

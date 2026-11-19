@@ -31,6 +31,16 @@ describe('useQueryActivityCapture', () => {
     expect(events[0].queryHash).toBe(JSON.stringify(['issue', 'ABC-1']));
   });
 
+  it('turning capture on mid-session does not emit false events for existing queries', async () => {
+    useSettingsStore.setState({ devToolsEnabled: true, requestLogging: false });
+    const client = setup();
+    await client.fetchQuery({ queryKey: ['old'], queryFn: async () => 1 });
+    useSettingsStore.setState({ requestLogging: true });
+    await client.invalidateQueries({ queryKey: ['old'], refetchType: 'none' });
+    const events = [...useQueryActivityStore.getState().events].reverse();
+    expect(events.map((e) => e.kind)).toEqual(['invalidated']);
+  });
+
   it.each([
     { devToolsEnabled: false, requestLogging: true },
     { devToolsEnabled: true, requestLogging: false },

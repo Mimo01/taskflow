@@ -326,6 +326,26 @@ describe('LogsTimeline', () => {
       expect(screen.getAllByTestId('timeline-bar')).toHaveLength(2);
       expect(useDevToolsViewStore.getState().timelineLive).toBe(true);
     });
+
+    it('ignores non-primary buttons (right-click opens a context menu, no pointerup follows)', () => {
+      renderTimeline([mk('a', 0, 100), mk('z', 600, 100)]);
+      const strip = screen.getByTestId('concurrency-strip');
+      fireEvent.pointerDown(strip, { clientX: 100, pointerId: 1, button: 2 });
+      fireEvent.pointerMove(strip, { clientX: 300, pointerId: 1 });
+      expect(screen.queryByTestId('brush-selection')).toBeNull();
+      fireEvent.pointerUp(strip, { clientX: 300, pointerId: 1 });
+      expect(screen.getAllByTestId('timeline-bar')).toHaveLength(2);
+    });
+
+    it('drops the drag when pointer capture is lost', () => {
+      renderTimeline([mk('a', 0, 100), mk('z', 600, 100)]);
+      const strip = screen.getByTestId('concurrency-strip');
+      fireEvent.pointerDown(strip, { clientX: 100, pointerId: 1 });
+      fireEvent.lostPointerCapture(strip, { pointerId: 1 });
+      fireEvent.pointerMove(strip, { clientX: 300, pointerId: 1 });
+      fireEvent.pointerUp(strip, { clientX: 300, pointerId: 1 });
+      expect(screen.getAllByTestId('timeline-bar')).toHaveLength(2);
+    });
   });
 
   describe('queued lead-ins', () => {

@@ -21,7 +21,7 @@ import type { ApiLogEntry } from '../stores/debug-log.store';
 import { useDebugLogStore } from '../stores/debug-log.store';
 import { useSettingsStore } from '../stores/settings.store';
 import { currentRoute, nowMs } from './dev-tools/log-entry';
-import { takeQueuedAt } from './dev-tools/queue-handoff';
+import { meaningfulQueuedAt, takeQueuedAt } from './dev-tools/queue-handoff';
 import { redactHeaders } from './dev-tools/redact';
 
 function markDisconnected(source: 'jira' | 'gitlab' | 'aio' | 'updater' | 'tempo') {
@@ -81,6 +81,7 @@ export async function apiFetch(
 
   // Dev tools enabled: instrument the call
   const startedAt = nowMs();
+  const waitedSince = meaningfulQueuedAt(queuedAt, startedAt);
   const method = init?.method ?? 'GET';
 
   // Sanitize headers for logging (handles Headers, tuple and plain-object inits)
@@ -117,7 +118,7 @@ export async function apiFetch(
         state: 'pending',
         startedAt,
         route: currentRoute(),
-        ...(queuedAt !== undefined ? { queuedAt } : {}),
+        ...(waitedSince !== undefined ? { queuedAt: waitedSince } : {}),
       });
     } catch {
       // logging must never break the request

@@ -16,8 +16,10 @@ const SECRET_HEADERS = new Set([
 
 const SECRET_HEADER_PATTERN = /token|secret|session|password/i;
 
-const SECRET_URL_PARAMS =
-  /([?&])(private_token|access_token|token|api_key|password|secret)=[^&#]*/gi;
+const URL_PARAM = /([?&])([^=&#]+)=([^&#]*)/g;
+
+/** Param names that carry credentials: matched by pattern so variants (api-key, apikey, …) are caught. */
+const SECRET_URL_PARAM_NAME = /token|secret|password|passwd|api[-_]?key|signature|^sig$|^auth$/i;
 
 export const REDACTED = '[REDACTED]';
 
@@ -52,5 +54,13 @@ export function redactHeaders(input: HeaderInput): Record<string, string> {
 
 /** Replaces the values of token-like query params with `REDACTED`. */
 export function redactUrl(url: string): string {
-  return url.replace(SECRET_URL_PARAMS, '$1$2=REDACTED');
+  return url.replace(URL_PARAM, (whole, sep: string, name: string) => {
+    let decoded = name;
+    try {
+      decoded = decodeURIComponent(name);
+    } catch {
+      // keep the raw name
+    }
+    return SECRET_URL_PARAM_NAME.test(decoded) ? `${sep}${name}=REDACTED` : whole;
+  });
 }

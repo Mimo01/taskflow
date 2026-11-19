@@ -87,6 +87,8 @@ export default function TimelineConcurrencyStrip({ spans, range, scale, width, o
       role="img"
       aria-label="Requests in flight over time. Drag to zoom."
       onPointerDown={(e) => {
+        // Primary button only: a right-click opens the context menu and no pointerup follows.
+        if (e.button !== 0) return;
         const x = localX(e);
         e.currentTarget.setPointerCapture?.(e.pointerId);
         setDrag({ x0: x, x1: x });
@@ -101,6 +103,7 @@ export default function TimelineConcurrencyStrip({ spans, range, scale, width, o
         if (next) onBrush(next);
       }}
       onPointerCancel={() => setDrag(null)}
+      onLostPointerCapture={() => setDrag(null)}
     >
       <path d={areaPath} className="fill-muted-foreground/25 stroke-muted-foreground/60" />
       {hasQueued && (
@@ -139,6 +142,7 @@ export default function TimelineConcurrencyStrip({ spans, range, scale, width, o
       </text>
       {drag && (
         <rect
+          data-testid="brush-selection"
           x={Math.min(drag.x0, drag.x1)}
           y={0}
           width={Math.abs(drag.x1 - drag.x0)}

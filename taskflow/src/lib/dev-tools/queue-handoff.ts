@@ -27,6 +27,21 @@ export function takeQueuedAt(): number | undefined {
   return v;
 }
 
+/**
+ * A free limiter slot still hands over a queuedAt a fraction of a millisecond before the fetch
+ * starts. Below this the "wait" is scheduling noise; showing "Queued 0 ms" on every Jira request
+ * and an always-on queued series would hide the waits that matter.
+ */
+export const QUEUE_NOISE_MS = 2;
+
+export function meaningfulQueuedAt(
+  queuedAt: number | undefined,
+  startedAt: number,
+): number | undefined {
+  if (queuedAt === undefined) return undefined;
+  return startedAt - queuedAt >= QUEUE_NOISE_MS ? queuedAt : undefined;
+}
+
 /** Splits wait-for-a-slot time from network time. Queue time is never folded into durationMs. */
 export function queueSplit(e: { queuedAt?: number; startedAt?: number; durationMs: number }): {
   queuedMs: number | null;

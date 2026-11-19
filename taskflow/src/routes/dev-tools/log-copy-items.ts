@@ -3,12 +3,13 @@
  */
 import { entryToJson, entryToMarkdown } from '../../lib/dev-tools/copy-format';
 import { buildCurl } from '../../lib/dev-tools/curl';
+import { redactUrl } from '../../lib/dev-tools/redact';
 import type { ApiLogEntry } from '../../stores/debug-log.store';
 import type { CopyMenuItem } from './dev-tools-ui';
 
 export function copyActionsFor(entry: ApiLogEntry): CopyMenuItem[] {
   return [
-    { label: 'Copy URL', getText: () => entry.url },
+    { label: 'Copy URL', getText: () => redactUrl(entry.url) },
     { label: 'Copy as cURL', getText: () => buildCurl(entry) },
     {
       label: 'Copy response',

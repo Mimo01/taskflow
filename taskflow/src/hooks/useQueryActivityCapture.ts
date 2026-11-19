@@ -17,13 +17,35 @@ import { useSettingsStore } from '../stores/settings.store';
 export function useQueryActivityCapture(): void {
   const client = useQueryClient();
   useEffect(() => {
+    const cache = client.getQueryCache();
     const prev = new Map<string, QuerySnap>();
-    return client.getQueryCache().subscribe((event) => {
+    const isOn = () => {
       const { devToolsEnabled, requestLogging } = useSettingsStore.getState();
-      if (!devToolsEnabled || !requestLogging) {
-        if (prev.size > 0) prev.clear();
-        return;
+      return devToolsEnabled && requestLogging;
+    };
+    // Baseline every existing query the moment capture turns on. Diffing a query we have never
+    // seen against the empty INITIAL snapshot would report its old data as a fresh `success`.
+    const seed = () => {
+      prev.clear();
+      for (const q of cache.getAll()) {
+        try {
+          prev.set(q.queryHash, snapshotQuery(q));
+        } catch {
+          // capture must never affect the app
+        }
       }
+    };
+    let on = isOn();
+    if (on) seed();
+    const unsubscribeSettings = useSettingsStore.subscribe(() => {
+      const next = isOn();
+      if (next === on) return;
+      on = next;
+      if (on) seed();
+      else prev.clear();
+    });
+    const unsubscribeCache = cache.subscribe((event) => {
+      if (!on) return;
       try {
         const query = event.query;
         const hash = query.queryHash;
@@ -48,5 +70,9 @@ export function useQueryActivityCapture(): void {
         // capture must never affect the app
       }
     });
+    return () => {
+      unsubscribeCache();
+      unsubscribeSettings();
+    };
   }, [client]);
 }
