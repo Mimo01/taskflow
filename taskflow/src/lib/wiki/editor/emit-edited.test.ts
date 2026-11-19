@@ -2,6 +2,8 @@ import type { JSONContent } from '@tiptap/core';
 import { describe, expect, it } from 'vitest';
 import { WikiEmitError, emitWiki } from './emit';
 import { parseWiki } from './parse/blocks';
+import { checkSaved } from './save-check';
+import type { WikiDocJSON } from './types';
 
 const text = (t: string, marks?: JSONContent['marks']): JSONContent =>
   marks ? { type: 'text', text: t, marks } : { type: 'text', text: t };
@@ -286,5 +288,25 @@ describe('WR-02 edited attributes', () => {
 
   it('keeps an unedited code opener', () => {
     expect(emitWiki(parseWiki('{code:java}\nx\n{code}').doc)).toBe('{code:java}\nx\n{code}');
+  });
+});
+
+describe('breaks that would leave a blank line', () => {
+  const br: JSONContent = { type: 'hardBreak' };
+  const cases: [string, JSONContent, string][] = [
+    ['trailing', doc(para(text('vsmvofo'), br)), 'vsmvofo\\\\'],
+    ['leading', doc(para(br, text('a'))), '\\\\a'],
+    ['doubled', doc(para(text('a'), br, br, text('b'))), 'a\\\\\\\\b'],
+    ['blank-only line', doc(para(text('a'), br, text('  '), br, text('b'))), 'a\\\\  \\\\b'],
+    ['trailing in a list item', doc(list(item(para(text('a'), br)))), '* a\\\\'],
+  ];
+  it.each(cases)('%s break is spelled \\\\ and reads back', (_, d, out) => {
+    const emitted = emitWiki(d);
+    expect(emitted).toBe(out);
+    expect(checkSaved(d as WikiDocJSON, emitted)).toBeNull();
+  });
+
+  it('keeps a single break between text as a newline', () => {
+    expect(emitWiki(doc(para(text('a'), br, text('b'))))).toBe('a\nb');
   });
 });

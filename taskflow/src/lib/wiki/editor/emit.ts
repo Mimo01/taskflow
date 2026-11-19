@@ -48,6 +48,37 @@ function breakSpelling(n: JSONContent, ctx: InlineCtx): string {
   return src ?? '\n';
 }
 
+const isBreak = (n: JSONContent | undefined): boolean => n?.type === 'hardBreak';
+const isBlankText = (n: JSONContent): boolean => n.type === 'text' && !/\S/.test(n.text ?? '');
+
+/**
+ * A `\n` break must leave text on both of its lines: a trailing one is stripped, a
+ * leading one or one next to another break writes a blank line (a block gap). Those
+ * breaks are spelled `\\\\` instead. A recorded `\n` in a cell or quote is a parsed
+ * continuation and may legitimately be blank, so it stays; in a paragraph or list item a
+ * parsed `\n` always sits between text, so loaded documents still emit byte-identical
+ * (copy, never mutates).
+ */
+function pinBreaks(kids: readonly JSONContent[], ctx: InlineCtx): JSONContent[] {
+  const lineHasText = (from: number, step: 1 | -1): boolean => {
+    for (let i = from; i >= 0 && i < kids.length; i += step) {
+      const n = kids[i] as JSONContent;
+      // A spelled-out `\\\\` is visible on its line; only a newline ends it.
+      if (isBreak(n)) return breakSpelling(n, ctx) !== '\n';
+      if (!isBlankText(n)) return true;
+    }
+    return false;
+  };
+  if (ctx !== 'para' && ctx !== 'item') return [...kids];
+  return kids.map((n, i) =>
+    isBreak(n) &&
+    breakSpelling(n, ctx) === '\n' &&
+    !(lineHasText(i - 1, -1) && lineHasText(i + 1, 1))
+      ? { ...n, attrs: { ...n.attrs, src: '\\\\' } }
+      : n,
+  );
+}
+
 /** Attributes that carry an atom's meaning (the rest of its attrs only record spelling). */
 const SEMANTIC: Record<string, readonly string[]> = {
   mention: ['id'],
@@ -377,7 +408,7 @@ const OPENING_DELIMS = '[{!';
  * Opening delimiters are tried last, so they are the ones left escaped.
  */
 function inlineSegments(nodes: readonly JSONContent[] | undefined, ctx: InlineCtx): Segment[] {
-  const kids = nodes ?? [];
+  const kids = pinBreaks(nodes ?? [], ctx);
   const plain = markedSegments(kids, ctx);
   const risky = kids.some((n) => n.type === 'text' && /[*_\-+^~{}[\]!#|(]/.test(n.text ?? ''));
   if (!risky) return plain;
