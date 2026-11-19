@@ -8,6 +8,7 @@ import {
   useState,
 } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { logWikiEditor } from '@/lib/wiki-editor-log';
 import type { WikiEditorPreset, WikiEditorProps } from './types';
 
 let loading: Promise<{ default: ComponentType<WikiEditorProps> }> | null = null;
@@ -58,6 +59,18 @@ class EditorLoadBoundary extends Component<
 
   componentDidCatch(error: Error, info: ErrorInfo) {
     console.error('[WikiEditor] failed to load:', error, info);
+    logWikiEditor(() => ({
+      session: null,
+      event: 'crash',
+      level: 'error',
+      message: 'Editor failed to load or render',
+      context: { preset: this.props.preset },
+      error: {
+        message: error.message,
+        stack: error.stack,
+        componentStack: info.componentStack ?? undefined,
+      },
+    }));
   }
 
   render() {

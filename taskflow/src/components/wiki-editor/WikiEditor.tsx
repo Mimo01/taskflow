@@ -4,11 +4,13 @@ import { EditorContent, useEditor } from '@tiptap/react';
 import { useContext, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { attachmentRef } from '@/lib/attachment-markup';
 import { cn } from '@/lib/utils';
-import { loadWiki, type WikiLoad } from '@/lib/wiki/editor';
+import { emitWiki, loadWiki, type WikiLoad } from '@/lib/wiki/editor';
+import { logWikiEditor, nextEditorSessionId } from '@/lib/wiki-editor-log';
 import { AttachmentPickerModal } from '@/routes/dashboard/issue-detail/AttachmentPickerModal';
 import type { JiraAttachment } from '@/services/jira';
 import { useSettingsStore } from '@/stores/settings.store';
 import {
+  CARRY_OVER_NOTE,
   canLoadRich,
   evaluateSave,
   initialMode,
@@ -68,6 +70,10 @@ export default function WikiEditor({
     const preference = useSettingsStore.getState().wikiEditorMode;
     return { load, ...initialMode(load, preference) };
   });
+
+  const [session] = useState(nextEditorSessionId);
+  // Read at call time (inside handlers/effects), never during render.
+  const logContext = () => ({ label: ariaLabel, issueKey: host?.issueKey ?? null, preset });
 
   const [mode, setMode] = useState<Mode>(initial.mode);
   const [forced, setForced] = useState(initial.forced);
@@ -129,9 +135,41 @@ export default function WikiEditor({
       const load = loadedRef.current;
       if (!load) return;
       const res = evaluateSave(load, e.state.doc, lastEmittedRef.current);
+      const previousError = saveErrorRef.current;
       if (res.kind === 'failed') {
+        if (previousError !== res.error) {
+          logWikiEditor(() => {
+            let produced: string | undefined;
+            let emitError: string | undefined;
+            try {
+              produced = emitWiki(e.state.doc);
+            } catch (err) {
+              emitError = `emit threw: ${err instanceof Error ? err.message : String(err)}`;
+            }
+            return {
+              session,
+              event: 'save-failed',
+              level: 'error',
+              message: `Couldn't save safely: ${res.error}`,
+              context: logContext(),
+              ...(emitError !== undefined && { details: { emitError } }),
+              markup: { original: load.original, ...(produced !== undefined && { produced }) },
+              error: { message: res.error ?? '' },
+            };
+          });
+        }
         setSaveError(res.error);
       } else {
+        if (previousError !== null) {
+          logWikiEditor(() => ({
+            session,
+            event: 'save-recovered',
+            level: 'info',
+            message: 'Save recovered',
+            context: logContext(),
+            details: { previousReason: previousError },
+          }));
+        }
         setSaveError(null);
         if (res.emit !== null) {
           lastEmittedRef.current = res.emit;
@@ -163,6 +201,46 @@ export default function WikiEditor({
     [],
   );
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: mount-only observation
+  useEffect(() => {
+    logWikiEditor(() => ({
+      session,
+      event: 'open',
+      level: 'info',
+      message: `Editor opened (${stateRef.current.mode})`,
+      context: logContext(),
+      details: {
+        mode: stateRef.current.mode,
+        forced: stateRef.current.forced,
+        loadKind: initial.load.kind,
+        demotedBlocks: initial.load.kind === 'rich-demoted' ? initial.load.demoted.length : 0,
+        length: value.length,
+      },
+    }));
+    if (initial.load.kind === 'failed') {
+      const { reason } = initial.load;
+      logWikiEditor(() => ({
+        session,
+        event: 'load-failed',
+        level: 'warn',
+        message: `Rich editor can't load this text: ${reason}`,
+        context: logContext(),
+        markup: { original: value },
+        error: { message: reason },
+      }));
+    }
+    return () => {
+      logWikiEditor(() => ({
+        session,
+        event: 'close',
+        level: 'info',
+        message: 'Editor closed',
+        context: logContext(),
+        details: { mode: stateRef.current.mode, saveBlocked: reportedBlockedRef.current },
+      }));
+    };
+  }, []);
+
   // After the commit: sync editability to the mode, then move focus to the visible surface.
   // (Focusing inside toRich/toSource would hit the still-hidden element: UAT gap 2.)
   // biome-ignore lint/correctness/useExhaustiveDependencies: runs only on mode change
@@ -188,6 +266,26 @@ export default function WikiEditor({
     lastEmittedRef.current = value;
     setSaveError(null);
     const load = loadWiki(value);
+    logWikiEditor(() =>
+      mode === 'rich' && load.kind === 'failed'
+        ? {
+            session,
+            event: 'external-reset',
+            level: 'warn',
+            message: `External value can't load in rich: ${load.reason}`,
+            context: logContext(),
+            markup: { original: value },
+            error: { message: load.reason },
+          }
+        : {
+            session,
+            event: 'external-reset',
+            level: 'info',
+            message: 'Value replaced from outside',
+            context: logContext(),
+            details: { mode, loadKind: load.kind, length: value.length },
+          },
+    );
     if (mode === 'rich') {
       if (load.kind === 'failed') {
         loadedRef.current = null;
@@ -228,10 +326,33 @@ export default function WikiEditor({
     pendingFocusRef.current = { mode: 'source', resetCaret: false };
     const load = loadedRef.current;
     if (!load) {
+      logWikiEditor(() => ({
+        session,
+        event: 'mode-switch',
+        level: 'info',
+        message: 'Switched rich to source',
+        context: logContext(),
+        details: { noLoadedDoc: true },
+      }));
       setMode('source');
       return;
     }
     const res = richToSource(load, editor.state.doc, lastEmittedRef.current);
+    logWikiEditor(() => {
+      const carryFailed = res.note === CARRY_OVER_NOTE;
+      return {
+        session,
+        event: 'mode-switch',
+        level: carryFailed ? 'warn' : 'info',
+        message: carryFailed
+          ? 'Switched rich to source; latest edit could not be carried over'
+          : 'Switched rich to source',
+        context: logContext(),
+        details: { error: res.error, carriedOver: !carryFailed, length: res.text.length },
+        ...(carryFailed && { markup: { original: load.original } }),
+        ...(res.error !== null && { error: { message: res.error } }),
+      };
+    });
     setSourceText(res.text);
     textAtToggleRef.current = res.text;
     setNotice(res.note);
@@ -251,6 +372,14 @@ export default function WikiEditor({
       textAtToggleRef.current === NO_TOGGLE_TEXT ? '\u0000' : (textAtToggleRef.current as string),
     );
     if (res.kind === 'same' && loadedRef.current) {
+      logWikiEditor(() => ({
+        session,
+        event: 'mode-switch',
+        level: 'info',
+        message: 'Switched source to rich',
+        context: logContext(),
+        details: { kind: res.kind, length: sourceText.length },
+      }));
       editor.setEditable(true, false);
       pendingFocusRef.current = { mode: 'rich', resetCaret: false };
       setMode('rich');
@@ -258,11 +387,28 @@ export default function WikiEditor({
     }
     const load = res.kind === 'load' ? res.load : loadWiki(sourceText);
     if (load.kind === 'failed') {
+      logWikiEditor(() => ({
+        session,
+        event: 'load-failed',
+        level: 'warn',
+        message: `Rich editor can't load this text: ${load.reason}`,
+        context: logContext(),
+        markup: { original: sourceText },
+        error: { message: load.reason },
+      }));
       setForced(true);
       setRichAllowed(false);
       setNotice(FORCED_NOTICE);
       return;
     }
+    logWikiEditor(() => ({
+      session,
+      event: 'mode-switch',
+      level: 'info',
+      message: 'Switched source to rich',
+      context: logContext(),
+      details: { kind: res.kind, length: sourceText.length },
+    }));
     replaceDoc(editor, load.doc);
     loadedRef.current = load;
     lastEmittedRef.current = sourceText;
@@ -386,7 +532,31 @@ export default function WikiEditor({
       e.preventDefault();
       e.stopPropagation();
       // Never submit the stale last-good text; the banner tells the user to fix it in source.
-      if (stateRef.current.mode === 'rich' && saveErrorRef.current !== null) return;
+      if (stateRef.current.mode === 'rich' && saveErrorRef.current !== null) {
+        logWikiEditor(() => ({
+          session,
+          event: 'submit-blocked',
+          level: 'warn',
+          message: 'Submit blocked: edit cannot be saved safely',
+          context: logContext(),
+          details: { reason: saveErrorRef.current },
+        }));
+        return;
+      }
+      logWikiEditor(() => ({
+        session,
+        event: 'submit',
+        level: 'info',
+        message: 'Submitted',
+        context: logContext(),
+        details: {
+          mode: stateRef.current.mode,
+          length: (stateRef.current.mode === 'source'
+            ? sourceTextRef.current
+            : lastEmittedRef.current
+          ).length,
+        },
+      }));
       submit(stateRef.current.mode === 'source' ? sourceTextRef.current : lastEmittedRef.current);
     } else if (e.shiftKey && key === 'm') {
       e.preventDefault();
