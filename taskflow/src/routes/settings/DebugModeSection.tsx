@@ -1,8 +1,9 @@
 /**
  * DebugModeSection — Advanced settings for Developer Tools.
  *
- * Master "Enable Developer Tools" toggle (capture options live in the Developer Tools
- * page's gear popover), clear notifications / cache, and reset actions.
+ * Every Developer Tools setting (master toggle, request logging, response body capture,
+ * retention), clear notifications / cache, and reset actions. All settings live here; the
+ * Developer Tools page itself has none.
  * Rendered inside Settings → Advanced.
  */
 
@@ -21,6 +22,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { startWizardRerun } from '@/lib/onboarding-rerun';
 import { clearAvatarCache } from '../../services/avatarCache';
 import { removeSecret } from '../../services/stronghold';
@@ -28,11 +36,20 @@ import { useAuthStore } from '../../stores/auth.store';
 import { useNotificationsStore } from '../../stores/notifications.store';
 import { useSettingsStore } from '../../stores/settings.store';
 
+const RETENTION_OPTIONS = ['50', '100', '200', '500', '1000'] as const;
+const RETENTION_ITEMS = RETENTION_OPTIONS.map((o) => ({ value: o, label: `${o} entries` }));
+
 export default function DebugModeSection() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const devToolsEnabled = useSettingsStore((s) => s.devToolsEnabled);
   const setDevToolsEnabled = useSettingsStore((s) => s.setDevToolsEnabled);
+  const requestLogging = useSettingsStore((s) => s.requestLogging);
+  const setRequestLogging = useSettingsStore((s) => s.setRequestLogging);
+  const responseBodyCapture = useSettingsStore((s) => s.responseBodyCapture);
+  const setResponseBodyCapture = useSettingsStore((s) => s.setResponseBodyCapture);
+  const retentionLimit = useSettingsStore((s) => s.retentionLimit);
+  const setRetentionLimit = useSettingsStore((s) => s.setRetentionLimit);
   const clearAll = useNotificationsStore((s) => s.clearAll);
   const itemCount = useNotificationsStore((s) => s.items.length);
   const resetSettings = useSettingsStore((s) => s.resetSettings);
@@ -101,9 +118,69 @@ export default function DebugModeSection() {
           />
         </label>
 
-        <p className="text-xs text-muted-foreground">
-          Capture options live in Developer Tools → settings
-        </p>
+        {/* Capture options (only meaningful while Developer Tools is on) */}
+        <div
+          className={`flex flex-col gap-3 ml-4 ${devToolsEnabled ? '' : 'opacity-50 pointer-events-none'}`}
+          aria-disabled={!devToolsEnabled}
+        >
+          <label className="flex items-center justify-between gap-4 cursor-pointer">
+            <div>
+              <p className="text-sm font-medium">Request logging</p>
+              <p className="text-xs text-muted-foreground">
+                Record each API call in Logs and the Timeline.
+              </p>
+            </div>
+            <input
+              type="checkbox"
+              aria-label="Request logging"
+              checked={requestLogging}
+              disabled={!devToolsEnabled}
+              onChange={(e) => setRequestLogging(e.target.checked)}
+              className="h-4 w-4 accent-primary shrink-0"
+            />
+          </label>
+          <label className="flex items-center justify-between gap-4 cursor-pointer">
+            <div>
+              <p className="text-sm font-medium">Response body capture</p>
+              <p className="text-xs text-muted-foreground">
+                Keep response bodies for the inspector (uses more memory).
+              </p>
+            </div>
+            <input
+              type="checkbox"
+              aria-label="Response body capture"
+              checked={responseBodyCapture}
+              disabled={!devToolsEnabled}
+              onChange={(e) => setResponseBodyCapture(e.target.checked)}
+              className="h-4 w-4 accent-primary shrink-0"
+            />
+          </label>
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-sm font-medium">Retention limit</p>
+              <p className="text-xs text-muted-foreground">
+                Oldest entries are dropped beyond this. Applies to new entries.
+              </p>
+            </div>
+            <Select
+              value={retentionLimit.toString()}
+              onValueChange={(val) => setRetentionLimit(Number(val))}
+              items={RETENTION_ITEMS}
+              disabled={!devToolsEnabled}
+            >
+              <SelectTrigger aria-label="Retention limit">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {RETENTION_ITEMS.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
       </div>
 
       {/* Clear notifications */}

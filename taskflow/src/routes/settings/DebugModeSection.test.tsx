@@ -76,13 +76,16 @@ describe('DebugModeSection reset wizard', () => {
 });
 
 describe('DebugModeSection Developer Tools block', () => {
-  it('shows only the master toggle and the capture-options pointer', () => {
+  it('holds every Developer Tools setting: master toggle plus capture options', () => {
+    useSettingsStore.setState({ devToolsEnabled: true, requestLogging: false });
     renderSection();
     expect(screen.getByRole('checkbox', { name: 'Enable Developer Tools' })).toBeTruthy();
-    expect(screen.getByText('Capture options live in Developer Tools → settings')).toBeTruthy();
-    expect(screen.queryByText('Request logging')).toBeNull();
-    expect(screen.queryByText('Response body capture')).toBeNull();
-    expect(screen.queryByText('Retention limit')).toBeNull();
+    const logging = screen.getByRole('checkbox', { name: 'Request logging' });
+    fireEvent.click(logging);
+    expect(useSettingsStore.getState().requestLogging).toBe(true);
+    expect(screen.getByRole('checkbox', { name: 'Response body capture' })).toBeTruthy();
+    expect(screen.getByRole('combobox', { name: 'Retention limit' })).toBeTruthy();
+    expect(screen.queryByText(/Capture options live in/)).toBeNull();
     expect(screen.queryByText(/Jira concurrency limit/)).toBeNull();
     expect(screen.queryByRole('heading', { name: 'Network' })).toBeNull();
   });

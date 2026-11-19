@@ -56,7 +56,7 @@ describe('DevToolsPage', () => {
       useDevToolsViewStore.getState().setLogView('list');
       useDevToolsViewStore.getState().resetTimeline();
       useDevToolsViewStore.getState().setSelected('cache', null);
-      useDevToolsViewStore.getState().setInspectorWidth(440);
+      useSettingsStore.getState().setDevToolsInspectorWidth(440);
       useDevToolsViewStore.getState().setInspectorMaximized(false);
     });
     vi.mocked(saveBytes).mockClear();
@@ -368,12 +368,17 @@ describe('DevToolsPage', () => {
       expect(useQueryActivityStore.getState().events).toHaveLength(0);
     });
 
-    it('a list row shows a waterfall bar', () => {
+    it('list rows have no waterfall bar (load order lives in the Timeline view)', () => {
       act(() => {
         useDebugLogStore.getState().append(entry);
       });
       renderPage();
-      expect(screen.getAllByTestId('waterfall-bar')).toHaveLength(1);
+      expect(screen.queryByTestId('waterfall-bar')).toBeNull();
+    });
+
+    it('the header has no settings gear (all settings live in Settings → Advanced)', () => {
+      renderPage();
+      expect(screen.queryByRole('button', { name: 'Developer Tools settings' })).toBeNull();
     });
   });
 });

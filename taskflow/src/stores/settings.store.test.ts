@@ -492,13 +492,13 @@ describe('settings.store — rankFieldKey (Phase 76)', () => {
     expect(src).toMatch(/if\s*\(version\s*<\s*30\)/);
   });
 
-  it('persist version is 41 (v31 moved the 288 default; v32 drops the field; v34 replaces the px standup width with a ratio)', () => {
+  it('persist version is 42 (v31 moved the 288 default; v32 drops the field; v34 replaces the px standup width with a ratio)', () => {
     const fs = require('node:fs') as typeof import('node:fs');
     const path = require('node:path') as typeof import('node:path');
     const src = fs.readFileSync(path.resolve(__dirname, 'settings.store.ts'), 'utf8');
     expect(src).toMatch(/if\s*\(version\s*<\s*31\)/);
     expect(src).toMatch(/releaseDetailPanelWidth === 288\) s\.releaseDetailPanelWidth = 256/);
-    expect(src).toMatch(/version: 41,/);
+    expect(src).toMatch(/version: 42,/);
     expect(src).toMatch(/if\s*\(version\s*<\s*32\)/);
     expect(src).toMatch(/if\s*\(version\s*<\s*33\)/);
     expect(src).toMatch(/if\s*\(version\s*<\s*34\)/);
@@ -516,6 +516,19 @@ describe('settings.store — rankFieldKey (Phase 76)', () => {
     ) => Record<string, unknown>;
     expect((await migrate({}, 37)).wikiEditorMode).toBe('rich');
     expect((await migrate({ wikiEditorMode: 'source' }, 37)).wikiEditorMode).toBe('source');
+  });
+
+  it('devToolsInspectorWidth persists: default 440, setter stores it, v41 -> v42 fills the default', async () => {
+    expect(useSettingsStore.getState().devToolsInspectorWidth).toBe(440);
+    useSettingsStore.getState().setDevToolsInspectorWidth(600);
+    expect(useSettingsStore.getState().devToolsInspectorWidth).toBe(600);
+    useSettingsStore.getState().setDevToolsInspectorWidth(440);
+    const migrate = useSettingsStore.persist.getOptions().migrate as (
+      persisted: unknown,
+      version: number,
+    ) => Record<string, unknown>;
+    expect((await migrate({}, 41)).devToolsInspectorWidth).toBe(440);
+    expect((await migrate({ devToolsInspectorWidth: 700 }, 41)).devToolsInspectorWidth).toBe(700);
   });
 
   it('banner duration defaults to 5s, the setter stores it, and v34 -> v35 fills the default', async () => {
@@ -708,10 +721,10 @@ describe('settings.store — recentSlashItems (Phase 99)', () => {
     expect(useSettingsStore.getState().recentSlashItems).toEqual(['b', 'a', 'table']);
   });
 
-  it('v39 migration guard defaults the field and the persisted version is now 41', async () => {
+  it('v39 migration guard defaults the field and the persisted version is now 42', async () => {
     const { readFileSync } = await import('node:fs');
     const src = readFileSync(`${process.cwd()}/src/stores/settings.store.ts`, 'utf8');
-    expect(src).toMatch(/version: 41,/);
+    expect(src).toMatch(/version: 42,/);
     expect(src).toMatch(
       /if \(version < 39\) \{\s*if \(s\.recentSlashItems === undefined\) s\.recentSlashItems = \[\];/,
     );

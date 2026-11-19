@@ -1,11 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  concurrencySeries,
-  groupBursts,
-  packLanes,
-  queuedSeries,
-  waterfallSegment,
-} from './timeline-layout';
+import { concurrencySeries, groupBursts, packLanes, queuedSeries } from './timeline-layout';
 
 describe('packLanes', () => {
   it('reuses a lane when an end equals the next start', () => {
@@ -107,18 +101,5 @@ describe('queuedSeries', () => {
 
   it('ignores spans that never queued', () => {
     expect(queuedSeries([{ start: 50 }], [0, 100]).peak).toBe(0);
-  });
-});
-
-describe('waterfallSegment', () => {
-  it('positions a request inside its burst', () => {
-    expect(waterfallSegment(50, 150, { start: 0, end: 200 })).toEqual({
-      leftPct: 25,
-      widthPct: 50,
-    });
-  });
-
-  it('keeps a zero-length request visible', () => {
-    expect(waterfallSegment(50, 50, { start: 0, end: 200 }).widthPct).toBe(0.5);
   });
 });

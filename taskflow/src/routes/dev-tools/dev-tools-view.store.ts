@@ -35,7 +35,6 @@ interface DevToolsViewState extends FacetSets {
   tabs: Record<DevToolsTabId, TabViewState>;
   /** Cache tab state filter (all | fetching | stale | error | inactive | invalidated). */
   cacheState: string;
-  inspectorWidth: number;
   /** Inspector takes the whole pane (list hidden). Transient, shared by every tab. */
   inspectorMaximized: boolean;
   pausedEntries: ApiLogEntry[] | null;
@@ -61,7 +60,6 @@ interface DevToolsViewState extends FacetSets {
   /** Empty the given facets (on Clear, so a filter whose values vanished can't get stuck on). */
   resetFacets: (keys: readonly FacetKey[]) => void;
   setCacheState: (state: string) => void;
-  setInspectorWidth: (width: number) => void;
   setInspectorMaximized: (maximized: boolean) => void;
   setPausedEntries: (entries: ApiLogEntry[] | null) => void;
 }
@@ -83,7 +81,6 @@ export const useDevToolsViewStore = create<DevToolsViewState>((set) => ({
   editorLevels: new Set(),
   editorEvents: new Set(),
   cacheState: 'all',
-  inspectorWidth: 440,
   inspectorMaximized: false,
   pausedEntries: null,
   pausedAt: null,
@@ -105,7 +102,6 @@ export const useDevToolsViewStore = create<DevToolsViewState>((set) => ({
   resetFacets: (keys) =>
     set(Object.fromEntries(keys.map((k) => [k, new Set<string>()])) as Partial<FacetSets>),
   setCacheState: (cacheState) => set({ cacheState }),
-  setInspectorWidth: (inspectorWidth) => set({ inspectorWidth }),
   setInspectorMaximized: (inspectorMaximized) => set({ inspectorMaximized }),
   setPausedEntries: (pausedEntries) =>
     set({ pausedEntries, pausedAt: pausedEntries ? nowMs() : null }),

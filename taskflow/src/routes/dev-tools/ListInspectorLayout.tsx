@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { useResizable } from '@/hooks/useResizable';
 import { cn } from '@/lib/utils';
+import { useSettingsStore } from '@/stores/settings.store';
 import { useDevToolsViewStore } from './dev-tools-view.store';
 
 /** Ghost icon button toggling the inspector between its side panel and the whole pane. */
@@ -53,8 +54,9 @@ export default function ListInspectorLayout({
 }: ListInspectorLayoutProps) {
   const layoutRef = useRef<HTMLDivElement>(null);
   const [handleHovered, setHandleHovered] = useState(false);
-  const inspectorWidth = useDevToolsViewStore((s) => s.inspectorWidth);
-  const setInspectorWidth = useDevToolsViewStore((s) => s.setInspectorWidth);
+  // Persisted (settings store) so the width survives reloads.
+  const inspectorWidth = useSettingsStore((s) => s.devToolsInspectorWidth);
+  const setInspectorWidth = useSettingsStore((s) => s.setDevToolsInspectorWidth);
   const inspectorMaximized = useDevToolsViewStore((s) => s.inspectorMaximized);
   const maximized = inspectorMaximized && inspector !== null;
   const {

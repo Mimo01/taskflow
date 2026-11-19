@@ -52,6 +52,7 @@ const initialSettings = {
   issueDetailPanelWidth: null as number | null,
   peekPanelWidth: null as number | null,
   standupYesterdayRatio: null as number | null,
+  devToolsInspectorWidth: 440,
   mrDetailPanelWidth: 288,
   aioRunDetailPanelWidth: 320,
   aioEnabled: false,
@@ -156,6 +157,9 @@ interface SettingsState {
   setPeekPanelWidth: (w: number) => void;
   /** Standup Notes Yesterday (left) column width as a fraction 0-1 of the split container. Null = 50/50 until first drag/keyboard resize. */
   standupYesterdayRatio: number | null;
+  /** Developer Tools inspector (right pane) width in px. Default 440. */
+  devToolsInspectorWidth: number;
+  setDevToolsInspectorWidth: (w: number) => void;
   setStandupYesterdayRatio: (r: number | null) => void;
   /** MR detail right panel width in px. Default: 288 (w-72). */
   mrDetailPanelWidth: number;
@@ -271,6 +275,7 @@ export const useSettingsStore = create<SettingsState>()(
       setIssueDetailPanelWidth: (w) => set({ issueDetailPanelWidth: w }),
       setPeekPanelWidth: (w) => set({ peekPanelWidth: w }),
       setStandupYesterdayRatio: (r) => set({ standupYesterdayRatio: r }),
+      setDevToolsInspectorWidth: (w) => set({ devToolsInspectorWidth: w }),
       setMrDetailPanelWidth: (w) => set({ mrDetailPanelWidth: w }),
       setAioRunDetailPanelWidth: (w) => set({ aioRunDetailPanelWidth: w }),
       setAioEnabled: (v) => set({ aioEnabled: v }),
@@ -374,7 +379,7 @@ export const useSettingsStore = create<SettingsState>()(
     {
       name: 'settings-store',
       storage: createTauriStorage('settings.json'),
-      version: 41,
+      version: 42,
       migrate: (persisted, version) => {
         const s = persisted as Record<string, unknown>;
         if (version < 1) {
@@ -547,6 +552,10 @@ export const useSettingsStore = create<SettingsState>()(
         if (version < 41) {
           // The Jira concurrency setting was removed: it never took effect after a restart.
           delete (s as Record<string, unknown>).jiraConcurrencyLimit;
+        }
+        if (version < 42) {
+          // The Developer Tools inspector width now persists across reloads.
+          if (s.devToolsInspectorWidth === undefined) s.devToolsInspectorWidth = 440;
         }
         return persisted as SettingsState;
       },

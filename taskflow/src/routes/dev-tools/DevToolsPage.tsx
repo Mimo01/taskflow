@@ -1,7 +1,7 @@
 /**
  * DevToolsPage — Developer Tools page shell.
  *
- * Full-height tool under the standard PageHeader (settings gear + Clear logs). Tabs carry live
+ * Full-height tool under the standard PageHeader (Clear logs; all settings live in Settings → Advanced). Tabs carry live
  * counts; each tab owns its scrolling, so only the list and inspector panes scroll.
  */
 
@@ -14,7 +14,6 @@ import { useNotificationDispatchLogStore } from '../../stores/notification-dispa
 import { useQueryActivityStore } from '../../stores/query-activity.store';
 import { useWikiEditorLogStore } from '../../stores/wiki-editor-log.store';
 import CacheTab from './CacheTab';
-import DevToolsSettingsPopover from './DevToolsSettingsPopover';
 import {
   EDITOR_FACETS,
   LOG_FACETS,
@@ -59,18 +58,15 @@ export default function DevToolsPage() {
       <PageHeader
         title="Developer Tools"
         actions={
-          <>
-            <DevToolsSettingsPopover />
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleClear}
-              disabled={logCount === 0 && notificationCount === 0 && editorCount === 0}
-            >
-              Clear logs
-            </Button>
-          </>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleClear}
+            disabled={logCount === 0 && notificationCount === 0 && editorCount === 0}
+          >
+            Clear logs
+          </Button>
         }
       />
 

@@ -136,15 +136,3 @@ export function queuedSeries(
   );
   return { points, peak };
 }
-
-/** Bar geometry (percent of the burst width) for one request inside its burst. */
-export function waterfallSegment(
-  start: number,
-  end: number,
-  burst: { start: number; end: number },
-): { leftPct: number; widthPct: number } {
-  const span = burst.end - burst.start || 1;
-  const leftPct = Math.min(100, Math.max(0, ((start - burst.start) / span) * 100));
-  const widthPct = Math.max(0.5, Math.min(((end - start) / span) * 100, 100 - leftPct));
-  return { leftPct, widthPct };
-}
