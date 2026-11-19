@@ -753,17 +753,60 @@
 
 ---
 
+## Milestone: v1.15 — Rich Wiki Editor
+
+**Shipped:** 2026-11-19
+**Phases:** 7 (96-102) | **Plans:** 84
+
+### What Was Built
+
+- Wiki foundations (Phase 96): the wiki pipeline moved into `lib/wiki` with zero render change, and a 37-fixture placeholder corpus with an `isEquivalent` harness runs on every commit through the pre-commit hook.
+- Round-trip engine (Phase 97): a source-level parser and canonical emitter between Jira wiki text and TipTap. Unedited text saves byte-identical, unmodelable constructs stay as raw atoms, and typed look-alikes of markup are escaped.
+- Editor shell (Phase 98): a lazy TipTap `WikiEditor` with toolbar, shortcuts, input rules, tables, code and panel blocks, a colour palette, a source toggle with preview and a fail-closed runtime guard.
+- Mentions, media and smart input (Phase 99): @mentions, attachment embeds, paste and drop uploads, allowlisted rich paste, issue-key and emoticon autocomplete, slash and bubble menus.
+- Host adoption (Phase 100): every editing host on the new editor, the textarea code deleted, local drafts, discard guards and Cmd+Enter/Esc everywhere.
+- Issue drafts and polished modals (Phases 101-102): a two-column Create/Edit Issue modal, auto-saved multi-drafts with staged files and a Drafts chip, and a shared `ModalShell` for the other hosts.
+
+### What Worked
+
+- Building the equivalence corpus before the editor. Every later phase had a hard safety net, and the "never change what WikiRenderer shows" goal stayed checkable on every commit.
+- Real-WKWebView UAT driven by Claude through a Swift NSEvent driver. It tested IME, caret stability and input rules that jsdom can't, and found 7 bugs across two rounds.
+- Failing-first regression tests for every review finding, which kept the many code-review fixes honest.
+
+### What Was Inefficient
+
+- Phase 97 needed 7 gap-closure plans (97-11..17) after the first engine pass, and Phase 98 needed 3 more after its UAT: 10 of 84 plans were gap closure.
+- Phase 98's verification was skipped during execution and only caught by the milestone audit, which then took three audit runs and a verifier pass at close.
+- jsdom tests missed several real-host bugs: ProseMirror swallowing Escape, Cmd+Enter submitting through open popovers, missing placeholder CSS. They only showed up in the running app.
+
+### Patterns Established
+
+- Fail closed to source mode: if text can't round-trip, the editor opens it in source rather than risk a lossy save, and a failed rich save blocks submit.
+- One shared prose class set (`WIKI_PROSE_CLASSES`) for the editor and the renderer.
+- Separate draft stores by shape: `drafts.json` for per-field text, `issue-drafts.json` plus `$APPDATA/issue-drafts` files for whole issues.
+
+### Key Lessons
+
+- Run the phase verifier before marking a phase complete, even when a manual UAT already passed. The audit treats a missing VERIFICATION.md as a gap regardless of the evidence.
+- For editor work, a real-webview pass is not optional. Keyboard and composition behaviour in WebKit differs from jsdom in ways that matter to users.
+- Test stubs must model the behaviour the hosts rely on (e.g. swallowing Cmd+Enter), or host tests pass while the real path is broken.
+
+### Cost Observations
+
+- Sessions: many short sessions over 4 days; 477 commits
+- Notable: the largest plan count of any milestone (84) in the shortest time, made possible by parallel worktree executors
+
 ## Cross-Milestone Trends
 
-| Metric | v1.0 | v1.1 | v1.2 | v1.3 | v1.4 | v1.5 | v1.6.3 | v1.7 | v1.8 | v1.9 | v1.10 | v1.11 | v1.12 | v1.13 | v1.14 |
-|--------|------|------|------|------|------|------|--------|------|------|------|-------|-------|-------|-------|-------|
-| Phases | 4 | 4 (5-8) | 9 (9-17) | 7 (18-24) | 6 (25-30) | 7 (31-37) | 4 (38-41) | 9 (42-49) | 9 (50-58) | 6 (59-64) | 6 (65-70) | 5 (71-75) | 5 (76-80) | 6 (81-86) | 11 (87-95) |
-| Plans | 20 | 24 | 29 | 27 | 21 | 25 | 10 | 23 | 45 | 20 | 15 | 22 | 19 | 23 | 80 |
-| Quick tasks | 0 | 20 | 0 | 40+ | 2 | 6 | 13 | 20+ | n/a | 10 | 17 | — | ~30 | few | ~25 + 143 |
-| Timeline (days) | 2 | 2 | 2 | 5 | 2 | 4 | 6 | 8 | 7 | 4 | 3 | 4 | 6 | 9 | 3‡ |
-| LOC (TypeScript) | ~11,017 | ~15,856 | ~23,607 | ~32,173 | ~37,520 | ~45k* | ~51,536 | ~57,000+ | ~68,000+ | ~73,264 | ~80,895 | ~80,895+ | ~80,895+ | ~80,895+ | ~98,000+ |
-| Gap/fix plans | 7 (35%) | 7 (29%) | 6 (21%) | 2 (7%) | 1 (5%) | 7 (28%) | 0 (0%) | 5 (22%) | n/a | 3 (15%) | 0 (0%) | 0 (0%) | 0 (0%) | 0 (0%) | 16 (33%) |
-| Requirements hit | 35/35 (100%) | 22/22 (100%) | 27/27 (100%) | 31/31 (100%) | 27/27 (100%) | 30/34 (88%)** | 15/15 (100%) | 17/17 (100%) | n/a | 19/19 (100%)*** | 27/29 (93%)**** | 17/17 (100%) | 32/32 (100%) | 17/18 (94%)***** | 31/31 + 10/10 NOTIF (100%)****** |
+| Metric | v1.0 | v1.1 | v1.2 | v1.3 | v1.4 | v1.5 | v1.6.3 | v1.7 | v1.8 | v1.9 | v1.10 | v1.11 | v1.12 | v1.13 | v1.14 | v1.15 |
+|--------|------|------|------|------|------|------|--------|------|------|------|-------|-------|-------|-------|-------|-------|
+| Phases | 4 | 4 (5-8) | 9 (9-17) | 7 (18-24) | 6 (25-30) | 7 (31-37) | 4 (38-41) | 9 (42-49) | 9 (50-58) | 6 (59-64) | 6 (65-70) | 5 (71-75) | 5 (76-80) | 6 (81-86) | 11 (87-95) | 7 (96-102) |
+| Plans | 20 | 24 | 29 | 27 | 21 | 25 | 10 | 23 | 45 | 20 | 15 | 22 | 19 | 23 | 80 | 84 |
+| Quick tasks | 0 | 20 | 0 | 40+ | 2 | 6 | 13 | 20+ | n/a | 10 | 17 | — | ~30 | few | ~25 + 143 | ~6 |
+| Timeline (days) | 2 | 2 | 2 | 5 | 2 | 4 | 6 | 8 | 7 | 4 | 3 | 4 | 6 | 9 | 3‡ | 4 |
+| LOC (TypeScript) | ~11,017 | ~15,856 | ~23,607 | ~32,173 | ~37,520 | ~45k* | ~51,536 | ~57,000+ | ~68,000+ | ~73,264 | ~80,895 | ~80,895+ | ~80,895+ | ~80,895+ | ~98,000+ | ~116,000 (src, non-test) |
+| Gap/fix plans | 7 (35%) | 7 (29%) | 6 (21%) | 2 (7%) | 1 (5%) | 7 (28%) | 0 (0%) | 5 (22%) | n/a | 3 (15%) | 0 (0%) | 0 (0%) | 0 (0%) | 0 (0%) | 16 (33%) | 10 (12%) |
+| Requirements hit | 35/35 (100%) | 22/22 (100%) | 27/27 (100%) | 31/31 (100%) | 27/27 (100%) | 30/34 (88%)** | 15/15 (100%) | 17/17 (100%) | n/a | 19/19 (100%)*** | 27/29 (93%)**** | 17/17 (100%) | 32/32 (100%) | 17/18 (94%)***** | 31/31 + 10/10 NOTIF (100%)****** | 46/46 (100%)******* |
 
 \* v1.5 LOC corrected from previous ~633k count
 \*\* 4 requirements user-deferred (bulk operations BOARD-04–07)
@@ -771,5 +814,6 @@
 \*\*\*\* 27/27 in-scope satisfied; STAND-08 + STAND-09 descoped by user during Phase 70 redesign
 \*\*\*\*\* 17/18 committed satisfied; DASH-06 (MR review queue) descoped at Phase 84 UAT; INSIGHT-01/02 conditional insights built in Phase 85 then retired by the Phase 86 redesign
 \*\*\*\*\*\* 31/31 committed satisfied; DRIFT-09 descoped at Phase 89 UAT and MERGE-03 descoped by Phase 91 D-12 (both user decisions, recorded as intentional)
+\*\*\*\*\*\*\* 46/46 active satisfied; HOST-02 and UI-04 (inline description editing) dropped by Phase 100 D-01
 
 ‡ v1.14 phase execution ran 2026-08-10 → 08-12; the calendar gap since v1.13 (58 days) was spent on quick tasks, not milestone phases
