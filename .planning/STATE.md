@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-11-19)
 Phase: Milestone v1.15 complete
 Plan: —
 Status: Awaiting next milestone
-Last activity: 2026-11-19 - Completed quick task 261119-rgb: Polish wiki editor toolbar visuals
+Last activity: 2026-11-19 - Completed quick task 261119-sfh: Restyle drafts button in the top bar
 
 ## Performance Metrics
 
@@ -350,6 +350,7 @@ Acknowledged and deferred at v1.14 milestone close (2026-08-13) — 111 open art
 | 261119-nm6 | Fixed {noformat} close fence gluing onto the last body line (stray ``` and, mid-document, swallowed following prose): newline restored before {noformat} close in preprocess; fences widened when a body contains ``` runs | 2026-11-19 | 3990b8c3 | Approved | [261119-nm6-fix-stray-backticks-after-noformat-block](./quick/261119-nm6-fix-stray-backticks-after-noformat-block/) |
 | 261119-ol5 | Developer Tools → Editor tab: in-memory wiki editor log (open/close, mode switches, submits, save-failed/recovered, load-failed, load/render crash); failures carry reason, stack and original/produced markup, routine events metadata only; captured only with dev tools on; Clear Logs clears it; failed saves show the failing block (expected vs read-back structure) and original/produced markup as side-by-side diffs | 2026-11-19 | 568762e6, 5fa0aa15, c9737a4b, 1b07a702, f6bca04d | Approved | [261119-ol5-add-dev-tools-tab-with-editor-logs-for-d](./quick/261119-ol5-add-dev-tools-tab-with-editor-logs-for-d/) |
 | 261119-rgb | Polished wiki editor toolbar: toolbar/scroller follow the frame's rounded corners; clear neutral pressed state (fill + hairline ring) shared by formatting buttons and Rich|Source toggle; order is formatting → ⋯ More → divider → + Insert; overflow fits measured room instead of fixed breakpoints (sub/sup now inline when space allows); toolbar tooltips hug their content; quiet ghost language trigger in code block header | 2026-11-19 | ed1aa48a, 4b128d5d, 57a8997f, 4b9d146a, 61050bff, af6b345d | Approved | [261119-rgb-polish-wiki-editor-toolbar-visuals](./quick/261119-rgb-polish-wiki-editor-toolbar-visuals/) |
+| 261119-sfh | Drafts button in the top bar restyled to match its neighbours: ghost button (no border/pill) with pen icon + "Drafts", grey on hover and while open; count moved to a neutral corner badge (like the bell, never red), capped at 99+ | 2026-11-19 | 08132ed7 | Needs Review | [261119-sfh-make-the-drafts-button-in-the-navigation](./quick/261119-sfh-make-the-drafts-button-in-the-navigation/) |
 
 ## Session Continuity
 
