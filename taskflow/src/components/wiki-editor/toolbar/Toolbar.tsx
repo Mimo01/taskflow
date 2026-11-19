@@ -326,7 +326,7 @@ export function Toolbar({
     <div
       role="toolbar"
       aria-label="Formatting"
-      className="sticky top-0 z-10 flex h-10 flex-nowrap items-center gap-1 border-b border-border bg-[color-mix(in_oklab,var(--color-muted)_40%,var(--color-background))] px-2"
+      className="sticky top-0 z-10 flex h-10 rounded-t-[calc(var(--radius-lg)-1px)] flex-nowrap items-center gap-1 border-b border-border bg-[color-mix(in_oklab,var(--color-muted)_40%,var(--color-background))] px-2"
     >
       <div data-toolbar-items className="flex min-w-0 shrink items-center gap-1 overflow-hidden">
         {isRich && show('text-style') ? (

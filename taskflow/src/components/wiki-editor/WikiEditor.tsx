@@ -607,7 +607,15 @@ export default function WikiEditor({
         data-slot="wiki-editor-frame"
         className="rounded-lg border border-input bg-transparent dark:bg-input/30 transition-colors focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50"
       >
-        <div className={cn('relative overflow-auto', maxClass)}>
+        <div
+          className={cn(
+            'relative overflow-auto',
+            preset === 'full'
+              ? 'rounded-[calc(var(--radius-lg)-1px)]'
+              : 'rounded-t-[calc(var(--radius-lg)-1px)]',
+            maxClass,
+          )}
+        >
           {preset === 'compact' ? (
             mode === 'rich' ? (
               <BubbleToolbar editor={editor} linkOpen={linkOpen} onLinkOpenChange={setLinkOpen} />

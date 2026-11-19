@@ -10,13 +10,22 @@ describe('ToolbarButton', () => {
     render(<ToolbarButton label="Bold" keys={['⌘', 'B']} icon={<i />} onClick={onClick} pressed />);
     const btn = screen.getByRole('button', { name: 'Bold' });
     expect(btn).toHaveAttribute('aria-pressed', 'true');
+    expect(btn.className).toContain('ring-inset');
+    expect(btn.className).toContain('bg-foreground/10');
     fireEvent.click(btn);
     expect(onClick).toHaveBeenCalledTimes(1);
   });
 
+  it('has no pressed ring when pressed is false', () => {
+    render(<ToolbarButton label="Italic" icon={<i />} onClick={vi.fn()} pressed={false} />);
+    expect(screen.getByRole('button', { name: 'Italic' }).className).not.toContain('ring-inset');
+  });
+
   it('omits aria-pressed when pressed is undefined', () => {
     render(<ToolbarButton label="Undo" icon={<i />} onClick={vi.fn()} />);
-    expect(screen.getByRole('button', { name: 'Undo' })).not.toHaveAttribute('aria-pressed');
+    const btn = screen.getByRole('button', { name: 'Undo' });
+    expect(btn).not.toHaveAttribute('aria-pressed');
+    expect(btn.className).not.toContain('ring-inset');
   });
 
   it('prevents default on mousedown so the editor keeps focus', () => {

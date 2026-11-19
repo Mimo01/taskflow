@@ -16,6 +16,14 @@ export interface ToolbarButtonProps {
   children?: React.ReactNode;
 }
 
+/**
+ * Pressed (toggled-on) look. `--accent` equals `--muted` in this theme, so the
+ * old `bg-accent` matched the ghost hover; a foreground-alpha fill + hairline
+ * inset ring stays colourless yet clearly reads as "on" in both themes.
+ */
+export const TOOLBAR_PRESSED_CLASS =
+  'bg-foreground/10 text-foreground ring-1 ring-inset ring-foreground/15 hover:bg-foreground/15 dark:bg-foreground/15 dark:hover:bg-foreground/20';
+
 /** Props injected by a wrapping Popover/Menu trigger are forwarded onto the button. */
 type TriggerProps = Omit<React.ComponentProps<'button'>, keyof ToolbarButtonProps>;
 
@@ -46,7 +54,7 @@ export function ToolbarButton({
             disabled={disabled}
             onMouseDown={(e) => e.preventDefault()}
             onClick={onClick}
-            className={cn(pressed && 'bg-accent text-accent-foreground', className)}
+            className={cn(pressed && TOOLBAR_PRESSED_CLASS, className)}
           />
         }
       >
