@@ -30,7 +30,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 96: Wiki Foundations & Equivalence Harness** - Extract lib/wiki/ with zero behaviour change and a placeholder-only corpus that proves round-trip equivalence in CI (completed 2026-11-16)
 - [x] **Phase 97: Round-Trip Engine** - Source-level wiki parser and canonical emitter (incl. tables, panels, colour, nesting) with raw atoms and byte-identical no-op save (completed 2026-11-16)
-- [ ] **Phase 98: Editor Shell** - Lazy TipTap WikiEditor with toolbar, shortcuts, input rules, blocks, source toggle and runtime guard, proven in a dev-tools preview tab
+- [x] **Phase 98: Editor Shell** - Lazy TipTap WikiEditor with toolbar, shortcuts, input rules, blocks, source toggle and runtime guard, proven in a dev-tools preview tab (completed 2026-11-18)
 - [x] **Phase 99: Mentions, Media & Smart Input** - @mentions, attachments, image paste/drop, rich-HTML paste, issue keys, emoticons, slash menu, bubble menu (completed 2026-11-17)
 - [x] **Phase 100: Host Adoption & Editing Workflow** - Swap every wiki host to the new editor one at a time, add local drafts, dirty guards and Cmd+Enter/Esc, delete the textarea code (completed 2026-11-17)
 - [x] **Phase 101: Issue Drafts & Large Create/Edit Modal** - Two-column Create/Edit Issue modal with Create another, plus auto-saved multi-draft issue creation with a header Drafts chip (completed 2026-11-18)
@@ -272,7 +272,7 @@ Plans:
 
 **Wave 7** *(blocked on Wave 6 completion)*
 
-- [ ] 98-13-PLAN.md — Manual macOS WKWebView UAT (IME, caret, input rules, visual pass)
+- [x] 98-13-PLAN.md — Manual macOS WKWebView UAT (IME, caret, input rules, visual pass)
 
 **Gap closure (UAT 98-13)** *(wave 1, parallel)*
 
@@ -459,7 +459,7 @@ Plans:
 |-------|----------------|--------|-----------|
 | 96. Wiki Foundations & Equivalence Harness | 6/6 | Complete    | 2026-11-16 |
 | 97. Round-Trip Engine | 17/17 | Complete    | 2026-11-16 |
-| 98. Editor Shell | 15/16 | In Progress|  |
+| 98. Editor Shell | 16/16 | Complete | 2026-11-18 |
 | 99. Mentions, Media & Smart Input | 14/14 | Complete    | 2026-11-17 |
 | 100. Host Adoption & Editing Workflow | 9/9 | Complete    | 2026-11-17 |
 | 101. Issue Drafts & Large Create/Edit Modal | 12/12 | Complete    | 2026-11-18 |

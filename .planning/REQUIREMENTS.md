@@ -28,9 +28,9 @@
 
 ### Rich Blocks (BLOCK)
 
-- [ ] **BLOCK-01**: User can insert a table and add/remove rows, columns and header cells
-- [ ] **BLOCK-02**: User can insert and edit `{code}` blocks with a language, and `{noformat}` blocks
-- [ ] **BLOCK-03**: User can insert and edit `{panel}`/`{info}`/`{note}`/`{warning}`/`{tip}` panels, incl. titles
+- [x] **BLOCK-01**: User can insert a table and add/remove rows, columns and header cells
+- [x] **BLOCK-02**: User can insert and edit `{code}` blocks with a language, and `{noformat}` blocks
+- [x] **BLOCK-03**: User can insert and edit `{panel}`/`{info}`/`{note}`/`{warning}`/`{tip}` panels, incl. titles
 - [x] **BLOCK-04**: User can colour text with `{color}` from a validated palette (CSS-injection safe)
 - [x] **BLOCK-05**: User can open a `/` slash menu to insert any block type
 
@@ -115,9 +115,9 @@
 | EDIT-07 | Phase 98 | Complete |
 | EDIT-08 | Phase 98 | Complete |
 | EDIT-09 | Phase 98 | Complete |
-| BLOCK-01 | Phase 98 | Pending |
-| BLOCK-02 | Phase 98 | Pending |
-| BLOCK-03 | Phase 98 | Pending |
+| BLOCK-01 | Phase 98 | Complete |
+| BLOCK-02 | Phase 98 | Complete |
+| BLOCK-03 | Phase 98 | Complete |
 | BLOCK-04 | Phase 98 | Complete |
 | BLOCK-05 | Phase 99 | Complete |
 | INPUT-01 | Phase 99 | Complete |
