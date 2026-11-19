@@ -34,6 +34,7 @@ import { UpdateDialog } from './components/update/UpdateDialog';
 import { WhatsNewDialog } from './components/update/WhatsNewDialog';
 import { useDraftsAccountGuard } from './hooks/useDraftsAccountGuard';
 import { useNotificationPolling } from './hooks/useNotificationPolling';
+import { useQueryActivityCapture } from './hooks/useQueryActivityCapture';
 import { useUpdatePolling } from './hooks/useUpdatePolling';
 import { useVersionPolicyCheck } from './hooks/useVersionPolicyCheck';
 import { useWizardRerunCheck } from './hooks/useWizardRerunCheck';
@@ -659,6 +660,7 @@ function AppLayout() {
 
   // Notification polling — runs inside QueryClientProvider context
   useNotificationPolling();
+  useQueryActivityCapture();
   useUpdatePolling();
   useWizardRerunCheck();
   useCustomFieldDiscovery();

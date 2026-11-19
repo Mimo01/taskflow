@@ -6,6 +6,7 @@ import { nowMs } from '../../lib/dev-tools/log-entry';
 import { saveBytes } from '../../lib/save-attachment';
 import type { ApiLogEntry } from '../../stores/debug-log.store';
 import { useDebugLogStore } from '../../stores/debug-log.store';
+import { useQueryActivityStore } from '../../stores/query-activity.store';
 import { useSettingsStore } from '../../stores/settings.store';
 import DevToolsPage from './DevToolsPage';
 import { LOG_FACETS, useDevToolsViewStore } from './dev-tools-view.store';
@@ -333,6 +334,44 @@ describe('DevToolsPage', () => {
       expect(inspector.textContent).toContain('Queued');
       expect(inspector.textContent).toContain('120 ms');
       expect(inspector.textContent).toContain('Network');
+    });
+  });
+
+  describe('query activity and waterfall', () => {
+    const activity = {
+      id: 'ev1',
+      at: 1,
+      kind: 'fetch' as const,
+      queryHash: 'h',
+      keyLabel: 'k',
+    };
+
+    it('the header Clear logs button also empties the query-activity store', () => {
+      act(() => {
+        useDebugLogStore.getState().append(entry);
+        useQueryActivityStore.getState().append(activity);
+      });
+      renderPage();
+      fireEvent.click(screen.getByRole('button', { name: 'Clear logs' }));
+      expect(useQueryActivityStore.getState().events).toHaveLength(0);
+    });
+
+    it('the Logs toolbar Clear button also empties the query-activity store', () => {
+      act(() => {
+        useDebugLogStore.getState().append(entry);
+        useQueryActivityStore.getState().append(activity);
+      });
+      renderPage();
+      fireEvent.click(screen.getByRole('button', { name: 'Clear' }));
+      expect(useQueryActivityStore.getState().events).toHaveLength(0);
+    });
+
+    it('a list row shows a waterfall bar', () => {
+      act(() => {
+        useDebugLogStore.getState().append(entry);
+      });
+      renderPage();
+      expect(screen.getAllByTestId('waterfall-bar')).toHaveLength(1);
     });
   });
 });

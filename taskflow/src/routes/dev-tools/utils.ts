@@ -1,6 +1,8 @@
 /**
  * Shared utilities for Developer Tools components.
  */
+import { isPending } from '../../lib/dev-tools/log-entry';
+import type { ApiLogEntry } from '../../stores/debug-log.store';
 
 export function formatBody(raw: string): string {
   try {
@@ -39,6 +41,18 @@ export function statusText(status: number | null, pending = false): string {
   if (status >= 200 && status < 300) return 'text-green-600 dark:text-green-400';
   if (status >= 300 && status < 400) return 'text-yellow-600 dark:text-yellow-400';
   return 'text-red-600 dark:text-red-400';
+}
+
+/**
+ * Bar colour for a request on the waterfall and timeline: status only.
+ * ok neutral, 4xx amber, 5xx or network error red, pending muted and pulsing.
+ */
+export function timelineBarClass(entry: Pick<ApiLogEntry, 'state' | 'status'>): string {
+  if (isPending(entry)) return 'bg-muted-foreground/40 animate-pulse';
+  const { status } = entry;
+  if (status === null || status >= 500) return 'bg-red-500/70';
+  if (status >= 400) return 'bg-amber-500/70';
+  return 'bg-foreground/30';
 }
 
 export function formatBytes(bytes: number | undefined): string {

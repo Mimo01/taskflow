@@ -12,7 +12,7 @@ import { Button } from '../../components/ui/button';
 import { EmptyState } from '../../components/ui/empty-state';
 import { FilterPopover } from '../../components/ui/table-filter-sort';
 import { entriesToJson } from '../../lib/dev-tools/copy-format';
-import { entryStart, isPending } from '../../lib/dev-tools/log-entry';
+import { entryEnd, entryStart, isPending } from '../../lib/dev-tools/log-entry';
 import {
   facetOptions,
   filterLogs,
@@ -20,9 +20,11 @@ import {
   STATUS_FACETS,
 } from '../../lib/dev-tools/log-filters';
 import { computeLogStats, urlPath } from '../../lib/dev-tools/log-stats';
+import { type Burst, groupBursts, waterfallSegment } from '../../lib/dev-tools/timeline-layout';
 import { saveBytes } from '../../lib/save-attachment';
 import { cn } from '../../lib/utils';
 import { type ApiLogEntry, useDebugLogStore } from '../../stores/debug-log.store';
+import { useQueryActivityStore } from '../../stores/query-activity.store';
 import { useSettingsStore } from '../../stores/settings.store';
 import {
   CopyButton,
@@ -36,7 +38,7 @@ import { facetSetter, LOG_FACETS, useDevToolsViewStore } from './dev-tools-view.
 import ListInspectorLayout from './ListInspectorLayout';
 import LogInspector from './LogInspector';
 import { useNow } from './useNow';
-import { sourceBadgeClass, statusText } from './utils';
+import { sourceBadgeClass, statusText, timelineBarClass } from './utils';
 
 /** Decoded path + query with the host stripped. */
 export function displayPath(url: string): string {
@@ -89,6 +91,20 @@ export default function LogsTab() {
     const list = filterLogs(entries, filters);
     return { filtered: list, stats: computeLogStats(list), ids: list.map((e) => e.id) };
   }, [entries, search, sources, statuses, methods, operations]);
+  // Burst of each request, for the waterfall column. Recomputed per tick only while something is pending.
+  const burstById = useMemo(() => {
+    const map = new Map<string, Burst>();
+    const bursts = groupBursts(
+      filtered.map((e) => ({
+        id: e.id,
+        start: entryStart(e),
+        end: entryEnd(e, now),
+        route: e.route,
+      })),
+    );
+    for (const b of bursts) for (const id of b.ids) map.set(id, b);
+    return map;
+  }, [filtered, now]);
   const selected = filtered.find((e) => e.id === selectedId) ?? null;
   const onKeyDown = useListKeyboard(ids, selectedId, (id) => setSelected('logs', id));
 
@@ -219,6 +235,7 @@ export default function LogsTab() {
           size="xs"
           onClick={() => {
             useDebugLogStore.getState().clear();
+            useQueryActivityStore.getState().clear();
             setPausedEntries(null);
             setSelected('logs', null);
             useDevToolsViewStore.getState().resetFacets(LOG_FACETS);
@@ -268,12 +285,13 @@ export default function LogsTab() {
         subtitle={hasFilters ? undefined : 'Nothing to show.'}
       />
     ) : (
-      <div>
+      <div className="@container">
         {filtered.map((e) => (
           <LogRow
             key={e.id}
             entry={e}
             now={now}
+            burst={burstById.get(e.id)}
             selected={e.id === selectedId}
             tabStop={isTabStop(ids, selectedId, e.id)}
             onSelect={() => setSelected('logs', e.id)}
@@ -315,6 +333,20 @@ function Chip({
   );
 }
 
+/** Mini waterfall bar: start offset and duration within the request's burst, coloured by status. */
+function WaterfallBar({ entry, burst, now }: { entry: ApiLogEntry; burst: Burst; now: number }) {
+  const { leftPct, widthPct } = waterfallSegment(entryStart(entry), entryEnd(entry, now), burst);
+  return (
+    <span className="relative block h-2 rounded-sm bg-muted/50">
+      <span
+        data-testid="waterfall-bar"
+        className={cn('absolute inset-y-0 rounded-sm', timelineBarClass(entry))}
+        style={{ left: `${leftPct}%`, width: `${widthPct}%` }}
+      />
+    </span>
+  );
+}
+
 function RowCopyUrl({ url }: { url: string }) {
   const { state, copy } = useCopyFeedback();
   return (
@@ -351,12 +383,14 @@ function displayUrl(url: string): string {
 function LogRow({
   entry,
   now,
+  burst,
   selected,
   tabStop,
   onSelect,
 }: {
   entry: ApiLogEntry;
   now: number;
+  burst: Burst | undefined;
   selected: boolean;
   tabStop: boolean;
   onSelect: () => void;
@@ -388,6 +422,11 @@ function LogRow({
       </span>
       {entry.operation && (
         <span className="max-w-40 flex-none truncate text-muted-foreground">{entry.operation}</span>
+      )}
+      {burst && (
+        <span className="w-[120px] flex-none @max-[720px]:hidden" aria-hidden="true">
+          <WaterfallBar entry={entry} burst={burst} now={now} />
+        </span>
       )}
       <span className="w-16 flex-none text-right tabular-nums text-muted-foreground">
         {elapsed} ms
