@@ -1,0 +1,266 @@
+<title>Timeline Directions</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: the app's Dev Tools frame, Timeline view simplified to name | bar | duration per request, grouped by page load. */
+:root {
+  --bg: #ffffff;
+  --panel: #fafafa;
+  --fg: #18181b;
+  --muted: #71717a;
+  --faint: #a1a1aa;
+  --line: #e7e7ea;
+  --hover: #f4f4f5;
+  --select: #eef2ff;
+  --select-line: #6366f1;
+  --bar: rgba(24, 24, 27, 0.30);
+  --bar-q: rgba(24, 24, 27, 0.10);
+  --warn: #b45309;
+  --warn-bar: rgba(217, 119, 6, 0.55);
+  --err: #dc2626;
+  --err-bar: rgba(220, 38, 38, 0.6);
+  --font-ui: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #0c0c0e; --panel: #111114; --fg: #ececee; --muted: #9b9ba4; --faint: #6b6b74;
+    --line: #26262b; --hover: #18181c; --select: #1c1d33; --select-line: #818cf8;
+    --bar: rgba(236, 236, 238, 0.36); --bar-q: rgba(236, 236, 238, 0.12);
+    --warn: #fbbf24; --warn-bar: rgba(251, 191, 36, 0.55); --err: #f87171; --err-bar: rgba(248, 113, 113, 0.6);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0c0c0e; --panel: #111114; --fg: #ececee; --muted: #9b9ba4; --faint: #6b6b74;
+  --line: #26262b; --hover: #18181c; --select: #1c1d33; --select-line: #818cf8;
+  --bar: rgba(236, 236, 238, 0.36); --bar-q: rgba(236, 236, 238, 0.12);
+  --warn: #fbbf24; --warn-bar: rgba(251, 191, 36, 0.55); --err: #f87171; --err-bar: rgba(248, 113, 113, 0.6);
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--fg); font: 13px/1.4 var(--font-ui);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 16px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.num { font-variant-numeric: tabular-nums; }
+.mono { font-family: var(--font-mono); font-size: 12px; }
+:focus-visible { outline: 2px solid var(--select-line); outline-offset: 1px; }
+.caption { color: var(--muted); max-width: 72ch; margin: 0; }
+.caption b { color: var(--fg); font-weight: 500; }
+
+.frame { flex: 1; min-height: 480px; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; display: flex; flex-direction: column; }
+.titlebar { padding: 12px 16px 0; }
+.titlebar h1 { margin: 0; font-size: 18px; font-weight: 600; }
+.tabs { display: flex; gap: 16px; padding: 8px 16px 0; border-bottom: 1px solid var(--line); color: var(--muted); }
+.tabs span { padding: 6px 0; }
+.tabs span.on { color: var(--fg); box-shadow: inset 0 -2px 0 var(--fg); }
+.toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 16px; border-bottom: 1px solid var(--line); color: var(--muted); }
+.toolbar .box { border: 1px solid var(--line); border-radius: 6px; padding: 3px 8px; }
+.toolbar .search { min-width: 180px; color: var(--faint); }
+.toolbar .on { color: var(--fg); background: var(--hover); }
+.toolbar .spacer { flex: 1; }
+
+.split { flex: 1; min-height: 0; display: flex; }
+.list { flex: 1; min-width: 0; overflow: auto; outline: none; }
+.inspector { width: 280px; flex: none; border-left: 1px solid var(--line); background: var(--panel); padding: 14px 16px; overflow: auto; display: flex; flex-direction: column; gap: 10px; }
+@media (max-width: 720px) { .inspector { display: none; } }
+
+/* One grid for headers and rows: name | bar | duration */
+.load, .row { display: grid; grid-template-columns: minmax(11rem, 30%) 1fr 4.5rem; align-items: center; }
+.load { height: 32px; border-top: 1px solid var(--line); cursor: pointer; position: sticky; top: 0; z-index: 2; background: var(--bg); }
+.load:first-child { border-top: 0; }
+.load:hover { background: var(--hover); }
+.load .name { display: flex; align-items: center; gap: 6px; padding-left: 10px; font-weight: 500; white-space: nowrap; overflow: hidden; }
+.load .chev { color: var(--muted); width: 12px; display: inline-block; transition: transform .15s; }
+.load[aria-expanded="true"] .chev { transform: rotate(90deg); }
+.load .count { color: var(--muted); font-weight: 400; }
+.load .scale { position: relative; height: 100%; color: var(--faint); font-size: 11px; }
+.load .scale span { position: absolute; bottom: 4px; transform: translateX(-50%); }
+.load .scale span:first-child { transform: none; }
+.load .clock { text-align: right; padding-right: 16px; color: var(--faint); font-size: 12px; }
+
+.row { height: 26px; cursor: pointer; }
+.row:hover { background: var(--hover); }
+.row.sel { background: var(--select); box-shadow: inset 2px 0 0 var(--select-line); }
+.row .name { padding-left: 28px; padding-right: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.row .name .st { margin-left: 6px; font-size: 12px; }
+.st.warn { color: var(--warn); } .st.err { color: var(--err); } .st.pend { color: var(--faint); }
+.track { position: relative; height: 100%; }
+.bar { position: absolute; top: 8px; height: 10px; border-radius: 2px; background: var(--bar); }
+.bar.warn { background: var(--warn-bar); } .bar.err { background: var(--err-bar); }
+.bar.pend { background: var(--bar-q); box-shadow: inset 0 0 0 1px var(--bar); }
+@media (prefers-reduced-motion: no-preference) { .bar.pend { animation: pulse 1.6s ease-in-out infinite; } }
+@keyframes pulse { 50% { opacity: .5; } }
+.wait { position: absolute; top: 8px; height: 10px; border-radius: 2px 0 0 2px; background: var(--bar-q); }
+.dur { text-align: right; padding-right: 16px; color: var(--muted); font-size: 12px; }
+.gl { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--line); opacity: .7; }
+
+.tip { position: fixed; z-index: 10; pointer-events: none; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; font-size: 12px; box-shadow: 0 4px 16px rgba(0,0,0,.12); display: grid; gap: 2px; max-width: 360px; }
+.tip .k { color: var(--muted); }
+.inspector h2 { margin: 0; font-size: 13px; font-weight: 600; }
+.inspector dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: 12px; }
+.inspector dt { color: var(--muted); }
+.inspector dd { margin: 0; overflow-wrap: anywhere; }
+.inspector .hint { color: var(--muted); font-size: 12px; margin: 0; }
+</style>
+
+<p class="caption"><b>Simplified timeline.</b> One row per request, in the order it started, grouped by page. Bars that overlap ran at the same time; a staircase means one waited for the other. A faint start on a bar is time spent waiting for a free Jira slot. Click a group to open or close it, click a row to inspect it. Sample data.</p>
+
+<div class="frame">
+  <div class="titlebar"><h1>Developer Tools</h1></div>
+  <div class="tabs"><span class="on">Logs</span><span>Cache</span><span>Notifications</span><span>Editor</span></div>
+  <div class="toolbar">
+    <span class="box search">Search URL or body</span>
+    <span class="box">Source</span><span class="box">Status</span>
+    <span class="spacer"></span>
+    <span class="box">List</span><span class="box on">Timeline</span>
+    <span class="box">Pause</span><span class="box">Clear</span>
+  </div>
+  <div class="split">
+    <div class="list" id="list" tabindex="0" aria-label="Request timeline"></div>
+    <aside class="inspector" id="insp"></aside>
+  </div>
+</div>
+<div class="tip" id="tip" hidden></div>
+
+<script>
+(() => {
+  // Example data. s = start (ms into the page load), d = duration, q = ms waited for a Jira slot.
+  const LOADS = [
+    { id: 'L3', route: 'Backlog', clock: '14:02:11', reqs: [
+      { label: 'Active sprint', path: 'GET /rest/agile/1.0/board/42/sprint?state=active', st: 200, s: 6, d: 118 },
+      { label: 'Backlog issues, page 1', path: 'POST /rest/api/2/search', st: 200, s: 130, d: 412 },
+      { label: 'Epics', path: 'GET /rest/agile/1.0/board/42/epic', st: 200, s: 134, d: 262 },
+      { label: 'Project statuses', path: 'GET /rest/api/2/project/PROJ/statuses', st: 200, s: 139, d: 88 },
+      { label: 'Open merge requests', path: 'GET /api/v4/projects/17/merge_requests?state=opened', st: 200, s: 150, d: 604 },
+      { label: 'Worklogs', path: 'GET /rest/tempo-timesheets/4/worklogs', st: 200, s: 212, d: 338 },
+      { label: 'Backlog issues, page 2', path: 'POST /rest/api/2/search', st: 200, s: 548, d: 376 },
+      { label: 'Subtasks 1 of 8', path: 'POST /rest/api/2/search', st: 200, s: 560, d: 342 },
+      { label: 'Subtasks 2 of 8', path: 'POST /rest/api/2/search', st: 200, s: 562, d: 410 },
+      { label: 'Subtasks 3 of 8', path: 'POST /rest/api/2/search', st: 200, s: 565, d: 298 },
+      { label: 'Subtasks 4 of 8', path: 'POST /rest/api/2/search', st: 200, s: 568, d: 455 },
+      { label: 'Subtasks 5 of 8', path: 'POST /rest/api/2/search', st: 200, s: 866, d: 318, q: 298 },
+      { label: 'Subtasks 6 of 8', path: 'POST /rest/api/2/search', st: 200, s: 911, d: 290, q: 341 },
+      { label: 'Backlog issues, page 3', path: 'POST /rest/api/2/search', st: 200, s: 1024, d: 352, q: 98 },
+      { label: 'Subtasks 7 of 8', path: 'POST /rest/api/2/search', st: 200, s: 1184, d: 264, q: 611 },
+      { label: 'Subtasks 8 of 8', path: 'POST /rest/api/2/search', st: 200, s: 1201, d: 241, q: 626 },
+      { label: 'Remote links', path: 'GET /rest/api/2/issue/PROJ-1182/remotelink', st: 404, s: 1310, d: 61 },
+      { label: 'Pipelines', path: 'GET /api/v4/projects/17/pipelines?ref=main', st: 'pending', s: 1402, d: 0 },
+    ] },
+    { id: 'L2', route: 'Sprint board', clock: '14:01:52', reqs: [
+      { label: 'Board configuration', path: 'GET /rest/agile/1.0/board/42/configuration', st: 200, s: 4, d: 96 },
+      { label: 'Sprint issues', path: 'GET /rest/agile/1.0/sprint/311/issue', st: 200, s: 110, d: 742 },
+      { label: 'Flagged issues', path: 'POST /rest/api/2/search', st: 200, s: 112, d: 205 },
+      { label: 'Transitions', path: 'GET /rest/api/2/issue/PROJ-1201/transitions', st: 500, s: 880, d: 1210 },
+    ] },
+    { id: 'L1', route: 'My tasks', clock: '14:01:20', reqs: [
+      { label: 'My issues', path: 'POST /rest/api/2/search', st: 200, s: 3, d: 388 },
+      { label: 'Worklogs', path: 'GET /rest/tempo-timesheets/4/worklogs', st: 200, s: 9, d: 251 },
+    ] },
+  ];
+  LOADS.forEach((L) => L.reqs.forEach((r, i) => { r.id = `${L.id}-${i}`; r.load = L; }));
+
+  const open = new Set(['L3']);
+  let selected = null;
+  let now = 1960;
+  const list = document.getElementById('list');
+  const tip = document.getElementById('tip');
+
+  const end = (r) => (r.st === 'pending' ? Math.max(r.s + 40, now) : r.s + r.d);
+  const dur = (r) => end(r) - r.s;
+  const span = (L) => Math.max(...L.reqs.map(end));
+  const pct = (t, L) => (t / (span(L) * 1.02)) * 100;
+  const fmt = (ms) => (ms >= 1000 ? `${(ms / 1000).toFixed(1)} s` : `${Math.round(ms)} ms`);
+  const kind = (st) => (st === 'pending' ? 'pend' : st >= 500 ? 'err' : st >= 400 ? 'warn' : '');
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+  function ticks(L) {
+    const sp = span(L);
+    const step = [100, 250, 500, 1000, 2000].find((s) => sp / s <= 4) || 5000;
+    const out = [];
+    for (let t = step; t < sp; t += step) out.push(t);
+    return out;
+  }
+
+  function render() {
+    const scroll = list.scrollTop;
+    list.innerHTML = '';
+    for (const L of LOADS) {
+      const isOpen = open.has(L.id);
+      const h = document.createElement('div');
+      h.className = 'load';
+      h.setAttribute('role', 'button');
+      h.setAttribute('aria-expanded', String(isOpen));
+      h.innerHTML = `<div class="name"><span class="chev">›</span>${esc(L.route)} <span class="count num">· ${L.reqs.length} requests · ${fmt(span(L))}</span></div>
+        <div class="scale num">${isOpen ? '<span style="left:0">0</span>' + ticks(L).map((t) => `<span style="left:${pct(t, L)}%">${fmt(t)}</span>`).join('') : ''}</div>
+        <div class="clock num">${L.clock}</div>`;
+      h.addEventListener('click', () => { isOpen ? open.delete(L.id) : open.add(L.id); render(); });
+      list.appendChild(h);
+      if (!isOpen) continue;
+      for (const r of [...L.reqs].sort((a, b) => a.s - b.s)) {
+        const row = document.createElement('div');
+        row.className = `row${selected === r.id ? ' sel' : ''}`;
+        row.dataset.id = r.id;
+        const k = kind(r.st);
+        const status = k ? `<span class="st ${k}">${r.st === 'pending' ? 'loading' : r.st}</span>` : '';
+        row.innerHTML = `<div class="name">${esc(r.label)}${status}</div><div class="track"></div><div class="dur num">${r.st === 'pending' ? '…' : fmt(dur(r))}</div>`;
+        const tr = row.querySelector('.track');
+        for (const t of ticks(L)) { const g = document.createElement('span'); g.className = 'gl'; g.style.left = `${pct(t, L)}%`; tr.appendChild(g); }
+        if (r.q) { const w = document.createElement('span'); w.className = 'wait'; w.style.left = `${pct(r.s - r.q, L)}%`; w.style.width = `${pct(r.q, L)}%`; tr.appendChild(w); }
+        const b = document.createElement('span');
+        b.className = `bar ${k}`;
+        b.style.left = `${pct(r.s, L)}%`;
+        b.style.width = `${Math.max(0.4, pct(dur(r), L))}%`;
+        tr.appendChild(b);
+        row.addEventListener('click', () => { selected = r.id; render(); list.focus(); });
+        row.addEventListener('mouseenter', (e) => {
+          tip.innerHTML = `<div class="mono">${esc(r.path)}</div>
+            <div class="num"><span class="k">Took</span> ${r.st === 'pending' ? 'still loading' : fmt(dur(r))}${r.q ? ` <span class="k">after waiting</span> ${r.q} ms <span class="k">for a Jira slot</span>` : ''}</div>
+            <div class="num"><span class="k">Started</span> ${fmt(r.s)} <span class="k">after the page opened</span></div>`;
+          tip.hidden = false; move(e);
+        });
+        row.addEventListener('mousemove', move);
+        row.addEventListener('mouseleave', () => { tip.hidden = true; });
+        list.appendChild(row);
+      }
+    }
+    list.scrollTop = scroll;
+    inspector();
+  }
+  function move(e) {
+    tip.style.left = `${Math.min(e.clientX + 14, window.innerWidth - tip.offsetWidth - 8)}px`;
+    tip.style.top = `${e.clientY + 16}px`;
+  }
+  function inspector() {
+    const box = document.getElementById('insp');
+    const r = LOADS.flatMap((L) => L.reqs).find((x) => x.id === selected);
+    if (!r) { box.innerHTML = '<h2>Select a request</h2><p class="hint">The detail pane is the same as in the List view.</p>'; return; }
+    box.innerHTML = `<h2>${esc(r.label)}</h2><div class="mono" style="overflow-wrap:anywhere">${esc(r.path)}</div>
+      <dl class="num"><dt>Status</dt><dd>${r.st === 'pending' ? 'loading' : r.st}</dd><dt>Took</dt><dd>${r.st === 'pending' ? 'still loading' : fmt(dur(r))}</dd>
+      <dt>Waited</dt><dd>${r.q ? `${r.q} ms for a Jira slot` : 'no'}</dd><dt>Started</dt><dd>${fmt(r.s)} after ${esc(r.load.route)} opened</dd></dl>`;
+  }
+  list.addEventListener('keydown', (e) => {
+    const ids = [...list.querySelectorAll('.row')].map((x) => x.dataset.id);
+    const i = ids.indexOf(selected);
+    if (e.key === 'ArrowDown') selected = ids[Math.min(ids.length - 1, i + 1)] ?? ids[0];
+    else if (e.key === 'ArrowUp') selected = ids[Math.max(0, i - 1)] ?? ids[0];
+    else if (e.key === 'Escape') selected = null;
+    else return;
+    e.preventDefault(); render();
+    list.querySelector('.row.sel')?.scrollIntoView({ block: 'nearest' });
+  });
+
+  const pend = LOADS[0].reqs.find((r) => r.st === 'pending');
+  const timer = setInterval(() => {
+    now += 120;
+    if (now >= 2480) { pend.st = 200; pend.d = now - pend.s; clearInterval(timer); }
+    render();
+  }, 250);
+  render();
+})();
+</script>
