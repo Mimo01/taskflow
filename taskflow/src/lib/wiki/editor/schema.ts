@@ -1,4 +1,5 @@
 import { Extension, getSchema, Mark, Node } from '@tiptap/core';
+import { ListItem } from '@tiptap/extension-list';
 import { Table, TableCell, TableHeader, TableRow } from '@tiptap/extension-table';
 import StarterKit from '@tiptap/starter-kit';
 
@@ -78,6 +79,20 @@ export const WikiSpelling = Extension.create({
     ];
   },
 });
+
+/*
+ * Containers hold only what emit.ts can spell inside them. StarterKit's listItem and the
+ * table cells accept any block, so inserting or pasting a code block, table, heading, … into
+ * a list item or cell built a doc that could not be saved ("cannot emit a codeBlock inside a
+ * list item"). With the narrower content, ProseMirror's replace fitting places such a block
+ * after the list or table instead.
+ */
+export const WikiListItem = ListItem.extend({
+  content: 'paragraph (paragraph | bulletList | orderedList | rawBlock)*',
+});
+const CELL_CONTENT = '(paragraph | panel | rawBlock)+';
+export const WikiTableCell = TableCell.extend({ content: CELL_CONTENT });
+export const WikiTableHeader = TableHeader.extend({ content: CELL_CONTENT });
 
 /** Panel family: panel / info / note / warning / tip. */
 export const Panel = Node.create({
@@ -190,14 +205,16 @@ export const STARTER_KIT_OPTIONS = {
   gapcursor: false,
   trailingNode: false,
   listKeymap: false,
+  listItem: false,
 } as const;
 
 export const wikiExtensions = [
   StarterKit.configure(STARTER_KIT_OPTIONS),
   Table,
   TableRow,
-  TableCell,
-  TableHeader,
+  WikiTableCell,
+  WikiTableHeader,
+  WikiListItem,
   WikiSpelling,
   Panel,
   RawBlock,

@@ -71,3 +71,29 @@ describe('INSERT_ITEMS', () => {
     editor.destroy();
   });
 });
+
+describe('block inserts inside containers the emitter cannot nest into', () => {
+  const insert = (id: string, editor: ReturnType<typeof makeEditor>['editor']) =>
+    INSERT_ITEMS.find((i) => i.id === id)?.run(editor);
+
+  it('a code block inserted in a list item lands after the list and saves', () => {
+    const { editor, load } = makeEditor('* a');
+    editor.commands.focus('end');
+    insert('code', editor);
+    expect(saveText(editor, load)).toEqual({ kind: 'saved', text: '* a\n\n{code}\n\n{code}' });
+  });
+
+  it('a pasted code block in a list item lands after the list and saves', () => {
+    const { editor, load } = makeEditor('* a');
+    editor.commands.focus('end');
+    editor.commands.insertContent('<pre><code>x\ny</code></pre>');
+    expect(saveText(editor, load)).toEqual({ kind: 'saved', text: '* a\n\n{code}\nx\ny\n{code}' });
+  });
+
+  it.each(['code', 'noformat', 'rule'])('%s inserted in a table cell saves', (id) => {
+    const { editor, load } = makeEditor('|a|b|');
+    editor.commands.focus(3);
+    insert(id, editor);
+    expect(saveText(editor, load).kind).toBe('saved');
+  });
+});

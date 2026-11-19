@@ -78,7 +78,10 @@ const FULL_DOC = {
             {
               type: 'orderedList',
               content: [
-                { type: 'listItem', content: [p(t('b')), { type: 'panel', content: [p(t('x'))] }] },
+                {
+                  type: 'listItem',
+                  content: [p(t('b')), { type: 'rawBlock', attrs: { raw: '{x}' } }],
+                },
               ],
             },
           ],
@@ -125,6 +128,22 @@ describe('wikiSchema', () => {
 
   it('validates a doc that uses every node and mark', () => {
     expect(() => wikiSchema.nodeFromJSON(FULL_DOC).check()).not.toThrow();
+  });
+
+  it.each([
+    ['listItem', 'bulletList'],
+    ['tableCell', 'table'],
+    ['tableHeader', 'table'],
+  ])('rejects blocks emit cannot nest inside a %s', (container) => {
+    const code = { type: 'codeBlock', content: [t('x')] };
+    const inner = { type: container, content: [p(t('a')), code] };
+    const outer =
+      container === 'listItem'
+        ? { type: 'bulletList', content: [inner] }
+        : { type: 'table', content: [{ type: 'tableRow', content: [inner] }] };
+    expect(() => wikiSchema.nodeFromJSON({ type: 'doc', content: [outer] }).check()).toThrow(
+      /Invalid content/,
+    );
   });
 
   it('rejects a table row holding a bare paragraph', () => {
@@ -175,6 +194,7 @@ describe('schema exports', () => {
       gapcursor: false,
       trailingNode: false,
       listKeymap: false,
+      listItem: false,
     });
     expect(Panel.name).toBe('panel');
     expect(RawBlock.name).toBe('rawBlock');
@@ -188,6 +208,7 @@ describe('schema exports', () => {
       'tableRow',
       'tableCell',
       'tableHeader',
+      'listItem',
       'wikiSpelling',
       'panel',
       'rawBlock',

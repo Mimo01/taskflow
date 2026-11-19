@@ -1,6 +1,6 @@
 import type { NodeViewRenderer } from '@tiptap/core';
 import { CodeBlock } from '@tiptap/extension-code-block';
-import { Table, TableCell, TableHeader, TableRow } from '@tiptap/extension-table';
+import { Table, TableRow } from '@tiptap/extension-table';
 import { Dropcursor, Gapcursor, Placeholder, UndoRedo } from '@tiptap/extensions';
 import StarterKit from '@tiptap/starter-kit';
 import { isSafeColor } from '@/lib/wiki/editor/parse/color';
@@ -19,7 +19,10 @@ import {
   STARTER_KIT_OPTIONS,
   Sub,
   Sup,
+  WikiListItem,
   WikiSpelling,
+  WikiTableCell,
+  WikiTableHeader,
 } from '@/lib/wiki/editor/schema';
 import { WIKI_PROSE_CLASSES } from '@/lib/wiki/prose';
 import { codeHighlightPlugin } from './code-highlight';
@@ -67,8 +70,9 @@ export function buildEditorExtensions(views: WikiNodeViews = {}) {
     }),
     Table,
     TableRow,
-    TableCell,
-    TableHeader,
+    WikiTableCell,
+    WikiTableHeader,
+    WikiListItem,
     WikiSpelling,
     Panel.extend({
       parseHTML: () => [{ tag: 'div[data-wiki-panel]' }],
