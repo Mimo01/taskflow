@@ -1,4 +1,4 @@
-import { act, fireEvent, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { EDIT_IN_SOURCE_EVENT } from './nodeviews/events';
 import { installLayoutStubs, textarea, liveEditor, renderEditor, typeAt } from './shell-test-utils';
@@ -15,8 +15,7 @@ afterEach(() => {
 describe('WikiEditor', () => {
   it('never calls onChange for an unedited text', async () => {
     const onChange = vi.fn();
-    const onVerdict = vi.fn();
-    const props = { value: VALUE, onChange, onVerdict };
+    const props = { value: VALUE, onChange };
     const { rerenderWith } = renderEditor(props);
     const ed = liveEditor();
     act(() => {
@@ -24,7 +23,7 @@ describe('WikiEditor', () => {
       ed.commands.blur();
     });
     rerenderWith({ ...props });
-    await waitFor(() => expect(onVerdict.mock.lastCall?.[0].created).toBe(1));
+    await act(async () => {});
     expect(onChange).not.toHaveBeenCalled();
   });
 
@@ -113,15 +112,5 @@ describe('WikiEditor', () => {
       );
     });
     expect(textarea()).toBeInTheDocument();
-  });
-
-  it('reports load and save verdicts', () => {
-    const onVerdict = vi.fn();
-    renderEditor({ value: 'hello', onChange: vi.fn(), onVerdict });
-    expect(onVerdict.mock.calls[0]?.[0].load.kind).toBe('rich');
-    act(() => typeAt(liveEditor(), 1, 'X'));
-    const last = onVerdict.mock.lastCall?.[0];
-    expect(last.save.kind).toBe('saved');
-    expect(typeof last.save.ms).toBe('number');
   });
 });

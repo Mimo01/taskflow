@@ -10,19 +10,6 @@ import type { JiraAttachment } from '@/services/jira';
 
 export type WikiEditorPreset = 'full' | 'compact';
 
-export interface WikiEditorVerdict {
-  load: { kind: 'rich' | 'rich-demoted' | 'failed'; demoted: number[]; reason: string | null };
-  save: {
-    kind: 'unchanged' | 'saved' | 'failed';
-    text: string | null;
-    reason: string | null;
-    ms: number;
-  } | null;
-  mode: 'rich' | 'source';
-  forced: boolean;
-  created: number;
-}
-
 /** Context and callbacks a host (issue detail, create flow, ...) hands to the editor. */
 export interface WikiEditorHost {
   issueKey?: string | null;
@@ -60,7 +47,6 @@ export interface WikiEditorProps {
   maxHeightClass?: string;
   className?: string;
   'aria-label'?: string;
-  onVerdict?: (v: WikiEditorVerdict) => void;
   /** Issue/project context and upload callbacks. Phase 100 hosts wire it. */
   host?: WikiEditorHost;
   /** Empty-editor hint; read once at creation. Defaults per preset. */

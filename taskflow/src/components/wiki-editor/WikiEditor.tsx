@@ -32,7 +32,7 @@ import { BubbleToolbar } from './toolbar/BubbleToolbar';
 import { CompactFooter } from './toolbar/CompactFooter';
 import { TableToolbar } from './toolbar/TableToolbar';
 import { Toolbar } from './toolbar/Toolbar';
-import type { WikiEditorProps, WikiEditorVerdict } from './types';
+import type { WikiEditorProps } from './types';
 
 type RichLoad = Extract<WikiLoad, { doc: unknown }>;
 type Mode = 'rich' | 'source';
@@ -48,14 +48,6 @@ const HEIGHTS = {
   compact: { min: 'min-h-[96px]', max: 'max-h-[280px]' },
 } as const;
 
-function loadSummary(load: WikiLoad): WikiEditorVerdict['load'] {
-  return {
-    kind: load.kind,
-    demoted: load.kind === 'rich-demoted' ? load.demoted : [],
-    reason: load.kind === 'failed' ? load.reason : null,
-  };
-}
-
 export default function WikiEditor({
   value,
   onChange,
@@ -63,7 +55,6 @@ export default function WikiEditor({
   maxHeightClass,
   className,
   'aria-label': ariaLabel,
-  onVerdict,
   host,
   placeholder,
   autoFocus,
@@ -101,33 +92,19 @@ export default function WikiEditor({
   const textAtToggleRef = useRef<string | symbol>(
     initial.load.kind === 'failed' ? NO_TOGGLE_TEXT : value,
   );
-  const createdRef = useRef(0);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const verdictRef = useRef<{ load: WikiEditorVerdict['load']; save: WikiEditorVerdict['save'] }>({
-    load: loadSummary(initial.load),
-    save: null,
-  });
   const stateRef = useRef({ mode, forced });
   const pendingFocusRef = useRef<{ mode: Mode; resetCaret: boolean } | null>(null);
-  const cbRef = useRef({ onChange, onVerdict, onSubmit, onCancel, onSaveBlockedChange });
+  const cbRef = useRef({ onChange, onSubmit, onCancel, onSaveBlockedChange });
   const sourceTextRef = useRef(sourceText);
 
   useEffect(() => {
-    cbRef.current = { onChange, onVerdict, onSubmit, onCancel, onSaveBlockedChange };
+    cbRef.current = { onChange, onSubmit, onCancel, onSaveBlockedChange };
     sourceTextRef.current = sourceText;
     stateRef.current = { mode, forced };
   });
 
   const queryClient = useContext(QueryClientContext);
-
-  const report = () => {
-    cbRef.current.onVerdict?.({
-      ...verdictRef.current,
-      mode: stateRef.current.mode,
-      forced: stateRef.current.forced,
-      created: createdRef.current,
-    });
-  };
 
   const editor = useEditor({
     extensions: richExtensions,
@@ -143,8 +120,6 @@ export default function WikiEditor({
     },
     ...EDITOR_RULE_OPTIONS,
     onCreate: ({ editor: e }) => {
-      createdRef.current += 1;
-      report();
       if (autoFocus && stateRef.current.mode === 'rich') e.commands.focus('end');
     },
     onUpdate: ({ editor: e, transaction }) => {
@@ -153,9 +128,7 @@ export default function WikiEditor({
       if (!e.isEditable) return;
       const load = loadedRef.current;
       if (!load) return;
-      const t0 = performance.now();
       const res = evaluateSave(load, e.state.doc, lastEmittedRef.current);
-      const ms = performance.now() - t0;
       if (res.kind === 'failed') {
         setSaveError(res.error);
       } else {
@@ -165,16 +138,6 @@ export default function WikiEditor({
           cbRef.current.onChange(res.emit);
         }
       }
-      verdictRef.current = {
-        ...verdictRef.current,
-        save: {
-          kind: res.kind,
-          text: res.emit,
-          reason: res.error,
-          ms,
-        },
-      };
-      report();
     },
   });
 
@@ -199,12 +162,6 @@ export default function WikiEditor({
     },
     [],
   );
-
-  // Report on mount and on every mode change (dev tools only).
-  // biome-ignore lint/correctness/useExhaustiveDependencies: report reads refs
-  useEffect(() => {
-    report();
-  }, [mode, forced]);
 
   // After the commit: sync editability to the mode, then move focus to the visible surface.
   // (Focusing inside toRich/toSource would hit the still-hidden element: UAT gap 2.)
@@ -231,7 +188,6 @@ export default function WikiEditor({
     lastEmittedRef.current = value;
     setSaveError(null);
     const load = loadWiki(value);
-    verdictRef.current = { load: loadSummary(load), save: null };
     if (mode === 'rich') {
       if (load.kind === 'failed') {
         loadedRef.current = null;
@@ -256,7 +212,6 @@ export default function WikiEditor({
         setNotice(FORCED_NOTICE);
       }
     }
-    report();
   }, [value]);
 
   useEffect(
