@@ -303,7 +303,6 @@ describe('settings.store — reset actions (quick 260524-pqo)', () => {
         devToolsEnabled: true,
         requestLogging: true,
         retentionLimit: 500,
-        jiraConcurrencyLimit: 12,
         notifCommentMentionEnabled: false,
         notifIssueUpdateEnabled: false,
         sidebarCollapsed: true,
@@ -338,11 +337,6 @@ describe('settings.store — reset actions (quick 260524-pqo)', () => {
   it('resetSettings("all") restores retentionLimit to 200', () => {
     act(() => useSettingsStore.getState().resetSettings('all'));
     expect(useSettingsStore.getState().retentionLimit).toBe(200);
-  });
-
-  it('resetSettings("all") restores jiraConcurrencyLimit to 6', () => {
-    act(() => useSettingsStore.getState().resetSettings('all'));
-    expect(useSettingsStore.getState().jiraConcurrencyLimit).toBe(6);
   });
 
   it('resetSettings("all") restores quickFilters to empty array', () => {
@@ -498,13 +492,13 @@ describe('settings.store — rankFieldKey (Phase 76)', () => {
     expect(src).toMatch(/if\s*\(version\s*<\s*30\)/);
   });
 
-  it('persist version is 40 (v31 moved the 288 default; v32 drops the field; v34 replaces the px standup width with a ratio)', () => {
+  it('persist version is 41 (v31 moved the 288 default; v32 drops the field; v34 replaces the px standup width with a ratio)', () => {
     const fs = require('node:fs') as typeof import('node:fs');
     const path = require('node:path') as typeof import('node:path');
     const src = fs.readFileSync(path.resolve(__dirname, 'settings.store.ts'), 'utf8');
     expect(src).toMatch(/if\s*\(version\s*<\s*31\)/);
     expect(src).toMatch(/releaseDetailPanelWidth === 288\) s\.releaseDetailPanelWidth = 256/);
-    expect(src).toMatch(/version: 40,/);
+    expect(src).toMatch(/version: 41,/);
     expect(src).toMatch(/if\s*\(version\s*<\s*32\)/);
     expect(src).toMatch(/if\s*\(version\s*<\s*33\)/);
     expect(src).toMatch(/if\s*\(version\s*<\s*34\)/);
@@ -547,6 +541,17 @@ describe('settings.store — rankFieldKey (Phase 76)', () => {
     expect('standupYesterdayWidth' in out).toBe(false);
     const out2 = await migrate({}, 33);
     expect(out2.standupYesterdayRatio).toBeNull();
+  });
+
+  it('v40 -> v41 migration deletes the removed jiraConcurrencyLimit and keeps other keys', async () => {
+    const migrate = useSettingsStore.persist.getOptions().migrate as (
+      persisted: unknown,
+      version: number,
+    ) => Record<string, unknown>;
+    const out = await migrate({ jiraConcurrencyLimit: 12, theme: 'dark' }, 40);
+    expect('jiraConcurrencyLimit' in out).toBe(false);
+    expect(out.theme).toBe('dark');
+    expect('jiraConcurrencyLimit' in useSettingsStore.getState()).toBe(false);
   });
 
   it('v31 -> v32 migration deletes the persisted releaseDetailPanelWidth', async () => {
@@ -703,10 +708,10 @@ describe('settings.store — recentSlashItems (Phase 99)', () => {
     expect(useSettingsStore.getState().recentSlashItems).toEqual(['b', 'a', 'table']);
   });
 
-  it('v39 migration guard defaults the field and the persisted version is now 40', async () => {
+  it('v39 migration guard defaults the field and the persisted version is now 41', async () => {
     const { readFileSync } = await import('node:fs');
     const src = readFileSync(`${process.cwd()}/src/stores/settings.store.ts`, 'utf8');
-    expect(src).toMatch(/version: 40,/);
+    expect(src).toMatch(/version: 41,/);
     expect(src).toMatch(
       /if \(version < 39\) \{\s*if \(s\.recentSlashItems === undefined\) s\.recentSlashItems = \[\];/,
     );

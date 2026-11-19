@@ -8,7 +8,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { getDefaultSidebarItems, type SidebarItem } from '@/components/app/sidebar-items';
-import { setJiraConcurrencyLimit as setConcurrencyRuntime } from '../lib/concurrency';
 import { createTauriStorage } from '../lib/tauri-storage';
 import type { Theme } from '../services/theme';
 import type { QuickFilter } from './filter.store';
@@ -39,7 +38,6 @@ const initialSettings = {
   requestLogging: false,
   responseBodyCapture: false,
   retentionLimit: 200,
-  jiraConcurrencyLimit: 6,
   density: 'default' as Density,
   fontScale: 'md' as FontScale,
   sprintCollapseByDefault: false,
@@ -121,7 +119,6 @@ interface SettingsState {
   /** Maximum number of retained log entries. Default: 200. */
   retentionLimit: number;
   /** Maximum number of parallel Jira API calls. Default: 6. */
-  jiraConcurrencyLimit: number;
   /** UI density preference. Default: 'default'. */
   density: Density;
   /** UI text/font scale preference. Default: 'md'. */
@@ -207,7 +204,6 @@ interface SettingsState {
   setRequestLogging: (v: boolean) => void;
   setResponseBodyCapture: (v: boolean) => void;
   setRetentionLimit: (v: number) => void;
-  setJiraConcurrencyLimit: (v: number) => void;
   setDensity: (d: Density) => void;
   setFontScale: (s: FontScale) => void;
   setSprintCollapseByDefault: (v: boolean) => void;
@@ -328,10 +324,6 @@ export const useSettingsStore = create<SettingsState>()(
       setRequestLogging: (v) => set({ requestLogging: v }),
       setResponseBodyCapture: (v) => set({ responseBodyCapture: v }),
       setRetentionLimit: (v) => set({ retentionLimit: v }),
-      setJiraConcurrencyLimit: (v) => {
-        set({ jiraConcurrencyLimit: v });
-        setConcurrencyRuntime(v);
-      },
       setDensity: (d) => set({ density: d }),
       setFontScale: (s) => set({ fontScale: s }),
       setSprintCollapseByDefault: (v) => set({ sprintCollapseByDefault: v }),
@@ -382,7 +374,7 @@ export const useSettingsStore = create<SettingsState>()(
     {
       name: 'settings-store',
       storage: createTauriStorage('settings.json'),
-      version: 40,
+      version: 41,
       migrate: (persisted, version) => {
         const s = persisted as Record<string, unknown>;
         if (version < 1) {
@@ -436,7 +428,7 @@ export const useSettingsStore = create<SettingsState>()(
           if (s.lastChecked === undefined) s.lastChecked = null;
         }
         if (version < 13) {
-          if (s.jiraConcurrencyLimit === undefined) s.jiraConcurrencyLimit = 6;
+          // v13 added jiraConcurrencyLimit; removed in v41.
         }
         if (version < 14) {
           if (s.sidebarWidth === undefined) s.sidebarWidth = 224;
@@ -551,6 +543,10 @@ export const useSettingsStore = create<SettingsState>()(
           // Operation profiler and waterfall were removed with the Developer Tools redesign.
           delete (s as Record<string, unknown>).operationProfiling;
           delete (s as Record<string, unknown>).performanceWaterfall;
+        }
+        if (version < 41) {
+          // The Jira concurrency setting was removed: it never took effect after a restart.
+          delete (s as Record<string, unknown>).jiraConcurrencyLimit;
         }
         return persisted as SettingsState;
       },

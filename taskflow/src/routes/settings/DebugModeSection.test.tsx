@@ -75,6 +75,19 @@ describe('DebugModeSection reset wizard', () => {
   });
 });
 
+describe('DebugModeSection Developer Tools block', () => {
+  it('shows only the master toggle and the capture-options pointer', () => {
+    renderSection();
+    expect(screen.getByRole('checkbox', { name: 'Enable Developer Tools' })).toBeTruthy();
+    expect(screen.getByText('Capture options live in Developer Tools → settings')).toBeTruthy();
+    expect(screen.queryByText('Request logging')).toBeNull();
+    expect(screen.queryByText('Response body capture')).toBeNull();
+    expect(screen.queryByText('Retention limit')).toBeNull();
+    expect(screen.queryByText(/Jira concurrency limit/)).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Network' })).toBeNull();
+  });
+});
+
 describe('DebugModeSection clear notification cache', () => {
   const seed = (items: unknown[]) =>
     useNotificationsStore.setState({

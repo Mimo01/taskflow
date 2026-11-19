@@ -1,7 +1,8 @@
 /**
  * DebugModeSection — Advanced settings for Developer Tools.
  *
- * Master toggle + granular toggles + retention limit + clear notifications.
+ * Master "Enable Developer Tools" toggle (capture options live in the Developer Tools
+ * page's gear popover), clear notifications / cache, and reset actions.
  * Rendered inside Settings → Advanced.
  */
 
@@ -20,13 +21,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { startWizardRerun } from '@/lib/onboarding-rerun';
 import { clearAvatarCache } from '../../services/avatarCache';
 import { removeSecret } from '../../services/stronghold';
@@ -34,22 +28,11 @@ import { useAuthStore } from '../../stores/auth.store';
 import { useNotificationsStore } from '../../stores/notifications.store';
 import { useSettingsStore } from '../../stores/settings.store';
 
-const RETENTION_OPTIONS = ['50', '100', '200', '500', '1000'] as const;
-const CONCURRENCY_OPTIONS = [1, 2, 3, 4, 6, 8, 10, 12] as const;
-
 export default function DebugModeSection() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const devToolsEnabled = useSettingsStore((s) => s.devToolsEnabled);
   const setDevToolsEnabled = useSettingsStore((s) => s.setDevToolsEnabled);
-  const requestLogging = useSettingsStore((s) => s.requestLogging);
-  const setRequestLogging = useSettingsStore((s) => s.setRequestLogging);
-  const responseBodyCapture = useSettingsStore((s) => s.responseBodyCapture);
-  const setResponseBodyCapture = useSettingsStore((s) => s.setResponseBodyCapture);
-  const retentionLimit = useSettingsStore((s) => s.retentionLimit);
-  const setRetentionLimit = useSettingsStore((s) => s.setRetentionLimit);
-  const jiraConcurrencyLimit = useSettingsStore((s) => s.jiraConcurrencyLimit);
-  const setJiraConcurrencyLimit = useSettingsStore((s) => s.setJiraConcurrencyLimit);
   const clearAll = useNotificationsStore((s) => s.clearAll);
   const itemCount = useNotificationsStore((s) => s.items.length);
   const resetSettings = useSettingsStore((s) => s.resetSettings);
@@ -118,73 +101,9 @@ export default function DebugModeSection() {
           />
         </label>
 
-        {/* Granular toggles */}
-        <div className={!devToolsEnabled ? 'opacity-50 pointer-events-none' : ''}>
-          <div className="flex flex-col gap-3 ml-4">
-            <label className="flex items-center justify-between gap-4 cursor-pointer">
-              <p className="text-sm font-medium">Request logging</p>
-              <input
-                type="checkbox"
-                aria-label="Request logging"
-                checked={requestLogging}
-                onChange={(e) => setRequestLogging(e.target.checked)}
-                className="h-4 w-4 accent-primary shrink-0"
-              />
-            </label>
-
-            <label className="flex items-center justify-between gap-4 cursor-pointer">
-              <p className="text-sm font-medium">Response body capture</p>
-              <input
-                type="checkbox"
-                aria-label="Response body capture"
-                checked={responseBodyCapture}
-                onChange={(e) => setResponseBodyCapture(e.target.checked)}
-                className="h-4 w-4 accent-primary shrink-0"
-              />
-            </label>
-
-            <div className="flex items-center justify-between gap-4">
-              <p className="text-sm font-medium">Retention limit</p>
-              <Select
-                value={retentionLimit.toString()}
-                onValueChange={(val) => setRetentionLimit(Number(val))}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {RETENTION_OPTIONS.map((opt) => (
-                    <SelectItem key={opt} value={opt}>
-                      {opt}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <p className="text-sm font-medium">Jira concurrency limit</p>
-                <p className="text-xs text-muted-foreground">Max parallel API calls (default: 6)</p>
-              </div>
-              <Select
-                value={jiraConcurrencyLimit.toString()}
-                onValueChange={(val) => setJiraConcurrencyLimit(Number(val))}
-              >
-                <SelectTrigger aria-label="Jira concurrency limit">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {CONCURRENCY_OPTIONS.map((n) => (
-                    <SelectItem key={n} value={n.toString()}>
-                      {n}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </div>
+        <p className="text-xs text-muted-foreground">
+          Capture options live in Developer Tools → settings
+        </p>
       </div>
 
       {/* Clear notifications */}

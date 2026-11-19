@@ -1,6 +1,7 @@
 /**
- * DevToolsSettingsPopover — header gear popover holding the master toggle, request logging,
- * response body capture and the retention limit.
+ * DevToolsSettingsPopover — header gear popover holding the capture options: request logging,
+ * response body capture and the retention limit. The master toggle lives only in
+ * Settings → Advanced (you cannot be on this page with it off).
  */
 import { Settings2 } from 'lucide-react';
 import { Button } from '../../components/ui/button';
@@ -23,13 +24,11 @@ function ToggleRow({
   description,
   checked,
   onChange,
-  disabled,
 }: {
   label: string;
   description: string;
   checked: boolean;
   onChange: (v: boolean) => void;
-  disabled?: boolean;
 }) {
   return (
     <div className="flex items-center justify-between gap-3">
@@ -37,14 +36,12 @@ function ToggleRow({
         <p className="text-sm font-medium">{label}</p>
         <p className="text-xs text-muted-foreground">{description}</p>
       </div>
-      <Switch aria-label={label} checked={checked} onCheckedChange={onChange} disabled={disabled} />
+      <Switch aria-label={label} checked={checked} onCheckedChange={onChange} />
     </div>
   );
 }
 
 export default function DevToolsSettingsPopover() {
-  const devToolsEnabled = useSettingsStore((s) => s.devToolsEnabled);
-  const setDevToolsEnabled = useSettingsStore((s) => s.setDevToolsEnabled);
   const requestLogging = useSettingsStore((s) => s.requestLogging);
   const setRequestLogging = useSettingsStore((s) => s.setRequestLogging);
   const responseBodyCapture = useSettingsStore((s) => s.responseBodyCapture);
@@ -69,24 +66,16 @@ export default function DevToolsSettingsPopover() {
       <PopoverContent align="end" className="w-72">
         <div className="flex flex-col gap-3">
           <ToggleRow
-            label="Developer Tools"
-            description="Capture API requests and desktop notifications."
-            checked={devToolsEnabled}
-            onChange={setDevToolsEnabled}
-          />
-          <ToggleRow
             label="Request logging"
             description="Record each API call in Logs."
             checked={requestLogging}
             onChange={setRequestLogging}
-            disabled={!devToolsEnabled}
           />
           <ToggleRow
             label="Response body capture"
             description="Keep response bodies (uses more memory)."
             checked={responseBodyCapture}
             onChange={setResponseBodyCapture}
-            disabled={!devToolsEnabled}
           />
           <div className="flex items-center justify-between gap-3">
             <p className="text-sm font-medium">Retention limit</p>

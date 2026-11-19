@@ -262,7 +262,7 @@ export default function EditorTab() {
         fill
         icon={Bug}
         title="Developer Tools are disabled"
-        subtitle="Enable them in the settings popover above."
+        subtitle="Enable them in Settings → Advanced."
       />
     );
   }
