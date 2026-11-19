@@ -1,5 +1,27 @@
 # Milestones
 
+## v1.15 Rich Wiki Editor (Shipped: 2026-11-19)
+
+**Phases completed:** 7 phases (96-102), 84 plans
+**Timeline:** 2026-11-16 → 2026-11-19
+**Codebase:** 477 commits, 651 files changed (+70,252/−5,448); `taskflow/src` alone 393 files (+36,726/−4,407)
+**Git range:** cd15ed20 (docs: start milestone v1.15 Rich Wiki Editor) → 10060f8d (docs(phase-98): verify Editor Shell and close the v1.15 audit gap)
+
+**Key accomplishments:**
+
+1. **Wiki foundations (Phase 96).** The wiki pipeline moved into `lib/wiki` with zero render change. A 37-fixture placeholder corpus and the `isEquivalent` harness run on every commit through the pre-commit hook. The spike chose TipTap.
+2. **Round-trip engine (Phase 97).** A source-level parser turns Jira wiki text into a TipTap document, and a canonical emitter writes it back. Unedited text saves byte-identical. Constructs the editor can't model stay as read-only raw atoms, and typed look-alikes of markup are escaped.
+3. **Editor shell (Phase 98).** A lazy-loaded TipTap `WikiEditor` with a toolbar, shortcuts, wiki/markdown input rules, tables, code and panel blocks, a colour palette, a source toggle with live preview, and a runtime guard that opens unsafe text in source mode. It shares its prose styles with WikiRenderer and passed a 13/13 manual test in a real WKWebView.
+4. **Mentions, media and smart input (Phase 99).** @mentions with server-side search, attachment embeds, paste and drop uploads, rich paste from web, Word and Jira through an allowlist, issue-key and emoticon autocomplete, a slash menu and a bubble menu.
+5. **Every host on the new editor (Phase 100).** Create Epic, Create/Edit Issue, the comment composer and comment edit all use the editor, and the old textarea code is deleted behind a guard test. Comments and descriptions keep local drafts with a "Discard changes?" guard, and Cmd+Enter/Esc work in every host.
+6. **Issue drafts and polished modals (Phases 101-102).** Create/Edit Issue is a large two-column modal with "Create another". Closing it auto-saves a draft with staged files, and a TopBar Drafts chip resumes drafts from any page. A shared `ModalShell` restyles Create Epic, Bulk Create Subtasks and Edit Release, and the comment composer is one line until focused.
+
+**Close-out:** 5d570d5f closed the audit's code tech debt: a failed rich-mode save now blocks submit in all 4 hosts, Create Epic resolves mentions, and review items WR-02, WR-03 and IN-01 were fixed. Phase 98 was verified at close (5/5 criteria, 15/15 requirements).
+
+**Known gaps and deferred items:** the audit closed `tech_debt`: 46/46 requirements (HOST-02 inline description edit and UI-04 dropped by decision), 7/7 phases, 13/13 integration, 4/4 flows. Manual checks not run because they need a real Jira or Word: Jira parity for mixed `*#` nesting, header-less tables and panels with lists (97 UAT 2); a real Cmd+Enter submit and a true quit-and-relaunch draft restore (100 UAT 2 and 4); a real Word paste (Phase 99). New todo from the Phase 98 verifier: the link popover keeps stale input between opens. Known deferred items at close: 249 (see STATE.md Deferred Items), of which 240 are quick tasks the scanner misreads.
+
+---
+
 ## v1.14 Release Management (Shipped: 2026-08-13; extended through Phase 95, closed 2026-11-16)
 
 **Phases completed:** 7 phases (87-91.2, incl. 2 inserted), 49 plans, 121 tasks
@@ -20,7 +42,6 @@
 Plus a substantial quick-task layer between v1.13 and v1.14 (~25 tasks): compactness/font-size settings and their coverage sweep, search-modal and recently-visited type icons, release-detail layout moves, worklog and issue-detail sidebar additions, the `gitlab.ts` object-keyed error flattening, Jira field-validation error flattening, and a full tests/linters green pass.
 
 **Known gaps and deferred items:** 111 surfaced by the open-artifact audit (see STATE.md Deferred Items) — overwhelmingly historical noise: 95 stale quick-task dirs (dating to 260521), 7 pre-v1.14 debug sessions, 1 deferred priority-stripe-by-REST-rank TODO. The genuinely v1.14-scoped items are the Phase 88 and Phase 90 human-verification gaps: **no GitLab write path (create-branch, create-milestone) has ever executed against a real GitLab instance** — the checkpoints were explicitly waived by the user and coverage is mocked-fetch unit tests only — and the Phase 90 D-16 approvals/protected-branch probe was never run (no reachable PAT; per D-16 this changes no UI either way). The milestone audit closed at `tech_debt`: 31/31 requirements (DRIFT-09 and MERGE-03 intentionally descoped by the user), 7/7 phases verified, 10/10 integration paths, 3/3 flows.
-
 
 ### Extension: Phases 92-95 (closed 2026-11-16)
 

@@ -2,40 +2,24 @@
 
 ## What This Is
 
-Taskflow is a cross-platform Tauri 2 desktop app for Client's eshop development team. It unifies Jira (on-premise), Jira Tempo Timesheets, GitLab, and AIO Test Management into a single fast, focused interface — replacing the need to juggle multiple slow tools. It ships as a portable executable (no installer, no admin rights), stores credentials in the OS keychain, and serves both developers and project managers with a graph-driven personal dashboard, a dedicated My Tasks command center, sprint board, backlog, global search, notifications, AIO test execution visibility, and Tempo worklog tracking.
+Taskflow is a cross-platform Tauri 2 desktop app for Client's eshop development team. It unifies Jira (on-premise), Jira Tempo Timesheets, GitLab, and AIO Test Management into a single fast, focused interface — replacing the need to juggle multiple slow tools. It ships as a portable executable (no installer, no admin rights), stores credentials in the OS keychain, and serves both developers and project managers with a graph-driven personal dashboard, a dedicated My Tasks command center, a rich Jira wiki editor with issue drafts, sprint board, backlog, global search, notifications, AIO test execution visibility, and Tempo worklog tracking.
 
-## Current Milestone: v1.15 Rich Wiki Editor
+## Latest Shipped Milestone: v1.15 Rich Wiki Editor (shipped 2026-11-19)
 
-**Goal:** Replace the plain textarea + Preview-tab editing with one shared WYSIWYG editor that has a source toggle. The editor reads and writes Jira wiki markup, its editing view looks like WikiRenderer output, and its saves never change what WikiRenderer shows. Every surface that edits text gets a bigger, cleaner UI.
-
-**Target features:**
-- A shared rich editor: you type into formatted text that looks like WikiRenderer output, with a toggle to raw Jira wiki markup for edge cases
-- Full formatting coverage: core text (bold, italic, strike, underline, headings, lists, links, quotes, inline monospace, code blocks), tables, panels and `{info}`/`{note}`/`{color}` macros, @mentions, attachment embeds, pasted and dropped images, plus other Jira constructs that fit
-- A round-trip safety net: a fixture corpus asserting that load→save keeps the rendered output the same (semantic equivalence, not byte-identical). Constructs the editor can't model are preserved verbatim
-- The editor adopted everywhere text is edited: Create/Edit Issue modal, inline description edit (issue detail + peek), comment composer/inline comment/comment edit, Create Epic, Bulk Create Subtasks, Edit Release description
-- Create-issue drafts: closing the Create modal auto-saves a draft; several drafts at once (fields + staged attachments), persisted across restarts and resumable from a header Drafts chip that looks different from the pinned tabs
-- Polished surfaces: a larger Create/Edit Issue modal (editor in the main column, fields in a sidebar column), plus consistent, cleaner UI/UX across the other editor hosts
-
-**Key context:** WikiRenderer (`routes/dashboard/WikiRenderer.tsx`, ~1800 LOC, ~2700 LOC of tests) is heavily tuned for Jira parity. Its rendering must not regress, and it may be refactored only behind its existing tests. A TipTap v3 WikiEditor was built 2026-05-31 and later reverted for an unrecorded reason. It survives on tag `backup/wiki-editor-before-revert-260531` and can serve as prior art, but research should evaluate the library choice fresh.
-
-## Latest Shipped Milestone: v1.14 Release Management (shipped 2026-08-13, extended and closed 2026-11-16)
-
-**Extension (Phases 92-95, released as v1.14.9 → v1.14.23):** ranked cache-backed global search, a fix-version-driven Releases list (F5 agenda), a full-width release detail page with four graphs, and the notifications redesign, plus 143 quick tasks. The extension audit closed `tech_debt` with 0 blockers. Close-out fixes: the Jira token is re-read after a credential save (261116-ez8), and notification polls no longer lose items (261116-fe7). Four todos carry forward: due/overdue display and the `duedate >= now()` JQL question, @you highlighting, real status colours, and the priority stripe by REST rank.
-
-**Original v1.14 goal (Phases 87-91.2):** Turn the Releases view from a read-only Jira↔GitLab match into a working release-coordination surface that detects git-flow drift and lets the user fix it per-MR. **31/31 committed requirements delivered (DRIFT-09 and MERGE-03 intentionally descoped by the user); milestone audit `tech_debt`, 0 blockers.**
+**Goal:** Replace the plain textarea + Preview-tab editing with one shared WYSIWYG editor that has a source toggle, reads and writes Jira wiki markup, looks like WikiRenderer output, and never changes what WikiRenderer shows when it saves. **46/46 active requirements delivered (HOST-02 and UI-04 dropped by decision D-01); milestone audit `tech_debt`, 0 blockers.**
 
 **Delivered features:**
-- **Release branch & milestone awareness + creation** — `release/<version>` and the matching GitLab milestone are resolved and their existence surfaced (six `BranchState` variants in the sidebar, drift triangles on the Releases list); either can be created behind a confirm dialog, with git-ref validation, the real `X.Y.Z (DD.MM.YYYY)` title format, and duplicate-title blocking.
-- **Three-channel drift detection** — MRs are discovered via Jira-key linkage, GitLab milestone, and release-branch target, unioned with per-MR provenance; wrong target branch, missing milestone and task-not-in-fix-version are flagged, with merged/closed/draft classified separately and never inflating the count. All fetchers fully paginated.
-- **Per-MR corrective actions** — retarget and assign-milestone applied directly from the row, one optimistic mutation per (MR, action) with prefix-scoped rollback, sticky failures and independent retry; no confirm dialog and no warning, by explicit user decision.
-- **Post-release merge-back verification** — an advisory-only verdict over four fail-closed evidence channels (tracking MR, `repository/compare` content diff, tags, default branch), preferring MR state and falling back to content comparison; never blocking, no override control.
-- **Unified release detail table + epics redesign** — the Issues and MR-Drift tables collapsed into one task-keyed table with inline drift actions and a secondary uncovered-MR table; `/epics` rebuilt as a single-line portfolio row with progressive progress/points enrichment.
+- **Round-trip-safe wiki editor.** A TipTap v3 `WikiEditor` over a source-level parser and canonical emitter. Unedited text saves byte-identical, unmodelable constructs stay as raw atoms, and text that can't load safely opens in source mode. A 37-fixture equivalence corpus runs on every commit.
+- **Full formatting.** Toolbar, shortcuts and wiki/markdown input rules; tables, code/noformat and panel blocks; a fixed colour palette; a source toggle with live preview.
+- **Smart input.** @mentions with server-side search, attachment embeds, paste and drop uploads, rich paste from web/Word/Jira through an allowlist, issue-key and emoticon autocomplete, a slash menu and a bubble menu.
+- **Adopted everywhere.** Create/Edit Issue, Create Epic, the comment composer and comment edit use the editor; the textarea code is deleted. Local drafts, a "Discard changes?" guard and Cmd+Enter/Esc work in every host.
+- **Issue drafts and polished modals.** A large two-column Create/Edit Issue modal with "Create another"; auto-saved multi-drafts with staged files, resumed from a TopBar Drafts chip; a shared `ModalShell` for Create Epic, Bulk Create Subtasks and Edit Release.
 
-**Descoped/reversed during the milestone:** DRIFT-09 (Phase 89 UAT); MERGE-03 manual override (D-12, given twice); Phase 91.1's stacked per-MR sub-lines — built, shown on real data, then reversed to one line per task at live UAT; Phase 91.2's quick-search (D-18), labels (D-08) and flagged-child counts (D-12).
+**Dropped during the milestone:** inline description editing on issue detail and peek (HOST-02, UI-04). The description is edited only in the Edit Issue modal (Phase 100 D-01).
 
-**Known gap:** no GitLab write path (create-branch, create-milestone) has ever executed against a real GitLab instance — those checkpoints were explicitly waived; coverage is mocked-fetch unit tests only.
+**Known gaps:** manual checks that need a real Jira or Word were not run (Jira parity for mixed `*#` nesting, header-less tables and panels with lists; a real Cmd+Enter submit; a true quit-and-relaunch draft restore; a real Word paste). The link popover keeps stale input between opens (todo).
 
-**Previous milestone shipped:** v1.13 Personal Workspace — 6 phases (81-86), 23 plans, 411 commits, shipped 2026-06-16 (charting foundation, My Tasks command center, graph-driven dashboard redesign).
+**Previous milestone shipped:** v1.14 Release Management (Phases 87-95), shipped 2026-08-13, extended and closed 2026-11-16: release branch/milestone creation, three-channel drift detection, per-MR fixes, merge-back verification, ranked global search, the F5 Releases list, the full-width release detail page and the notifications redesign.
 
 ## Core Value
 
@@ -179,17 +163,16 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 - ✓ Fix-version-driven, GitLab-free Releases list as an agenda rail (overdue first, TODAY line, next-release card, month groups, planned rows expanding once they have issues, muted Released panel), in the standard header bar with planned/overdue/undated counts and release cadence; one batched paginated Jira search per visible chunk with instant cached revisits; the release detail header echoes the list row, with each figure shown once — Phase 93
 - ✓ Full-width release detail page: CycleHeader-style header with an icon facts row, a compact one-row graph band (progress burnup or release timeline, MR donut with GitLab-style label pills or By status, By type waffle, By assignee), a deployment-package mismatch action table with assignee/reporter and Apply, and a sticky task table header; sidebar removed — Phase 94
 - ✓ Notification centre redesign: a flat list of two-line cards. Each card shows the actor's avatar with a per-action colour/icon badge, then key and parent › title, then the actor and a coloured action (added/removed/changed, values, comment text). Consecutive same-actor events are merged into one card with up to 10 listed changes or comments. GitLab system notes show as changes, not comments. The bell and tab counts are card-based, there is keyboard triage, and the surface is the shared Card — Phase 95
+- ✓ Shared WYSIWYG editor with a source toggle for Jira wiki markup, styled like WikiRenderer — v1.15 Phase 98
+- ✓ Round-trip safety: unedited text saves byte-identical, unmodelable constructs kept verbatim, a fixture corpus on every commit — v1.15 Phases 96-97
+- ✓ Full formatting incl. tables, panels, colour, @mentions, attachments, pasted and dropped images, slash and bubble menus — v1.15 Phases 98-99
+- ✓ Editor adopted in Create/Edit Issue, Create Epic, comment composer and comment edit, with local drafts and Cmd+Enter/Esc — v1.15 Phase 100
+- ✓ Multiple persistent create-issue drafts with staged files, resumable from a header Drafts chip — v1.15 Phase 101
+- ✓ Large two-column Create/Edit Issue modal and a shared ModalShell across editor hosts — v1.15 Phases 101-102
 
 ### Active
 
-<!-- v1.15 Rich Wiki Editor — see REQUIREMENTS.md for REQ-IDs -->
-
-- [ ] Shared WYSIWYG + source-toggle editor for Jira wiki markup, visually consistent with WikiRenderer
-- [ ] Semantic round-trip safety: load→save never changes rendered output; unmodelable constructs preserved verbatim
-- [ ] Full formatting coverage incl. tables, panels/colour macros, mentions, attachments, paste/drop images
-- [ ] Editor adopted in every text-editing surface (issue create/edit, inline description, comments, epic, bulk subtasks, release)
-- [ ] Multiple persistent create-issue drafts resumable from anywhere
-- [ ] Bigger, polished Create/Edit Issue modal and consistent editor-host UI/UX
+(None. Define the next milestone with `/gsd-new-milestone`. Pending todos: due/overdue on reminders, @you highlighting, real status colours, priority stripe by REST rank, link-popover stale input.)
 
 ### Out of Scope
 
@@ -205,9 +188,17 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 - GitLab *review* write actions (approve, comment, request changes) — deferred to v2.0. Narrowed at v1.14: release-management writes (create branch, create milestone, retarget MR, assign milestone) are explicitly in scope; the exclusion now covers only code-review actions, where GitLab's own UI is mature
 - Full JQL editor with syntax highlighting — months of work; plain text JQL input sufficient
 - Pinned-issues section on Standup Notes Today (STAND-08) — descoped by user during v1.10 Phase 70; pinning surface stays on the issue itself
+- Inline description editing on issue detail and peek (HOST-02, UI-04) — dropped in v1.15 Phase 100 D-01; the description is edited only in the Edit Issue modal
 - Planned-worklog-targets / Log Work action on Standup Notes Today (STAND-09) — built in Phase 70 then removed in the standup redesign (commit b7984f2f); Log Work stays on the Worklogs page and issue detail
 
 ## Current State
+
+**v1.15 shipped 2026-11-19** — 7 phases (96-102), 84 plans, 477 commits, 651 files changed (+70,252/−5,448 lines; `taskflow/src` alone 393 files, +36,726/−4,407) over 4 days. Every text-editing surface now uses one TipTap v3 `WikiEditor` that reads and writes Jira wiki markup through a round-trip-safe parser and emitter, with a source toggle, mentions, media, smart input, local drafts and auto-saved issue drafts. The audit closed `tech_debt` after Phase 98 was verified at close (5/5, 15/15). Run `release.sh` to cut the v1.15.x release.
+
+**Carried into the next milestone:** the manual checks that need a real Jira or Word (97 UAT 2, 100 UAT 2 and 4, Phase 99 Word paste), the link-popover stale-input bug, and the four notification/priority todos from v1.14. Phases 97 and 100 verification sit at `human_needed` for those runtime items.
+
+<details>
+<summary>Phase notes (v1.14 extension and v1.15, Phases 92-102)</summary>
 
 **Phase 102 complete 2026-11-18** (v1.15 Rich Wiki Editor). The remaining editing surfaces now match the new modal (UI-03, UI-05). A shared `ModalShell` (extracted from the Issue modal) hosts Create/Edit Issue, Create Epic, Bulk Create Subtasks and Edit Release. Create Epic reuses the Issue sidebar (epic variant), keeps sidebar-aware drafts and creates a resumed draft in its own project. Bulk Create is one column with a pinned toolbar; Edit Release is two columns with plain-text descriptions. Input, Textarea and the wiki editor frame share one field surface. The new-comment composer is one line when idle and expands on focus or Reply, and the composer and comment edit share one action row and height cap. The visual sign-off was delegated to Claude and done with headless-browser screenshots that made no Jira writes. That pass and the user's live testing found and fixed several bugs:
 - The expanding composer hid the activity above it.
@@ -274,6 +265,8 @@ Four warnings were also fixed. Verification passed 10/10, and real-avatar human 
 
 **Two data findings from the live probe** (`88-RESEARCH.md`) still shape this area: the team writes milestone dates both zero-padded and unpadded, weakening whole-title duplicate detection; and versions `28.9.0`/`33.6.0` each appear twice with different dates, making version-only branch derivation ambiguous. Channel A is bounded by an `updated_after` window derived from unreleased fix versions (measured 4189 MRs / 42 pages / ~15MB unbounded, ~7.8s → ~1.2s windowed — the GitLab instance is throughput-limited, so parallelism alone did not help); Channels B and C stay unbounded, so milestone- or branch-attached MRs are found at any age.
 
+</details>
+
 <details>
 <summary>Earlier milestones (v1.10 – v1.13)</summary>
 
@@ -307,8 +300,9 @@ v1.8/v1.9 tech debt paid down (WorklogsPage timer/error/fragment fixes, `DatePre
 - **Shipped v1.11:** 2026-06-01 — 5 phases (71-75), 22 plans, 284 commits, 308 files changed (+48,340/−16,981 lines)
 - **Shipped v1.12:** 2026-06-07 — 5 phases (76-80), 19 plans, 441 commits, 434 files changed (+46,310/−3,051 lines)
 - **Shipped v1.13:** 2026-06-16 — 6 phases (81-86), 23 plans, 411 commits, 370 files changed (+41,255/−21,884 lines)
-- **Shipped v1.14:** 2026-08-13 — 7 phases (87-91.2), 49 plans, 551 commits, 525 files changed (+68,011/−5,675 lines)
-- **Tech stack:** Tauri 2, React 18, TypeScript, Zustand, TanStack Query, shadcn/ui, Tailwind v4, Vitest, Biome, recharts@^3.8 + react-is (charting, added v1.13 via shadcn `chart` primitive), @dnd-kit/core + /sortable + /modifiers + /utilities (reinstalled v1.12 for drag-to-rank/transition), @tanstack/react-virtual, jira2md, react-markdown, react-hotkeys-hook, cmdk, babel-plugin-react-compiler (react-grid-layout removed v1.9)
+- **Shipped v1.14:** 2026-08-13 — 7 phases (87-91.2), 49 plans, 551 commits, 525 files changed (+68,011/−5,675 lines); extended through Phase 95 and closed 2026-11-16
+- **Shipped v1.15:** 2026-11-19 — 7 phases (96-102), 84 plans, 477 commits, 651 files changed (+70,252/−5,448 lines)
+- **Tech stack:** Tauri 2, React 18, TipTap v3 (`@tiptap/react` 3.34, the wiki editor, added v1.15), TypeScript, Zustand, TanStack Query, shadcn/ui, Tailwind v4, Vitest, Biome, recharts@^3.8 + react-is (charting, added v1.13 via shadcn `chart` primitive), @dnd-kit/core + /sortable + /modifiers + /utilities (reinstalled v1.12 for drag-to-rank/transition), @tanstack/react-virtual, jira2md, react-markdown, react-hotkeys-hook, cmdk, babel-plugin-react-compiler (react-grid-layout removed v1.9)
 - **Jira instance:** On-premise (Jira Data Center v10.3.15) — REST API v2 with Bearer PAT auth; createmeta/workflow/transitions APIs used for issue management
 - **GitLab:** Self-hosted or gitlab.com — personal access token
 - **Team:** Client eshop project — developers + project managers using the same app with role-based views
@@ -473,6 +467,12 @@ This document evolves at phase transitions and milestone boundaries.
 | Phase 91.1 reversed its own spec at live UAT: one line per task, not stacked MR sub-lines | Built as specified, then rejected on real data — "99% of the time there is 1 MR for 1 task". Most-relevant MR shown (flagged > evaluated > highest iid) with a `+N` marker; no MR dropped from the data layer | ✓ Good — roadmap criteria struck through and replaced rather than silently diverged from |
 | `/epics` rows are div+flex, not `<table>` (v1.14 Phase 91.2, D-07) | Narrow columns collapse to zero width in the Tauri/WebKit webview; extending the existing `<colgroup>` would re-trigger a documented recurring bug | ✓ Good — verified at all three densities in the real webview |
 | `fetchEpicsBasic` ordering is a per-caller parameter, in the query key (v1.14 Phase 91.2) | The fetcher is shared with the Sidebar, Backlog and Sprint Board pickers under one cache key — this phase's `created ASC` was silently reordering all of them | ✓ Good — defaults to the original `updated DESC`; the two orderings cannot serve each other's cache |
+| TipTap v3 over a source-level wiki parser/emitter, not jira2md (v1.15 Phases 96-97) | jira2md is lossy; a canonical emitter with raw atoms is the only way to save unedited text byte-identical and keep constructs the editor can't model | ✓ Good — 37-fixture equivalence corpus green on every commit |
+| Fail closed to source mode when text can't round-trip (v1.15 Phase 98, SAFE-05) | A silently changed description is worse than a less pretty editor; the user still edits, just in source | ✓ Good — failed rich saves also block submit since 5d570d5f |
+| One shared `WIKI_PROSE_CLASSES` for editor and WikiRenderer (v1.15 Phase 98, EDIT-01) | The editing view must look like the rendered output; two style sets would drift | ✓ Good — visual parity passed in WKWebView light and dark |
+| No inline description editing; edit only in the Edit Issue modal (v1.15 Phase 100, D-01) | User decision: one editing surface for descriptions, read-only rendering elsewhere | ✓ Good — HOST-02 and UI-04 dropped, simpler hosts |
+| Comment drafts (`drafts.json`) and issue drafts (`issue-drafts.json` + `$APPDATA/issue-drafts` files) in separate stores (v1.15 Phases 100-101) | Different shapes and lifetimes: per-field text vs whole structured issues with staged attachments | ✓ Good — drafts survive restarts; resume validates against live Jira |
+| Manual editor UAT driven by Claude in a real WKWebView via a Swift NSEvent driver (v1.15 Phase 98) | jsdom can't test IME, caret stability or real input rules; the Tauri engine is WebKit | ✓ Good — found 7 real bugs across two rounds that tests missed |
 
 ---
-*Last updated: 2026-11-18 after Phase 102 completion*
+*Last updated: 2026-11-19 after v1.15 milestone*

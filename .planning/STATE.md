@@ -2,37 +2,40 @@
 gsd_state_version: 1.0
 milestone: v1.15
 milestone_name: Rich Wiki Editor
-status: milestone_complete
-last_updated: 2026-11-18T13:31:58.093Z
-last_activity: 2026-11-18 -- Phase 102 execution started
+status: Awaiting next milestone
+last_updated: "2026-11-19T07:18:05.172Z"
+last_activity: 2026-11-19 — Milestone v1.15 completed and archived
 progress:
   total_phases: 7
-  completed_phases: 5
+  completed_phases: 7
   total_plans: 84
-  completed_plans: 83
-  percent: 71
-stopped_at: Milestone complete (Phase 102 was final phase)
+  completed_plans: 84
+  percent: 100
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-11-16)
+See: .planning/PROJECT.md (updated 2026-11-19)
 
 **Core value:** Developers and PMs can see everything they need — tasks, MRs, sprint state, notifications, and test execution health — in one place, without switching between Jira, GitLab, and AIO.
-**Current focus:** Milestone complete
+**Current focus:** Planning next milestone (v1.15 Rich Wiki Editor shipped 2026-11-19)
 
 ## Current Position
 
-Phase: 102
-Plan: Not started
-Status: Milestone complete
-Last activity: 2026-11-18 - Completed quick task 261118-l2f: My Tasks compacts at narrow widths (sidebar auto-rail reverted)
-
-Progress: [██████████] 97%
+Phase: Milestone v1.15 complete
+Plan: —
+Status: Awaiting next milestone
+Last activity: 2026-11-19 — Milestone v1.15 completed and archived
 
 ## Performance Metrics
+
+**Velocity (v1.15 reference):**
+
+- Plans completed: 84 (7 phases, 4 days, 477 commits)
+- Average phase size: 12 plans
+- LOC delta (src): +36,726 / −4,407
 
 **Velocity (v1.14 reference):**
 
@@ -241,6 +244,17 @@ Carried from the v1.14 close (`.planning/todos/pending/`):
 
 ## Deferred Items
 
+Acknowledged and deferred at v1.15 milestone close (2026-11-19): 249 items from the pre-close audit. None block the next milestone:
+
+| Category | Item | Status |
+|----------|------|--------|
+| quick_task | 240 quick-task dirs reported "missing" | scanner bug: audit-open looks for `SUMMARY.md`, but tasks write `{id}-SUMMARY.md` |
+| todo | 5 pending todos | carried forward: due/overdue reminders, @you highlight, status colours, priority stripe by REST rank, wiki link popover stale input (new, from 98-VERIFICATION) |
+| uat_gap | Phase 97 97-HUMAN-UAT.md | partial: Jira parity for mixed `*#` nesting, header-less tables, panels with lists not run (needs live Jira) |
+| uat_gap | Phase 100 100-HUMAN-UAT.md | partial: real Cmd+Enter submit and true quit-and-relaunch draft restore not run |
+| verification_gap | Phase 97 97-VERIFICATION.md | human_needed (same runtime item as 97 UAT 2) |
+| verification_gap | Phase 100 100-VERIFICATION.md | human_needed (same runtime items as 100 UAT 2 and 4) |
+
 Acknowledged and deferred at the v1.14 extension close (2026-11-16): 243 items from the pre-close audit, after 6 debug sessions were closed and 2 todos fixed (261116-fe7):
 
 | Category | Item | Status |
@@ -334,9 +348,9 @@ Acknowledged and deferred at v1.14 milestone close (2026-08-13) — 111 open art
 
 ## Session Continuity
 
-Last session: 2026-11-18T11:26:33.978Z
-Stopped at: Phase 102 UI-SPEC approved
-Resume file: .planning/phases/102-polished-surfaces/102-UI-SPEC.md
+Last session: 2026-11-19
+Stopped at: v1.15 milestone completed and archived
+Resume file: None
 
 ## Operator Next Steps
 
