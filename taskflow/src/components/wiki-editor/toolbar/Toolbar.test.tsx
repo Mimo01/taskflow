@@ -203,6 +203,36 @@ describe('Toolbar', () => {
     }
   });
 
+  // Top-level toolbar child holding `el` (skips wrappers like tooltip triggers).
+  const topChild = (el: Element) => {
+    const bar = screen.getByRole('toolbar');
+    let n: Element | null = el;
+    while (n && n.parentElement !== bar) n = n.parentElement;
+    return n as Element;
+  };
+  const isDivider = (el: Element | null) =>
+    el?.getAttribute('aria-hidden') === 'true' && el.classList.contains('w-px');
+
+  it('puts More right after the items, then a divider, then Insert', () => {
+    setup();
+    at360();
+    const more = screen.getByRole('button', { name: 'More' });
+    const insert = screen.getByRole('button', { name: 'Insert' });
+    expect(more.compareDocumentPosition(insert) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const items = screen.getByRole('toolbar').querySelector('[data-toolbar-items]') as HTMLElement;
+    const before = topChild(insert).previousElementSibling;
+    expect(isDivider(before)).toBe(true);
+    expect(items.contains(before)).toBe(false);
+    expect(topChild(more).nextElementSibling).toBe(before);
+  });
+
+  it('renders no More|Insert divider when nothing overflows', () => {
+    setup();
+    expect(has('More')).toBe(false);
+    const insert = screen.getByRole('button', { name: 'Insert' });
+    expect(isDivider(topChild(insert).previousElementSibling)).toBe(false);
+  });
+
   it('shows the Insert label only from the widest breakpoint but keeps aria-label', () => {
     setup();
     const btn = screen.getByRole('button', { name: 'Insert' });

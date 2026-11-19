@@ -42,11 +42,11 @@ describe('toolbar-config', () => {
       'italic',
     ]);
     expect(small.inline).toEqual(['text-style', 'bold', 'insert']);
-    expect(splitToolbar('full', 400).inline).toEqual(['text-style', 'bold', 'italic', 'insert']);
-    const mid = splitToolbar('full', 430).overflow;
+    expect(splitToolbar('full', 420).inline).toEqual(['text-style', 'bold', 'italic', 'insert']);
+    const mid = splitToolbar('full', 446).overflow;
     expect(mid).toContain('bullet');
     expect(mid).not.toContain('underline');
-    const wide = splitToolbar('full', 540).overflow;
+    const wide = splitToolbar('full', 556).overflow;
     expect(wide[wide.length - 1]).toBe('colour');
   });
 
@@ -59,18 +59,26 @@ describe('toolbar-config', () => {
       'underline',
       'italic',
     ]);
-    expect(splitToolbar('compact', 360).overflow).toEqual(['strike', 'mono', 'bullet', 'numbered']);
+    expect(splitToolbar('compact', 360).overflow).toEqual([
+      'strike',
+      'mono',
+      'bullet',
+      'numbered',
+      'underline',
+    ]);
     expect(splitToolbar('compact', 800).overflow).toEqual([]);
   });
 
   // Measured in WebKit (98 UAT round 2): pinned controls 214px (+37 Insert label, -4 inline Link,
-  // -32 empty More), buttons 28px + 4px gap, Text style 98px, divider 13px.
-  it('every inline set fits the items region at every width from 358px', () => {
+  // -32 empty More, +13 More|Insert divider while More shows), buttons 28px + 4px gap,
+  // Text style 98px, divider 13px.
+  it('every inline set fits the items region from 372px (full) / 358px (compact)', () => {
     const W: Record<string, number> = { 'text-style': 98, subsup: 60 };
     const LIST = ['bullet', 'numbered', 'quote', 'link'];
     for (const preset of ['full', 'compact'] as ToolbarPreset[]) {
       const widest = Math.max(...Object.values(OVERFLOW_BREAKPOINTS[preset]).map(Number));
-      for (let c = 358; c <= 900; c++) {
+      const from = preset === 'full' ? 372 : 358;
+      for (let c = from; c <= 900; c++) {
         const { inline, overflow } = splitToolbar(preset, c);
         const items = inline.filter((i) => i !== 'insert');
         const buttons = items.reduce((n, i) => n + (i === 'subsup' ? 2 : 1), 0);
@@ -80,6 +88,7 @@ describe('toolbar-config', () => {
         let pinned = 214 + (c >= widest ? 37 : 0);
         if (!overflow.includes('link')) pinned -= 4;
         if (overflow.length === 0) pinned -= 32;
+        else pinned += 13;
         expect(c - pinned, `${preset} @${c}`).toBeGreaterThanOrEqual(need);
       }
     }

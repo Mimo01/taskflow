@@ -383,11 +383,6 @@ export function Toolbar({
           />
         ) : null}
       </div>
-      <InsertMenu
-        items={INSERT_ITEMS}
-        onInsert={insert}
-        labelClassName={INSERT_LABEL_CLASS[preset]}
-      />
       {showLink && linkOverflowed ? (
         <LinkPopover
           open={linkOpen}
@@ -399,6 +394,12 @@ export function Toolbar({
         />
       ) : null}
       <OverflowMenu items={overflowItems} />
+      {overflowItems.length > 0 ? <Divider /> : null}
+      <InsertMenu
+        items={INSERT_ITEMS}
+        onInsert={insert}
+        labelClassName={INSERT_LABEL_CLASS[preset]}
+      />
       <div className="flex-1" />
       {!isRich ? (
         <ToolbarButton

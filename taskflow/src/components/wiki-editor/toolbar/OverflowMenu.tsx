@@ -59,7 +59,7 @@ export function OverflowMenu({ items }: OverflowMenuProps) {
           </TooltipBody>
         </TooltipContent>
       </Tooltip>
-      <DropdownMenuContent align="end">
+      <DropdownMenuContent align="start">
         {items.map((item) =>
           item.submenu ? (
             <DropdownMenuSub key={item.id}>
