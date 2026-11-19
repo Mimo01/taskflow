@@ -97,3 +97,49 @@ describe('block inserts inside containers the emitter cannot nest into', () => {
     expect(saveText(editor, load).kind).toBe('saved');
   });
 });
+
+describe('block inserts mid-text in a list item or cell never split the container', () => {
+  const ids = INSERT_ITEMS.map((i) => i.id);
+  const run = (id: string, editor: ReturnType<typeof makeEditor>['editor']) =>
+    INSERT_ITEMS.find((i) => i.id === id)?.run(editor, { rows: 2, cols: 2 });
+  const tops = (editor: ReturnType<typeof makeEditor>['editor']) =>
+    (editor.getJSON().content ?? []).map((n) => n.type);
+
+  it.each(
+    ids.filter((id) => id !== 'panel' && !['info', 'note', 'warning', 'tip'].includes(id)),
+  )('%s in a table cell lands after the table', (id) => {
+    const { editor, load } = makeEditor('|| h ||\n| cell |\n\nafter');
+    editor.commands.setTextSelection(12); // between "c" and "ell"
+    expect(run(id, editor)).toBe(true);
+    expect(tops(editor).filter((t) => t === 'table')).toHaveLength(id === 'table' ? 2 : 1);
+    const saved = saveText(editor, load);
+    expect(saved.kind).toBe('saved');
+    expect('text' in saved && saved.text.startsWith('|| h ||\n| cell |\n\n')).toBe(true);
+    expect('text' in saved && saved.text.endsWith('\n\nafter')).toBe(true);
+  });
+
+  it.each(ids)('%s in a list item lands after the list', (id) => {
+    const { editor, load } = makeEditor('* one\n* two\n\nafter');
+    editor.commands.setTextSelection(5); // between "on" and "e"
+    expect(run(id, editor)).toBe(true);
+    expect(tops(editor).filter((t) => t === 'bulletList')).toHaveLength(1);
+    const saved = saveText(editor, load);
+    expect(saved.kind).toBe('saved');
+    expect('text' in saved && saved.text.startsWith('* one\n* two\n\n')).toBe(true);
+  });
+
+  it('a rule mid-cell keeps the caret in the cell', () => {
+    const { editor, load } = makeEditor('|| h ||\n| cell |');
+    editor.commands.setTextSelection(12);
+    run('rule', editor);
+    expect(editor.state.selection.$from.parent.textContent).toBe('cell');
+    expect(saveText(editor, load)).toEqual({ kind: 'saved', text: '|| h ||\n| cell |\n\n----' });
+  });
+
+  it('a code block mid-list puts the caret inside it', () => {
+    const { editor } = makeEditor('* one\n* two');
+    editor.commands.setTextSelection(5);
+    run('code', editor);
+    expect(editor.state.selection.$from.parent.type.name).toBe('codeBlock');
+  });
+});

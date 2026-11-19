@@ -1,4 +1,5 @@
-import type { Editor } from '@tiptap/core';
+import type { Editor, JSONContent } from '@tiptap/core';
+import { Selection } from '@tiptap/pm/state';
 import {
   AlertTriangle,
   Code2,
@@ -38,6 +39,52 @@ export interface InsertItem {
   run: (editor: Editor, opts?: { rows: number; cols: number }) => boolean;
 }
 
+/**
+ * End of the list or table that cannot hold a `type` block at the caret, or null when the
+ * caret's own container can. List items and table cells only take what emit.ts can spell
+ * (schema.ts), and ProseMirror's replace fitting would otherwise split the list or table
+ * around the new block, so a mid-cell insert showed the table twice and failed to save.
+ */
+function blockingContainerEnd(editor: Editor, type: string): number | null {
+  const { $from } = editor.state.selection;
+  const nodeType = editor.schema.nodes[type];
+  if (!nodeType) return null;
+  for (let d = $from.depth - 1; d >= 0; d--) {
+    const i = $from.index(d);
+    if ($from.node(d).canReplaceWith(i + 1, i + 1, nodeType))
+      return d === $from.depth - 1 ? null : $from.after(d + 1);
+  }
+  return null;
+}
+
+/**
+ * Inserts a block at the caret, or after the enclosing list/table when the caret's container
+ * cannot hold it. The caret moves into the new block; a leaf (rule) leaves it where it was.
+ */
+function insertBlock(editor: Editor, content: JSONContent, atCaret: () => boolean): boolean {
+  const at = blockingContainerEnd(editor, content.type ?? '');
+  if (at === null) return atCaret();
+  const leaf = editor.schema.nodes[content.type ?? '']?.isLeaf ?? false;
+  return editor
+    .chain()
+    .focus()
+    .insertContentAt(at, content, { updateSelection: false })
+    .command(({ tr }) => {
+      if (!leaf) tr.setSelection(Selection.near(tr.doc.resolve(at + 1)));
+      return true;
+    })
+    .run();
+}
+
+const cells = (type: 'tableHeader' | 'tableCell', cols: number): JSONContent => ({
+  type: 'tableRow',
+  content: Array.from({ length: cols }, () => ({ type, content: [{ type: 'paragraph' }] })),
+});
+
+/** Inserts `content` with insertContent, or after a list/table that cannot hold it. */
+const insertNode = (editor: Editor, content: JSONContent): boolean =>
+  insertBlock(editor, content, () => editor.chain().focus().insertContent(content).run());
+
 function panelItem(
   id: 'panel' | 'info' | 'note' | 'warning' | 'tip',
   label: string,
@@ -51,11 +98,7 @@ function panelItem(
     keywords,
     source: { before: `{${id}}\n`, after: `\n{${id}}` },
     run: (editor) =>
-      editor
-        .chain()
-        .focus()
-        .insertContent({ type: 'panel', attrs: { type: id }, content: [{ type: 'paragraph' }] })
-        .run(),
+      insertNode(editor, { type: 'panel', attrs: { type: id }, content: [{ type: 'paragraph' }] }),
   };
 }
 
@@ -66,12 +109,20 @@ export const INSERT_ITEMS: readonly InsertItem[] = [
     icon: Table2,
     keywords: ['table', 'grid', 'rows', 'columns'],
     source: { before: '||  ||  ||\n|  |  |', after: '' },
-    run: (editor, opts) =>
-      editor
-        .chain()
-        .focus()
-        .insertTable({ rows: opts?.rows ?? 3, cols: opts?.cols ?? 3, withHeaderRow: true })
-        .run(),
+    run: (editor, opts) => {
+      const rows = opts?.rows ?? 3;
+      const cols = opts?.cols ?? 3;
+      const table: JSONContent = {
+        type: 'table',
+        content: [
+          cells('tableHeader', cols),
+          ...Array.from({ length: rows - 1 }, () => cells('tableCell', cols)),
+        ],
+      };
+      return insertBlock(editor, table, () =>
+        editor.chain().focus().insertTable({ rows, cols, withHeaderRow: true }).run(),
+      );
+    },
   },
   {
     id: 'code',
@@ -79,12 +130,7 @@ export const INSERT_ITEMS: readonly InsertItem[] = [
     icon: Code2,
     keywords: ['code', 'snippet', 'pre'],
     source: { before: '{code}\n', after: '\n{code}' },
-    run: (editor) =>
-      editor
-        .chain()
-        .focus()
-        .insertContent({ type: 'codeBlock', attrs: { language: null } })
-        .run(),
+    run: (editor) => insertNode(editor, { type: 'codeBlock', attrs: { language: null } }),
   },
   {
     id: 'noformat',
@@ -93,14 +139,10 @@ export const INSERT_ITEMS: readonly InsertItem[] = [
     keywords: ['noformat', 'plain', 'preformatted'],
     source: { before: '{noformat}\n', after: '\n{noformat}' },
     run: (editor) =>
-      editor
-        .chain()
-        .focus()
-        .insertContent({
-          type: 'codeBlock',
-          attrs: { language: null, open: '{noformat}', close: '{noformat}' },
-        })
-        .run(),
+      insertNode(editor, {
+        type: 'codeBlock',
+        attrs: { language: null, open: '{noformat}', close: '{noformat}' },
+      }),
   },
   panelItem('panel', 'Panel', PanelTop, ['panel', 'box', 'callout']),
   panelItem('info', 'Info', Info, ['info', 'information', 'callout']),
@@ -113,6 +155,9 @@ export const INSERT_ITEMS: readonly InsertItem[] = [
     icon: Minus,
     keywords: ['rule', 'divider', 'line', 'hr'],
     source: { before: '\n----\n', after: '' },
-    run: (editor) => editor.chain().focus().setHorizontalRule().run(),
+    run: (editor) =>
+      insertBlock(editor, { type: 'horizontalRule' }, () =>
+        editor.chain().focus().setHorizontalRule().run(),
+      ),
   },
 ];
