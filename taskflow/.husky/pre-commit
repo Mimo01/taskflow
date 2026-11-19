@@ -11,6 +11,13 @@ if [ -z "$staged" ]; then
   exit 0
 fi
 
+# Tauri npm packages and Rust crates must share major.minor, or `tauri build`
+# (release CI only; `tauri dev` doesn't check) refuses to build. v1.15.0 failed so.
+tauri_deps=$(printf '%s\n' "$staged" | grep -E '^(package(-lock)?\.json|src-tauri/Cargo\.(toml|lock))$' || true)
+if [ -n "$tauri_deps" ]; then
+  node scripts/check-tauri-versions.mjs
+fi
+
 # --no-errors-on-unmatched keeps commits without staged src files passing.
 biome check --staged --no-errors-on-unmatched ./src
 

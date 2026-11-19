@@ -76,6 +76,13 @@ if ! git -C "$REPO_ROOT" remote get-url origin &>/dev/null; then
 fi
 
 # Lint the notes before any mutation (docs/RELEASE-NOTES.md).
+# `tauri build` in CI rejects mismatched Tauri npm/Rust minors; `tauri dev` doesn't,
+# so catch it here before anything is tagged or pushed (v1.15.0 failed this way).
+if ! node "$SCRIPT_DIR/check-tauri-versions.mjs"; then
+  echo "Error: Tauri npm packages and Rust crates are out of step. Release aborted." >&2
+  exit 1
+fi
+
 if [[ "$SKIP_BUMP" == "false" ]]; then
   LINT_ARGS=()
   [[ "$ALLOW_WORDY" == "true" ]] && LINT_ARGS+=(--allow-wordy-notes)
