@@ -19,6 +19,8 @@ export interface ApiLogEntry {
   status: number | null; // null if network error
   durationMs: number;
   responseBody: string; // raw text, full (pretty-printed if JSON)
+  // response headers with secrets redacted (set-cookie etc.); absent when capture is off / network error
+  responseHeaders?: Record<string, string>;
   error?: string; // set only on network-level failure (catch block)
   operation?: string; // optional operation label for grouping
 }

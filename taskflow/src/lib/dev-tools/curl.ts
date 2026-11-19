@@ -6,6 +6,7 @@
  * secret-bearing headers are dropped and token-like URL params are scrubbed.
  */
 import type { ApiLogEntry } from '../../stores/debug-log.store';
+import { REDACTED, redactUrl } from './redact';
 
 const DROPPED_HEADERS = new Set([
   'cookie',
@@ -14,8 +15,6 @@ const DROPPED_HEADERS = new Set([
   'x-auth-token',
   'proxy-authorization',
 ]);
-
-const SECRET_URL_PARAMS = /([?&])(private_token|access_token|token|api_key)=[^&#]*/gi;
 
 /** Env var each source's PAT is expected in when the command is pasted into a shell. */
 const TOKEN_VAR: Record<ApiLogEntry['source'], string> = {
@@ -37,6 +36,8 @@ export function buildCurl(entry: ApiLogEntry): string {
   for (const [name, value] of Object.entries(entry.requestHeaders)) {
     const lower = name.toLowerCase();
     if (DROPPED_HEADERS.has(lower)) continue;
+    // Any other header redacted at capture (session ids, tokens) would only emit a placeholder.
+    if (value === REDACTED && lower !== 'authorization' && lower !== 'private-token') continue;
     if (lower === 'authorization') {
       // Double quotes so the shell expands the env var (single quotes would send it literally).
       parts.push(`-H "Authorization: Bearer $${TOKEN_VAR[entry.source]}"`);
@@ -56,7 +57,7 @@ export function buildCurl(entry: ApiLogEntry): string {
     }
   }
 
-  const url = entry.url.replace(SECRET_URL_PARAMS, '$1$2=REDACTED');
+  const url = redactUrl(entry.url);
   parts.push(sq(url));
   return `${prefix}curl ${parts.join(' \\\n  ')}`;
 }

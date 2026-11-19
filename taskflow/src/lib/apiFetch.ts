@@ -4,7 +4,8 @@
  * - When devToolsEnabled is disabled: passes through to @tauri-apps/plugin-http fetch unchanged.
  * - When devToolsEnabled is enabled: captures method, URL, headers, status, duration, response body
  *   based on granular toggle settings (requestLogging, responseBodyCapture).
- *   Sanitizes Authorization and PRIVATE-TOKEN header values — replaces with "[REDACTED]".
+ *   Request and response headers go through redactHeaders (Authorization, PRIVATE-TOKEN, cookies and
+ *   other secret-bearing headers become "[REDACTED]").
  *
  * Uses getState() (not hooks) — safe to call outside React render context.
  *
@@ -17,6 +18,7 @@ import { useAuthStore } from '../stores/auth.store';
 import type { ApiLogEntry } from '../stores/debug-log.store';
 import { useDebugLogStore } from '../stores/debug-log.store';
 import { useSettingsStore } from '../stores/settings.store';
+import { redactHeaders } from './dev-tools/redact';
 
 function markDisconnected(source: 'jira' | 'gitlab' | 'aio' | 'updater' | 'tempo') {
   if (source === 'aio' || source === 'updater' || source === 'tempo') return;
@@ -74,17 +76,8 @@ export async function apiFetch(
   const start = performance.now();
   const method = init?.method ?? 'GET';
 
-  // Sanitize headers for logging — redact auth values
-  const rawHeaders = (init?.headers ?? {}) as Record<string, string>;
-  const safeHeaders: Record<string, string> = {};
-  for (const [k, v] of Object.entries(rawHeaders)) {
-    const lower = k.toLowerCase();
-    if (lower === 'authorization' || lower === 'private-token') {
-      safeHeaders[k] = '[REDACTED]';
-    } else {
-      safeHeaders[k] = v;
-    }
-  }
+  // Sanitize headers for logging (handles Headers, tuple and plain-object inits)
+  const safeHeaders = redactHeaders(init?.headers);
 
   // Capture request body for logging when requestLogging is enabled
   let requestBody: string | undefined;
@@ -160,6 +153,7 @@ export async function apiFetch(
       status,
       durationMs,
       responseBody,
+      responseHeaders: redactHeaders(response.headers),
       operation,
     };
     useDebugLogStore.getState().append(entry);

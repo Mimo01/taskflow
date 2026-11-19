@@ -32,6 +32,18 @@ function matchesStatus(entry: ApiLogEntry, statuses: Set<string>): boolean {
   return statuses.has(statusClass(entry.status));
 }
 
+const haystackCache = new WeakMap<ApiLogEntry, string>();
+
+/** Lowercase search text for an entry, computed once per entry object (WR-04). */
+export function searchHaystack(entry: ApiLogEntry): string {
+  let hay = haystackCache.get(entry);
+  if (hay === undefined) {
+    hay = `${entry.url}\n${entry.requestBody ?? ''}\n${entry.responseBody}`.toLowerCase();
+    haystackCache.set(entry, hay);
+  }
+  return hay;
+}
+
 /** Empty facet sets mean "all". Search is a case-insensitive substring match (never a regex). */
 export function filterLogs(entries: ApiLogEntry[], filters: LogFilters): ApiLogEntry[] {
   const needle = filters.search.trim().toLowerCase();
@@ -43,8 +55,7 @@ export function filterLogs(entries: ApiLogEntry[], filters: LogFilters): ApiLogE
       return false;
     }
     if (needle) {
-      const hay = `${e.url}\n${e.requestBody ?? ''}\n${e.responseBody}`.toLowerCase();
-      if (!hay.includes(needle)) return false;
+      if (!searchHaystack(e).includes(needle)) return false;
     }
     return true;
   });

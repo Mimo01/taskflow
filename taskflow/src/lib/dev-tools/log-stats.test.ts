@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { ApiLogEntry } from '../../stores/debug-log.store';
-import { computeLogStats } from './log-stats';
+import { computeLogStats, timingScale } from './log-stats';
 
 const e = (p: Partial<ApiLogEntry>): ApiLogEntry => ({
   id: 'x',
@@ -45,5 +45,25 @@ describe('computeLogStats', () => {
       e({ durationMs: 900, method: 'POST', url: 'https://j/rest/api/2/issue/ABC-1?expand=x' }),
     ]);
     expect(s.slowest).toEqual({ path: '/rest/api/2/issue/ABC-1', method: 'POST', ms: 900 });
+  });
+});
+
+describe('timingScale', () => {
+  it('scales against 1.1x the largest value', () => {
+    const t = timingScale(100, 50, 200);
+    expect(t.max).toBeCloseTo(220);
+    expect(t.durationPct).toBeCloseTo(45.5, 1);
+    expect(t.medianPct).toBeCloseTo(22.7, 1);
+    expect(t.p95Pct).toBeCloseTo(90.9, 1);
+  });
+
+  it('returns null percentages for null median or p95', () => {
+    const t = timingScale(10, null, null);
+    expect(t.medianPct).toBeNull();
+    expect(t.p95Pct).toBeNull();
+  });
+
+  it('keeps max at least 1 for all zeros', () => {
+    expect(timingScale(0, 0, 0).max).toBe(1);
   });
 });

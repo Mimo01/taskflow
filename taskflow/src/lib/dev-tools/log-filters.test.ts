@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { ApiLogEntry } from '../../stores/debug-log.store';
-import { facetOptions, filterLogs, statusClass } from './log-filters';
+import { facetOptions, filterLogs, searchHaystack, statusClass } from './log-filters';
 
 const e = (p: Partial<ApiLogEntry>): ApiLogEntry => ({
   id: 'x',
@@ -92,5 +92,14 @@ describe('facetOptions', () => {
 
   it('omits (none) when every entry has an operation', () => {
     expect(facetOptions([e({ operation: 'A' })]).operations).toEqual(['A']);
+  });
+});
+
+describe('searchHaystack', () => {
+  it('is lowercase and cached per entry', () => {
+    const entry = e({ url: 'https://J/Rest', requestBody: 'ReqBody', responseBody: 'RespBody' });
+    const hay = searchHaystack(entry);
+    expect(hay).toBe('https://j/rest\nreqbody\nrespbody');
+    expect(searchHaystack(entry)).toBe(hay);
   });
 });

@@ -44,3 +44,26 @@ export function computeLogStats(entries: ApiLogEntry[]): LogStats {
     slowest: { path: urlPath(slowest.url), method: slowest.method, ms: slowest.durationMs },
   };
 }
+
+export interface TimingScale {
+  max: number;
+  durationPct: number;
+  medianPct: number | null;
+  p95Pct: number | null;
+}
+
+/** Bar geometry for one duration against the median and p95; max is 1.1x the largest value. */
+export function timingScale(
+  durationMs: number,
+  median: number | null,
+  p95: number | null,
+): TimingScale {
+  const max = Math.max(1, 1.1 * Math.max(durationMs, median ?? 0, p95 ?? 0));
+  const pct = (v: number) => Math.round((v / max) * 1000) / 10;
+  return {
+    max,
+    durationPct: pct(durationMs),
+    medianPct: median === null ? null : pct(median),
+    p95Pct: p95 === null ? null : pct(p95),
+  };
+}
