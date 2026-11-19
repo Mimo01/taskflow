@@ -38,8 +38,6 @@ const initialSettings = {
   recentSlashItems: [] as string[],
   requestLogging: false,
   responseBodyCapture: false,
-  operationProfiling: false,
-  performanceWaterfall: false,
   retentionLimit: 200,
   jiraConcurrencyLimit: 6,
   density: 'default' as Density,
@@ -120,11 +118,7 @@ interface SettingsState {
   requestLogging: boolean;
   /** Enable response body capture (clones response). Default: false. */
   responseBodyCapture: boolean;
-  /** Enable operation profiling with timing. Default: false. */
-  operationProfiling: boolean;
-  /** Enable performance waterfall visualization. Default: false. */
-  performanceWaterfall: boolean;
-  /** Maximum number of retained log/profiler entries. Default: 200. */
+  /** Maximum number of retained log entries. Default: 200. */
   retentionLimit: number;
   /** Maximum number of parallel Jira API calls. Default: 6. */
   jiraConcurrencyLimit: number;
@@ -212,8 +206,6 @@ interface SettingsState {
   setWikiEditorMode: (v: 'rich' | 'source') => void;
   setRequestLogging: (v: boolean) => void;
   setResponseBodyCapture: (v: boolean) => void;
-  setOperationProfiling: (v: boolean) => void;
-  setPerformanceWaterfall: (v: boolean) => void;
   setRetentionLimit: (v: number) => void;
   setJiraConcurrencyLimit: (v: number) => void;
   setDensity: (d: Density) => void;
@@ -335,8 +327,6 @@ export const useSettingsStore = create<SettingsState>()(
         })),
       setRequestLogging: (v) => set({ requestLogging: v }),
       setResponseBodyCapture: (v) => set({ responseBodyCapture: v }),
-      setOperationProfiling: (v) => set({ operationProfiling: v }),
-      setPerformanceWaterfall: (v) => set({ performanceWaterfall: v }),
       setRetentionLimit: (v) => set({ retentionLimit: v }),
       setJiraConcurrencyLimit: (v) => {
         set({ jiraConcurrencyLimit: v });
@@ -392,7 +382,7 @@ export const useSettingsStore = create<SettingsState>()(
     {
       name: 'settings-store',
       storage: createTauriStorage('settings.json'),
-      version: 39,
+      version: 40,
       migrate: (persisted, version) => {
         const s = persisted as Record<string, unknown>;
         if (version < 1) {
@@ -429,8 +419,6 @@ export const useSettingsStore = create<SettingsState>()(
           s.devToolsEnabled = (s as Record<string, unknown>).debugMode === true;
           s.requestLogging = (s as Record<string, unknown>).debugMode === true;
           s.responseBodyCapture = (s as Record<string, unknown>).debugMode === true;
-          s.operationProfiling = false;
-          s.performanceWaterfall = false;
           s.retentionLimit = 200;
           delete (s as Record<string, unknown>).debugMode;
         }
@@ -558,6 +546,11 @@ export const useSettingsStore = create<SettingsState>()(
         }
         if (version < 39) {
           if (s.recentSlashItems === undefined) s.recentSlashItems = [];
+        }
+        if (version < 40) {
+          // Operation profiler and waterfall were removed with the Developer Tools redesign.
+          delete (s as Record<string, unknown>).operationProfiling;
+          delete (s as Record<string, unknown>).performanceWaterfall;
         }
         return persisted as SettingsState;
       },

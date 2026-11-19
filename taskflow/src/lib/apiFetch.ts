@@ -3,7 +3,7 @@
  *
  * - When devToolsEnabled is disabled: passes through to @tauri-apps/plugin-http fetch unchanged.
  * - When devToolsEnabled is enabled: captures method, URL, headers, status, duration, response body
- *   based on granular toggle settings (requestLogging, responseBodyCapture, operationProfiling).
+ *   based on granular toggle settings (requestLogging, responseBodyCapture).
  *   Sanitizes Authorization and PRIVATE-TOKEN header values — replaces with "[REDACTED]".
  *
  * Uses getState() (not hooks) — safe to call outside React render context.
@@ -16,8 +16,6 @@ import { fetch } from '@tauri-apps/plugin-http';
 import { useAuthStore } from '../stores/auth.store';
 import type { ApiLogEntry } from '../stores/debug-log.store';
 import { useDebugLogStore } from '../stores/debug-log.store';
-import type { FetchRecord } from '../stores/operation-profiler.store';
-import { useOperationProfilerStore } from '../stores/operation-profiler.store';
 import { useSettingsStore } from '../stores/settings.store';
 
 function markDisconnected(source: 'jira' | 'gitlab' | 'aio' | 'updater' | 'tempo') {
@@ -37,7 +35,7 @@ const API_TIMEOUT_MS = 15_000;
  * @param source    - 'jira' | 'gitlab' — identifies which service made the call
  * @param url       - Request URL
  * @param init      - Standard RequestInit options
- * @param operation - Optional operation label for grouping fetches in the profiler
+ * @param operation - Optional operation label shown (and filterable) in the Developer Tools Logs tab
  */
 export async function apiFetch(
   source: 'jira' | 'gitlab' | 'aio' | 'updater' | 'tempo',
@@ -55,8 +53,7 @@ export async function apiFetch(
 
   const initWithSignal: RequestInit = { ...init, signal };
 
-  const { devToolsEnabled, requestLogging, responseBodyCapture, operationProfiling } =
-    useSettingsStore.getState();
+  const { devToolsEnabled, requestLogging, responseBodyCapture } = useSettingsStore.getState();
 
   if (!devToolsEnabled) {
     let response: Response;
@@ -142,21 +139,6 @@ export async function apiFetch(
       useDebugLogStore.getState().append(entry);
     }
 
-    if (operationProfiling) {
-      const fetchRecord: FetchRecord = {
-        id: crypto.randomUUID(),
-        source,
-        method,
-        url,
-        status: null,
-        durationMs,
-        startTime: start,
-        responseSize: 0,
-        error: errorMsg,
-      };
-      useOperationProfilerStore.getState().addFetch(operation, fetchRecord);
-    }
-
     // Network errors (timeout, DNS failure, etc.) do NOT mark disconnected.
     // Only a 401 response means credentials are invalid.
     throw err; // re-throw so callers still get the network error
@@ -181,30 +163,6 @@ export async function apiFetch(
       operation,
     };
     useDebugLogStore.getState().append(entry);
-  }
-
-  if (operationProfiling) {
-    // Capture response size from content-length header, or from already-read body text length
-    let responseSize: number | undefined;
-    const contentLength = response.headers.get('content-length');
-    if (contentLength) {
-      const parsed = Number.parseInt(contentLength, 10);
-      if (!Number.isNaN(parsed)) responseSize = parsed;
-    } else if (responseBodyCapture && responseBody.length > 0) {
-      responseSize = responseBody.length;
-    }
-
-    const fetchRecord: FetchRecord = {
-      id: crypto.randomUUID(),
-      source,
-      method,
-      url,
-      status,
-      durationMs,
-      startTime: start,
-      responseSize,
-    };
-    useOperationProfilerStore.getState().addFetch(operation, fetchRecord);
   }
 
   if (response.status === 401) markDisconnected(source);

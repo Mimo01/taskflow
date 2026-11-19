@@ -1,85 +1,93 @@
 /**
  * DevToolsPage — Developer Tools page shell.
  *
- * Provides header with Clear Logs button, collapsible settings panel,
- * and five tabs: Logs, Operations, Waterfall, Notifications, Editor.
+ * Full-height tool under the standard PageHeader (settings gear + Clear all). Tabs carry live
+ * counts; each tab owns its scrolling, so only the list and inspector panes scroll.
  */
 
+import { Button } from '../../components/ui/button';
+import { PageHeader } from '../../components/ui/page-header';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 import { useDebugLogStore } from '../../stores/debug-log.store';
 import { useNotificationDispatchLogStore } from '../../stores/notification-dispatch-log.store';
-import { useOperationProfilerStore } from '../../stores/operation-profiler.store';
 import { useWikiEditorLogStore } from '../../stores/wiki-editor-log.store';
+import DevToolsSettingsPopover from './DevToolsSettingsPopover';
+import { useDevToolsViewStore } from './dev-tools-view.store';
 import EditorTab from './EditorTab';
 import LogsTab from './LogsTab';
 import NotificationsTab from './NotificationsTab';
-import OperationsTab from './OperationsTab';
-import WaterfallTab from './WaterfallTab';
+
+function TabLabel({ label, count }: { label: string; count: number }) {
+  return (
+    <>
+      {label}
+      <span aria-hidden="true" className="ml-1.5 tabular-nums text-muted-foreground">
+        {count}
+      </span>
+    </>
+  );
+}
 
 export default function DevToolsPage() {
-  const entries = useDebugLogStore((s) => s.entries);
-  const operations = useOperationProfilerStore((s) => s.operations);
-  const ungrouped = useOperationProfilerStore((s) => s.ungrouped);
+  const logCount = useDebugLogStore((s) => s.entries.length);
   const notificationCount = useNotificationDispatchLogStore((s) => s.entries.length);
   const editorCount = useWikiEditorLogStore((s) => s.entries.length);
 
   const handleClear = () => {
     useDebugLogStore.getState().clear();
-    useOperationProfilerStore.getState().clear();
     useNotificationDispatchLogStore.getState().clear();
     useWikiEditorLogStore.getState().clear();
+    useDevToolsViewStore.getState().setPausedEntries(null);
   };
 
   return (
-    <div className="max-w-5xl mx-auto py-8 px-4 flex flex-col gap-6">
-      {/* Header row */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-semibold">Developer Tools</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            API debugging, operation profiling, performance analysis, desktop notifications, and
-            wiki editor events.
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={handleClear}
-          disabled={
-            entries.length === 0 &&
-            operations.length === 0 &&
-            ungrouped.length === 0 &&
-            notificationCount === 0 &&
-            editorCount === 0
-          }
-          className="shrink-0 rounded-md border border-border px-3 py-1.5 text-sm hover:bg-accent transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-        >
-          Clear Logs
-        </button>
-      </div>
+    <div className="flex h-full min-h-0 flex-col">
+      <PageHeader
+        title="Developer Tools"
+        actions={
+          <>
+            <DevToolsSettingsPopover />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleClear}
+              disabled={logCount === 0 && notificationCount === 0 && editorCount === 0}
+            >
+              Clear all
+            </Button>
+          </>
+        }
+      />
 
-      {/* Tabs */}
-      <Tabs defaultValue="logs">
-        <TabsList>
-          <TabsTrigger value="logs">Logs</TabsTrigger>
-          <TabsTrigger value="operations">Operations</TabsTrigger>
-          <TabsTrigger value="waterfall">Waterfall</TabsTrigger>
-          <TabsTrigger value="notifications">Notifications</TabsTrigger>
-          <TabsTrigger value="editor">Editor</TabsTrigger>
-        </TabsList>
-        <TabsContent value="logs">
-          <LogsTab />
+      <Tabs defaultValue="logs" className="flex min-h-0 flex-1 flex-col gap-0">
+        <div className="shrink-0 px-6 pt-2 pb-1">
+          <TabsList variant="line">
+            <TabsTrigger value="logs">
+              <TabLabel label="Logs" count={logCount} />
+            </TabsTrigger>
+            <TabsTrigger value="notifications">
+              <TabLabel label="Notifications" count={notificationCount} />
+            </TabsTrigger>
+            <TabsTrigger value="editor">
+              <TabLabel label="Editor" count={editorCount} />
+            </TabsTrigger>
+          </TabsList>
+        </div>
+        <TabsContent value="logs" className="flex min-h-0 flex-1 flex-col">
+          <div className="relative min-h-0 flex-1 overflow-auto">
+            <LogsTab />
+          </div>
         </TabsContent>
-        <TabsContent value="operations">
-          <OperationsTab />
+        <TabsContent value="notifications" className="flex min-h-0 flex-1 flex-col">
+          <div className="relative min-h-0 flex-1 overflow-auto">
+            <NotificationsTab />
+          </div>
         </TabsContent>
-        <TabsContent value="waterfall">
-          <WaterfallTab />
-        </TabsContent>
-        <TabsContent value="notifications">
-          <NotificationsTab />
-        </TabsContent>
-        <TabsContent value="editor">
-          <EditorTab />
+        <TabsContent value="editor" className="flex min-h-0 flex-1 flex-col">
+          <div className="relative min-h-0 flex-1 overflow-auto">
+            <EditorTab />
+          </div>
         </TabsContent>
       </Tabs>
     </div>

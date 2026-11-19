@@ -498,13 +498,13 @@ describe('settings.store — rankFieldKey (Phase 76)', () => {
     expect(src).toMatch(/if\s*\(version\s*<\s*30\)/);
   });
 
-  it('persist version is 39 (v31 moved the 288 default; v32 drops the field; v34 replaces the px standup width with a ratio)', () => {
+  it('persist version is 40 (v31 moved the 288 default; v32 drops the field; v34 replaces the px standup width with a ratio)', () => {
     const fs = require('node:fs') as typeof import('node:fs');
     const path = require('node:path') as typeof import('node:path');
     const src = fs.readFileSync(path.resolve(__dirname, 'settings.store.ts'), 'utf8');
     expect(src).toMatch(/if\s*\(version\s*<\s*31\)/);
     expect(src).toMatch(/releaseDetailPanelWidth === 288\) s\.releaseDetailPanelWidth = 256/);
-    expect(src).toMatch(/version: 39,/);
+    expect(src).toMatch(/version: 40,/);
     expect(src).toMatch(/if\s*\(version\s*<\s*32\)/);
     expect(src).toMatch(/if\s*\(version\s*<\s*33\)/);
     expect(src).toMatch(/if\s*\(version\s*<\s*34\)/);
@@ -703,10 +703,10 @@ describe('settings.store — recentSlashItems (Phase 99)', () => {
     expect(useSettingsStore.getState().recentSlashItems).toEqual(['b', 'a', 'table']);
   });
 
-  it('v39 migration guard defaults the field and the version is 39', async () => {
+  it('v39 migration guard defaults the field and the persisted version is now 40', async () => {
     const { readFileSync } = await import('node:fs');
     const src = readFileSync(`${process.cwd()}/src/stores/settings.store.ts`, 'utf8');
-    expect(src).toMatch(/version: 39,/);
+    expect(src).toMatch(/version: 40,/);
     expect(src).toMatch(
       /if \(version < 39\) \{\s*if \(s\.recentSlashItems === undefined\) s\.recentSlashItems = \[\];/,
     );

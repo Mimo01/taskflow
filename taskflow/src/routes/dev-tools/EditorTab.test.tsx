@@ -86,7 +86,7 @@ describe('EditorTab', () => {
 });
 
 describe('DevToolsPage editor integration', () => {
-  it('has an Editor tab and Clear Logs clears editor entries', () => {
+  it('has an Editor tab and Clear all clears editor entries', () => {
     act(() => {
       useSettingsStore.setState({ devToolsEnabled: true });
       useWikiEditorLogStore.getState().clear();
@@ -101,7 +101,7 @@ describe('DevToolsPage editor integration', () => {
     });
     render(<DevToolsPage />);
     expect(screen.getByRole('tab', { name: 'Editor' })).toBeTruthy();
-    const clear = screen.getByRole('button', { name: 'Clear Logs' }) as HTMLButtonElement;
+    const clear = screen.getByRole('button', { name: 'Clear all' }) as HTMLButtonElement;
     expect(clear.disabled).toBe(false);
     fireEvent.click(clear);
     expect(useWikiEditorLogStore.getState().entries).toEqual([]);

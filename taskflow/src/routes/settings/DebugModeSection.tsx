@@ -46,10 +46,6 @@ export default function DebugModeSection() {
   const setRequestLogging = useSettingsStore((s) => s.setRequestLogging);
   const responseBodyCapture = useSettingsStore((s) => s.responseBodyCapture);
   const setResponseBodyCapture = useSettingsStore((s) => s.setResponseBodyCapture);
-  const operationProfiling = useSettingsStore((s) => s.operationProfiling);
-  const setOperationProfiling = useSettingsStore((s) => s.setOperationProfiling);
-  const performanceWaterfall = useSettingsStore((s) => s.performanceWaterfall);
-  const setPerformanceWaterfall = useSettingsStore((s) => s.setPerformanceWaterfall);
   const retentionLimit = useSettingsStore((s) => s.retentionLimit);
   const setRetentionLimit = useSettingsStore((s) => s.setRetentionLimit);
   const jiraConcurrencyLimit = useSettingsStore((s) => s.jiraConcurrencyLimit);
@@ -110,7 +106,7 @@ export default function DebugModeSection() {
           <div>
             <p className="text-sm font-medium">Enable Developer Tools</p>
             <p className="text-xs text-muted-foreground">
-              Capture API requests, profile operations, and record performance data.
+              Capture API requests and inspect the query cache.
             </p>
           </div>
           <input
@@ -143,28 +139,6 @@ export default function DebugModeSection() {
                 aria-label="Response body capture"
                 checked={responseBodyCapture}
                 onChange={(e) => setResponseBodyCapture(e.target.checked)}
-                className="h-4 w-4 accent-primary shrink-0"
-              />
-            </label>
-
-            <label className="flex items-center justify-between gap-4 cursor-pointer">
-              <p className="text-sm font-medium">Operation profiling</p>
-              <input
-                type="checkbox"
-                aria-label="Operation profiling"
-                checked={operationProfiling}
-                onChange={(e) => setOperationProfiling(e.target.checked)}
-                className="h-4 w-4 accent-primary shrink-0"
-              />
-            </label>
-
-            <label className="flex items-center justify-between gap-4 cursor-pointer">
-              <p className="text-sm font-medium">Performance waterfall</p>
-              <input
-                type="checkbox"
-                aria-label="Performance waterfall"
-                checked={performanceWaterfall}
-                onChange={(e) => setPerformanceWaterfall(e.target.checked)}
                 className="h-4 w-4 accent-primary shrink-0"
               />
             </label>

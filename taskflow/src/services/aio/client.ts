@@ -23,7 +23,7 @@ export const AIO_API_PATH = '/rest/aio-tcms-api/1.0';
  * Sends Authorization: Bearer and Content-Type: application/json headers.
  *
  * Every call must supply a stable, user-action-shaped `operation` label so that all
- * AIO requests are grouped in the dev-tools Operations tab (no ungrouped requests).
+ * AIO requests can be filtered by operation in the dev-tools Logs tab.
  *
  * @param baseUrl   - Jira/AIO base URL (same host; trailing slash is stripped)
  * @param token     - Personal Access Token (from Stronghold key 'jira-pat')
