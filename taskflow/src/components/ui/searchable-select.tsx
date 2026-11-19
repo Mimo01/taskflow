@@ -34,7 +34,18 @@ export interface SearchableSelectProps {
   className?: string;
   /** Where focus goes when the popup closes (Base UI `finalFocus`); defaults to the trigger. */
   finalFocus?: PopoverPrimitive.Popup.Props['finalFocus'];
+  /**
+   * Trigger look. `default` is the bordered form field; `ghost` is a quiet borderless inline
+   * control (label only, small chevron, hover fill) for toolbars/headers. The popup is the same.
+   */
+  variant?: 'default' | 'ghost';
 }
+
+const DEFAULT_TRIGGER_CLASS =
+  'flex h-8 w-full items-center gap-1.5 rounded-lg border border-input bg-transparent pr-2 pl-2.5 text-left text-sm whitespace-nowrap transition-colors outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 data-[popup-open]:border-ring dark:bg-input/30 dark:hover:bg-input/50';
+
+const GHOST_TRIGGER_CLASS =
+  'inline-flex h-6 w-auto max-w-full items-center gap-1 rounded-md border-0 bg-transparent px-1.5 text-left text-xs whitespace-nowrap text-muted-foreground transition-colors outline-none select-none hover:bg-foreground/5 hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 data-[popup-open]:bg-foreground/5 data-[popup-open]:text-foreground';
 
 const ROW_CLASS =
   'relative flex w-full cursor-default items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm outline-hidden select-none';
@@ -82,7 +93,9 @@ export function SearchableSelect({
   testIdPrefix = 'searchable-select',
   className,
   finalFocus,
+  variant = 'default',
 }: SearchableSelectProps) {
+  const ghost = variant === 'ghost';
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const all = pinnedOption ? [pinnedOption, ...options] : options;
@@ -107,10 +120,7 @@ export function SearchableSelect({
         aria-label={ariaLabel}
         disabled={disabled}
         data-testid={`${testIdPrefix}-trigger`}
-        className={cn(
-          'flex h-8 w-full items-center gap-1.5 rounded-lg border border-input bg-transparent pr-2 pl-2.5 text-left text-sm whitespace-nowrap transition-colors outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 data-[popup-open]:border-ring dark:bg-input/30 dark:hover:bg-input/50',
-          className,
-        )}
+        className={cn(ghost ? GHOST_TRIGGER_CLASS : DEFAULT_TRIGGER_CLASS, className)}
       >
         <span
           className={cn(
@@ -119,13 +129,15 @@ export function SearchableSelect({
           )}
         >
           <span className="min-w-0 truncate">{selected ? selected.label : placeholder}</span>
-          {selected?.detail && (
+          {!ghost && selected?.detail && (
             <span className="shrink-0 font-mono text-xs text-muted-foreground tabular-nums">
               {selected.detail}
             </span>
           )}
         </span>
-        <ChevronDown className="size-4 shrink-0 opacity-50" />
+        <ChevronDown
+          className={ghost ? 'size-3.5 shrink-0 opacity-60' : 'size-4 shrink-0 opacity-50'}
+        />
       </PopoverTrigger>
       <PopoverContent
         align="start"

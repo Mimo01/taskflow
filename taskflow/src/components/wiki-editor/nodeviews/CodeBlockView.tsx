@@ -22,10 +22,10 @@ export function CodeBlockView({ node, editor, getPos }: NodeViewProps) {
     <NodeViewWrapper className={WIKI_CODE_FRAME}>
       <div
         contentEditable={false}
-        className="flex h-7 items-center border-b border-border bg-muted px-2 text-xs text-muted-foreground"
+        className="flex h-8 items-center border-b border-border/60 bg-muted/60 px-1.5 text-xs text-muted-foreground density-compact:h-7"
       >
         {noformat ? (
-          <span>Noformat</span>
+          <span className="px-1.5">Noformat</span>
         ) : (
           <SearchableSelect
             aria-label="Code language"
@@ -33,7 +33,7 @@ export function CodeBlockView({ node, editor, getPos }: NodeViewProps) {
             options={OPTIONS}
             pinnedOption={NONE_OPTION}
             searchPlaceholder="Search languages…"
-            className="h-6 text-xs"
+            variant="ghost"
             finalFocus={() => editor.view.dom}
             onValueChange={(v) => {
               const pos = getPos();

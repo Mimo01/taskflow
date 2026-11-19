@@ -103,6 +103,9 @@ describe('CodeBlockView', () => {
     render(<Harness content={wikiDoc('{code:java}\nx\n{code}')} />);
     const select = await screen.findByLabelText('Code language');
     expect(select.textContent).toContain('Java');
+    // Ghost trigger: label only (no mono 'java' detail), no form-field border.
+    expect(select.textContent?.trim()).toBe('Java');
+    expect(select.className).not.toContain('border-input');
   });
 
   it('shows Noformat without a select', async () => {
