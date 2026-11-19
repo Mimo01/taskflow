@@ -103,3 +103,20 @@ describe('searchHaystack', () => {
     expect(searchHaystack(entry)).toBe(hay);
   });
 });
+
+describe('pending entries', () => {
+  const pending = e({ id: 'p', status: null, state: 'pending' });
+  const failed = e({ id: 'f', status: null });
+  const ok = e({ id: 'o' });
+
+  it('the errors facet excludes pending, and the pending facet selects only pending', () => {
+    const all = [pending, failed, ok];
+    expect(filterLogs(all, { ...none, statuses: new Set(['errors']) }).map((x) => x.id)).toEqual([
+      'f',
+    ]);
+    expect(filterLogs(all, { ...none, statuses: new Set(['pending']) }).map((x) => x.id)).toEqual([
+      'p',
+    ]);
+    expect(filterLogs(all, none)).toHaveLength(3);
+  });
+});

@@ -7,14 +7,18 @@
  */
 import { useState } from 'react';
 import { byteSize } from '../../lib/dev-tools/json-preview';
+import { entryStart, isPending } from '../../lib/dev-tools/log-entry';
 import { computeLogStats, timingScale } from '../../lib/dev-tools/log-stats';
 import { parseQueryParams } from '../../lib/dev-tools/query-params';
+import { queueSplit } from '../../lib/dev-tools/queue-handoff';
 import type { ApiLogEntry } from '../../stores/debug-log.store';
 import { SectionHeader } from '../dashboard/issue-detail/SectionHeader';
 import { CopyMenu, KeyValueTable } from './dev-tools-ui';
+import { useDevToolsViewStore } from './dev-tools-view.store';
 import JsonTree from './JsonTree';
 import { InspectorMaximizeButton } from './ListInspectorLayout';
 import { copyActionsFor } from './log-copy-items';
+import { useNow } from './useNow';
 import { formatBytes, statusPillClass } from './utils';
 
 function decodedUrl(url: string): string {
@@ -44,11 +48,15 @@ export default function LogInspector({
   const [open, setOpen] = useState({ overview: true, body: true, timing: true });
   const toggle = (k: keyof typeof open) => setOpen((o) => ({ ...o, [k]: !o[k] }));
 
+  const pending = isPending(entry);
+  const pausedAt = useDevToolsViewStore((s) => s.pausedAt);
+  const now = useNow(250, pending, pausedAt);
+  const elapsed = Math.max(0, Math.round(now - entryStart(entry)));
   const url = decodedUrl(entry.url);
   const size = formatBytes(byteSize(entry.responseBody));
   const started = new Date(entry.timestamp);
   const meta = [
-    `${entry.durationMs} ms`,
+    `${pending ? elapsed : entry.durationMs} ms`,
     size === '-' ? null : size,
     started.toLocaleTimeString(),
     entry.source,
@@ -60,7 +68,9 @@ export default function LogInspector({
       <div className="border-b px-4 py-3">
         <div className="flex items-center gap-2">
           <span className="font-mono text-sm font-semibold">{entry.method}</span>
-          <span className={statusPillClass(entry.status)}>{entry.status ?? 'ERR'}</span>
+          <span className={statusPillClass(entry.status, pending)}>
+            {pending ? 'pending' : (entry.status ?? 'ERR')}
+          </span>
           <div className="ml-auto flex items-center gap-1">
             <CopyMenu items={copyActionsFor(entry)} />
             <InspectorMaximizeButton />
@@ -77,7 +87,7 @@ export default function LogInspector({
           onToggle={() => toggle('overview')}
           sticky={false}
         />
-        {open.overview && <OverviewPanel entry={entry} size={size} />}
+        {open.overview && <OverviewPanel entry={entry} size={size} pending={pending} />}
       </section>
 
       <section className="border-b px-4 pt-3 pb-3">
@@ -87,7 +97,7 @@ export default function LogInspector({
           onToggle={() => toggle('body')}
           sticky={false}
         />
-        {open.body && <BodyPanel entry={entry} />}
+        {open.body && <BodyPanel entry={entry} pending={pending} />}
       </section>
 
       <section className="px-4 pt-3 pb-3">
@@ -97,13 +107,21 @@ export default function LogInspector({
           onToggle={() => toggle('timing')}
           sticky={false}
         />
-        {open.timing && <TimingPanel entry={entry} entries={entries} />}
+        {open.timing && <TimingPanel entry={entry} entries={entries} pending={pending} />}
       </section>
     </div>
   );
 }
 
-function OverviewPanel({ entry, size }: { entry: ApiLogEntry; size: string }) {
+function OverviewPanel({
+  entry,
+  size,
+  pending,
+}: {
+  entry: ApiLogEntry;
+  size: string;
+  pending: boolean;
+}) {
   const params = parseQueryParams(entry.url);
   const requestHeaders = Object.entries(entry.requestHeaders);
   const responseHeaders = entry.responseHeaders ? Object.entries(entry.responseHeaders) : null;
@@ -111,11 +129,15 @@ function OverviewPanel({ entry, size }: { entry: ApiLogEntry; size: string }) {
   const general: [string, string][] = [
     ['URL', decodedUrl(entry.url)],
     ['Method', entry.method],
-    ['Status', entry.status === null ? 'Network error' : String(entry.status)],
-    ['Duration', `${entry.durationMs} ms`],
-    ['Size', size],
-    ['Started', `${entry.timestamp} (${started.toLocaleTimeString()})`],
+    [
+      'Status',
+      pending ? 'pending' : entry.status === null ? 'Network error' : String(entry.status),
+    ],
   ];
+  if (!pending) general.push(['Duration', `${entry.durationMs} ms`]);
+  const { queuedMs } = queueSplit(entry);
+  if (queuedMs !== null) general.push(['Queued', `${queuedMs} ms`]);
+  general.push(['Size', size], ['Started', `${entry.timestamp} (${started.toLocaleTimeString()})`]);
   return (
     <div className="flex flex-col gap-4">
       {entry.error && (
@@ -149,7 +171,7 @@ function OverviewPanel({ entry, size }: { entry: ApiLogEntry; size: string }) {
   );
 }
 
-function BodyPanel({ entry }: { entry: ApiLogEntry }) {
+function BodyPanel({ entry, pending }: { entry: ApiLogEntry; pending: boolean }) {
   const hasRequest = Boolean(entry.requestBody);
   return (
     <div className="@container">
@@ -161,7 +183,9 @@ function BodyPanel({ entry }: { entry: ApiLogEntry }) {
               <span className="font-semibold">Network error:</span> {entry.error}
             </p>
           )}
-          {entry.responseBody ? (
+          {pending ? (
+            <p className="text-xs text-muted-foreground">Waiting for response…</p>
+          ) : entry.responseBody ? (
             <JsonTree label="Response" text={entry.responseBody} />
           ) : (
             !entry.error && (
@@ -174,31 +198,58 @@ function BodyPanel({ entry }: { entry: ApiLogEntry }) {
   );
 }
 
-function TimingPanel({ entry, entries }: { entry: ApiLogEntry; entries: ApiLogEntry[] }) {
+function TimingPanel({
+  entry,
+  entries,
+  pending,
+}: {
+  entry: ApiLogEntry;
+  entries: ApiLogEntry[];
+  pending: boolean;
+}) {
   const stats = computeLogStats(entries);
   const started = new Date(entry.timestamp);
+  const { queuedMs, networkMs } = queueSplit(entry);
   const rows: [string, string][] = [
     ['Started', `${entry.timestamp} (${started.toLocaleTimeString()})`],
-    ['Duration', `${entry.durationMs} ms`],
+    ['Queued', queuedMs === null ? '–' : `${queuedMs} ms`],
+    ['Network', pending ? '–' : `${networkMs} ms`],
     ['Operation', entry.operation ?? '(none)'],
     ['Source', entry.source],
   ];
   if (stats.median !== null) rows.push(['Median (filtered)', `${stats.median} ms`]);
   if (stats.p95 !== null) rows.push(['p95 (filtered)', `${stats.p95} ms`]);
-  if (stats.median && stats.median > 0) {
+  if (!pending && stats.median && stats.median > 0) {
     rows.push(['Relative', `${(entry.durationMs / stats.median).toFixed(1)}x the median`]);
   }
-  const scale = timingScale(entry.durationMs, stats.median, stats.p95);
+  if (pending) {
+    return (
+      <div className="flex flex-col gap-3">
+        <KeyValueTable rows={rows} />
+        <p className="text-xs text-muted-foreground">Waiting for response…</p>
+      </div>
+    );
+  }
+  // Queue wait is drawn as a hatched lead-in before the network fill; the scale covers both.
+  const queuePart = queuedMs ?? 0;
+  const scale = timingScale(queuePart + entry.durationMs, stats.median, stats.p95);
+  const queuedPct =
+    queuePart > 0 ? Math.round((queuePart / (queuePart + entry.durationMs)) * 1000) / 10 : 0;
   return (
     <div className="flex flex-col gap-3">
       <KeyValueTable rows={rows} />
       <div>
         <div className="relative h-2 rounded bg-muted">
-          <div
-            className="h-full rounded bg-primary/70"
-            style={{ width: `${scale.durationPct}%` }}
-            data-testid="timing-bar"
-          />
+          <div className="flex h-full" style={{ width: `${scale.durationPct}%` }}>
+            {queuePart > 0 && (
+              <div
+                data-testid="timing-queued"
+                className="h-full rounded-l bg-muted-foreground/40 bg-[repeating-linear-gradient(135deg,transparent_0_3px,var(--color-background)_3px_5px)]"
+                style={{ width: `${queuedPct}%` }}
+              />
+            )}
+            <div className="h-full flex-1 rounded-r bg-primary/70" data-testid="timing-bar" />
+          </div>
           {scale.medianPct !== null && (
             <span
               aria-hidden="true"

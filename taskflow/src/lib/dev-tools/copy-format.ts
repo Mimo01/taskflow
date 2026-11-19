@@ -4,7 +4,9 @@
  */
 import type { ApiLogEntry } from '../../stores/debug-log.store';
 import { capText } from './json-preview';
+import { isPending } from './log-entry';
 import { urlPath } from './log-stats';
+import { queueSplit } from './queue-handoff';
 import { redactHeaders, redactUrl } from './redact';
 
 /** JSON value when the text parses, otherwise the raw string. */
@@ -50,16 +52,18 @@ function kb(bytes: number): string {
 /** Bug-report-ready Markdown block for one entry. */
 export function entryToMarkdown(entry: ApiLogEntry, maxResponseBytes = 4096): string {
   const url = redactUrl(entry.url);
-  const status = entry.status === null ? 'ERR' : String(entry.status);
+  const pending = isPending(entry);
+  const status = pending ? 'pending' : entry.status === null ? 'ERR' : String(entry.status);
   const lines: string[] = [
     `### ${entry.method} ${urlPath(url)} → ${status}`,
     '',
     `- URL: ${url}`,
     `- Status: ${status}`,
-    `- Duration: ${entry.durationMs} ms`,
-    `- Time: ${entry.timestamp}`,
-    `- Source: ${entry.source}`,
   ];
+  if (!pending) lines.push(`- Duration: ${entry.durationMs} ms`);
+  const { queuedMs } = queueSplit(entry);
+  if (queuedMs !== null) lines.push(`- Queued ${queuedMs} ms`);
+  lines.push(`- Time: ${entry.timestamp}`, `- Source: ${entry.source}`);
   if (entry.operation) lines.push(`- Operation: ${entry.operation}`);
   if (entry.error) lines.push(`- Error: ${entry.error}`);
 
@@ -68,7 +72,9 @@ export function entryToMarkdown(entry: ApiLogEntry, maxResponseBytes = 4096): st
   }
 
   lines.push('', '**Response**', '');
-  if (entry.responseBody) {
+  if (pending) {
+    lines.push('_Waiting for response_');
+  } else if (entry.responseBody) {
     const capped = capText(entry.responseBody, maxResponseBytes);
     const body = capped.truncated
       ? `${capped.text}\n… truncated (${kb(capped.totalBytes)} total)`

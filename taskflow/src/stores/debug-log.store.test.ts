@@ -85,4 +85,31 @@ describe('debug-log.store', () => {
     expect(entries).toHaveLength(1);
     expect(entries[0].source).toBe('updater');
   });
+
+  it('update merges a patch into a new object at the same index', () => {
+    act(() => {
+      useDebugLogStore.getState().append(makeEntry('a'));
+      useDebugLogStore.getState().append(makeEntry('b'));
+    });
+    const before = useDebugLogStore.getState().entries;
+    act(() => {
+      useDebugLogStore.getState().update('a', { status: 500 });
+    });
+    const after = useDebugLogStore.getState().entries;
+    expect(after.map((e) => e.id)).toEqual(['b', 'a']);
+    expect(after[1].status).toBe(500);
+    expect(after[1]).not.toBe(before[1]);
+    expect(after[0]).toBe(before[0]);
+  });
+
+  it('update on an evicted id is a no-op', () => {
+    act(() => {
+      useDebugLogStore.getState().append(makeEntry('a'));
+    });
+    const before = useDebugLogStore.getState().entries;
+    act(() => {
+      useDebugLogStore.getState().update('gone', { status: 500 });
+    });
+    expect(useDebugLogStore.getState().entries).toBe(before);
+  });
 });

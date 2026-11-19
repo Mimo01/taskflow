@@ -36,4 +36,24 @@ describe('concurrency limiter', () => {
     await Promise.all(tasks);
     expect(maxConcurrent).toBeLessThanOrEqual(6);
   });
+
+  it('hands every call its enqueue time; queued calls get an earlier time than their start', async () => {
+    const { getJiraLimit } = await import('./concurrency');
+    const { takeQueuedAt } = await import('./dev-tools/queue-handoff');
+    const limit = getJiraLimit();
+    const seen: { queuedAt: number | undefined; startedAt: number }[] = [];
+    const tasks = Array.from({ length: 7 }, () =>
+      limit(() => {
+        const queuedAt = takeQueuedAt();
+        seen.push({ queuedAt, startedAt: performance.timeOrigin + performance.now() });
+        return new Promise<void>((resolve) => setTimeout(resolve, 15));
+      }),
+    );
+    await Promise.all(tasks);
+    expect(seen).toHaveLength(7);
+    for (const s of seen) expect(typeof s.queuedAt).toBe('number');
+    const last = seen[6];
+    expect((last.queuedAt as number) < last.startedAt).toBe(true);
+    expect(last.startedAt - (last.queuedAt as number)).toBeGreaterThan(5);
+  });
 });

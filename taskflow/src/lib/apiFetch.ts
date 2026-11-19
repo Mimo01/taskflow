@@ -3,7 +3,9 @@
  *
  * - When devToolsEnabled is disabled: passes through to @tauri-apps/plugin-http fetch unchanged.
  * - When devToolsEnabled is enabled: captures method, URL, headers, status, duration, response body
- *   based on granular toggle settings (requestLogging, responseBodyCapture).
+ *   based on granular toggle settings (requestLogging, responseBodyCapture). The log entry is
+ *   appended when the request STARTS (state 'pending') and patched in place on completion.
+ *   Logging never throws into the request path.
  *   Request and response headers go through redactHeaders (Authorization, PRIVATE-TOKEN, cookies and
  *   other secret-bearing headers become "[REDACTED]").
  *
@@ -18,6 +20,8 @@ import { useAuthStore } from '../stores/auth.store';
 import type { ApiLogEntry } from '../stores/debug-log.store';
 import { useDebugLogStore } from '../stores/debug-log.store';
 import { useSettingsStore } from '../stores/settings.store';
+import { currentRoute, nowMs } from './dev-tools/log-entry';
+import { takeQueuedAt } from './dev-tools/queue-handoff';
 import { redactHeaders } from './dev-tools/redact';
 
 function markDisconnected(source: 'jira' | 'gitlab' | 'aio' | 'updater' | 'tempo') {
@@ -45,6 +49,9 @@ export async function apiFetch(
   init?: RequestInit,
   operation?: string,
 ): Promise<Response> {
+  // Must be the first statement (before any await): consumes the limiter's queue-time handoff so it
+  // can never leak to an unrelated call, even when dev tools are off.
+  const queuedAt = takeQueuedAt();
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
 
@@ -73,7 +80,7 @@ export async function apiFetch(
   }
 
   // Dev tools enabled: instrument the call
-  const start = performance.now();
+  const startedAt = nowMs();
   const method = init?.method ?? 'GET';
 
   // Sanitize headers for logging (handles Headers, tuple and plain-object inits)
@@ -91,8 +98,42 @@ export async function apiFetch(
     }
   }
 
+  const entryId = crypto.randomUUID();
+  // Append the pending entry before fetch so in-flight requests are visible.
+  if (requestLogging) {
+    try {
+      useDebugLogStore.getState().append({
+        id: entryId,
+        timestamp: new Date().toISOString(),
+        source,
+        method,
+        url,
+        requestHeaders: safeHeaders,
+        requestBody,
+        status: null,
+        durationMs: 0,
+        responseBody: '',
+        operation,
+        state: 'pending',
+        startedAt,
+        route: currentRoute(),
+        ...(queuedAt !== undefined ? { queuedAt } : {}),
+      });
+    } catch {
+      // logging must never break the request
+    }
+  }
+
+  const patchEntry = (patch: Partial<ApiLogEntry>) => {
+    if (!requestLogging) return;
+    try {
+      useDebugLogStore.getState().update(entryId, patch);
+    } catch {
+      // logging must never break the request
+    }
+  };
+
   let response: Response;
-  let errorMsg: string | undefined;
   let status: number | null = null;
   let responseBody = '';
 
@@ -111,26 +152,14 @@ export async function apiFetch(
       }
     }
   } catch (err) {
-    const durationMs = Math.round(performance.now() - start);
-    errorMsg = err instanceof Error ? err.message : String(err);
-
-    if (requestLogging) {
-      const entry: ApiLogEntry = {
-        id: crypto.randomUUID(),
-        timestamp: new Date().toISOString(),
-        source,
-        method,
-        url,
-        requestHeaders: safeHeaders,
-        requestBody,
-        status: null,
-        durationMs,
-        responseBody: '',
-        error: errorMsg,
-        operation,
-      };
-      useDebugLogStore.getState().append(entry);
-    }
+    const endedAt = nowMs();
+    patchEntry({
+      state: 'error',
+      status: null,
+      durationMs: Math.round(endedAt - startedAt),
+      endedAt,
+      error: err instanceof Error ? err.message : String(err),
+    });
 
     // Network errors (timeout, DNS failure, etc.) do NOT mark disconnected.
     // Only a 401 response means credentials are invalid.
@@ -139,24 +168,22 @@ export async function apiFetch(
     clearTimeout(timer);
   }
 
-  const durationMs = Math.round(performance.now() - start);
-
+  const endedAt = nowMs();
   if (requestLogging) {
-    const entry: ApiLogEntry = {
-      id: crypto.randomUUID(),
-      timestamp: new Date().toISOString(),
-      source,
-      method,
-      url,
-      requestHeaders: safeHeaders,
-      requestBody,
+    let responseHeaders: Record<string, string> | undefined;
+    try {
+      responseHeaders = redactHeaders(response.headers);
+    } catch {
+      responseHeaders = undefined;
+    }
+    patchEntry({
+      state: 'done',
       status,
-      durationMs,
+      durationMs: Math.round(endedAt - startedAt),
+      endedAt,
       responseBody,
-      responseHeaders: redactHeaders(response.headers),
-      operation,
-    };
-    useDebugLogStore.getState().append(entry);
+      responseHeaders,
+    });
   }
 
   if (response.status === 401) markDisconnected(source);

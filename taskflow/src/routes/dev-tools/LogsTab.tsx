@@ -12,6 +12,7 @@ import { Button } from '../../components/ui/button';
 import { EmptyState } from '../../components/ui/empty-state';
 import { FilterPopover } from '../../components/ui/table-filter-sort';
 import { entriesToJson } from '../../lib/dev-tools/copy-format';
+import { entryStart, isPending } from '../../lib/dev-tools/log-entry';
 import {
   facetOptions,
   filterLogs,
@@ -34,14 +35,8 @@ import {
 import { facetSetter, LOG_FACETS, useDevToolsViewStore } from './dev-tools-view.store';
 import ListInspectorLayout from './ListInspectorLayout';
 import LogInspector from './LogInspector';
-import { sourceBadgeClass } from './utils';
-
-function statusText(status: number | null): string {
-  if (status === null) return 'text-red-600 dark:text-red-400';
-  if (status >= 200 && status < 300) return 'text-green-600 dark:text-green-400';
-  if (status >= 300 && status < 400) return 'text-yellow-600 dark:text-yellow-400';
-  return 'text-red-600 dark:text-red-400';
-}
+import { useNow } from './useNow';
+import { sourceBadgeClass, statusText } from './utils';
 
 /** Decoded path + query with the host stripped. */
 export function displayPath(url: string): string {
@@ -66,6 +61,7 @@ export default function LogsTab() {
 
   const pausedEntries = useDevToolsViewStore((s) => s.pausedEntries);
   const setPausedEntries = useDevToolsViewStore((s) => s.setPausedEntries);
+  const pausedAt = useDevToolsViewStore((s) => s.pausedAt);
   const { selectedId, search } = useDevToolsViewStore((s) => s.tabs.logs);
   const setSelected = useDevToolsViewStore((s) => s.setSelected);
   const setSearch = useDevToolsViewStore((s) => s.setSearch);
@@ -84,6 +80,9 @@ export default function LogsTab() {
   );
 
   const entries = pausedEntries ?? liveEntries;
+  const hasPending = useMemo(() => entries.some(isPending), [entries]);
+  // Ticks only while something is in flight; frozen at the pause time when paused.
+  const now = useNow(250, hasPending, pausedAt);
   const options = useMemo(() => facetOptions(entries), [entries]);
   const { filtered, stats, ids } = useMemo(() => {
     const filters: LogFilters = { search, sources, statuses, methods, operations };
@@ -234,6 +233,15 @@ export default function LogsTab() {
   const summary = (
     <div data-testid="logs-summary" className="flex flex-wrap items-center gap-x-4 gap-y-0.5">
       <Chip label="Requests" value={String(stats.total)} />
+      {stats.inFlight > 0 && (
+        <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+          <span
+            aria-hidden="true"
+            className="size-1.5 animate-pulse rounded-full bg-muted-foreground"
+          />
+          <span className="tabular-nums">{`${stats.inFlight} in flight`}</span>
+        </span>
+      )}
       <Chip
         label="Errors"
         value={String(stats.errors)}
@@ -265,6 +273,7 @@ export default function LogsTab() {
           <LogRow
             key={e.id}
             entry={e}
+            now={now}
             selected={e.id === selectedId}
             tabStop={isTabStop(ids, selectedId, e.id)}
             onSelect={() => setSelected('logs', e.id)}
@@ -341,16 +350,20 @@ function displayUrl(url: string): string {
 
 function LogRow({
   entry,
+  now,
   selected,
   tabStop,
   onSelect,
 }: {
   entry: ApiLogEntry;
+  now: number;
   selected: boolean;
   tabStop: boolean;
   onSelect: () => void;
 }) {
   const { origin, path } = splitUrl(entry.url);
+  const pending = isPending(entry);
+  const elapsed = pending ? Math.max(0, Math.round(now - entryStart(entry))) : entry.durationMs;
   return (
     <ListRow
       selected={selected}
@@ -364,8 +377,10 @@ function LogRow({
         {entry.source}
       </span>
       <span className="w-12 flex-none font-mono font-semibold">{entry.method}</span>
-      <span className={cn('w-10 flex-none font-mono font-semibold', statusText(entry.status))}>
-        {entry.status ?? 'ERR'}
+      <span
+        className={cn('w-14 flex-none font-mono font-semibold', statusText(entry.status, pending))}
+      >
+        {pending ? 'pending' : (entry.status ?? 'ERR')}
       </span>
       <span className="min-w-0 flex-1 truncate font-mono">
         <span className="text-muted-foreground/60">{origin}</span>
@@ -375,7 +390,7 @@ function LogRow({
         <span className="max-w-40 flex-none truncate text-muted-foreground">{entry.operation}</span>
       )}
       <span className="w-16 flex-none text-right tabular-nums text-muted-foreground">
-        {entry.durationMs} ms
+        {elapsed} ms
       </span>
       <span className="w-20 flex-none text-right tabular-nums text-muted-foreground">
         {new Date(entry.timestamp).toLocaleTimeString()}

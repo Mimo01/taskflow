@@ -2,9 +2,13 @@
  * Summary statistics over a (filtered) list of API log entries.
  */
 import type { ApiLogEntry } from '../../stores/debug-log.store';
+import { isPending } from './log-entry';
 
 export interface LogStats {
+  /** Every entry, including pending ones. */
   total: number;
+  /** Pending entries; excluded from errors, median, p95 and slowest. */
+  inFlight: number;
   errors: number;
   median: number | null;
   p95: number | null;
@@ -26,18 +30,21 @@ export function urlPath(url: string): string {
 }
 
 export function computeLogStats(entries: ApiLogEntry[]): LogStats {
-  if (entries.length === 0) {
-    return { total: 0, errors: 0, median: null, p95: null, slowest: null };
+  const settled = entries.filter((e) => !isPending(e));
+  const inFlight = entries.length - settled.length;
+  if (settled.length === 0) {
+    return { total: entries.length, inFlight, errors: 0, median: null, p95: null, slowest: null };
   }
-  const durations = entries.map((e) => e.durationMs).sort((a, b) => a - b);
-  let slowest = entries[0];
+  const durations = settled.map((e) => e.durationMs).sort((a, b) => a - b);
+  let slowest = settled[0];
   let errors = 0;
-  for (const e of entries) {
+  for (const e of settled) {
     if (e.status === null || e.status >= 400) errors++;
     if (e.durationMs > slowest.durationMs) slowest = e;
   }
   return {
     total: entries.length,
+    inFlight,
     errors,
     median: nearestRank(durations, 0.5),
     p95: nearestRank(durations, 0.95),

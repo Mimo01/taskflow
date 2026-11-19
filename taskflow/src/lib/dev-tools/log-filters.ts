@@ -2,11 +2,18 @@
  * Pure filtering helpers for the Developer Tools Logs tab.
  */
 import type { ApiLogEntry } from '../../stores/debug-log.store';
+import { entryState } from './log-entry';
 
-export type StatusClass = 'error' | '2xx' | '3xx' | '4xx' | '5xx' | '1xx';
+export type StatusClass = 'error' | '2xx' | '3xx' | '4xx' | '5xx' | '1xx' | 'pending';
 
 export const NO_OPERATION = '(none)';
-export const STATUS_FACETS = ['2xx', '3xx', '4xx', '5xx', 'errors'] as const;
+export const STATUS_FACETS = ['2xx', '3xx', '4xx', '5xx', 'errors', 'pending'] as const;
+
+/** Status class of an entry; a pending entry is its own class and never an error. */
+export function entryStatusClass(entry: ApiLogEntry): StatusClass {
+  if (entryState(entry) === 'pending') return 'pending';
+  return statusClass(entry.status);
+}
 
 export function statusClass(status: number | null): StatusClass {
   if (status === null) return 'error';
@@ -27,6 +34,7 @@ export interface LogFilters {
 
 function matchesStatus(entry: ApiLogEntry, statuses: Set<string>): boolean {
   if (statuses.size === 0) return true;
+  if (entryState(entry) === 'pending') return statuses.has('pending');
   const isError = entry.status === null || entry.status >= 400;
   if (statuses.has('errors') && isError) return true;
   return statuses.has(statusClass(entry.status));

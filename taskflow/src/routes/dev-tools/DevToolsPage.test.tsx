@@ -2,12 +2,13 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { nowMs } from '../../lib/dev-tools/log-entry';
 import { saveBytes } from '../../lib/save-attachment';
 import type { ApiLogEntry } from '../../stores/debug-log.store';
 import { useDebugLogStore } from '../../stores/debug-log.store';
 import { useSettingsStore } from '../../stores/settings.store';
 import DevToolsPage from './DevToolsPage';
-import { useDevToolsViewStore } from './dev-tools-view.store';
+import { LOG_FACETS, useDevToolsViewStore } from './dev-tools-view.store';
 
 vi.mock('../../lib/save-attachment', () => ({
   saveBytes: vi.fn().mockResolvedValue('/Downloads/log.json'),
@@ -49,6 +50,8 @@ describe('DevToolsPage', () => {
       useDebugLogStore.getState().clear();
       useDevToolsViewStore.getState().setPausedEntries(null);
       useDevToolsViewStore.getState().setSelected('logs', null);
+      useDevToolsViewStore.getState().setSearch('logs', '');
+      useDevToolsViewStore.getState().resetFacets(LOG_FACETS);
       useDevToolsViewStore.getState().setSelected('cache', null);
       useDevToolsViewStore.getState().setInspectorWidth(440);
       useDevToolsViewStore.getState().setInspectorMaximized(false);
@@ -252,5 +255,84 @@ describe('DevToolsPage', () => {
     expect(screen.queryByRole('button', { name: 'Clear all' })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Clear logs' }));
     expect(useDebugLogStore.getState().entries).toHaveLength(0);
+  });
+
+  describe('in-flight requests', () => {
+    const pendingEntry = (over: Partial<ApiLogEntry> = {}): ApiLogEntry => ({
+      ...entry,
+      id: 'p1',
+      status: null,
+      durationMs: 0,
+      responseBody: '',
+      state: 'pending',
+      startedAt: nowMs(),
+      ...over,
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    /** Row text lives in the wrapper; the test-id'd button is an empty overlay. */
+    const rowText = () => screen.getByTestId('devtools-row').parentElement?.textContent ?? '';
+
+    it('shows a pending row and an in-flight chip, then the final status after update', () => {
+      act(() => {
+        useDebugLogStore.getState().append(pendingEntry());
+      });
+      renderPage();
+      expect(rowText()).toContain('pending');
+      expect(screen.getByTestId('logs-summary').textContent).toContain('1 in flight');
+      act(() => {
+        useDebugLogStore.getState().update('p1', {
+          state: 'done',
+          status: 200,
+          durationMs: 12,
+          endedAt: nowMs(),
+        });
+      });
+      const row = rowText();
+      expect(row).toContain('200');
+      expect(row).not.toContain('pending');
+      expect(screen.getByTestId('logs-summary').textContent).not.toContain('in flight');
+    });
+
+    it('pausing freezes the elapsed text of a pending row', () => {
+      vi.useFakeTimers();
+      act(() => {
+        useDebugLogStore.getState().append(pendingEntry({ startedAt: nowMs() - 100 }));
+      });
+      renderPage();
+      act(() => {
+        vi.advanceTimersByTime(500);
+      });
+      const text = rowText;
+      const live = text();
+      expect(live).toMatch(/\d+ ms/);
+      fireEvent.click(screen.getByRole('button', { name: 'Pause' }));
+      const frozen = text();
+      act(() => {
+        vi.advanceTimersByTime(2000);
+      });
+      expect(text()).toBe(frozen);
+    });
+
+    it('inspector Timing shows Queued and Network rows for a queued entry', () => {
+      const started = nowMs();
+      act(() => {
+        useDebugLogStore.getState().append({
+          ...entry,
+          id: 'q1',
+          startedAt: started,
+          queuedAt: started - 120,
+        });
+      });
+      renderPage();
+      fireEvent.click(screen.getAllByTestId('devtools-row')[0]);
+      const inspector = screen.getByTestId('log-inspector');
+      expect(inspector.textContent).toContain('Queued');
+      expect(inspector.textContent).toContain('120 ms');
+      expect(inspector.textContent).toContain('Network');
+    });
   });
 });

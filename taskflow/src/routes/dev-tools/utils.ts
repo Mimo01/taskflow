@@ -10,7 +10,9 @@ export function formatBody(raw: string): string {
   }
 }
 
-export function statusColor(status: number | null): string {
+/** Pending requests read as muted text with no tint; they are never an error. */
+export function statusColor(status: number | null, pending = false): string {
+  if (pending) return 'text-muted-foreground';
   if (status === null) return 'bg-red-500/15 text-red-600 dark:text-red-400';
   if (status >= 200 && status < 300) return 'text-green-600 dark:text-green-400';
   if (status >= 300 && status < 400) return 'text-yellow-600 dark:text-yellow-400';
@@ -18,8 +20,9 @@ export function statusColor(status: number | null): string {
 }
 
 /** Status pill for the inspector header: status colour (the only colour on a row) on a tint. */
-export function statusPillClass(status: number | null): string {
+export function statusPillClass(status: number | null, pending = false): string {
   const base = 'rounded px-1.5 py-0.5 font-mono text-xs font-semibold';
+  if (pending) return `${base} bg-muted text-muted-foreground`;
   if (status !== null && status >= 200 && status < 300) {
     return `${base} bg-green-500/15 text-green-600 dark:text-green-400`;
   }
@@ -27,6 +30,15 @@ export function statusPillClass(status: number | null): string {
     return `${base} bg-yellow-500/15 text-yellow-600 dark:text-yellow-400`;
   }
   return `${base} ${statusColor(status)}`;
+}
+
+/** Row status text colour (no tint). Pending is muted. */
+export function statusText(status: number | null, pending = false): string {
+  if (pending) return 'text-muted-foreground';
+  if (status === null) return 'text-red-600 dark:text-red-400';
+  if (status >= 200 && status < 300) return 'text-green-600 dark:text-green-400';
+  if (status >= 300 && status < 400) return 'text-yellow-600 dark:text-yellow-400';
+  return 'text-red-600 dark:text-red-400';
 }
 
 export function formatBytes(bytes: number | undefined): string {

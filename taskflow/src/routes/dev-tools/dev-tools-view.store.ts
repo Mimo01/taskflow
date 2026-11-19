@@ -6,6 +6,7 @@
  * debug-log store (and its FIFO eviction) stays untouched.
  */
 import { create } from 'zustand';
+import { nowMs } from '../../lib/dev-tools/log-entry';
 import type { ApiLogEntry } from '../../stores/debug-log.store';
 
 export type DevToolsTabId = 'logs' | 'cache' | 'notifications' | 'editor';
@@ -38,6 +39,8 @@ interface DevToolsViewState extends FacetSets {
   /** Inspector takes the whole pane (list hidden). Transient, shared by every tab. */
   inspectorMaximized: boolean;
   pausedEntries: ApiLogEntry[] | null;
+  /** Epoch ms the log was paused at (freezes pending rows' elapsed time); null when live. */
+  pausedAt: number | null;
 
   setSelected: (tab: DevToolsTabId, id: string | null) => void;
   setSearch: (tab: DevToolsTabId, search: string) => void;
@@ -70,6 +73,7 @@ export const useDevToolsViewStore = create<DevToolsViewState>((set) => ({
   inspectorWidth: 440,
   inspectorMaximized: false,
   pausedEntries: null,
+  pausedAt: null,
 
   setSelected: (tab, id) =>
     set((s) => ({ tabs: { ...s.tabs, [tab]: { ...s.tabs[tab], selectedId: id } } })),
@@ -81,7 +85,8 @@ export const useDevToolsViewStore = create<DevToolsViewState>((set) => ({
   setCacheState: (cacheState) => set({ cacheState }),
   setInspectorWidth: (inspectorWidth) => set({ inspectorWidth }),
   setInspectorMaximized: (inspectorMaximized) => set({ inspectorMaximized }),
-  setPausedEntries: (pausedEntries) => set({ pausedEntries }),
+  setPausedEntries: (pausedEntries) =>
+    set({ pausedEntries, pausedAt: pausedEntries ? nowMs() : null }),
 }));
 
 /** Adapter so a Set-valued facet can be passed to FilterPopover's React-style setter. */

@@ -2,9 +2,11 @@
  * debug-log.store — In-memory Zustand store for API call log entries.
  *
  * Transient (no persist middleware) — logs are cleared on app restart.
- * Max 200 entries enforced with FIFO eviction on overflow.
+ * Retention limit enforced with FIFO eviction on overflow. Entries are appended when a request
+ * STARTS (state 'pending') and patched in place via `update` when it completes.
  */
 import { create } from 'zustand';
+import type { EntryState } from '../lib/dev-tools/log-entry';
 import { useSettingsStore } from './settings.store';
 
 export interface ApiLogEntry {
@@ -23,11 +25,18 @@ export interface ApiLogEntry {
   responseHeaders?: Record<string, string>;
   error?: string; // set only on network-level failure (catch block)
   operation?: string; // optional operation label for grouping
+  state?: EntryState; // lifecycle; absent on legacy entries (derived from status)
+  startedAt?: number; // epoch ms with fractions (high resolution) at request start
+  endedAt?: number; // epoch ms with fractions at completion; absent while pending
+  route?: string; // app route path at request start, used for burst labels
+  queuedAt?: number; // epoch ms the call was enqueued on the Jira limiter, when it waited for a slot
 }
 
 interface DebugLogState {
   entries: ApiLogEntry[];
   append: (entry: ApiLogEntry) => void;
+  /** Patch an entry in place (new object, same index). No-op when the id was evicted. */
+  update: (id: string, patch: Partial<ApiLogEntry>) => void;
   clear: () => void;
 }
 
@@ -46,6 +55,11 @@ export const useDebugLogStore = create<DebugLogState>((set) => ({
       const limit = getRetentionLimit();
       const next = [entry, ...s.entries];
       return { entries: next.length > limit ? next.slice(0, limit) : next };
+    }),
+  update: (id, patch) =>
+    set((s) => {
+      if (!s.entries.some((e) => e.id === id)) return s;
+      return { entries: s.entries.map((e) => (e.id === id ? { ...e, ...patch } : e)) };
     }),
   clear: () => set({ entries: [] }),
 }));

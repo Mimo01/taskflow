@@ -81,3 +81,24 @@ describe('entryToMarkdown', () => {
     expect(md).toContain('- Error: timeout');
   });
 });
+
+describe('pending and queued entries', () => {
+  it('shows pending instead of a status and no duration', () => {
+    const md = entryToMarkdown(entry({ status: null, state: 'pending', durationMs: 0 }));
+    expect(md).toContain('→ pending');
+    expect(md).toContain('- Status: pending');
+    expect(md).not.toContain('Duration');
+  });
+
+  it('adds a Queued bullet when the call waited for a slot', () => {
+    const md = entryToMarkdown(entry({ startedAt: 1120.4, queuedAt: 1000 }));
+    expect(md).toContain('- Queued 120 ms');
+    expect(md).toContain('- Duration: 42 ms');
+  });
+
+  it('includes state and queuedAt in the JSON', () => {
+    const parsed = JSON.parse(entryToJson(entry({ state: 'done', queuedAt: 5 })));
+    expect(parsed.state).toBe('done');
+    expect(parsed.queuedAt).toBe(5);
+  });
+});

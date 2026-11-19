@@ -19,6 +19,7 @@ describe('computeLogStats', () => {
   it('handles empty input', () => {
     expect(computeLogStats([])).toEqual({
       total: 0,
+      inFlight: 0,
       errors: 0,
       median: null,
       p95: null,
@@ -65,5 +66,20 @@ describe('timingScale', () => {
 
   it('keeps max at least 1 for all zeros', () => {
     expect(timingScale(0, 0, 0).max).toBe(1);
+  });
+});
+
+describe('computeLogStats pending', () => {
+  it('excludes pending entries from errors, percentiles and slowest, and counts inFlight', () => {
+    const s = computeLogStats([
+      e({ id: 'a', durationMs: 10 }),
+      e({ id: 'b', durationMs: 5000, status: null, state: 'pending' }),
+      e({ id: 'c', durationMs: 30, status: 500 }),
+    ]);
+    expect(s.total).toBe(3);
+    expect(s.inFlight).toBe(1);
+    expect(s.errors).toBe(1);
+    expect(s.p95).toBe(30);
+    expect(s.slowest?.ms).toBe(30);
   });
 });
