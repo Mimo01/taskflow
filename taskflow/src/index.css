@@ -363,3 +363,111 @@
   transition: opacity 0.2s var(--leave-delay, 0ms);
 }
 /* Read/unread toggle: no scale bump on the card (261111-m0g UAT: inner motion too much). */
+
+/*
+ * Wiki code block tokens (editor CodeBlockView + WikiRenderer). Deliberately UNLAYERED: the
+ * global highlight.js github-dark.css (AttachmentPreviewModal) is unlayered too, so specificity
+ * decides. Every :is() group scores >= (0,3,0) and covers the same selectors as github.css, so
+ * this wins without ever relying on the `hljs` container class. Light = github.css, dark =
+ * github-dark.css; light keyword/builtin/name and dark section use GitHub's current shade so
+ * each token clears 4.5:1 on the muted code surface (measured in the 261119-m2i SUMMARY).
+ */
+.wiki-code {
+  --hl-keyword: #cf222e;
+  --hl-title: #6f42c1;
+  --hl-attr: #005cc5;
+  --hl-string: #032f62;
+  --hl-builtin: #bc4c00;
+  --hl-comment: #6a737d;
+  --hl-name: #116329;
+  --hl-section: #005cc5;
+  --hl-bullet: #735c0f;
+  --hl-add-fg: #116329;
+  --hl-add-bg: #dafbe1;
+  --hl-del-fg: #82071e;
+  --hl-del-bg: #ffebe9;
+}
+.dark .wiki-code {
+  --hl-keyword: #ff7b72;
+  --hl-title: #d2a8ff;
+  --hl-attr: #79c0ff;
+  --hl-string: #a5d6ff;
+  --hl-builtin: #ffa657;
+  --hl-comment: #8b949e;
+  --hl-name: #7ee787;
+  --hl-section: #58a6ff;
+  --hl-bullet: #f2cc60;
+  --hl-add-fg: #aff5b4;
+  --hl-add-bg: #033a16;
+  --hl-del-fg: #ffdcd7;
+  --hl-del-bg: #67060c;
+}
+.wiki-code
+  :is(
+    .hljs-doctag,
+    .hljs-keyword,
+    .hljs-meta .hljs-keyword,
+    .hljs-template-tag,
+    .hljs-template-variable,
+    .hljs-type,
+    .hljs-variable.language_
+  ) {
+  color: var(--hl-keyword);
+}
+.wiki-code
+  :is(.hljs-title, .hljs-title.class_, .hljs-title.class_.inherited__, .hljs-title.function_) {
+  color: var(--hl-title);
+}
+.wiki-code
+  :is(
+    .hljs-attr,
+    .hljs-attribute,
+    .hljs-literal,
+    .hljs-meta,
+    .hljs-number,
+    .hljs-operator,
+    .hljs-variable,
+    .hljs-selector-attr,
+    .hljs-selector-class,
+    .hljs-selector-id
+  ) {
+  color: var(--hl-attr);
+}
+.wiki-code :is(.hljs-regexp, .hljs-string, .hljs-meta .hljs-string) {
+  color: var(--hl-string);
+}
+.wiki-code :is(.hljs-built_in, .hljs-symbol) {
+  color: var(--hl-builtin);
+}
+.wiki-code :is(.hljs-comment, .hljs-code, .hljs-formula) {
+  color: var(--hl-comment);
+}
+.wiki-code :is(.hljs-name, .hljs-quote, .hljs-selector-tag, .hljs-selector-pseudo) {
+  color: var(--hl-name);
+}
+.wiki-code :is(.hljs-subst) {
+  color: var(--foreground);
+}
+.wiki-code :is(.hljs-section) {
+  color: var(--hl-section);
+  font-weight: bold;
+}
+.wiki-code :is(.hljs-bullet) {
+  color: var(--hl-bullet);
+}
+.wiki-code :is(.hljs-emphasis) {
+  color: inherit;
+  font-style: italic;
+}
+.wiki-code :is(.hljs-strong) {
+  color: inherit;
+  font-weight: bold;
+}
+.wiki-code :is(.hljs-addition) {
+  color: var(--hl-add-fg);
+  background-color: var(--hl-add-bg);
+}
+.wiki-code :is(.hljs-deletion) {
+  color: var(--hl-del-fg);
+  background-color: var(--hl-del-bg);
+}

@@ -27,10 +27,17 @@ export const WIKI_PROSE_CLASSES: string[] = [
   '[&_p]:leading-relaxed [&_li]:leading-relaxed',
   'density-compact:prose-p:my-1.5 density-compact:prose-ul:my-1.5 density-compact:prose-ol:my-1.5',
   'density-compact:prose-li:my-0.5 density-compact:prose-headings:mt-4 density-compact:prose-headings:mb-1.5',
-  'density-compact:prose-pre:p-2 density-compact:prose-td:py-1 density-compact:prose-th:py-1',
+  'density-compact:prose-td:py-1 density-compact:prose-th:py-1',
   'density-compact:[&_p]:leading-normal density-compact:[&_li]:leading-normal',
   'density-comfortable:prose-p:my-5 density-comfortable:prose-ul:my-5 density-comfortable:prose-ol:my-5',
   'density-comfortable:prose-li:my-1.5 density-comfortable:prose-headings:mt-7 density-comfortable:prose-headings:mb-3.5',
-  'density-comfortable:prose-pre:p-4 density-comfortable:prose-td:py-3 density-comfortable:prose-th:py-3',
+  'density-comfortable:prose-td:py-3 density-comfortable:prose-th:py-3',
   'density-comfortable:[&_p]:leading-[1.8] density-comfortable:[&_li]:leading-[1.8]',
 ];
+
+// Code block frame/pre shared by the editor CodeBlockView and WikiRenderer. `not-prose` drops
+// Typography's gray-200 pre colour; token colours live in index.css (.wiki-code, unlayered).
+export const WIKI_CODE_FRAME =
+  'not-prose wiki-code my-2 overflow-hidden rounded-md border border-border bg-muted/40';
+export const WIKI_CODE_PRE =
+  'm-0 overflow-x-auto bg-transparent p-3 font-mono text-xs leading-relaxed whitespace-pre text-foreground density-compact:p-2 density-comfortable:p-4';

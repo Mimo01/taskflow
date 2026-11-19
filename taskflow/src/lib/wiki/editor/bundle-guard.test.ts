@@ -161,6 +161,16 @@ describe('lib/wiki/prose.ts bundle isolation', () => {
   });
 });
 
+describe('lib/wiki/highlight.ts bundle isolation', () => {
+  it('reaches nothing under lib/wiki/editor or @tiptap/', () => {
+    const entry = path.join(SRC_ROOT, 'lib/wiki/highlight.ts');
+    expect(fs.existsSync(entry)).toBe(true);
+    const result = collectStaticImports(entry, SRC_ROOT);
+    const v = violations(result);
+    expect(v, v.join('\n')).toEqual([]);
+  });
+});
+
 describe('collectStaticImports (mutation)', () => {
   it('reports a tiptap import reached through a relative chain', () => {
     const dir = tmpGraph({

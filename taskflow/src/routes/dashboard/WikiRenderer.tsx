@@ -30,7 +30,13 @@ import {
   wikiRemarkPlugins,
   wikiToMarkdown,
 } from '@/lib/wiki';
-import { calloutStyles, WIKI_PROSE_CLASSES } from '@/lib/wiki/prose';
+import { rehypeWikiHighlight } from '@/lib/wiki/highlight';
+import {
+  calloutStyles,
+  WIKI_CODE_FRAME,
+  WIKI_CODE_PRE,
+  WIKI_PROSE_CLASSES,
+} from '@/lib/wiki/prose';
 import { fetchIssueDetail } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
@@ -296,6 +302,13 @@ export function WikiRenderer({ wikiText, className, attachments, users }: WikiRe
       if (!key) return null;
       return <IssueKeyLink issueKey={key} />;
     },
+    // Code blocks share the editor's frame (not-prose + theme tokens, no header). Only `pre`
+    // is overridden so inline {{mono}} <code> keeps its prose styling.
+    pre: ({ children }: ComponentPropsWithoutRef<'pre'>) => (
+      <div className={WIKI_CODE_FRAME}>
+        <pre className={WIKI_CODE_PRE}>{children}</pre>
+      </div>
+    ),
     img: ({ src, alt }: ComponentPropsWithoutRef<'img'>) => {
       if (!src) return null;
       return (
@@ -505,8 +518,13 @@ export function WikiRenderer({ wikiText, className, attachments, users }: WikiRe
       <Markdown
         remarkPlugins={wikiRemarkPlugins}
         // Plugin order (raw, presentation, decode, sanitize) is defined once in
-        // wikiRehypePlugins; rehypeIssueKeys is the presentation step.
-        rehypePlugins={wikiRehypePlugins([rehypeIssueKeys(activeJiraProject)])}
+        // wikiRehypePlugins; rehypeIssueKeys is the presentation step. rehypeWikiHighlight runs
+        // AFTER sanitize (it only emits text + span.hljs-*) and stays out of the core list so
+        // wikiToHtml output (equivalence oracle) is unchanged.
+        rehypePlugins={[
+          ...wikiRehypePlugins([rehypeIssueKeys(activeJiraProject)]),
+          rehypeWikiHighlight,
+        ]}
         components={markdownComponents}
       >
         {markdown}

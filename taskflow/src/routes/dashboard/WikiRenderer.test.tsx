@@ -179,6 +179,47 @@ describe('WikiRenderer', () => {
       expect(code).not.toBeNull();
     });
 
+    describe('code block highlighting', () => {
+      it('{code:java} highlights tokens inside the shared themed frame', () => {
+        const { container } = render(
+          <WikiRenderer wikiText={'{code:java}\npublic class X {}\n{code}'} />,
+        );
+        expect(container.querySelector('pre code .hljs-keyword')).not.toBeNull();
+        const pre = container.querySelector('pre');
+        const frame = pre?.parentElement;
+        expect(frame?.classList.contains('not-prose')).toBe(true);
+        expect(frame?.classList.contains('wiki-code')).toBe(true);
+        expect(container.querySelector('code.hljs')).toBeNull();
+      });
+
+      it('{noformat} and bare {code} stay plain (no auto-detect)', () => {
+        const a = render(<WikiRenderer wikiText={'{noformat}\npublic class X {}\n{noformat}'} />);
+        expect(a.container.querySelector('[class*="hljs-"]')).toBeNull();
+        expect(a.container.querySelector('pre')).not.toBeNull();
+        a.unmount();
+        const b = render(<WikiRenderer wikiText="{code}public class X {}{code}" />);
+        expect(b.container.querySelector('[class*="hljs-"]')).toBeNull();
+        b.unmount();
+        const c = render(<WikiRenderer wikiText={'{code:js}\nvar x = 1;\n{code}'} />);
+        expect(c.container.querySelector('[class*="hljs-"]')).toBeNull();
+      });
+
+      it('XSS: <script> inside {code:html} stays literal text', () => {
+        const { container } = render(
+          <WikiRenderer wikiText={'{code:html}\n<script>alert(1)</script>\n{code}'} />,
+        );
+        expect(container.querySelector('script')).toBeNull();
+        expect(container.querySelector('pre code')?.textContent).toContain(
+          '<script>alert(1)</script>',
+        );
+      });
+
+      it('inline {{mono}} code is not wrapped in the frame', () => {
+        const { container } = render(<WikiRenderer wikiText="see {{mono}} here" />);
+        expect(container.querySelector('.wiki-code')).toBeNull();
+      });
+    });
+
     it('renders bullet list from * item wiki markup', () => {
       const { container } = render(<WikiRenderer wikiText="* item one" />);
       const li = container.querySelector('li');
