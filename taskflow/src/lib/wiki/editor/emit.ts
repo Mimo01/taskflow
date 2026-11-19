@@ -408,33 +408,43 @@ const OPENING_DELIMS = '[{!';
  * Opening delimiters are tried last, so they are the ones left escaped.
  */
 function inlineSegments(nodes: readonly JSONContent[] | undefined, ctx: InlineCtx): Segment[] {
-  const kids = pinBreaks(nodes ?? [], ctx);
-  const plain = markedSegments(kids, ctx);
-  const risky = kids.some((n) => n.type === 'text' && /[*_\-+^~{}[\]!#|(]/.test(n.text ?? ''));
+  const unbraced = pinBreaks(nodes ?? [], ctx);
+  const plain = markedSegments(unbraced, ctx);
+  const flank = flankKeys(unbraced);
+  const risky =
+    flank.size > 0 ||
+    unbraced.some((n) => n.type === 'text' && /[*_\-+^~{}[\]!#|(]/.test(n.text ?? ''));
   if (!risky) return plain;
   const [pre, post] = WRAP[ctx];
-  const want = display(kids);
+  const want = display(unbraced);
   const fits = (segs: readonly Segment[]): boolean => {
     const back = reparsed(ctx, pre + joinText(segs) + post);
     return back !== null && display(back) === want;
   };
   if (fits(plain)) return plain;
+  const braceOnly = braceNeeded(unbraced, flank, (k) => fits(markedSegments(k, ctx)));
+  if (braceOnly !== unbraced) return markedSegments(braceOnly, ctx);
   const ctxOf = (i: number): EscapeContext => {
-    const prevNode = kids[i - 1];
+    const prevNode = unbraced[i - 1];
     return {
       lineStart:
         i === 0 || (prevNode?.type === 'hardBreak' && breakSpelling(prevNode, ctx) === '\n'),
       inCell: ctx === 'cell',
       prev: edge(prevNode, true),
-      next: edge(kids[i + 1], false),
+      next: edge(unbraced[i + 1], false),
     };
   };
-  const escaped = (keep: ReadonlySet<string>): JSONContent[] =>
-    kids.map((n, i) =>
+  const escapedFrom = (base: readonly JSONContent[], keep: ReadonlySet<string>): JSONContent[] =>
+    base.map((n, i) =>
       n.type === 'text' && !n.marks?.some((m) => m.type === 'mono')
         ? { ...n, text: escapeText(n.text ?? '', ctxOf(i), keep) }
         : n,
     );
+  // Text that needs escapes may also sit next to a mark that needs its brace form.
+  const kids = braceNeeded(unbraced, flank, (k) =>
+    fits(markedSegments(escapedFrom(k, new Set()), ctx)),
+  );
+  const escaped = (keep: ReadonlySet<string>): JSONContent[] => escapedFrom(kids, keep);
   const chars = new Set<string>();
   kids.forEach((n, i) => {
     if (n.type === 'text' && !n.marks?.some((m) => m.type === 'mono'))
@@ -452,6 +462,51 @@ function inlineSegments(nodes: readonly JSONContent[] | undefined, ctx: InlineCt
     if (!fits(markedSegments(escaped(keep), ctx))) keep.delete(ch);
   }
   return markedSegments(escaped(keep), ctx);
+}
+
+/** Keys of the flank-sensitive marks (`*x*`, `_x_`, `+x+`, `-x-`) spelled canonically. */
+function flankKeys(kids: readonly JSONContent[]): Set<string> {
+  const keys = new Set<string>();
+  for (const k of kids) for (const m of k.marks ?? []) if (hoistable(m)) keys.add(markKey(m));
+  return keys;
+}
+
+/** Copy of `kids` with the marks in `keys` spelled in brace form (`{-}x{-}`). */
+function braced(kids: readonly JSONContent[], keys: ReadonlySet<string>): JSONContent[] {
+  if (!keys.size) return [...kids];
+  return kids.map((k) =>
+    k.marks?.some((m) => keys.has(markKey(m)))
+      ? {
+          ...k,
+          marks: k.marks.map((m) => {
+            if (!keys.has(markKey(m))) return m;
+            const brace = `{${CANONICAL_DELIMS[m.type as keyof typeof CANONICAL_DELIMS][0]}}`;
+            return { ...m, attrs: { ...m.attrs, open: brace, close: brace } };
+          }),
+        }
+      : k,
+  );
+}
+
+/**
+ * A canonical delimiter next to a word character or a `\\\\` break is not read as a
+ * mark (`a-b-`, `\\\\-x-`); the brace form is read anywhere. Returns `kids` with the
+ * fewest such marks braced that make `ok` hold, or `kids` itself when bracing all
+ * of them still does not (the escape pass may need to act first).
+ */
+function braceNeeded(
+  kids: JSONContent[],
+  flank: ReadonlySet<string>,
+  ok: (k: JSONContent[]) => boolean,
+): JSONContent[] {
+  if (!flank.size) return kids;
+  const keys = new Set(flank);
+  if (!ok(braced(kids, keys))) return kids;
+  for (const key of flank) {
+    keys.delete(key);
+    if (!ok(braced(kids, keys))) keys.add(key);
+  }
+  return braced(kids, keys);
 }
 
 /** Marker character a list contributes to the run of its items and descendants. */

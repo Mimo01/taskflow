@@ -71,8 +71,10 @@ describe('checkSaved accepts legitimate shapes', () => {
 });
 
 describe('checkSaved rejects unwritable shapes (WR-01)', () => {
-  it('intraword italic', () => {
-    expect(check(doc(p(t('x'), t('a', 'italic'), t('y'))))).toMatch(/block 0/);
+  it('intraword italic is written in brace form and saves', () => {
+    const d = doc(p(t('x'), t('a', 'italic'), t('y')));
+    expect(emitWiki(d).trim()).toBe('x{_}a{_}y');
+    expect(check(d)).toBeNull();
   });
   it('bold across a hard break', () => {
     expect(check(doc(p(t('one', 'bold'), br(['bold']), t('two', 'bold'))))).not.toBeNull();
@@ -122,13 +124,12 @@ describe('checkSaved rejects unwritable shapes (WR-01)', () => {
     const twoRows = doc(table([cell(p(t('a')))], [cell(p(t('b')))]));
     expect(checkSaved(twoRows, '|a\nb|')).not.toBeNull();
   });
-  it('multi-mark text over edge whitespace (shape b) fails closed', () => {
+  it('multi-mark text over edge whitespace (shape b) braces the inner mark', () => {
     const d = doc(p(t('hello ', 'bold', 'italic'), t('world')));
     const emitted = emitWiki(d);
-    // The emitter writes `*_hello _*world`, which does not read back as
-    // bold+italic over `hello`, so the check must refuse it.
-    expect(emitted.trim()).toBe('*_hello _*world');
-    expect(checkSaved(d, emitted)).not.toBeNull();
+    // `*_hello _*world` would not read back; the brace form accepts the edge space.
+    expect(emitted.trim()).toBe('*{_}hello {_}*world');
+    expect(checkSaved(d, emitted)).toBeNull();
   });
 });
 
@@ -277,7 +278,6 @@ describe('saveWiki (WR-01)', () => {
 
   it('corruptions fail with a reason and never throw', () => {
     const cases: [string, J][] = [
-      ['intraword italic', doc(p(t('x'), t('a', 'italic'), t('y')))],
       ['bold across break', doc(p(t('one', 'bold'), br(['bold']), t('two', 'bold')))],
       ['mono with brace', doc(p(t('a}b', 'mono')))],
       [

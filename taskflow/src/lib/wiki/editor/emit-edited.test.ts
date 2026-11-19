@@ -310,3 +310,28 @@ describe('breaks that would leave a blank line', () => {
     expect(emitWiki(doc(para(text('a'), br, text('b'))))).toBe('a\nb');
   });
 });
+
+describe('marks whose plain delimiter would not read back', () => {
+  const br: JSONContent = { type: 'hardBreak' };
+  const strike = (t: string) => text(t, [{ type: 'strike' }]);
+  const cases: [string, JSONContent, string][] = [
+    [
+      'strike between pinned breaks',
+      doc(para(...Array(8).fill(br), strike('vsmvofo'), br, br)),
+      `${'\\\\'.repeat(8)}{-}vsmvofo{-}\\\\\\\\`,
+    ],
+    ['strike after a word', doc(para(text('a'), strike('bcd'))), 'a{-}bcd{-}'],
+    ['strike before a word', doc(para(strike('bcd'), text('a'))), '{-}bcd{-}a'],
+    ['italic after a word', doc(para(text('a'), text('bcd', [{ type: 'italic' }]))), 'a{_}bcd{_}'],
+  ];
+  it.each(cases)('%s uses the brace form and reads back', (_, d, out) => {
+    const emitted = emitWiki(d);
+    expect(emitted).toBe(out);
+    expect(checkSaved(d as WikiDocJSON, emitted)).toBeNull();
+  });
+
+  it('keeps the plain form where it reads back', () => {
+    expect(emitWiki(doc(para(text('a '), strike('bcd'))))).toBe('a -bcd-');
+    expect(emitWiki(doc(para(text('a'), text('bcd', [{ type: 'bold' }]))))).toBe('a*bcd*');
+  });
+});
