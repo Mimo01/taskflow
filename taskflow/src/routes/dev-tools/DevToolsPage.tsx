@@ -14,7 +14,12 @@ import { useNotificationDispatchLogStore } from '../../stores/notification-dispa
 import { useWikiEditorLogStore } from '../../stores/wiki-editor-log.store';
 import CacheTab from './CacheTab';
 import DevToolsSettingsPopover from './DevToolsSettingsPopover';
-import { useDevToolsViewStore } from './dev-tools-view.store';
+import {
+  EDITOR_FACETS,
+  LOG_FACETS,
+  NOTIFICATION_FACETS,
+  useDevToolsViewStore,
+} from './dev-tools-view.store';
 import EditorTab from './EditorTab';
 import LogsTab from './LogsTab';
 import NotificationsTab from './NotificationsTab';
@@ -41,7 +46,10 @@ export default function DevToolsPage() {
     useDebugLogStore.getState().clear();
     useNotificationDispatchLogStore.getState().clear();
     useWikiEditorLogStore.getState().clear();
-    useDevToolsViewStore.getState().setPausedEntries(null);
+    const view = useDevToolsViewStore.getState();
+    view.setPausedEntries(null);
+    view.resetFacets([...LOG_FACETS, ...NOTIFICATION_FACETS, ...EDITOR_FACETS]);
+    for (const tab of ['logs', 'notifications', 'editor'] as const) view.setSelected(tab, null);
   };
 
   return (

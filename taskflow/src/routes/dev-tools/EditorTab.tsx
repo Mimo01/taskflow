@@ -19,7 +19,7 @@ import {
   type WikiEditorLogLevel,
 } from '../../stores/wiki-editor-log.store';
 import { ListRow, ToolbarSearch, useListKeyboard } from './dev-tools-ui';
-import { facetSetter, useDevToolsViewStore } from './dev-tools-view.store';
+import { EDITOR_FACETS, facetSetter, useDevToolsViewStore } from './dev-tools-view.store';
 import {
   type DiffCell,
   type DiffRow,
@@ -311,6 +311,7 @@ export default function EditorTab() {
             onClick={() => {
               useWikiEditorLogStore.getState().clear();
               setSelected('editor', null);
+              useDevToolsViewStore.getState().resetFacets(EDITOR_FACETS);
             }}
           >
             Clear

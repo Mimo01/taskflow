@@ -26,6 +26,10 @@ type FacetKey =
 
 type FacetSets = Record<FacetKey, Set<string>>;
 
+export const LOG_FACETS = ['logSources', 'logStatuses', 'logMethods', 'logOperations'] as const;
+export const NOTIFICATION_FACETS = ['notificationOutcomes'] as const;
+export const EDITOR_FACETS = ['editorLevels', 'editorEvents'] as const;
+
 interface DevToolsViewState extends FacetSets {
   tabs: Record<DevToolsTabId, TabViewState>;
   /** Cache tab state filter (all | fetching | stale | error | inactive | invalidated). */
@@ -36,6 +40,8 @@ interface DevToolsViewState extends FacetSets {
   setSelected: (tab: DevToolsTabId, id: string | null) => void;
   setSearch: (tab: DevToolsTabId, search: string) => void;
   setFacet: (key: FacetKey, next: Set<string>) => void;
+  /** Empty the given facets (on Clear, so a filter whose values vanished can't get stuck on). */
+  resetFacets: (keys: readonly FacetKey[]) => void;
   setCacheState: (state: string) => void;
   setInspectorWidth: (width: number) => void;
   setPausedEntries: (entries: ApiLogEntry[] | null) => void;
@@ -66,6 +72,8 @@ export const useDevToolsViewStore = create<DevToolsViewState>((set) => ({
   setSearch: (tab, search) =>
     set((s) => ({ tabs: { ...s.tabs, [tab]: { ...s.tabs[tab], search } } })),
   setFacet: (key, next) => set({ [key]: next } as Partial<FacetSets>),
+  resetFacets: (keys) =>
+    set(Object.fromEntries(keys.map((k) => [k, new Set<string>()])) as Partial<FacetSets>),
   setCacheState: (cacheState) => set({ cacheState }),
   setInspectorWidth: (inspectorWidth) => set({ inspectorWidth }),
   setPausedEntries: (pausedEntries) => set({ pausedEntries }),

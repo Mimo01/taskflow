@@ -27,7 +27,7 @@ import {
   ToolbarSearch,
   useListKeyboard,
 } from './dev-tools-ui';
-import { facetSetter, useDevToolsViewStore } from './dev-tools-view.store';
+import { facetSetter, NOTIFICATION_FACETS, useDevToolsViewStore } from './dev-tools-view.store';
 import ListInspectorLayout from './ListInspectorLayout';
 import { sourceBadgeClass } from './utils';
 
@@ -170,6 +170,7 @@ export default function NotificationsTab() {
             onClick={() => {
               useNotificationDispatchLogStore.getState().clear();
               setSelected('notifications', null);
+              useDevToolsViewStore.getState().resetFacets(NOTIFICATION_FACETS);
             }}
           >
             Clear

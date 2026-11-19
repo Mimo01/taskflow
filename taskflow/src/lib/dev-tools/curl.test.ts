@@ -28,16 +28,21 @@ describe('buildCurl', () => {
   });
 
   it('replaces Authorization with a source-specific placeholder', () => {
-    for (const source of ['jira', 'aio', 'tempo'] as const) {
+    for (const [source, envVar] of [
+      ['jira', 'JIRA_TOKEN'],
+      ['aio', 'AIO_TOKEN'],
+      ['tempo', 'TEMPO_TOKEN'],
+    ] as const) {
       const c = buildCurl(e({ source, requestHeaders: { Authorization: '[REDACTED]' } }));
-      expect(c).toContain("-H 'Authorization: Bearer $JIRA_TOKEN'");
+      // Double-quoted so the shell expands the variable (single quotes would send it literally).
+      expect(c).toContain(`-H "Authorization: Bearer $${envVar}"`);
       expect(c).not.toContain('[REDACTED]');
     }
   });
 
   it('replaces PRIVATE-TOKEN with $GITLAB_TOKEN', () => {
     const c = buildCurl(e({ source: 'gitlab', requestHeaders: { 'private-token': '[REDACTED]' } }));
-    expect(c).toContain("-H 'PRIVATE-TOKEN: $GITLAB_TOKEN'");
+    expect(c).toContain('-H "PRIVATE-TOKEN: $GITLAB_TOKEN"');
   });
 
   it('drops secret headers case-insensitively and keeps others', () => {

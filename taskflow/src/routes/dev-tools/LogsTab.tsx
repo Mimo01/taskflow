@@ -20,7 +20,7 @@ import { cn } from '../../lib/utils';
 import { type ApiLogEntry, useDebugLogStore } from '../../stores/debug-log.store';
 import { useSettingsStore } from '../../stores/settings.store';
 import { ListRow, ToolbarSearch, useListKeyboard } from './dev-tools-ui';
-import { facetSetter, useDevToolsViewStore } from './dev-tools-view.store';
+import { facetSetter, LOG_FACETS, useDevToolsViewStore } from './dev-tools-view.store';
 import ListInspectorLayout from './ListInspectorLayout';
 import LogInspector from './LogInspector';
 import { sourceBadgeClass } from './utils';
@@ -164,6 +164,7 @@ export default function LogsTab() {
             useDebugLogStore.getState().clear();
             setPausedEntries(null);
             setSelected('logs', null);
+            useDevToolsViewStore.getState().resetFacets(LOG_FACETS);
           }}
         >
           Clear
