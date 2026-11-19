@@ -264,27 +264,59 @@ function unspellableIn(block: Json): string | null {
   return found;
 }
 
+/** Why a save check failed, for diagnostics (Developer Tools → Editor). Never used to decide. */
+export interface SaveDiagnosis {
+  reason: string;
+  /** Index of the first non-empty top-level block that differs, or null (e.g. unparseable text). */
+  block: number | null;
+  blockType: string | null;
+  /** Structural projection of the edited block (what the save must read back as). */
+  expected: unknown;
+  /** Projection of what the saved text reads back as at that position; null if no block. */
+  readBack: unknown;
+  /** The saved text of the read-back block at that position; null if no block. */
+  savedSlice: string | null;
+}
+
 /**
- * Re-parse `emitted` and compare with `current`. Returns null when the text
- * reads back as the same structure, else the reason the save must not proceed.
+ * Re-parse `emitted` and compare with `current`. Returns null when the text reads back as the
+ * same structure, else what failed: the reason plus the first differing block.
  */
-export function checkSaved(current: WikiDocJSON, emitted: string): string | null {
+export function diagnoseSave(current: WikiDocJSON, emitted: string): SaveDiagnosis | null {
   let parsed: ReturnType<typeof parseWiki>;
   try {
     parsed = parseWiki(emitted);
   } catch (err) {
-    return `the emitted text does not parse: ${err instanceof Error ? err.message : String(err)}`;
+    return {
+      reason: `the emitted text does not parse: ${err instanceof Error ? err.message : String(err)}`,
+      block: null,
+      blockType: null,
+      expected: null,
+      readBack: null,
+      savedSlice: null,
+    };
   }
   const cur = (current.content ?? []).filter((b) => !isEmptyPara(b));
   const back: { block: Json; slice: string }[] = [];
   (parsed.doc.content ?? []).forEach((block, i) => {
     if (!isEmptyPara(block)) back.push({ block, slice: parsed.slices[i] ?? '' });
   });
-  if (cur.length !== back.length)
-    return `the saved text has ${back.length} top-level blocks, the edit has ${cur.length}`;
+  const at = (i: number, reason: string): SaveDiagnosis => {
+    const want = cur[i] as Json | undefined;
+    const got = back[i];
+    return {
+      reason,
+      block: i,
+      blockType: want ? String(want.type) : got ? String(got.block.type) : null,
+      expected: want ? shape(want) : null,
+      readBack: got ? shape(got.block) : null,
+      savedSlice: got ? got.slice : null,
+    };
+  };
   for (let i = 0; i < cur.length; i++) {
     const want = cur[i] as Json;
-    const got = back[i] as { block: Json; slice: string };
+    const got = back[i];
+    if (!got) break;
     if (want.type === 'rawBlock') {
       const raw = attrsOf(want).raw;
       if (
@@ -293,10 +325,31 @@ export function checkSaved(current: WikiDocJSON, emitted: string): string | null
       )
         continue;
     } else if (JSON.stringify(shape(want)) === JSON.stringify(shape(got.block))) continue;
+    if (cur.length !== back.length)
+      return at(
+        i,
+        `the saved text has ${back.length} top-level blocks, the edit has ${cur.length}`,
+      );
     const why = unspellableIn(want);
-    return why
-      ? `block ${i}: ${why}`
-      : `block ${i} (${String(want.type)}) does not read back as the edited structure`;
+    return at(
+      i,
+      why
+        ? `block ${i}: ${why}`
+        : `block ${i} (${String(want.type)}) does not read back as the edited structure`,
+    );
   }
+  if (cur.length !== back.length)
+    return at(
+      Math.min(cur.length, back.length),
+      `the saved text has ${back.length} top-level blocks, the edit has ${cur.length}`,
+    );
   return null;
+}
+
+/**
+ * Re-parse `emitted` and compare with `current`. Returns null when the text
+ * reads back as the same structure, else the reason the save must not proceed.
+ */
+export function checkSaved(current: WikiDocJSON, emitted: string): string | null {
+  return diagnoseSave(current, emitted)?.reason ?? null;
 }

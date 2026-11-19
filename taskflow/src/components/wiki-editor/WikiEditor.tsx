@@ -1,14 +1,16 @@
 import { QueryClientContext } from '@tanstack/react-query';
+import type { Node as PMNode } from '@tiptap/pm/model';
 import { Selection } from '@tiptap/pm/state';
 import { EditorContent, useEditor } from '@tiptap/react';
 import { useContext, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { attachmentRef } from '@/lib/attachment-markup';
 import { cn } from '@/lib/utils';
-import { emitWiki, loadWiki, type WikiLoad } from '@/lib/wiki/editor';
+import { explainSave, loadWiki, type WikiLoad } from '@/lib/wiki/editor';
 import { logWikiEditor, nextEditorSessionId } from '@/lib/wiki-editor-log';
 import { AttachmentPickerModal } from '@/routes/dashboard/issue-detail/AttachmentPickerModal';
 import type { JiraAttachment } from '@/services/jira';
 import { useSettingsStore } from '@/stores/settings.store';
+import type { WikiEditorLogEntry } from '@/stores/wiki-editor-log.store';
 import {
   CARRY_OVER_NOTE,
   canLoadRich,
@@ -49,6 +51,19 @@ const HEIGHTS = {
   full: { min: 'min-h-[160px]', max: 'max-h-[480px]' },
   compact: { min: 'min-h-[96px]', max: 'max-h-[280px]' },
 } as const;
+
+/** Diagnostics for a failed save: original/produced markup and the first differing block. */
+function failureSnapshot(
+  original: string,
+  doc: PMNode,
+): Pick<WikiEditorLogEntry, 'markup' | 'diagnosis' | 'details'> {
+  const { produced, diagnosis, error } = explainSave(doc);
+  return {
+    markup: { original, ...(produced !== null && { produced }) },
+    ...(diagnosis !== null && { diagnosis }),
+    ...(error !== null && { details: { emitError: error } }),
+  };
+}
 
 export default function WikiEditor({
   value,
@@ -140,25 +155,15 @@ export default function WikiEditor({
         // Log the transition into failure only: the reason embeds document text, so it changes
         // on every keystroke and keying on it would flood the capped log.
         if (previousError === null) {
-          logWikiEditor(() => {
-            let produced: string | undefined;
-            let emitError: string | undefined;
-            try {
-              produced = emitWiki(e.state.doc);
-            } catch (err) {
-              emitError = `emit threw: ${err instanceof Error ? err.message : String(err)}`;
-            }
-            return {
-              session,
-              event: 'save-failed',
-              level: 'error',
-              message: `Couldn't save safely: ${res.error}`,
-              context: logContext(),
-              ...(emitError !== undefined && { details: { emitError } }),
-              markup: { original: load.original, ...(produced !== undefined && { produced }) },
-              error: { message: res.error ?? '' },
-            };
-          });
+          logWikiEditor(() => ({
+            session,
+            event: 'save-failed',
+            level: 'error',
+            message: `Couldn't save safely: ${res.error}`,
+            context: logContext(),
+            ...failureSnapshot(load.original, e.state.doc),
+            error: { message: res.error ?? '' },
+          }));
         }
         setSaveError(res.error);
       } else {
@@ -350,8 +355,8 @@ export default function WikiEditor({
           ? 'Switched rich to source; latest edit could not be carried over'
           : 'Switched rich to source',
         context: logContext(),
+        ...(res.error !== null && failureSnapshot(load.original, editor.state.doc)),
         details: { error: res.error, carriedOver: !carryFailed, length: res.text.length },
-        ...(carryFailed && { markup: { original: load.original } }),
         ...(res.error !== null && { error: { message: res.error } }),
       };
     });
@@ -541,6 +546,9 @@ export default function WikiEditor({
           level: 'warn',
           message: 'Submit blocked: edit cannot be saved safely',
           context: logContext(),
+          ...(loadedRef.current && editor
+            ? failureSnapshot(loadedRef.current.original, editor.state.doc)
+            : {}),
           details: { reason: saveErrorRef.current },
         }));
         return;

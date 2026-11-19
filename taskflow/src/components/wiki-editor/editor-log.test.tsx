@@ -47,6 +47,8 @@ describe('editor log', () => {
     expect(failed[0].error?.message).toBeTruthy();
     expect(failed[0].markup?.original).toBe('hello');
     expect(failed[0].markup?.produced).toContain('h1. hello');
+    expect(failed[0].diagnosis?.block).toBe(0);
+    expect(failed[0].diagnosis?.readBack).toMatchObject({ type: 'heading' });
 
     act(() => typeAt(editor, 5, 'x'));
     act(() => typeAt(editor, 5, 'y'));

@@ -37,6 +37,18 @@ export interface WikiEditorLogEntry {
   /** Failure events only. */
   markup?: { original?: string; produced?: string };
   error?: { message: string; stack?: string; componentStack?: string };
+  /** Failed saves: the first top-level block whose saved text reads back differently. */
+  diagnosis?: SaveDiagnosisLog;
+}
+
+/** Mirrors SaveDiagnosis from the wiki engine (kept structural so this store never imports it). */
+export interface SaveDiagnosisLog {
+  reason: string;
+  block: number | null;
+  blockType: string | null;
+  expected: unknown;
+  readBack: unknown;
+  savedSlice: string | null;
 }
 
 interface WikiEditorLogState {

@@ -5,7 +5,7 @@ import { HARNESS_ATTACHMENTS, HARNESS_USERS, WIKI_CORPUS } from '../corpus.fixtu
 import { emitWiki } from './emit';
 import { loadWiki, saveWiki } from './engine';
 import { parseWiki } from './parse/blocks';
-import { blockSource, checkSaved } from './save-check';
+import { blockSource, checkSaved, diagnoseSave } from './save-check';
 import { wikiSchema } from './schema';
 import type { WikiDocJSON } from './types';
 
@@ -354,5 +354,24 @@ describe('line-break-only paragraphs', () => {
   it('are blank lines, not blocks', () => {
     expect(check(doc(p(t('a')), p(br()), p(br(), br()), p(t('b'))))).toBeNull();
     expect(check(doc(p(t('a')), p(br())))).toBeNull();
+  });
+});
+
+describe('diagnoseSave', () => {
+  it('names the first differing block, both projections and its saved text', () => {
+    const d = doc(p(t('intro')), p(t('h1. not a heading')));
+    const dx = diagnoseSave(d, 'intro\n\nh1. not a heading');
+    expect(dx?.reason).toBe(checkSaved(d, 'intro\n\nh1. not a heading'));
+    expect(dx?.block).toBe(1);
+    expect(dx?.blockType).toBe('paragraph');
+    expect(dx?.expected).toMatchObject({ type: 'paragraph' });
+    expect(dx?.readBack).toMatchObject({ type: 'heading', level: 1 });
+    expect(dx?.savedSlice).toContain('h1. not a heading');
+  });
+
+  it('agrees with checkSaved on block-count mismatches and clean saves', () => {
+    const d = doc(p(t('one')));
+    expect(diagnoseSave(d, 'one\n\ntwo')?.reason).toBe(checkSaved(d, 'one\n\ntwo'));
+    expect(diagnoseSave(d, emitWiki(d))).toBeNull();
   });
 });

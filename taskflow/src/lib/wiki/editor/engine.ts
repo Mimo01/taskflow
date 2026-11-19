@@ -2,7 +2,7 @@ import type { Node as PMNode } from '@tiptap/pm/model';
 import { type EquivalenceMaps, isEquivalent } from '../equivalence';
 import { emitBlockNode, emitWiki } from './emit';
 import { parseWiki } from './parse/blocks';
-import { blockSource, checkSaved } from './save-check';
+import { blockSource, checkSaved, diagnoseSave, type SaveDiagnosis } from './save-check';
 import { wikiSchema } from './schema';
 import { withoutEmptyListItems } from './transient';
 import type { WikiDocJSON, WikiLoad, WikiSave } from './types';
@@ -110,5 +110,26 @@ export function saveWiki(loaded: Extract<WikiLoad, { doc: unknown }>, current: P
     return reason === null ? { kind: 'saved', text: emitted } : { kind: 'failed', reason };
   } catch (err) {
     return { kind: 'failed', reason: errorMessage(err) };
+  }
+}
+
+/**
+ * Diagnostics only (Developer Tools → Editor): the text `saveWiki` would emit for `current` and,
+ * when that text fails the read-back check, which block differs and how. Mirrors `saveWiki`'s
+ * pruning; never throws, never decides a save.
+ */
+export function explainSave(current: PMNode): {
+  produced: string | null;
+  diagnosis: SaveDiagnosis | null;
+  error: string | null;
+} {
+  try {
+    const cur =
+      current.type.schema === wikiSchema ? current : wikiSchema.nodeFromJSON(current.toJSON());
+    const pruned = withoutEmptyListItems(cur);
+    const produced = emitWiki(pruned);
+    return { produced, diagnosis: diagnoseSave(pruned.toJSON(), produced), error: null };
+  } catch (err) {
+    return { produced: null, diagnosis: null, error: errorMessage(err) };
   }
 }

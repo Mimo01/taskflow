@@ -49,6 +49,40 @@ describe('EditorTab', () => {
     expect(screen.getByText('hello')).toBeTruthy();
     expect(screen.getByText('h1. hello')).toBeTruthy();
   });
+
+  it('shows the failing block, both projections and the produced markup with the block marked', () => {
+    act(() => {
+      useWikiEditorLogStore.getState().append({
+        id: 'e2',
+        timestamp: '2026-11-19T10:00:00.000Z',
+        session: 4,
+        event: 'save-failed',
+        level: 'error',
+        message: "Couldn't save safely",
+        markup: { original: 'intro\n\nh1 text', produced: 'intro\n\nh1. text' },
+        diagnosis: {
+          reason: 'block 1 (paragraph) does not read back as the edited structure',
+          block: 1,
+          blockType: 'paragraph',
+          expected: { type: 'paragraph', inline: [{ text: 'h1. text', marks: '' }] },
+          readBack: { type: 'heading', level: 1, inline: [{ text: 'text', marks: '' }] },
+          savedSlice: 'h1. text',
+        },
+      });
+    });
+    render(<EditorTab />);
+    fireEvent.click(screen.getByRole('button'));
+    expect(
+      screen.getByText('block 1 (paragraph) does not read back as the edited structure'),
+    ).toBeTruthy();
+    expect(screen.getByText('The edit (expected)')).toBeTruthy();
+    expect(screen.getByText('heading level=1')).toBeTruthy();
+    expect(screen.getByText('Produced markup (failing block outlined)')).toBeTruthy();
+    const marked = screen
+      .getAllByText('h1. text')
+      .filter((el) => el.parentElement?.className.includes('border-amber-500'));
+    expect(marked).toHaveLength(1);
+  });
 });
 
 describe('DevToolsPage editor integration', () => {
