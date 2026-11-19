@@ -64,14 +64,21 @@ export function sideBySide(oldText: string, newText: string): DiffRow[] {
   return rows;
 }
 
-/** 1-based inclusive line range of `slice` inside `text`, or null when not found. */
+/**
+ * 1-based inclusive line range of a block's saved text inside `text`, or null when not found.
+ * Parser slices carry the blank lines around the block (`"\n\nh1. x"`); the range covers only
+ * the block's own lines. The full slice is searched first so the gaps anchor the match.
+ */
 export function lineRangeOf(text: string, slice: string | null): [number, number] | null {
-  const needle = slice?.replace(/\n+$/, '');
-  if (!needle) return null;
-  const at = text.indexOf(needle);
+  if (!slice) return null;
+  const lead = /^(?:\r?\n)*/.exec(slice)?.[0] ?? '';
+  const body = slice.slice(lead.length).replace(/(?:\r?\n)+$/, '');
+  if (!body) return null;
+  let at = text.indexOf(slice);
+  at = at >= 0 ? at + lead.length : text.indexOf(body);
   if (at < 0) return null;
   const start = text.slice(0, at).split('\n').length;
-  return [start, start + needle.split('\n').length - 1];
+  return [start, start + body.split('\n').length - 1];
 }
 
 type Obj = Record<string, unknown>;

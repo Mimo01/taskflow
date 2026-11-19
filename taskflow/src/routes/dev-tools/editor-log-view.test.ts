@@ -23,6 +23,12 @@ describe('lineRangeOf', () => {
   it('finds the 1-based line range of a block inside the text', () => {
     expect(lineRangeOf('intro\n\n* one\n* two\n\nend', '* one\n* two\n')).toEqual([3, 4]);
   });
+  it('skips the blank lines a parser slice carries before the block', () => {
+    expect(lineRangeOf('intro\n\nh1. hello\n\nend', '\n\nh1. hello')).toEqual([3, 3]);
+  });
+  it('anchors on the gaps so an identical earlier line is not matched', () => {
+    expect(lineRangeOf('x\ny\n\nx\n\nz', '\n\nx\n')).toEqual([4, 4]);
+  });
   it('returns null when absent or empty', () => {
     expect(lineRangeOf('abc', 'zzz')).toBeNull();
     expect(lineRangeOf('abc', null)).toBeNull();
