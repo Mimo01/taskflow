@@ -4,16 +4,31 @@
  * One row per notification the poller tried to show (or skipped as already known, or held
  * back as launch catch-up), with the exact title/body handed to the OS and the result. A burst
  * folded into one summary banner appears as a 'summary' row followed by one 'Grouped' row per
- * folded item. Expand for a banner-style preview and the raw item.
+ * folded item. Select a row for a banner-style preview and the raw item.
  */
-import { useState } from 'react';
+import { Bell, Bug } from 'lucide-react';
 import AppIcon from '../../components/app/AppIcon';
+import { Button } from '../../components/ui/button';
+import { EmptyState } from '../../components/ui/empty-state';
+import { FilterPopover } from '../../components/ui/table-filter-sort';
+import { filterNotificationEntries } from '../../lib/dev-tools/entry-filters';
+import { safeStringify } from '../../lib/dev-tools/json-preview';
 import type { OsDispatchOutcome } from '../../lib/notification-dispatch-log';
+import { cn } from '../../lib/utils';
 import {
   type NotificationDispatchLogEntry,
   useNotificationDispatchLogStore,
 } from '../../stores/notification-dispatch-log.store';
 import { useSettingsStore } from '../../stores/settings.store';
+import {
+  InspectorSection,
+  JsonBlock,
+  ListRow,
+  ToolbarSearch,
+  useListKeyboard,
+} from './dev-tools-ui';
+import { facetSetter, useDevToolsViewStore } from './dev-tools-view.store';
+import ListInspectorLayout from './ListInspectorLayout';
 import { sourceBadgeClass } from './utils';
 
 const OUTCOME_LABEL: Record<OsDispatchOutcome, string> = {
@@ -25,12 +40,14 @@ const OUTCOME_LABEL: Record<OsDispatchOutcome, string> = {
   'catch-up': 'Catch-up',
 };
 
+const OUTCOMES = Object.keys(OUTCOME_LABEL) as OsDispatchOutcome[];
+
+/** Status colour as text only: green sent, muted for not-sent-by-design, red for failures. */
 function outcomeClass(outcome: OsDispatchOutcome): string {
-  const base = 'shrink-0 rounded px-1.5 py-0.5 text-xs font-semibold';
-  if (outcome === 'sent') return `${base} text-green-600 dark:text-green-400`;
+  if (outcome === 'sent') return 'text-green-600 dark:text-green-400';
   if (outcome === 'skipped' || outcome === 'grouped' || outcome === 'catch-up')
-    return `${base} bg-muted text-muted-foreground`;
-  return `${base} bg-red-500/15 text-red-600 dark:text-red-400`;
+    return 'text-muted-foreground';
+  return 'text-red-600 dark:text-red-400';
 }
 
 /**
@@ -56,33 +73,11 @@ function OsNotificationPreview({ title, body }: { title: string; body: string })
   );
 }
 
-function NotificationCard({ entry }: { entry: NotificationDispatchLogEntry }) {
-  const [open, setOpen] = useState(false);
+function NotificationInspector({ entry }: { entry: NotificationDispatchLogEntry }) {
   return (
-    <div className="border border-border rounded-lg overflow-hidden">
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        className="w-full flex items-center gap-3 px-4 py-3 density-compact:py-1.5 density-comfortable:py-4 text-left hover:bg-accent transition-colors text-sm"
-      >
-        <span className={outcomeClass(entry.outcome)}>{OUTCOME_LABEL[entry.outcome]}</span>
-        {entry.kind === 'summary' ? (
-          <span className="shrink-0 rounded px-1.5 py-0.5 text-xs font-semibold bg-muted text-muted-foreground">
-            summary
-          </span>
-        ) : (
-          <span className={sourceBadgeClass(entry.item.source)}>{entry.item.source}</span>
-        )}
-        <span className="font-medium truncate min-w-0 flex-[0_1_auto]">{entry.title}</span>
-        <span className="text-xs truncate flex-1 min-w-0 text-muted-foreground">{entry.body}</span>
-        <span className="shrink-0 text-xs text-muted-foreground">
-          {new Date(entry.timestamp).toLocaleTimeString()}
-        </span>
-        <span className="shrink-0 text-xs text-muted-foreground">{open ? '▲' : '▼'}</span>
-      </button>
-
-      {open && (
-        <div className="border-t border-border px-4 py-3 density-compact:py-1.5 density-comfortable:py-4 flex flex-col gap-3">
+    <div data-testid="notification-inspector">
+      <InspectorSection title="Banner">
+        <div className="flex flex-col gap-3">
           {entry.outcome === 'skipped' && (
             <p className="text-sm text-muted-foreground">
               Not sent: this notification was already in the list before this poll.
@@ -100,16 +95,11 @@ function NotificationCard({ entry }: { entry: NotificationDispatchLogEntry }) {
             </p>
           )}
           <OsNotificationPreview title={entry.title} body={entry.body} />
-          <details>
-            <summary className="text-xs font-semibold uppercase tracking-wider text-muted-foreground cursor-pointer select-none">
-              {entry.kind === 'summary' ? 'Raw items' : 'Raw item'}
-            </summary>
-            <pre className="mt-1 text-xs bg-muted rounded p-2 overflow-auto max-h-64 whitespace-pre-wrap break-all">
-              {JSON.stringify(entry.kind === 'summary' ? entry.items : entry.item, null, 2)}
-            </pre>
-          </details>
         </div>
-      )}
+      </InspectorSection>
+      <InspectorSection title={entry.kind === 'summary' ? 'Raw items' : 'Raw item'}>
+        <JsonBlock text={safeStringify(entry.kind === 'summary' ? entry.items : entry.item)} />
+      </InspectorSection>
     </div>
   );
 }
@@ -119,32 +109,112 @@ export default function NotificationsTab() {
   const devToolsEnabled = useSettingsStore((s) => s.devToolsEnabled);
   const desktopNotificationsEnabled = useSettingsStore((s) => s.desktopNotificationsEnabled);
 
+  const { selectedId, search } = useDevToolsViewStore((s) => s.tabs.notifications);
+  const outcomes = useDevToolsViewStore((s) => s.notificationOutcomes);
+  const setSelected = useDevToolsViewStore((s) => s.setSelected);
+  const setSearch = useDevToolsViewStore((s) => s.setSearch);
+
+  const filtered = filterNotificationEntries(entries, { search, outcomes });
+  const ids = filtered.map((e) => e.id);
+  const selected = filtered.find((e) => e.id === selectedId) ?? null;
+  const onKeyDown = useListKeyboard(ids, selectedId, (id) => setSelected('notifications', id));
+
   if (!devToolsEnabled) {
     return (
-      <p className="text-sm text-muted-foreground text-center py-8">
-        Developer Tools are disabled. Toggle the master switch in Settings to start capturing data.
-      </p>
+      <EmptyState
+        fill
+        icon={Bug}
+        title="Developer Tools are disabled"
+        subtitle="Enable them in the settings popover above."
+      />
     );
   }
 
   if (entries.length === 0) {
     return (
-      <div className="text-center py-8">
-        <p className="text-sm font-medium">No desktop notifications yet</p>
-        <p className="text-sm text-muted-foreground mt-1">
-          {desktopNotificationsEnabled
+      <EmptyState
+        fill
+        icon={Bell}
+        title="No desktop notifications yet"
+        subtitle={
+          desktopNotificationsEnabled
             ? 'Entries appear here when a poll brings in a new notification.'
-            : 'Turn on Desktop Notifications in Settings to capture them here.'}
-        </p>
-      </div>
+            : 'Turn on Desktop Notifications in Settings to capture them here.'
+        }
+      />
     );
   }
 
   return (
-    <div className="flex flex-col gap-2">
-      {entries.map((entry) => (
-        <NotificationCard key={entry.id} entry={entry} />
-      ))}
-    </div>
+    <ListInspectorLayout
+      toolbar={
+        <>
+          <ToolbarSearch
+            value={search}
+            onChange={(v) => setSearch('notifications', v)}
+            placeholder="Search notifications"
+          />
+          <FilterPopover
+            dimension="Outcome"
+            testId="notifications-filter-outcome"
+            options={OUTCOMES}
+            selected={outcomes}
+            setSelected={facetSetter('notificationOutcomes', outcomes)}
+            formatOption={(v) => OUTCOME_LABEL[v as OsDispatchOutcome]}
+          />
+          <Button
+            type="button"
+            variant="outline"
+            size="xs"
+            className="ml-auto"
+            onClick={() => {
+              useNotificationDispatchLogStore.getState().clear();
+              setSelected('notifications', null);
+            }}
+          >
+            Clear
+          </Button>
+        </>
+      }
+      onKeyDown={onKeyDown}
+      list={
+        filtered.length === 0 ? (
+          <EmptyState compact icon={Bell} title="No notifications match the filters" />
+        ) : (
+          <div>
+            {filtered.map((entry) => (
+              <ListRow
+                key={entry.id}
+                selected={entry.id === selectedId}
+                onSelect={() => setSelected('notifications', entry.id)}
+                label={`${OUTCOME_LABEL[entry.outcome]}: ${entry.title}`}
+              >
+                <span className={cn('w-16 flex-none font-semibold', outcomeClass(entry.outcome))}>
+                  {OUTCOME_LABEL[entry.outcome]}
+                </span>
+                {entry.kind === 'summary' ? (
+                  <span className="w-14 flex-none text-center text-muted-foreground">summary</span>
+                ) : (
+                  <span
+                    className={cn(
+                      sourceBadgeClass(entry.item.source),
+                      'w-14 flex-none text-center',
+                    )}
+                  >
+                    {entry.item.source}
+                  </span>
+                )}
+                <span className="min-w-0 flex-[0_1_auto] truncate font-medium">{entry.title}</span>
+                <span className="min-w-0 flex-1 truncate text-muted-foreground">{entry.body}</span>
+                <span className="w-20 flex-none text-right tabular-nums text-muted-foreground">
+                  {new Date(entry.timestamp).toLocaleTimeString()}
+                </span>
+              </ListRow>
+            ))}
+          </div>
+        )
+      }
+      inspector={selected ? <NotificationInspector entry={selected} /> : null}
+    />
   );
 }

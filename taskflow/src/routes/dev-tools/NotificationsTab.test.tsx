@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { useNotificationDispatchLogStore } from '../../stores/notification-dispatch-log.store';
 import type { NotificationItem } from '../../stores/notifications.store';
 import { useSettingsStore } from '../../stores/settings.store';
+import { useDevToolsViewStore } from './dev-tools-view.store';
 import NotificationsTab from './NotificationsTab';
 
 const item = { id: 'n1', source: 'jira', entityTitle: 'PROJ-1: Title' } as NotificationItem;
@@ -12,6 +13,9 @@ describe('NotificationsTab', () => {
     act(() => {
       useSettingsStore.setState({ devToolsEnabled: true, desktopNotificationsEnabled: true });
       useNotificationDispatchLogStore.getState().clear();
+      useDevToolsViewStore.getState().setSelected('notifications', null);
+      useDevToolsViewStore.getState().setSearch('notifications', '');
+      useDevToolsViewStore.getState().setFacet('notificationOutcomes', new Set());
     });
   });
 
@@ -44,7 +48,7 @@ describe('NotificationsTab', () => {
     render(<NotificationsTab />);
     expect(screen.getByText('Error')).toBeTruthy();
     expect(screen.getByText('Cara: hi')).toBeTruthy();
-    fireEvent.click(screen.getByRole('button'));
+    fireEvent.click(screen.getAllByTestId('devtools-row')[0]);
     expect(
       screen.getByRole('img', { name: 'Notification preview: PROJ-1 · Title. Cara: hi' }),
     ).toBeTruthy();
@@ -70,7 +74,7 @@ describe('NotificationsTab', () => {
     expect(screen.getByText('4 new notifications')).toBeTruthy();
     expect(screen.getByText('3 Jira · 1 GitLab')).toBeTruthy();
     expect(screen.getByText('Sent')).toBeTruthy();
-    fireEvent.click(screen.getByRole('button'));
+    fireEvent.click(screen.getAllByTestId('devtools-row')[0]);
     expect(screen.getByText('Raw items')).toBeTruthy();
   });
 
@@ -89,7 +93,40 @@ describe('NotificationsTab', () => {
     });
     render(<NotificationsTab />);
     expect(screen.getByText('Grouped')).toBeTruthy();
-    fireEvent.click(screen.getByRole('button'));
+    fireEvent.click(screen.getAllByTestId('devtools-row')[0]);
     expect(screen.getByText('Not sent individually: folded into a summary banner.')).toBeTruthy();
+  });
+  it('filters rows by search text and by outcome', () => {
+    act(() => {
+      useNotificationDispatchLogStore.getState().append([
+        {
+          id: 'x1',
+          timestamp: '2026-11-12T10:00:00.000Z',
+          item,
+          title: 'First thing',
+          body: 'Cara: hi',
+          outcome: 'error',
+        },
+        {
+          id: 'x2',
+          timestamp: '2026-11-12T10:00:00.000Z',
+          item,
+          title: 'Second thing',
+          body: 'Dan: yo',
+          outcome: 'sent',
+        },
+      ]);
+    });
+    render(<NotificationsTab />);
+    expect(screen.getAllByTestId('devtools-row')).toHaveLength(2);
+    fireEvent.change(screen.getByLabelText('Search notifications'), { target: { value: 'dan' } });
+    expect(screen.getAllByTestId('devtools-row')).toHaveLength(1);
+    expect(screen.queryByText('First thing')).toBeNull();
+    fireEvent.change(screen.getByLabelText('Search notifications'), { target: { value: '' } });
+    act(() => {
+      useDevToolsViewStore.getState().setFacet('notificationOutcomes', new Set(['error']));
+    });
+    expect(screen.getAllByTestId('devtools-row')).toHaveLength(1);
+    expect(screen.queryByText('Second thing')).toBeNull();
   });
 });

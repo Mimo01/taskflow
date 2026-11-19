@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { useSettingsStore } from '../../stores/settings.store';
 import { useWikiEditorLogStore } from '../../stores/wiki-editor-log.store';
 import DevToolsPage from './DevToolsPage';
+import { useDevToolsViewStore } from './dev-tools-view.store';
 import EditorTab from './EditorTab';
 
 describe('EditorTab', () => {
@@ -11,6 +12,10 @@ describe('EditorTab', () => {
     act(() => {
       useSettingsStore.setState({ devToolsEnabled: true });
       useWikiEditorLogStore.getState().clear();
+      useDevToolsViewStore.getState().setSelected('editor', null);
+      useDevToolsViewStore.getState().setSearch('editor', '');
+      useDevToolsViewStore.getState().setFacet('editorLevels', new Set());
+      useDevToolsViewStore.getState().setFacet('editorEvents', new Set());
     });
   });
 
@@ -44,7 +49,7 @@ describe('EditorTab', () => {
     });
     render(<EditorTab />);
     expect(screen.getByText('Description · PROJ-1')).toBeTruthy();
-    fireEvent.click(screen.getByRole('button'));
+    fireEvent.click(screen.getAllByTestId('devtools-row')[0]);
     expect(screen.getByText('Details')).toBeTruthy();
     expect(screen.getByText('gap lost')).toBeTruthy();
     expect(screen.getByText('hello')).toBeTruthy();
@@ -72,7 +77,7 @@ describe('EditorTab', () => {
       });
     });
     render(<EditorTab />);
-    fireEvent.click(screen.getByRole('button'));
+    fireEvent.click(screen.getAllByTestId('devtools-row')[0]);
     expect(
       screen.getByText('block 1 (paragraph) does not read back as the edited structure'),
     ).toBeTruthy();
@@ -83,6 +88,39 @@ describe('EditorTab', () => {
       .getAllByText('h1. text')
       .filter((el) => el.parentElement?.className.includes('border-amber-500'));
     expect(marked).toHaveLength(1);
+  });
+  it('filters rows by search text and by level', () => {
+    act(() => {
+      useWikiEditorLogStore.getState().append({
+        id: 'f1',
+        timestamp: '2026-11-19T10:00:00.000Z',
+        session: 1,
+        event: 'open',
+        level: 'info',
+        message: 'Editor opened',
+      });
+      useWikiEditorLogStore.getState().append({
+        id: 'f2',
+        timestamp: '2026-11-19T10:00:01.000Z',
+        session: 1,
+        event: 'crash',
+        level: 'error',
+        message: 'Editor exploded',
+      });
+    });
+    render(<EditorTab />);
+    expect(screen.getAllByTestId('devtools-row')).toHaveLength(2);
+    fireEvent.change(screen.getByLabelText('Search editor events'), {
+      target: { value: 'opened' },
+    });
+    expect(screen.getAllByTestId('devtools-row')).toHaveLength(1);
+    expect(screen.queryByText('Editor exploded')).toBeNull();
+    fireEvent.change(screen.getByLabelText('Search editor events'), { target: { value: '' } });
+    act(() => {
+      useDevToolsViewStore.getState().setFacet('editorLevels', new Set(['error']));
+    });
+    expect(screen.getAllByTestId('devtools-row')).toHaveLength(1);
+    expect(screen.queryByText('Editor opened')).toBeNull();
   });
 });
 

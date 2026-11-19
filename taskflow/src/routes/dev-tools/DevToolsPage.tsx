@@ -88,14 +88,10 @@ export default function DevToolsPage() {
           <CacheTab />
         </TabsContent>
         <TabsContent value="notifications" className="flex min-h-0 flex-1 flex-col">
-          <div className="relative min-h-0 flex-1 overflow-auto">
-            <NotificationsTab />
-          </div>
+          <NotificationsTab />
         </TabsContent>
         <TabsContent value="editor" className="flex min-h-0 flex-1 flex-col">
-          <div className="relative min-h-0 flex-1 overflow-auto">
-            <EditorTab />
-          </div>
+          <EditorTab />
         </TabsContent>
       </Tabs>
     </div>
