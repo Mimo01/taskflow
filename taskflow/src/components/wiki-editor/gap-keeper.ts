@@ -15,6 +15,11 @@ import { Plugin, PluginKey } from '@tiptap/pm/state';
  *    boundary. The rule only fires when the block count grows, so loaded gap-0 spellings stay
  *    byte-identical while the user types inside them. A gap-0 block that is itself split
  *    ends up with gap 1 on both halves, which reads back correctly.
+ * 3. A paragraph that newly sits right after another paragraph with gap 0 is given gap 1,
+ *    at any depth, whatever the block count does: turning a heading into a paragraph above
+ *    a gap-0 paragraph, or deleting the block between two. Without a blank line the two
+ *    emit as one line run and re-parse as ONE paragraph, failing the save check. Pairs
+ *    that were already adjacent (loaded spellings) are left alone.
  */
 export const WikiGapKeeper = Extension.create({
   name: 'wikiGapKeeper',
@@ -51,6 +56,40 @@ export const WikiGapKeeper = Extension.create({
               if (index === 0 || node.attrs.gap !== 0 || old.has(node)) return;
               tr.setNodeMarkup(offset, undefined, { ...node.attrs, gap: 1 });
               changed = true;
+            });
+          }
+          // Every block parent with the position its content starts at (doc: 0).
+          const parents = (doc: PMNode): [PMNode, number][] => {
+            const out: [PMNode, number][] = [[doc, 0]];
+            doc.descendants((n, pos) => {
+              if (n.isTextblock) return false;
+              out.push([n, pos + 1]);
+              return true;
+            });
+            return out;
+          };
+          const wasAfter = new Map<PMNode, PMNode>();
+          for (const [n] of parents(oldState.doc)) {
+            let prev: PMNode | null = null;
+            n.forEach((kid) => {
+              if (prev) wasAfter.set(kid, prev);
+              prev = kid;
+            });
+          }
+          // Attr-only setNodeMarkup keeps positions, so newState offsets hold for tr.
+          for (const [n, start] of parents(newState.doc)) {
+            let prev: PMNode | null = null;
+            n.forEach((kid, offset) => {
+              if (
+                prev?.type.name === 'paragraph' &&
+                kid.type.name === 'paragraph' &&
+                kid.attrs.gap === 0 &&
+                wasAfter.get(kid) !== prev
+              ) {
+                tr.setNodeMarkup(start + offset, undefined, { ...kid.attrs, gap: 1 });
+                changed = true;
+              }
+              prev = kid;
             });
           }
           return changed ? tr : null;
