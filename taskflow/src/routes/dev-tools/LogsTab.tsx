@@ -1,14 +1,17 @@
 /**
  * LogsTab — API request log for the Developer Tools page.
  *
- * Network-panel style: toolbar (search + facets + pause/clear), summary strip over the filtered
- * set, one-line rows, and a resizable inspector (see LogInspector).
+ * Network-panel style: toolbar (search and facets left; Pause, Copy all, Export, Clear right),
+ * summary chips over the filtered set, one-line rows on a fixed column grid, and a resizable
+ * inspector (see LogInspector).
  */
-import { Bug, Pause, Play } from 'lucide-react';
-import { useMemo } from 'react';
+import { revealItemInDir } from '@tauri-apps/plugin-opener';
+import { Bug, Check, Copy, Pause, Play } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '../../components/ui/button';
 import { EmptyState } from '../../components/ui/empty-state';
 import { FilterPopover } from '../../components/ui/table-filter-sort';
+import { entriesToJson } from '../../lib/dev-tools/copy-format';
 import {
   facetOptions,
   filterLogs,
@@ -16,10 +19,18 @@ import {
   STATUS_FACETS,
 } from '../../lib/dev-tools/log-filters';
 import { computeLogStats, urlPath } from '../../lib/dev-tools/log-stats';
+import { saveBytes } from '../../lib/save-attachment';
 import { cn } from '../../lib/utils';
 import { type ApiLogEntry, useDebugLogStore } from '../../stores/debug-log.store';
 import { useSettingsStore } from '../../stores/settings.store';
-import { ListRow, ToolbarSearch, useListKeyboard } from './dev-tools-ui';
+import {
+  CopyButton,
+  isTabStop,
+  ListRow,
+  ToolbarSearch,
+  useCopyFeedback,
+  useListKeyboard,
+} from './dev-tools-ui';
 import { facetSetter, LOG_FACETS, useDevToolsViewStore } from './dev-tools-view.store';
 import ListInspectorLayout from './ListInspectorLayout';
 import LogInspector from './LogInspector';
@@ -63,12 +74,22 @@ export default function LogsTab() {
   const methods = useDevToolsViewStore((s) => s.logMethods);
   const operations = useDevToolsViewStore((s) => s.logOperations);
 
+  const [exportState, setExportState] = useState<'idle' | 'done' | 'failed'>('idle');
+  const exportTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (exportTimer.current) clearTimeout(exportTimer.current);
+    },
+    [],
+  );
+
   const entries = pausedEntries ?? liveEntries;
-  const filters: LogFilters = { search, sources, statuses, methods, operations };
-  const filtered = filterLogs(entries, filters);
   const options = useMemo(() => facetOptions(entries), [entries]);
-  const stats = computeLogStats(filtered);
-  const ids = filtered.map((e) => e.id);
+  const { filtered, stats, ids } = useMemo(() => {
+    const filters: LogFilters = { search, sources, statuses, methods, operations };
+    const list = filterLogs(entries, filters);
+    return { filtered: list, stats: computeLogStats(list), ids: list.map((e) => e.id) };
+  }, [entries, search, sources, statuses, methods, operations]);
   const selected = filtered.find((e) => e.id === selectedId) ?? null;
   const onKeyDown = useListKeyboard(ids, selectedId, (id) => setSelected('logs', id));
 
@@ -105,6 +126,25 @@ export default function LogsTab() {
     statuses.size > 0 ||
     methods.size > 0 ||
     operations.size > 0;
+
+  const exportLogs = async () => {
+    const settle = (next: 'done' | 'failed') => {
+      setExportState(next);
+      if (exportTimer.current) clearTimeout(exportTimer.current);
+      exportTimer.current = setTimeout(() => setExportState('idle'), 1500);
+    };
+    try {
+      const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const path = await saveBytes(
+        new TextEncoder().encode(entriesToJson(filtered)),
+        `taskflow-api-log-${stamp}.json`,
+      );
+      await revealItemInDir(path).catch(() => {});
+      settle('done');
+    } catch {
+      settle('failed');
+    }
+  };
 
   const toolbar = (
     <>
@@ -143,7 +183,7 @@ export default function LogsTab() {
           setSelected={facetSetter('logOperations', operations)}
         />
       )}
-      <div className="ml-auto flex items-center gap-2">
+      <div className="ml-auto flex items-center gap-2 border-l pl-2">
         {pausedEntries && (
           <span className="text-xs text-muted-foreground">Paused · {newWhilePaused} new</span>
         )}
@@ -155,6 +195,24 @@ export default function LogsTab() {
         >
           {pausedEntries ? <Play /> : <Pause />}
           {pausedEntries ? 'Resume' : 'Pause'}
+        </Button>
+        <CopyButton
+          label="Copy all"
+          getText={() => entriesToJson(filtered)}
+          disabled={filtered.length === 0}
+        />
+        <Button
+          type="button"
+          variant="outline"
+          size="xs"
+          disabled={filtered.length === 0}
+          onClick={exportLogs}
+        >
+          {exportState === 'done'
+            ? 'Exported'
+            : exportState === 'failed'
+              ? 'Export failed'
+              : 'Export'}
         </Button>
         <Button
           type="button"
@@ -174,27 +232,21 @@ export default function LogsTab() {
   );
 
   const summary = (
-    <div data-testid="logs-summary" className="flex flex-wrap items-center gap-x-1.5">
-      <span>{stats.total} requests</span>
-      <span>·</span>
-      <span className={cn(stats.errors > 0 && 'text-red-600 dark:text-red-400')}>
-        {stats.errors} errors
-      </span>
-      {stats.median !== null && stats.p95 !== null && (
-        <>
-          <span>·</span>
-          <span>median {stats.median} ms</span>
-          <span>·</span>
-          <span>p95 {stats.p95} ms</span>
-        </>
-      )}
+    <div data-testid="logs-summary" className="flex flex-wrap items-center gap-x-4 gap-y-0.5">
+      <Chip label="Requests" value={String(stats.total)} />
+      <Chip
+        label="Errors"
+        value={String(stats.errors)}
+        className={cn(stats.errors > 0 && 'text-red-600 dark:text-red-400')}
+      />
+      {stats.median !== null && <Chip label="Median" value={`${stats.median} ms`} />}
+      {stats.p95 !== null && <Chip label="p95" value={`${stats.p95} ms`} />}
       {stats.slowest && (
-        <>
-          <span>·</span>
-          <span className="truncate">
-            slowest {stats.slowest.method} {stats.slowest.path} ({stats.slowest.ms} ms)
-          </span>
-        </>
+        <Chip
+          label="Slowest"
+          value={`${stats.slowest.ms} ms`}
+          title={`${stats.slowest.method} ${stats.slowest.path}`}
+        />
       )}
     </div>
   );
@@ -214,6 +266,7 @@ export default function LogsTab() {
             key={e.id}
             entry={e}
             selected={e.id === selectedId}
+            tabStop={isTabStop(ids, selectedId, e.id)}
             onSelect={() => setSelected('logs', e.id)}
           />
         ))}
@@ -226,25 +279,86 @@ export default function LogsTab() {
       summary={summary}
       list={list}
       onKeyDown={onKeyDown}
-      inspector={selected ? <LogInspector entry={selected} entries={filtered} /> : null}
+      emptyTitle="Select a request"
+      inspector={
+        selected ? <LogInspector key={selected.id} entry={selected} entries={filtered} /> : null
+      }
     />
   );
+}
+
+function Chip({
+  label,
+  value,
+  className,
+  title,
+}: {
+  label: string;
+  value: string;
+  className?: string;
+  title?: string;
+}) {
+  return (
+    <span title={title} className="inline-flex items-baseline gap-1.5">
+      <span>{label}</span>
+      <span className={cn('tabular-nums text-foreground', className)}>{value}</span>
+    </span>
+  );
+}
+
+function RowCopyUrl({ url }: { url: string }) {
+  const { state, copy } = useCopyFeedback();
+  return (
+    <Button
+      type="button"
+      variant="ghost"
+      size="icon-xs"
+      aria-label="Copy URL"
+      title="Copy URL"
+      onClick={() => copy(url)}
+    >
+      {state === 'copied' ? <Check /> : <Copy />}
+    </Button>
+  );
+}
+
+/** Origin (dimmed) and decoded path + query; falls back to the raw text when the URL is invalid. */
+function splitUrl(url: string): { origin: string; path: string } {
+  try {
+    return { origin: new URL(url).origin, path: displayPath(url) };
+  } catch {
+    return { origin: '', path: url };
+  }
+}
+
+function displayUrl(url: string): string {
+  try {
+    return decodeURIComponent(url);
+  } catch {
+    return url;
+  }
 }
 
 function LogRow({
   entry,
   selected,
+  tabStop,
   onSelect,
 }: {
   entry: ApiLogEntry;
   selected: boolean;
+  tabStop: boolean;
   onSelect: () => void;
 }) {
+  const { origin, path } = splitUrl(entry.url);
   return (
     <ListRow
       selected={selected}
       onSelect={onSelect}
+      tabStop={tabStop}
       label={`${entry.method} ${urlPath(entry.url)}`}
+      title={displayUrl(entry.url)}
+      actions={<RowCopyUrl url={entry.url} />}
     >
       <span className={cn(sourceBadgeClass(entry.source), 'w-14 flex-none text-center')}>
         {entry.source}
@@ -253,11 +367,12 @@ function LogRow({
       <span className={cn('w-10 flex-none font-mono font-semibold', statusText(entry.status))}>
         {entry.status ?? 'ERR'}
       </span>
-      <span className="min-w-0 flex-1 truncate font-mono text-muted-foreground">
-        {displayPath(entry.url)}
+      <span className="min-w-0 flex-1 truncate font-mono">
+        <span className="text-muted-foreground/60">{origin}</span>
+        <span>{path}</span>
       </span>
       {entry.operation && (
-        <span className="max-w-48 flex-none truncate text-muted-foreground">{entry.operation}</span>
+        <span className="max-w-40 flex-none truncate text-muted-foreground">{entry.operation}</span>
       )}
       <span className="w-16 flex-none text-right tabular-nums text-muted-foreground">
         {entry.durationMs} ms

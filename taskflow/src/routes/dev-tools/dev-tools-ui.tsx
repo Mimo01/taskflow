@@ -2,6 +2,7 @@
  * Small shared pieces for the Developer Tools tabs: toolbar search, copy button, inspector
  * sections, key/value table, capped JSON block, one-line list rows and list keyboard navigation.
  */
+import { ChevronDown } from 'lucide-react';
 import {
   type KeyboardEvent,
   type ReactNode,
@@ -11,6 +12,12 @@ import {
   useState,
 } from 'react';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { capText } from '@/lib/dev-tools/json-preview';
 import { cn } from '@/lib/utils';
@@ -35,9 +42,14 @@ export function ToolbarSearch({
   );
 }
 
-/** Copies on click. The clipboard call is synchronous in the handler (user gesture in WKWebView). */
-export function CopyButton({ label, getText }: { label: string; getText: () => string }) {
-  const [state, setState] = useState<'idle' | 'copied' | 'failed'>('idle');
+export type CopyState = 'idle' | 'copied' | 'failed';
+
+/**
+ * Clipboard write with transient feedback. `copy` calls navigator.clipboard.writeText
+ * synchronously inside the event handler (user gesture in WKWebView); the state resets after 1.5 s.
+ */
+export function useCopyFeedback(): { state: CopyState; copy: (text: string) => void } {
+  const [state, setState] = useState<CopyState>('idle');
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(
     () => () => {
@@ -50,24 +62,70 @@ export function CopyButton({ label, getText }: { label: string; getText: () => s
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => setState('idle'), 1500);
   };
+  const copy = (text: string) => {
+    try {
+      navigator.clipboard.writeText(text).then(
+        () => settle('copied'),
+        () => settle('failed'),
+      );
+    } catch {
+      settle('failed');
+    }
+  };
+  return { state, copy };
+}
+
+/** Copies on click. */
+export function CopyButton({
+  label,
+  getText,
+  disabled,
+}: {
+  label: string;
+  getText: () => string;
+  disabled?: boolean;
+}) {
+  const { state, copy } = useCopyFeedback();
   return (
     <Button
       type="button"
       variant="outline"
       size="xs"
-      onClick={() => {
-        try {
-          navigator.clipboard.writeText(getText()).then(
-            () => settle('copied'),
-            () => settle('failed'),
-          );
-        } catch {
-          settle('failed');
-        }
-      }}
+      disabled={disabled}
+      onClick={() => copy(getText())}
     >
       {state === 'copied' ? 'Copied' : state === 'failed' ? 'Copy failed' : label}
     </Button>
+  );
+}
+
+export interface CopyMenuItem {
+  label: string;
+  getText: () => string;
+  disabled?: boolean;
+}
+
+/** Outline "Copy" menu button; each item copies `getText()` and the trigger shows the feedback. */
+export function CopyMenu({ items, label = 'Copy' }: { items: CopyMenuItem[]; label?: string }) {
+  const { state, copy } = useCopyFeedback();
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger render={<Button type="button" variant="outline" size="xs" />}>
+        {state === 'copied' ? 'Copied' : state === 'failed' ? 'Copy failed' : label}
+        <ChevronDown />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        {items.map((item) => (
+          <DropdownMenuItem
+            key={item.label}
+            disabled={item.disabled}
+            onClick={() => copy(item.getText())}
+          >
+            {item.label}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -110,39 +168,59 @@ export function JsonBlock({ text }: { text: string }) {
   );
 }
 
+/** Roving tab stop: the selected row, or the first row when nothing (visible) is selected. */
+export function isTabStop(ids: string[], selectedId: string | null, id: string): boolean {
+  return selectedId !== null && ids.includes(selectedId) ? id === selectedId : id === ids[0];
+}
+
 /**
  * One-line list row. The overlay button is a sibling of the content (never a parent of other
- * interactive elements) and carries the test id.
+ * interactive elements) and carries the test id. `actions` is a hover-revealed overlay at the
+ * right edge (absolute, so it never shifts the row layout).
  */
 export function ListRow({
   selected,
   onSelect,
   label,
+  title,
+  actions,
+  tabStop = true,
   children,
 }: {
   selected: boolean;
   onSelect: () => void;
   label: string;
+  title?: string;
+  actions?: ReactNode;
+  /** Roving tabindex: only one row of a list is a tab stop. */
+  tabStop?: boolean;
   children: ReactNode;
 }) {
   return (
     <div
       className={cn(
-        'relative flex h-7 items-center gap-3 px-6 text-xs hover:bg-accent/50',
-        selected && 'bg-accent',
+        'group relative flex h-7 items-center gap-3 px-6 text-xs hover:bg-accent/50',
+        selected && 'bg-accent shadow-[inset_2px_0_0_var(--primary)]',
       )}
     >
       <button
         type="button"
         data-testid="devtools-row"
         aria-label={label}
-        aria-pressed={selected}
+        aria-current={selected ? 'true' : undefined}
+        title={title}
+        tabIndex={tabStop ? 0 : -1}
         onClick={onSelect}
-        className="absolute inset-0 z-0 cursor-default outline-none"
+        className="absolute inset-0 z-0 cursor-default outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
       />
       <div className="pointer-events-none relative z-10 flex min-w-0 flex-1 items-center gap-3">
         {children}
       </div>
+      {actions && (
+        <div className="absolute inset-y-0 right-0 z-20 flex items-center bg-accent pr-3 pl-2 opacity-0 focus-within:opacity-100 group-hover:opacity-100">
+          {actions}
+        </div>
+      )}
     </div>
   );
 }
@@ -166,7 +244,8 @@ export function useListKeyboard(
       const next = e.key === 'ArrowDown' ? Math.min(ids.length - 1, idx + 1) : Math.max(0, idx - 1);
       const nextId = ids[next];
       setSelectedId(nextId);
-      const rows = e.currentTarget.querySelectorAll('[data-testid="devtools-row"]');
+      const rows = e.currentTarget.querySelectorAll<HTMLElement>('[data-testid="devtools-row"]');
+      rows[next]?.focus?.();
       rows[next]?.scrollIntoView?.({ block: 'nearest' });
     },
     [ids, selectedId, setSelectedId],

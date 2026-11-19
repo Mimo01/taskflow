@@ -1,7 +1,7 @@
 /**
  * DevToolsPage — Developer Tools page shell.
  *
- * Full-height tool under the standard PageHeader (settings gear + Clear all). Tabs carry live
+ * Full-height tool under the standard PageHeader (settings gear + Clear logs). Tabs carry live
  * counts; each tab owns its scrolling, so only the list and inspector panes scroll.
  */
 
@@ -66,7 +66,7 @@ export default function DevToolsPage() {
               onClick={handleClear}
               disabled={logCount === 0 && notificationCount === 0 && editorCount === 0}
             >
-              Clear all
+              Clear logs
             </Button>
           </>
         }

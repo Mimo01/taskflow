@@ -17,6 +17,18 @@ export function statusColor(status: number | null): string {
   return 'bg-red-500/15 text-red-600 dark:text-red-400';
 }
 
+/** Status pill for the inspector header: status colour (the only colour on a row) on a tint. */
+export function statusPillClass(status: number | null): string {
+  const base = 'rounded px-1.5 py-0.5 font-mono text-xs font-semibold';
+  if (status !== null && status >= 200 && status < 300) {
+    return `${base} bg-green-500/15 text-green-600 dark:text-green-400`;
+  }
+  if (status !== null && status >= 300 && status < 400) {
+    return `${base} bg-yellow-500/15 text-yellow-600 dark:text-yellow-400`;
+  }
+  return `${base} ${statusColor(status)}`;
+}
+
 export function formatBytes(bytes: number | undefined): string {
   if (bytes === undefined || bytes === 0) return '-';
   if (bytes < 1024) return `${bytes} B`;

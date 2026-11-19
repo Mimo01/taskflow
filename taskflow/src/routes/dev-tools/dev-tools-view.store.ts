@@ -35,6 +35,8 @@ interface DevToolsViewState extends FacetSets {
   /** Cache tab state filter (all | fetching | stale | error | inactive | invalidated). */
   cacheState: string;
   inspectorWidth: number;
+  /** Inspector takes the whole pane (list hidden). Transient, shared by every tab. */
+  inspectorMaximized: boolean;
   pausedEntries: ApiLogEntry[] | null;
 
   setSelected: (tab: DevToolsTabId, id: string | null) => void;
@@ -44,6 +46,7 @@ interface DevToolsViewState extends FacetSets {
   resetFacets: (keys: readonly FacetKey[]) => void;
   setCacheState: (state: string) => void;
   setInspectorWidth: (width: number) => void;
+  setInspectorMaximized: (maximized: boolean) => void;
   setPausedEntries: (entries: ApiLogEntry[] | null) => void;
 }
 
@@ -65,6 +68,7 @@ export const useDevToolsViewStore = create<DevToolsViewState>((set) => ({
   editorEvents: new Set(),
   cacheState: 'all',
   inspectorWidth: 440,
+  inspectorMaximized: false,
   pausedEntries: null,
 
   setSelected: (tab, id) =>
@@ -76,6 +80,7 @@ export const useDevToolsViewStore = create<DevToolsViewState>((set) => ({
     set(Object.fromEntries(keys.map((k) => [k, new Set<string>()])) as Partial<FacetSets>),
   setCacheState: (cacheState) => set({ cacheState }),
   setInspectorWidth: (inspectorWidth) => set({ inspectorWidth }),
+  setInspectorMaximized: (inspectorMaximized) => set({ inspectorMaximized }),
   setPausedEntries: (pausedEntries) => set({ pausedEntries }),
 }));
 
