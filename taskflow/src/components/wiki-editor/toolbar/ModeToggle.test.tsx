@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { ModeToggle } from './ModeToggle';
+import { TOOLBAR_PRESSED_CLASS } from './ToolbarButton';
 
 describe('ModeToggle', () => {
   it('marks the active segment and switches on click', () => {
@@ -11,6 +12,15 @@ describe('ModeToggle', () => {
     expect(screen.getByRole('radio', { name: 'Source' })).toHaveAttribute('aria-checked', 'false');
     fireEvent.click(screen.getByRole('radio', { name: 'Source' }));
     expect(onChange).toHaveBeenCalledWith('source');
+  });
+
+  it('styles the active segment with the shared toolbar pressed class', () => {
+    render(<ModeToggle mode="rich" onChange={vi.fn()} />);
+    const rich = screen.getByRole('radio', { name: 'Rich' }).className;
+    const source = screen.getByRole('radio', { name: 'Source' }).className;
+    for (const c of TOOLBAR_PRESSED_CLASS.split(' ')) expect(rich).toContain(c);
+    expect(source).not.toContain('ring-inset');
+    expect(rich).not.toContain('bg-accent');
   });
 
   it('clicking the active segment does nothing', () => {

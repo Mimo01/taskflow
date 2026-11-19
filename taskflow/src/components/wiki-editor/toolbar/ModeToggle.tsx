@@ -2,6 +2,7 @@ import { Keycap } from '@/components/ui/keycap';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { TooltipBody } from '@/components/ui/tooltip-body';
 import { cn } from '@/lib/utils';
+import { TOOLBAR_PRESSED_CLASS } from './ToolbarButton';
 
 type Mode = 'rich' | 'source';
 
@@ -38,7 +39,7 @@ function Segment({ label, target, active, disabled, tip, onSelect }: SegmentProp
       className={cn(
         'h-6 rounded-sm px-2.5 text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring',
         active
-          ? 'bg-accent font-semibold text-accent-foreground'
+          ? cn(TOOLBAR_PRESSED_CLASS, 'font-semibold')
           : 'text-muted-foreground hover:text-foreground',
         disabled && 'pointer-events-none opacity-50',
       )}
