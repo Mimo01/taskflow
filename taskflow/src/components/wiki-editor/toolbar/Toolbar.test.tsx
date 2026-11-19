@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { makeEditor } from '../test-utils';
 import type { SourceHandle } from '../source/SourceView';
 import { Toolbar, type ToolbarProps } from './Toolbar';
+import { splitToolbar, TOOLBAR_PX } from './toolbar-config';
 
 let roCallback: ResizeObserverCallback | null = null;
 
@@ -22,7 +23,50 @@ beforeEach(() => {
     },
   );
 });
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.restoreAllMocks();
+});
+
+const rect = (width: number) =>
+  ({
+    width,
+    height: 0,
+    x: 0,
+    y: 0,
+    top: 0,
+    left: 0,
+    right: width,
+    bottom: 0,
+    toJSON() {},
+  }) as DOMRect;
+
+/**
+ * Fakes a laid-out toolbar whose items region + spacer get `room` px. With `realLayout`, the
+ * items region loses the More block's width while it shows, as in a browser, so the test
+ * proves the measurement adds it back (no oscillation).
+ */
+function setRoom(room: number, realLayout = false) {
+  const moreBlock = TOOLBAR_PX.moreBlock;
+  vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (
+    this: HTMLElement,
+  ) {
+    if (this.getAttribute('role') === 'toolbar') return rect(900);
+    if (this.hasAttribute('data-toolbar-items')) {
+      const bar = this.closest('[role="toolbar"]');
+      const moreShown = bar?.querySelector('[data-toolbar-more]') != null;
+      return rect(realLayout && moreShown ? room - moreBlock : room);
+    }
+    if (realLayout && this.hasAttribute('data-toolbar-more')) return rect(moreBlock - 4);
+    return rect(0);
+  });
+  act(() => {
+    roCallback?.([], {} as ResizeObserver);
+  });
+}
+
+/** Room where only Text style + Bold fit beside the More block (full preset). */
+const NARROW = 200;
 
 function setup(overrides: Partial<ToolbarProps> = {}, text = 'x') {
   const { editor }: { editor: Editor } = makeEditor(text);
@@ -30,7 +74,6 @@ function setup(overrides: Partial<ToolbarProps> = {}, text = 'x') {
   const source = {
     current: { insert, insertTrigger: vi.fn(), focus: vi.fn(), focusAt: vi.fn() } as SourceHandle,
   };
-  const frame = document.createElement('div');
   const props: ToolbarProps = {
     editor,
     preset: 'full',
@@ -42,7 +85,6 @@ function setup(overrides: Partial<ToolbarProps> = {}, text = 'x') {
     linkOpen: false,
     onLinkOpenChange: vi.fn(),
     source,
-    frameRef: { current: frame },
     ...overrides,
   };
   const utils = render(<Toolbar {...props} />);
@@ -149,9 +191,7 @@ describe('Toolbar', () => {
   it('moves low-priority items into the overflow menu at a narrow width', async () => {
     const user = userEvent.setup();
     setup();
-    act(() => {
-      roCallback?.([{ contentRect: { width: 360 } } as ResizeObserverEntry], {} as ResizeObserver);
-    });
+    setRoom(NARROW);
     for (const n of ['Strikethrough', 'Monospace', 'Superscript', 'Quote', 'Text colour', 'Link']) {
       expect(has(n), n).toBe(false);
     }
@@ -163,14 +203,11 @@ describe('Toolbar', () => {
     }
   });
 
-  const at360 = () =>
-    act(() => {
-      roCallback?.([{ contentRect: { width: 360 } } as ResizeObserverEntry], {} as ResizeObserver);
-    });
+  const atNarrow = () => setRoom(NARROW);
 
   it('keeps Insert, More and the mode toggle outside the shrinking items region', () => {
     setup();
-    at360();
+    atNarrow();
     const region = screen.getByRole('toolbar').querySelectorAll('[data-toolbar-items]');
     expect(region).toHaveLength(1);
     const items = region[0] as HTMLElement;
@@ -187,10 +224,10 @@ describe('Toolbar', () => {
     }
   });
 
-  it('Full at 360 keeps only text style and Bold inline and the rest in More', async () => {
+  it('Full in a narrow toolbar keeps only text style and Bold inline and the rest in More', async () => {
     const user = userEvent.setup();
     setup();
-    at360();
+    atNarrow();
     const items = screen.getByRole('toolbar').querySelector('[data-toolbar-items]') as HTMLElement;
     const names = Array.from(items.querySelectorAll('button')).map((b) =>
       b.getAttribute('aria-label'),
@@ -215,29 +252,68 @@ describe('Toolbar', () => {
 
   it('puts More right after the items, then a divider, then Insert', () => {
     setup();
-    at360();
+    atNarrow();
     const more = screen.getByRole('button', { name: 'More' });
     const insert = screen.getByRole('button', { name: 'Insert' });
     expect(more.compareDocumentPosition(insert) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     const items = screen.getByRole('toolbar').querySelector('[data-toolbar-items]') as HTMLElement;
-    const before = topChild(insert).previousElementSibling;
-    expect(isDivider(before)).toBe(true);
-    expect(items.contains(before)).toBe(false);
-    expect(topChild(more).nextElementSibling).toBe(before);
+    // More and its divider form one measured block sitting directly before Insert.
+    const block = topChild(insert).previousElementSibling as HTMLElement;
+    expect(block.hasAttribute('data-toolbar-more')).toBe(true);
+    expect(items.contains(block)).toBe(false);
+    expect(block.contains(more)).toBe(true);
+    expect(isDivider(block.lastElementChild)).toBe(true);
   });
 
   it('renders no More|Insert divider when nothing overflows', () => {
     setup();
     expect(has('More')).toBe(false);
+    expect(screen.getByRole('toolbar').querySelector('[data-toolbar-more]')).toBeNull();
     const insert = screen.getByRole('button', { name: 'Insert' });
     expect(isDivider(topChild(insert).previousElementSibling)).toBe(false);
   });
 
-  it('shows the Insert label only from the widest breakpoint but keeps aria-label', () => {
+  const insertLabel = () =>
+    Array.from(screen.getByRole('button', { name: 'Insert' }).querySelectorAll('span')).find(
+      (e) => e.textContent === 'Insert',
+    );
+
+  it('shows the Insert label only when nothing overflows and it fits; aria-label stays', () => {
     setup();
-    const btn = screen.getByRole('button', { name: 'Insert' });
-    const label = Array.from(btn.querySelectorAll('span')).find((e) => e.textContent === 'Insert');
-    expect(label?.className).toContain('hidden @[45.75rem]:inline');
+    expect(insertLabel()).toBeUndefined();
+    setRoom(620);
+    expect(insertLabel()).toBeDefined();
+    setRoom(530);
+    expect(has('More')).toBe(false);
+    expect(insertLabel()).toBeUndefined();
+    setRoom(NARROW);
+    expect(insertLabel()).toBeUndefined();
+    expect(screen.getByRole('button', { name: 'Insert' })).toBeTruthy();
+  });
+
+  it('keeps sub/sup inline whenever they fit (modal editor, ~620px of items room)', () => {
+    setup();
+    setRoom(620);
+    expect(has('Superscript')).toBe(true);
+    expect(has('Subscript')).toBe(true);
+    expect(has('More')).toBe(false);
+  });
+
+  it('measures room independently of the More block, so the split is stable', () => {
+    setup();
+    setRoom(300, true);
+    setRoom(300, true);
+    const expected = splitToolbar('full', 300);
+    expect(has('More')).toBe(true);
+    const items = screen.getByRole('toolbar').querySelector('[data-toolbar-items]') as HTMLElement;
+    const inline = Array.from(items.querySelectorAll('button')).map((b) =>
+      b.getAttribute('aria-label'),
+    );
+    expect(inline).toContain('Text style');
+    expect(inline.length).toBe(
+      expected.inline.filter((i) => i !== 'insert').length +
+        (expected.inline.includes('subsup') ? 1 : 0),
+    );
   });
 
   it('source-mode preview toggle collapses below 35rem and sits outside the items region', () => {

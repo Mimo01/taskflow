@@ -16,17 +16,12 @@ export interface InsertMenuProps {
   items: readonly InsertItem[];
   onInsert: (item: InsertItem, opts?: { rows: number; cols: number }) => void;
   disabled?: boolean;
-  /** Container-query class for the "Insert" word; defaults to always hidden below 25rem. */
-  labelClassName?: string;
+  /** Show the "Insert" word next to the icon (the toolbar decides from measured room). */
+  showLabel?: boolean;
 }
 
 /** "+ Insert" dropdown over the shared INSERT_ITEMS list; Table opens a size grid. */
-export function InsertMenu({
-  items,
-  onInsert,
-  disabled,
-  labelClassName = 'hidden @[25rem]:inline',
-}: InsertMenuProps) {
+export function InsertMenu({ items, onInsert, disabled, showLabel = false }: InsertMenuProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
@@ -44,7 +39,7 @@ export function InsertMenu({
         }
       >
         <Plus className="size-4" />
-        <span className={labelClassName}>Insert</span>
+        {showLabel ? <span data-insert-label>Insert</span> : null}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start">
         {items.map((item) => {

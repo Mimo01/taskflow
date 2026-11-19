@@ -632,7 +632,6 @@ export default function WikiEditor({
               linkOpen={linkOpen}
               onLinkOpenChange={setLinkOpen}
               source={sourceRef}
-              frameRef={frameRef}
             />
           )}
           {saveError ? (

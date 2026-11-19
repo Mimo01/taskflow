@@ -1,10 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
-  INLINE_CLASS,
-  INSERT_LABEL_CLASS,
-  OVERFLOW_BREAKPOINTS,
+  itemsWidth,
   splitToolbar,
   TOOLBAR_ITEMS,
+  TOOLBAR_PX,
   type ToolbarPreset,
 } from './toolbar-config';
 
@@ -25,10 +24,26 @@ describe('toolbar-config', () => {
     expect(TOOLBAR_ITEMS.filter((i) => i.presets.includes('full'))).toHaveLength(13);
   });
 
-  it('splits full preset by width', () => {
-    expect(splitToolbar('full', 800).overflow).toEqual([]);
-    expect(splitToolbar('full', 700).overflow).toEqual(['subsup']);
-    const small = splitToolbar('full', 360);
+  it('keeps everything inline with the Insert label when it all fits', () => {
+    const all = itemsWidth(
+      TOOLBAR_ITEMS.filter((i) => i.presets.includes('full')).map((i) => i.id),
+    );
+    expect(splitToolbar('full', all + TOOLBAR_PX.insertLabel)).toMatchObject({
+      overflow: [],
+      showInsertLabel: true,
+    });
+    expect(splitToolbar('full', all)).toMatchObject({ overflow: [], showInsertLabel: false });
+    expect(splitToolbar('full', all - 1).overflow).toEqual(['subsup']);
+  });
+
+  it('shows sub/sup inline at ~620px of items room (full preset)', () => {
+    const { inline, overflow } = splitToolbar('full', 620);
+    expect(overflow).toEqual([]);
+    expect(inline).toContain('subsup');
+  });
+
+  it('splits full preset in OVERFLOW_ORDER', () => {
+    const small = splitToolbar('full', 200);
     expect(small.overflow).toEqual([
       'subsup',
       'strike',
@@ -42,16 +57,23 @@ describe('toolbar-config', () => {
       'italic',
     ]);
     expect(small.inline).toEqual(['text-style', 'bold', 'insert']);
-    expect(splitToolbar('full', 420).inline).toEqual(['text-style', 'bold', 'italic', 'insert']);
-    const mid = splitToolbar('full', 446).overflow;
-    expect(mid).toContain('bullet');
-    expect(mid).not.toContain('underline');
-    const wide = splitToolbar('full', 556).overflow;
-    expect(wide[wide.length - 1]).toBe('colour');
+    // Text style 98 + divider 13 + Bold/Italic 2x28 + gaps 8, beside More + the link anchor.
+    expect(splitToolbar('full', 175 + TOOLBAR_PX.moreBlock + TOOLBAR_PX.linkAnchor).inline).toEqual(
+      ['text-style', 'bold', 'italic', 'insert'],
+    );
+    const mid = splitToolbar('full', 300).overflow;
+    expect(mid[0]).toBe('subsup');
+    expect(mid).not.toContain('italic');
+  });
+
+  it('uses the measured Text style width', () => {
+    const narrow = splitToolbar('full', 400, { textStylePx: 70 }).overflow;
+    const wide = splitToolbar('full', 400, { textStylePx: 140 }).overflow;
+    expect(wide.length).toBeGreaterThan(narrow.length);
   });
 
   it('splits compact preset', () => {
-    expect(splitToolbar('compact', 300).overflow).toEqual([
+    expect(splitToolbar('compact', 40).overflow).toEqual([
       'strike',
       'mono',
       'bullet',
@@ -59,58 +81,43 @@ describe('toolbar-config', () => {
       'underline',
       'italic',
     ]);
-    expect(splitToolbar('compact', 360).overflow).toEqual([
-      'strike',
-      'mono',
-      'bullet',
-      'numbered',
-      'underline',
-    ]);
     expect(splitToolbar('compact', 800).overflow).toEqual([]);
   });
 
-  // Measured in WebKit (98 UAT round 2): pinned controls 214px (+37 Insert label, -4 inline Link,
-  // -32 empty More, +13 More|Insert divider while More shows), buttons 28px + 4px gap,
-  // Text style 98px, divider 13px.
-  it('every inline set fits the items region from 372px (full) / 358px (compact)', () => {
-    const W: Record<string, number> = { 'text-style': 98, subsup: 60 };
-    const LIST = ['bullet', 'numbered', 'quote', 'link'];
+  // The inline set must fit the room left after the More block (and link anchor) at every width.
+  it('every inline set fits the items region at every room width', () => {
     for (const preset of ['full', 'compact'] as ToolbarPreset[]) {
-      const widest = Math.max(...Object.values(OVERFLOW_BREAKPOINTS[preset]).map(Number));
-      const from = preset === 'full' ? 372 : 358;
-      for (let c = from; c <= 900; c++) {
-        const { inline, overflow } = splitToolbar(preset, c);
-        const items = inline.filter((i) => i !== 'insert');
-        const buttons = items.reduce((n, i) => n + (i === 'subsup' ? 2 : 1), 0);
-        let need = items.reduce((n, i) => n + (W[i] ?? 28), 0) + 4 * (buttons - 1);
-        if (items.includes('text-style')) need += 13;
-        if (items.some((i) => LIST.includes(i))) need += 13;
-        let pinned = 214 + (c >= widest ? 37 : 0);
-        if (!overflow.includes('link')) pinned -= 4;
-        if (overflow.length === 0) pinned -= 32;
-        else pinned += 13;
-        expect(c - pinned, `${preset} @${c}`).toBeGreaterThanOrEqual(need);
+      // Floor: what never overflows (full: Text style + Bold, Link in More; compact: Bold +
+      // Link inline) + the More block.
+      const minimum =
+        preset === 'full'
+          ? 143 + TOOLBAR_PX.moreBlock + TOOLBAR_PX.linkAnchor
+          : 73 + TOOLBAR_PX.moreBlock;
+      for (let c = minimum; c <= 900; c++) {
+        const { inline, overflow, showInsertLabel } = splitToolbar(preset, c);
+        let room = c;
+        if (overflow.length > 0) room -= TOOLBAR_PX.moreBlock;
+        if (overflow.includes('link')) room -= TOOLBAR_PX.linkAnchor;
+        if (showInsertLabel) room -= TOOLBAR_PX.insertLabel;
+        expect(room, `${preset} @${c}`).toBeGreaterThanOrEqual(itemsWidth(inline));
+        if (showInsertLabel) expect(overflow).toEqual([]);
       }
     }
   });
 
-  it('shows the Insert label only from the widest breakpoint', () => {
-    for (const preset of ['full', 'compact'] as ToolbarPreset[]) {
-      const widest = Math.max(...Object.values(OVERFLOW_BREAKPOINTS[preset]).map(Number));
-      expect(INSERT_LABEL_CLASS[preset]).toBe(`hidden @[${widest / 16}rem]:inline`);
+  it('never overflows more than needed (dropping the last overflowed item would not fit)', () => {
+    for (let c = 192; c <= 900; c++) {
+      const { inline, overflow } = splitToolbar('full', c);
+      if (overflow.length === 0) continue;
+      const back = [...inline, overflow[overflow.length - 1] as (typeof inline)[number]];
+      const rest = overflow.slice(0, -1);
+      let room = c - (rest.length > 0 ? TOOLBAR_PX.moreBlock : 0);
+      if (rest.includes('link')) room -= TOOLBAR_PX.linkAnchor;
+      expect(itemsWidth(back), `full @${c}`).toBeGreaterThan(room);
     }
   });
 
   it('never includes a mode item', () => {
     expect(TOOLBAR_ITEMS.some((i) => i.id.startsWith('mode'))).toBe(false);
-  });
-
-  it('keeps INLINE_CLASS consistent with OVERFLOW_BREAKPOINTS', () => {
-    for (const preset of ['full', 'compact'] as ToolbarPreset[]) {
-      for (const [id, px] of Object.entries(OVERFLOW_BREAKPOINTS[preset])) {
-        const cls = (INLINE_CLASS[preset] as Record<string, string>)[id];
-        expect(cls).toBe(`hidden @[${(px as number) / 16}rem]:inline-flex`);
-      }
-    }
   });
 });

@@ -15,7 +15,7 @@ import {
   Superscript,
   Underline,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useLayoutEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 import {
   applyColour,
@@ -38,8 +38,6 @@ import { type OverflowItem, OverflowMenu } from './OverflowMenu';
 import { TextStyleMenu } from './TextStyleMenu';
 import { ToolbarButton } from './ToolbarButton';
 import {
-  INLINE_CLASS,
-  INSERT_LABEL_CLASS,
   splitToolbar,
   TOOLBAR_ITEMS,
   type ToolbarItemId,
@@ -57,25 +55,62 @@ export interface ToolbarProps {
   linkOpen: boolean;
   onLinkOpenChange: (o: boolean) => void;
   source: React.RefObject<SourceHandle | null>;
-  frameRef: React.RefObject<HTMLElement | null>;
 }
 
-/** Frame width in px, or null until measured (null means "nothing overflows"). */
-function useElementWidth(ref: React.RefObject<HTMLElement | null>): number | null {
-  const [width, setWidth] = useState<number | null>(null);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el || typeof ResizeObserver === 'undefined') return;
-    const initial = el.getBoundingClientRect().width;
-    if (initial > 0) setWidth(initial);
-    const ro = new ResizeObserver((entries) => {
-      const w = entries[0]?.contentRect.width;
-      if (typeof w === 'number' && w > 0) setWidth(w);
-    });
-    ro.observe(el);
+interface ItemsRoom {
+  /** Width the items region could take with neither the More block nor the Insert label. */
+  px: number;
+  /** Measured Text style trigger width (0 when absent). */
+  textStylePx: number;
+}
+
+const widthOf = (el: Element | null | undefined) => el?.getBoundingClientRect().width ?? 0;
+
+/**
+ * Measures the real room for the shrinkable items. The items region (min-w-0, shrinks) plus the
+ * flex-1 spacer is exactly the toolbar width left after every pinned control, padding and gap,
+ * so pinned widths are never guessed. The More block and Insert label are added back so the
+ * result does not depend on whether they are showing, which keeps the split from oscillating.
+ * Null until the toolbar has a width (jsdom, hidden): then nothing overflows.
+ */
+function useItemsRoom(barRef: React.RefObject<HTMLElement | null>): ItemsRoom | null {
+  const [room, setRoom] = useState<ItemsRoom | null>(null);
+  const measure = useCallback(() => {
+    const bar = barRef.current;
+    if (!bar || widthOf(bar) <= 0) return;
+    const items = bar.querySelector('[data-toolbar-items]');
+    const spacer = bar.querySelector('[data-toolbar-spacer]');
+    const more = widthOf(bar.querySelector('[data-toolbar-more]'));
+    const label = widthOf(bar.querySelector('[data-insert-label]'));
+    const gap = 4;
+    const px = Math.floor(
+      widthOf(items) +
+        widthOf(spacer) +
+        (more > 0 ? more + gap : 0) +
+        (label > 0 ? label + gap : 0),
+    );
+    const textStylePx = Math.ceil(widthOf(items?.querySelector('[aria-label="Text style"]')));
+    setRoom((prev) =>
+      prev && prev.px === px && prev.textStylePx === textStylePx ? prev : { px, textStylePx },
+    );
+  }, [barRef]);
+
+  // Every commit can change what is shown; re-measure before paint (no-op when unchanged).
+  useLayoutEffect(measure);
+
+  useLayoutEffect(() => {
+    const bar = barRef.current;
+    if (!bar || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(() => measure());
+    ro.observe(bar);
+    for (const sel of ['[data-toolbar-items]', '[data-toolbar-spacer]']) {
+      const el = bar.querySelector(sel);
+      if (el) ro.observe(el);
+    }
     return () => ro.disconnect();
-  }, [ref]);
-  return width;
+  }, [barRef, measure]);
+
+  return room;
 }
 
 const ICON = 'size-4';
@@ -112,11 +147,13 @@ export function Toolbar({
   linkOpen,
   onLinkOpenChange,
   source,
-  frameRef,
 }: ToolbarProps) {
-  const width = useElementWidth(frameRef);
-  const { overflow } =
-    width === null ? { overflow: [] as ToolbarItemId[] } : splitToolbar(preset, width);
+  const barRef = useRef<HTMLDivElement>(null);
+  const room = useItemsRoom(barRef);
+  const { overflow, showInsertLabel } =
+    room === null
+      ? { overflow: [] as ToolbarItemId[], showInsertLabel: false }
+      : splitToolbar(preset, room.px, { textStylePx: room.textStylePx });
   const isRich = mode === 'rich';
 
   const st = useEditorState({
@@ -209,7 +246,6 @@ export function Toolbar({
     quote: simple('quote', <Quote className={ICON} />),
   };
 
-  const cls = (id: ToolbarItemId) => INLINE_CLASS[preset][id];
   const show = (id: ToolbarItemId) =>
     TOOLBAR_ITEMS.some((i) => i.id === id && i.presets.includes(preset)) && !overflow.includes(id);
 
@@ -223,18 +259,12 @@ export function Toolbar({
         icon={b.icon}
         onClick={b.onClick}
         pressed={b.pressed}
-        className={cls(id)}
       />
     );
   };
 
   const colourTrigger = (
-    <ToolbarButton
-      label="Text colour"
-      icon={<Palette className={ICON} />}
-      onClick={() => {}}
-      className={cls('colour')}
-    />
+    <ToolbarButton label="Text colour" icon={<Palette className={ICON} />} onClick={() => {}} />
   );
   const linkTrigger = (
     <ToolbarButton
@@ -243,7 +273,6 @@ export function Toolbar({
       icon={<Link2 className={ICON} />}
       onClick={() => {}}
       pressed={isRich ? st.link !== null : undefined}
-      className={cls('link')}
     />
   );
 
@@ -324,6 +353,7 @@ export function Toolbar({
 
   return (
     <div
+      ref={barRef}
       role="toolbar"
       aria-label="Formatting"
       className="sticky top-0 z-10 flex h-10 rounded-t-[calc(var(--radius-lg)-1px)] flex-nowrap items-center gap-1 border-b border-border bg-[color-mix(in_oklab,var(--color-muted)_40%,var(--color-background))] px-2"
@@ -348,7 +378,6 @@ export function Toolbar({
               icon={<Superscript className={ICON} />}
               onClick={run('sup')}
               pressed={pressedOf('sup')}
-              className={cls('subsup')}
             />
             <ToolbarButton
               label="Subscript"
@@ -356,7 +385,6 @@ export function Toolbar({
               icon={<Subscript className={ICON} />}
               onClick={run('sub')}
               pressed={pressedOf('sub')}
-              className={cls('subsup')}
             />
           </>
         ) : null}
@@ -383,24 +411,25 @@ export function Toolbar({
           />
         ) : null}
       </div>
-      {showLink && linkOverflowed ? (
-        <LinkPopover
-          open={linkOpen}
-          onOpenChange={onLinkOpenChange}
-          trigger={<span aria-hidden="true" className="size-0" />}
-          currentUrl={isRich ? st.link : null}
-          onApply={applyLinkUrl}
-          onRemove={removeLinkUrl}
-        />
+      {overflowItems.length > 0 || (showLink && linkOverflowed) ? (
+        // Measured as one block (useItemsRoom) so the split never depends on it showing.
+        <span data-toolbar-more className="flex flex-none items-center gap-1">
+          {showLink && linkOverflowed ? (
+            <LinkPopover
+              open={linkOpen}
+              onOpenChange={onLinkOpenChange}
+              trigger={<span aria-hidden="true" className="size-0" />}
+              currentUrl={isRich ? st.link : null}
+              onApply={applyLinkUrl}
+              onRemove={removeLinkUrl}
+            />
+          ) : null}
+          <OverflowMenu items={overflowItems} />
+          {overflowItems.length > 0 ? <Divider /> : null}
+        </span>
       ) : null}
-      <OverflowMenu items={overflowItems} />
-      {overflowItems.length > 0 ? <Divider /> : null}
-      <InsertMenu
-        items={INSERT_ITEMS}
-        onInsert={insert}
-        labelClassName={INSERT_LABEL_CLASS[preset]}
-      />
-      <div className="flex-1" />
+      <InsertMenu items={INSERT_ITEMS} onInsert={insert} showLabel={showInsertLabel} />
+      <div data-toolbar-spacer className="flex-1" />
       {!isRich ? (
         <ToolbarButton
           label={previewVisible ? 'Hide preview' : 'Show preview'}
