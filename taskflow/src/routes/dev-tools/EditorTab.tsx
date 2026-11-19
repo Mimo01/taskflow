@@ -6,10 +6,12 @@
  * markup, the diagnosis and the error.
  */
 import { Bug, Pencil } from 'lucide-react';
+import { useState } from 'react';
 import { Button } from '../../components/ui/button';
 import { EmptyState } from '../../components/ui/empty-state';
 import { FilterPopover } from '../../components/ui/table-filter-sort';
 import { filterEditorEntries } from '../../lib/dev-tools/entry-filters';
+import { safeStringify } from '../../lib/dev-tools/json-preview';
 import { cn } from '../../lib/utils';
 import { useSettingsStore } from '../../stores/settings.store';
 import {
@@ -18,7 +20,8 @@ import {
   type WikiEditorLogEntry,
   type WikiEditorLogLevel,
 } from '../../stores/wiki-editor-log.store';
-import { ListRow, ToolbarSearch, useListKeyboard } from './dev-tools-ui';
+import { SectionHeader } from '../dashboard/issue-detail/SectionHeader';
+import { CopyMenu, isTabStop, ListRow, ToolbarSearch, useListKeyboard } from './dev-tools-ui';
 import { EDITOR_FACETS, facetSetter, useDevToolsViewStore } from './dev-tools-view.store';
 import {
   type DiffCell,
@@ -27,7 +30,8 @@ import {
   outlineShape,
   sideBySide,
 } from './editor-log-view';
-import ListInspectorLayout from './ListInspectorLayout';
+import JsonTree from './JsonTree';
+import ListInspectorLayout, { InspectorMaximizeButton } from './ListInspectorLayout';
 
 /** Status colour as text only: error red, warn amber, info muted. */
 function levelClass(level: WikiEditorLogLevel): string {
@@ -188,6 +192,7 @@ function Markup({ entry }: { entry: WikiEditorLogEntry }) {
 }
 
 function EditorInspector({ entry }: { entry: WikiEditorLogEntry }) {
+  const [rawOpen, setRawOpen] = useState(false);
   const details = entry.details ? Object.entries(entry.details) : [];
   // The diagnosis already states the reason; only show the error box when it adds something.
   const error =
@@ -202,13 +207,31 @@ function EditorInspector({ entry }: { entry: WikiEditorLogEntry }) {
       data-testid="editor-inspector"
       className="@container/editor-entry flex flex-col gap-3 px-4 py-3"
     >
-      <p className="text-xs text-muted-foreground">
-        <span className={cn('font-semibold', levelClass(entry.level))}>{entry.level}</span>
-        {' · '}
-        <span className="font-mono">{entry.event}</span>
-        {entry.session !== null && ` · session #${entry.session}`}
-        {` · ${new Date(entry.timestamp).toLocaleString()}`}
-      </p>
+      <div className="flex items-center gap-2">
+        <p className="min-w-0 flex-1 text-xs text-muted-foreground">
+          <span className={cn('font-semibold', levelClass(entry.level))}>{entry.level}</span>
+          {' · '}
+          <span className="font-mono">{entry.event}</span>
+          {entry.session !== null && ` · session #${entry.session}`}
+          {` · ${new Date(entry.timestamp).toLocaleString()}`}
+        </p>
+        <CopyMenu
+          items={[
+            { label: 'Copy entry as JSON', getText: () => safeStringify(entry) },
+            {
+              label: 'Copy original markup',
+              getText: () => entry.markup?.original ?? '',
+              disabled: entry.markup?.original === undefined,
+            },
+            {
+              label: 'Copy produced markup',
+              getText: () => entry.markup?.produced ?? '',
+              disabled: entry.markup?.produced === undefined,
+            },
+          ]}
+        />
+        <InspectorMaximizeButton />
+      </div>
       {details.length > 0 && (
         <div>
           <p className={SECTION}>Details</p>
@@ -237,6 +260,16 @@ function EditorInspector({ entry }: { entry: WikiEditorLogEntry }) {
         />
       )}
       <Markup entry={entry} />
+      <div>
+        <SectionHeader
+          title="Raw entry"
+          expanded={rawOpen}
+          onToggle={() => setRawOpen((o) => !o)}
+          sticky={false}
+          className="mb-1"
+        />
+        {rawOpen && <JsonTree value={entry} />}
+      </div>
     </div>
   );
 }
@@ -319,6 +352,7 @@ export default function EditorTab() {
         </>
       }
       onKeyDown={onKeyDown}
+      emptyTitle="Select an event"
       list={
         filtered.length === 0 ? (
           <EmptyState compact icon={Pencil} title="No editor events match the filters" />
@@ -328,8 +362,10 @@ export default function EditorTab() {
               <ListRow
                 key={entry.id}
                 selected={entry.id === selectedId}
+                tabStop={isTabStop(ids, selectedId, entry.id)}
                 onSelect={() => setSelected('editor', entry.id)}
                 label={`${entry.level} ${entry.event}: ${entry.message}`}
+                title={`${entry.event}: ${entry.message}`}
               >
                 <span className={cn('w-12 flex-none font-semibold', levelClass(entry.level))}>
                   {entry.level}

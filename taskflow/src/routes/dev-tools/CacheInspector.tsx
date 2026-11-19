@@ -9,24 +9,26 @@ import { Button } from '../../components/ui/button';
 import { byteSize, safeStringify } from '../../lib/dev-tools/json-preview';
 import type { CacheRow } from '../../lib/dev-tools/query-cache-snapshot';
 import { relativeTime } from '../../lib/relative-time';
-import { CopyButton, InspectorSection, JsonBlock, KeyValueTable } from './dev-tools-ui';
+import { CopyMenu, InspectorSection, KeyValueTable } from './dev-tools-ui';
+import JsonTree from './JsonTree';
+import { InspectorMaximizeButton } from './ListInspectorLayout';
 import { formatBytes } from './utils';
 
-function ts(ms: number): string {
+/** `now` is the row's snapshot time, so the relative part keeps ticking with the 1 s snapshot. */
+function ts(ms: number, now: number): string {
   return ms === 0
     ? 'never'
-    : `${new Date(ms).toLocaleTimeString()} (${relativeTime(new Date(ms).toISOString())})`;
+    : `${new Date(ms).toLocaleTimeString()} (${relativeTime(new Date(ms).toISOString(), now)})`;
 }
 
 export default function CacheInspector({ row }: { row: CacheRow }) {
   const client = useQueryClient();
   const query = client.getQueryCache().get(row.hash);
   const filters = { queryKey: row.key, exact: true } as const;
-  const dataUpdatedAt = query?.state.dataUpdatedAt ?? 0;
-
-  // Only the selected query is stringified; rebuilt when its data changes.
+  // Only the selected query is stringified (for the size label); rebuilt when its data changes.
+  // Keyed on the snapshot row's dataUpdatedAt, never on the mutable Query.
   // biome-ignore lint/correctness/useExhaustiveDependencies: keyed on hash + dataUpdatedAt on purpose
-  const dataText = useMemo(() => safeStringify(query?.state.data), [row.hash, dataUpdatedAt]);
+  const dataText = useMemo(() => safeStringify(query?.state.data), [row.hash, row.dataUpdatedAt]);
 
   if (!query) {
     return <p className="px-4 py-6 text-center text-xs text-muted-foreground">Query removed.</p>;
@@ -46,8 +48,8 @@ export default function CacheInspector({ row }: { row: CacheRow }) {
     ['Data updates', String(state.dataUpdateCount)],
     ['Fetch failures', String(state.fetchFailureCount)],
     ['gcTime', String(query.options.gcTime ?? 'default')],
-    ['Data updated', ts(state.dataUpdatedAt)],
-    ['Error updated', ts(state.errorUpdatedAt)],
+    ['Data updated', ts(row.dataUpdatedAt, row.snapshotAt)],
+    ['Error updated', ts(row.errorUpdatedAt, row.snapshotAt)],
   ];
 
   return (
@@ -93,8 +95,15 @@ export default function CacheInspector({ row }: { row: CacheRow }) {
           >
             Remove
           </Button>
-          <CopyButton label="Copy key" getText={() => safeStringify(row.key)} />
-          <CopyButton label="Copy data" getText={() => safeStringify(query.state.data)} />
+          <div className="ml-auto flex items-center gap-1">
+            <CopyMenu
+              items={[
+                { label: 'Copy key', getText: () => safeStringify(row.key) },
+                { label: 'Copy data', getText: () => dataText },
+              ]}
+            />
+            <InspectorMaximizeButton />
+          </div>
         </div>
       </div>
       <InspectorSection title="State">
@@ -106,7 +115,7 @@ export default function CacheInspector({ row }: { row: CacheRow }) {
         </InspectorSection>
       )}
       <InspectorSection title={`Data · ${formatBytes(byteSize(dataText))}`}>
-        <JsonBlock text={dataText} />
+        <JsonTree value={query.state.data} />
       </InspectorSection>
     </div>
   );

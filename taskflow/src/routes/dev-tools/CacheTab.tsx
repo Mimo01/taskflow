@@ -15,7 +15,7 @@ import { relativeTime } from '../../lib/relative-time';
 import { cn } from '../../lib/utils';
 import { SectionSegmented } from '../dashboard/issue-detail/SectionHeader';
 import CacheInspector from './CacheInspector';
-import { ListRow, ToolbarSearch, useListKeyboard } from './dev-tools-ui';
+import { isTabStop, ListRow, ToolbarSearch, useListKeyboard } from './dev-tools-ui';
 import { useDevToolsViewStore } from './dev-tools-view.store';
 import ListInspectorLayout from './ListInspectorLayout';
 import { useQueryCacheRows } from './useQueryCacheRows';
@@ -28,8 +28,8 @@ function dotClass(r: CacheRow): string {
   return 'bg-green-500';
 }
 
-function updatedAgo(ms: number): string {
-  return ms === 0 ? 'never' : relativeTime(new Date(ms).toISOString());
+function updatedAgo(ms: number, now: number): string {
+  return ms === 0 ? 'never' : relativeTime(new Date(ms).toISOString(), now);
 }
 
 export default function CacheTab() {
@@ -81,6 +81,7 @@ export default function CacheTab() {
         </span>
       }
       onKeyDown={onKeyDown}
+      emptyTitle="Select a query"
       list={
         filtered.length === 0 ? (
           <EmptyState compact icon={Database} title="No queries match the filters" />
@@ -90,22 +91,21 @@ export default function CacheTab() {
               <ListRow
                 key={r.hash}
                 selected={r.hash === selectedId}
+                tabStop={isTabStop(ids, selectedId, r.hash)}
                 onSelect={() => setSelected('cache', r.hash)}
-                label={r.keyLabel}
+                label={`${r.keyLabel}, ${r.observers} ${r.observers === 1 ? 'observer' : 'observers'}`}
+                title={r.keyLabel}
               >
                 <span className={cn('size-2 flex-none rounded-full', dotClass(r))} />
                 <span className="min-w-0 flex-1 truncate font-mono">{r.keyLabel}</span>
                 {r.fetchStatus !== 'idle' && (
                   <span className="flex-none text-muted-foreground">{r.fetchStatus}</span>
                 )}
-                <span
-                  className="w-8 flex-none text-right tabular-nums text-muted-foreground"
-                  title="Observers"
-                >
+                <span className="w-8 flex-none text-right tabular-nums text-muted-foreground">
                   {r.observers}
                 </span>
                 <span className="w-24 flex-none text-right text-muted-foreground">
-                  {updatedAgo(r.dataUpdatedAt)}
+                  {updatedAgo(r.dataUpdatedAt, r.snapshotAt)}
                 </span>
               </ListRow>
             ))}

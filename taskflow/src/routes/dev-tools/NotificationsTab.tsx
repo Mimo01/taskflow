@@ -21,14 +21,16 @@ import {
 } from '../../stores/notification-dispatch-log.store';
 import { useSettingsStore } from '../../stores/settings.store';
 import {
+  CopyMenu,
   InspectorSection,
-  JsonBlock,
+  isTabStop,
   ListRow,
   ToolbarSearch,
   useListKeyboard,
 } from './dev-tools-ui';
 import { facetSetter, NOTIFICATION_FACETS, useDevToolsViewStore } from './dev-tools-view.store';
-import ListInspectorLayout from './ListInspectorLayout';
+import JsonTree from './JsonTree';
+import ListInspectorLayout, { InspectorMaximizeButton } from './ListInspectorLayout';
 import { sourceBadgeClass } from './utils';
 
 const OUTCOME_LABEL: Record<OsDispatchOutcome, string> = {
@@ -76,6 +78,15 @@ function OsNotificationPreview({ title, body }: { title: string; body: string })
 function NotificationInspector({ entry }: { entry: NotificationDispatchLogEntry }) {
   return (
     <div data-testid="notification-inspector">
+      <div className="flex items-center justify-end gap-1 border-b px-4 py-2">
+        <CopyMenu
+          items={[
+            { label: 'Copy entry as JSON', getText: () => safeStringify(entry) },
+            { label: 'Copy title and body', getText: () => `${entry.title}\n${entry.body}` },
+          ]}
+        />
+        <InspectorMaximizeButton />
+      </div>
       <InspectorSection title="Banner">
         <div className="flex flex-col gap-3">
           {entry.outcome === 'skipped' && (
@@ -98,7 +109,7 @@ function NotificationInspector({ entry }: { entry: NotificationDispatchLogEntry 
         </div>
       </InspectorSection>
       <InspectorSection title={entry.kind === 'summary' ? 'Raw items' : 'Raw item'}>
-        <JsonBlock text={safeStringify(entry.kind === 'summary' ? entry.items : entry.item)} />
+        <JsonTree value={entry.kind === 'summary' ? entry.items : entry.item} />
       </InspectorSection>
     </div>
   );
@@ -178,6 +189,7 @@ export default function NotificationsTab() {
         </>
       }
       onKeyDown={onKeyDown}
+      emptyTitle="Select a notification"
       list={
         filtered.length === 0 ? (
           <EmptyState compact icon={Bell} title="No notifications match the filters" />
@@ -187,8 +199,10 @@ export default function NotificationsTab() {
               <ListRow
                 key={entry.id}
                 selected={entry.id === selectedId}
+                tabStop={isTabStop(ids, selectedId, entry.id)}
                 onSelect={() => setSelected('notifications', entry.id)}
                 label={`${OUTCOME_LABEL[entry.outcome]}: ${entry.title}`}
+                title={`${entry.title}\n${entry.body}`}
               >
                 <span className={cn('w-16 flex-none font-semibold', outcomeClass(entry.outcome))}>
                   {OUTCOME_LABEL[entry.outcome]}

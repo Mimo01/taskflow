@@ -39,6 +39,9 @@ export interface CacheRow {
   observers: number;
   active: boolean;
   dataUpdatedAt: number;
+  errorUpdatedAt: number;
+  /** The `now` this snapshot was taken at; relative times derive from it, not from Date.now(). */
+  snapshotAt: number;
   error: string | null;
 }
 
@@ -55,7 +58,7 @@ export function formatQueryKey(key: readonly unknown[]): string {
   return label.length > MAX_LABEL ? `${label.slice(0, MAX_LABEL - 1)}…` : label;
 }
 
-export function toCacheRow(query: QueryLike, staleTimeMs: number, _now: number): CacheRow {
+export function toCacheRow(query: QueryLike, staleTimeMs: number, now: number): CacheRow {
   const { state } = query;
   return {
     hash: query.queryHash,
@@ -68,6 +71,8 @@ export function toCacheRow(query: QueryLike, staleTimeMs: number, _now: number):
     observers: query.getObserversCount(),
     active: query.isActive(),
     dataUpdatedAt: state.dataUpdatedAt,
+    errorUpdatedAt: state.errorUpdatedAt,
+    snapshotAt: now,
     error: state.error ? state.error.message : null,
   };
 }

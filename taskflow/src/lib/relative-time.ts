@@ -1,5 +1,5 @@
-export function relativeTime(iso: string): string {
-  const diffMs = Date.now() - new Date(iso).getTime();
+export function relativeTime(iso: string, now: number = Date.now()): string {
+  const diffMs = now - new Date(iso).getTime();
   const diffSecs = Math.floor(diffMs / 1000);
   if (diffSecs <= 0) return 'now';
   const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });

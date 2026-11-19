@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, fireEvent, render, screen } from '@testing-library/react';
-import { beforeEach, describe, expect, it } from 'vitest';
+import userEvent from '@testing-library/user-event';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useSettingsStore } from '../../stores/settings.store';
 import { useWikiEditorLogStore } from '../../stores/wiki-editor-log.store';
 import DevToolsPage from './DevToolsPage';
@@ -121,6 +122,54 @@ describe('EditorTab', () => {
     });
     expect(screen.getAllByTestId('devtools-row')).toHaveLength(1);
     expect(screen.queryByText('Editor opened')).toBeNull();
+  });
+});
+
+describe('EditorTab copy menu', () => {
+  beforeEach(() => {
+    act(() => {
+      useSettingsStore.setState({ devToolsEnabled: true });
+      useWikiEditorLogStore.getState().clear();
+      useDevToolsViewStore.getState().setSelected('editor', null);
+      useDevToolsViewStore.getState().setSearch('editor', '');
+      useDevToolsViewStore.getState().setFacet('editorLevels', new Set());
+      useDevToolsViewStore.getState().setFacet('editorEvents', new Set());
+    });
+  });
+
+  const base = {
+    timestamp: '2026-11-19T10:00:00.000Z',
+    session: 1,
+    event: 'save-failed' as const,
+    level: 'error' as const,
+    message: 'x',
+  };
+
+  it('disables Copy produced markup when the entry has no markup', async () => {
+    act(() => {
+      useWikiEditorLogStore.getState().append({ ...base, id: 'n1' });
+    });
+    render(<EditorTab />);
+    fireEvent.click(screen.getAllByTestId('devtools-row')[0]);
+    await userEvent.click(screen.getByRole('button', { name: 'Copy' }));
+    const item = await screen.findByRole('menuitem', { name: 'Copy produced markup' });
+    expect(item.getAttribute('aria-disabled') ?? item.getAttribute('data-disabled')).not.toBeNull();
+  });
+
+  it('copies the produced markup when present', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    vi.stubGlobal('navigator', { ...navigator, clipboard: { writeText } });
+    act(() => {
+      useWikiEditorLogStore
+        .getState()
+        .append({ ...base, id: 'm1', markup: { original: 'orig', produced: 'h1. produced' } });
+    });
+    render(<EditorTab />);
+    fireEvent.click(screen.getAllByTestId('devtools-row')[0]);
+    await userEvent.click(screen.getByRole('button', { name: 'Copy' }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Copy produced markup' }));
+    expect(writeText).toHaveBeenCalledWith('h1. produced');
+    vi.unstubAllGlobals();
   });
 });
 

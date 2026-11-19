@@ -1,5 +1,6 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
-import { beforeEach, describe, expect, it } from 'vitest';
+import userEvent from '@testing-library/user-event';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useNotificationDispatchLogStore } from '../../stores/notification-dispatch-log.store';
 import type { NotificationItem } from '../../stores/notifications.store';
 import { useSettingsStore } from '../../stores/settings.store';
@@ -52,7 +53,9 @@ describe('NotificationsTab', () => {
     expect(
       screen.getByRole('img', { name: 'Notification preview: PROJ-1 · Title. Cara: hi' }),
     ).toBeTruthy();
-    expect(screen.getByText(/"entityTitle": "PROJ-1: Title"/)).toBeTruthy();
+    // The raw item renders as a JsonTree: key and value are separate coloured spans.
+    expect(screen.getByText('"entityTitle"')).toBeTruthy();
+    expect(screen.getByText(/PROJ-1: Title/)).toBeTruthy();
   });
 
   it('renders a summary row with the exact strings and its real outcome', () => {
@@ -128,5 +131,30 @@ describe('NotificationsTab', () => {
     });
     expect(screen.getAllByTestId('devtools-row')).toHaveLength(1);
     expect(screen.queryByText('Second thing')).toBeNull();
+  });
+
+  it('Copy entry as JSON writes the parseable entry', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    vi.stubGlobal('navigator', { ...navigator, clipboard: { writeText } });
+    act(() => {
+      useNotificationDispatchLogStore.getState().append([
+        {
+          id: 'a',
+          timestamp: '2026-11-12T10:00:00.000Z',
+          item,
+          title: 'PROJ-1 · Title',
+          body: 'Cara: hi',
+          outcome: 'sent',
+        },
+      ]);
+    });
+    render(<NotificationsTab />);
+    fireEvent.click(screen.getAllByTestId('devtools-row')[0]);
+    await userEvent.click(screen.getByRole('button', { name: 'Copy' }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Copy entry as JSON' }));
+    const parsed = JSON.parse(writeText.mock.calls[0][0] as string);
+    expect(parsed.id).toBe('a');
+    expect(parsed.item.entityTitle).toBe('PROJ-1: Title');
+    vi.unstubAllGlobals();
   });
 });

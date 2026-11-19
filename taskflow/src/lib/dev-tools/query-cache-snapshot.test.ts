@@ -16,6 +16,7 @@ function fakeQuery(p: {
   staleByTime?: boolean;
   invalidated?: boolean;
   dataUpdatedAt?: number;
+  errorUpdatedAt?: number;
   error?: Error | null;
 }): QueryLike {
   return {
@@ -25,7 +26,7 @@ function fakeQuery(p: {
       status: p.status ?? 'success',
       fetchStatus: p.fetchStatus ?? 'idle',
       dataUpdatedAt: p.dataUpdatedAt ?? 1000,
-      errorUpdatedAt: 0,
+      errorUpdatedAt: p.errorUpdatedAt ?? 0,
       isInvalidated: p.invalidated ?? false,
       error: p.error ?? null,
       data: undefined,
@@ -72,6 +73,12 @@ describe('toCacheRow', () => {
       error: null,
     });
     expect(Object.getPrototypeOf(row)).toBe(Object.prototype);
+  });
+
+  it('carries errorUpdatedAt and the snapshot time for live relative times', () => {
+    const row = toCacheRow(fakeQuery({ errorUpdatedAt: 4321 }), 0, 9999);
+    expect(row.errorUpdatedAt).toBe(4321);
+    expect(row.snapshotAt).toBe(9999);
   });
 
   it('stale for unobserved queries uses isStaleByTime', () => {
