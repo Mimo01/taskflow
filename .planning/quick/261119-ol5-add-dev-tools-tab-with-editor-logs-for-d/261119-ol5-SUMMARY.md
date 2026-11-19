@@ -39,3 +39,10 @@ An "Editor" tab in Developer Tools lists wiki editor events (open, close, mode s
 - tsc clean; biome clean on touched files.
 
 ## Self-Check: PASSED
+
+## Follow-ups (orchestrator, 2026-11-19)
+
+- `c9737a4b`: save-failed logged only on entering failure; the executor's reason-keyed dedupe would have logged every failing keystroke.
+- `1b07a702`: save diagnosis requested after first review ("can't read what caused the problem"). `diagnoseSave` (save-check.ts) / `explainSave` (engine.ts) report the first differing top-level block, its expected vs read-back projection and saved slice; `checkSaved` delegates to it with identical reasons. Editor tab shows expected/read-back and original/produced markup as aligned side-by-side line diffs (stacked below the `@3xl/editor-entry` container width), failing block outlined. Blocked submits and failed rich→source switches carry the same snapshot.
+- Verified against the real engine (`h1. ` paragraph edit → block 1 paragraph reads back as heading level=1). That run exposed a bug fixed in the next commit: parser slices start with the preceding gap, so the outline also covered the previous block.
+- Full suite: 469 files / 6915 tests pass; tsc and biome clean.
