@@ -5,17 +5,20 @@
  * counts; each tab owns its scrolling, so only the list and inspector panes scroll.
  */
 
+import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '../../components/ui/button';
 import { PageHeader } from '../../components/ui/page-header';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 import { useDebugLogStore } from '../../stores/debug-log.store';
 import { useNotificationDispatchLogStore } from '../../stores/notification-dispatch-log.store';
 import { useWikiEditorLogStore } from '../../stores/wiki-editor-log.store';
+import CacheTab from './CacheTab';
 import DevToolsSettingsPopover from './DevToolsSettingsPopover';
 import { useDevToolsViewStore } from './dev-tools-view.store';
 import EditorTab from './EditorTab';
 import LogsTab from './LogsTab';
 import NotificationsTab from './NotificationsTab';
+import { useQueryCacheCount } from './useQueryCacheRows';
 
 function TabLabel({ label, count }: { label: string; count: number }) {
   return (
@@ -29,6 +32,7 @@ function TabLabel({ label, count }: { label: string; count: number }) {
 }
 
 export default function DevToolsPage() {
+  const cacheCount = useQueryCacheCount(useQueryClient());
   const logCount = useDebugLogStore((s) => s.entries.length);
   const notificationCount = useNotificationDispatchLogStore((s) => s.entries.length);
   const editorCount = useWikiEditorLogStore((s) => s.entries.length);
@@ -66,6 +70,9 @@ export default function DevToolsPage() {
             <TabsTrigger value="logs">
               <TabLabel label="Logs" count={logCount} />
             </TabsTrigger>
+            <TabsTrigger value="cache">
+              <TabLabel label="Cache" count={cacheCount} />
+            </TabsTrigger>
             <TabsTrigger value="notifications">
               <TabLabel label="Notifications" count={notificationCount} />
             </TabsTrigger>
@@ -75,9 +82,10 @@ export default function DevToolsPage() {
           </TabsList>
         </div>
         <TabsContent value="logs" className="flex min-h-0 flex-1 flex-col">
-          <div className="relative min-h-0 flex-1 overflow-auto">
-            <LogsTab />
-          </div>
+          <LogsTab />
+        </TabsContent>
+        <TabsContent value="cache" className="flex min-h-0 flex-1 flex-col">
+          <CacheTab />
         </TabsContent>
         <TabsContent value="notifications" className="flex min-h-0 flex-1 flex-col">
           <div className="relative min-h-0 flex-1 overflow-auto">

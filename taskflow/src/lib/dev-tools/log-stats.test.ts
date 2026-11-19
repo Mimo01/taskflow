@@ -1,0 +1,49 @@
+import { describe, expect, it } from 'vitest';
+import type { ApiLogEntry } from '../../stores/debug-log.store';
+import { computeLogStats } from './log-stats';
+
+const e = (p: Partial<ApiLogEntry>): ApiLogEntry => ({
+  id: 'x',
+  timestamp: '2026-11-19T10:00:00.000Z',
+  source: 'jira',
+  method: 'GET',
+  url: 'https://j/rest/api/2/search?jql=a',
+  requestHeaders: {},
+  status: 200,
+  durationMs: 10,
+  responseBody: '',
+  ...p,
+});
+
+describe('computeLogStats', () => {
+  it('handles empty input', () => {
+    expect(computeLogStats([])).toEqual({
+      total: 0,
+      errors: 0,
+      median: null,
+      p95: null,
+      slowest: null,
+    });
+  });
+
+  it('nearest-rank median and p95', () => {
+    const entries = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100].map((d) => e({ durationMs: d }));
+    const s = computeLogStats(entries);
+    expect(s.median).toBe(50);
+    expect(s.p95).toBe(100);
+    expect(s.total).toBe(10);
+  });
+
+  it('counts errors (null or >= 400)', () => {
+    const s = computeLogStats([e({ status: null }), e({ status: 404 }), e({ status: 200 })]);
+    expect(s.errors).toBe(2);
+  });
+
+  it('slowest strips the query string', () => {
+    const s = computeLogStats([
+      e({ durationMs: 5 }),
+      e({ durationMs: 900, method: 'POST', url: 'https://j/rest/api/2/issue/ABC-1?expand=x' }),
+    ]);
+    expect(s.slowest).toEqual({ path: '/rest/api/2/issue/ABC-1', method: 'POST', ms: 900 });
+  });
+});

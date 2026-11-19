@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { useSettingsStore } from '../../stores/settings.store';
@@ -99,7 +100,11 @@ describe('DevToolsPage editor integration', () => {
         message: 'Editor opened',
       });
     });
-    render(<DevToolsPage />);
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <DevToolsPage />
+      </QueryClientProvider>,
+    );
     expect(screen.getByRole('tab', { name: 'Editor' })).toBeTruthy();
     const clear = screen.getByRole('button', { name: 'Clear all' }) as HTMLButtonElement;
     expect(clear.disabled).toBe(false);
