@@ -152,7 +152,13 @@ function tokens(units: Unit[]): unknown[] {
   return out;
 }
 
-const isEmptyPara = (n: Json): boolean => n.type === 'paragraph' && tokens(unitsOf(n)).length === 0;
+/**
+ * A paragraph with no text or atoms. Line breaks alone count as empty: a Shift+Enter-only
+ * paragraph emits as blank lines, which read back as a gap, not a block.
+ */
+const isEmptyPara = (n: Json): boolean =>
+  n.type === 'paragraph' &&
+  tokens(unitsOf(n)).every((tok) => typeof tok === 'object' && tok !== null && 'br' in tok);
 
 /** Child blocks of a container; para/rawBlock runs flatten into one stream (rule 3). */
 function children(kids: Json[] | undefined, flatten: boolean): unknown[] {

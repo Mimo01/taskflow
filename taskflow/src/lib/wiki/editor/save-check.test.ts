@@ -349,3 +349,10 @@ describe('live macro look-alikes (gap 1)', () => {
     expect(text).toContain('{info}inline info{info}');
   });
 });
+
+describe('line-break-only paragraphs', () => {
+  it('are blank lines, not blocks', () => {
+    expect(check(doc(p(t('a')), p(br()), p(br(), br()), p(t('b'))))).toBeNull();
+    expect(check(doc(p(t('a')), p(br())))).toBeNull();
+  });
+});

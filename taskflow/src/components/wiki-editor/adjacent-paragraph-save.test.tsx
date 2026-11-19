@@ -47,3 +47,28 @@ describe('adjacent paragraphs always save with a blank line between', () => {
     expect(onChange.mock.lastCall?.[0]).toBe('h1. T\nxy');
   });
 });
+
+// Shift+Enter on an empty line makes a paragraph holding only line breaks. It emits as
+// blank lines, which read back as a gap, not a block: the save check counted it as a
+// block the text lost ("the saved text has 1 top-level blocks, the edit has 2").
+describe('a paragraph of only line breaks saves as blank lines', () => {
+  it('after a code block', () => {
+    const onChange = vi.fn();
+    renderEditor({ value: '{code:html}\n<div>\n{code}', onChange });
+    const ed = liveEditor();
+    act(() => void ed.chain().focus('end').exitCode().run());
+    act(() => void ed.commands.keyboardShortcut('Shift-Enter'));
+    act(() => void ed.commands.keyboardShortcut('Shift-Enter'));
+    expect(ed.state.doc.lastChild?.firstChild?.type.name).toBe('hardBreak');
+    expect(screen.queryByText(BANNER)).toBeNull();
+  });
+
+  it('between two paragraphs', () => {
+    const onChange = vi.fn();
+    renderEditor({ value: 'a\n\nb', onChange });
+    const ed = liveEditor();
+    act(() => void ed.chain().setTextSelection(2).splitBlock().setHardBreak().run());
+    expect(ed.state.doc.childCount).toBe(3);
+    expect(screen.queryByText(BANNER)).toBeNull();
+  });
+});
