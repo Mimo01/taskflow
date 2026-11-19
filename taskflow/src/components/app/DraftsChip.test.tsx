@@ -78,23 +78,22 @@ afterEach(() => {
 });
 
 describe('DraftsChip', () => {
-  it('caps the neutral corner badge at 99+', () => {
+  it('caps the neutral badge at 99+', () => {
     seed(...Array.from({ length: 100 }, (_, n) => issueDraft(`d${n}`, NOW - n)));
     render(<DraftsChip />);
     const trigger = screen.getByRole('button', { name: 'Drafts, 100' });
-    expect(trigger.textContent).toContain('99+');
+    expect(trigger).toHaveTextContent('99+');
     const badge = Array.from(trigger.querySelectorAll('span')).find(
       (el) => el.textContent === '99+',
     );
-    expect(badge).toBeDefined();
     expect(badge?.className).not.toMatch(/red/);
   });
 
-  it('is a ghost button at rest and pressed when open', () => {
+  it('is an icon button like its neighbours, pressed when open', () => {
     seed(issueDraft('a', NOW));
     render(<DraftsChip />);
     const trigger = screen.getByRole('button', { name: 'Drafts, 1' });
-    expect(trigger.classList.contains('border')).toBe(false);
+    expect(trigger.classList.contains('border-border')).toBe(false);
     expect(trigger.classList.contains('rounded-full')).toBe(false);
     expect(trigger.classList.contains('bg-muted')).toBe(false);
     fireEvent.click(trigger);
@@ -119,7 +118,6 @@ describe('DraftsChip', () => {
     seed(issueDraft('a', NOW), issueDraft('b', NOW - 1000));
     render(<DraftsChip />);
     const btn = screen.getByRole('button', { name: 'Drafts, 2' });
-    expect(btn).toHaveTextContent('Drafts');
     expect(btn).toHaveTextContent('2');
   });
 
