@@ -1,5 +1,6 @@
 import { NodeViewContent, type NodeViewProps, NodeViewWrapper } from '@tiptap/react';
 import { SearchableSelect } from '@/components/ui/searchable-select';
+import { WIKI_CODE_FRAME, WIKI_CODE_PRE } from '@/lib/wiki/prose';
 import { CODE_LANGUAGES } from '../languages';
 import { setCodeLanguage } from '../panel-commands';
 
@@ -18,7 +19,7 @@ export function CodeBlockView({ node, editor, getPos }: NodeViewProps) {
   const noformat = node.attrs.open === '{noformat}';
   const language = typeof node.attrs.language === 'string' ? node.attrs.language : null;
   return (
-    <NodeViewWrapper className="my-2 overflow-hidden rounded-md border border-border bg-muted/40">
+    <NodeViewWrapper className={WIKI_CODE_FRAME}>
       <div
         contentEditable={false}
         className="flex h-7 items-center border-b border-border bg-muted px-2 text-xs text-muted-foreground"
@@ -41,7 +42,7 @@ export function CodeBlockView({ node, editor, getPos }: NodeViewProps) {
           />
         )}
       </div>
-      <pre className="m-0 overflow-x-auto bg-transparent p-3 font-mono text-xs whitespace-pre">
+      <pre className={WIKI_CODE_PRE}>
         <NodeViewContent<'code'> as="code" />
       </pre>
     </NodeViewWrapper>

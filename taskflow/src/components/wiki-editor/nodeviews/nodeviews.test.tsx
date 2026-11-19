@@ -1,10 +1,11 @@
 import { getSchema } from '@tiptap/core';
 import { EditorContent, useEditor } from '@tiptap/react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { loadWiki, wikiSchema } from '@/lib/wiki/editor';
 import { EDITOR_RULE_OPTIONS, editorExtensions } from '../extensions';
+import { setCodeLanguage } from '../panel-commands';
 import { richExtensions } from '../rich-extensions';
 import { EDIT_IN_SOURCE_EVENT } from './events';
 
@@ -108,6 +109,51 @@ describe('CodeBlockView', () => {
     render(<Harness content={wikiDoc('{noformat}\nx\n{noformat}')} />);
     expect(await screen.findByText('Noformat')).toBeTruthy();
     expect(screen.queryByLabelText('Code language')).toBeNull();
+  });
+
+  describe('syntax highlighting', () => {
+    function codeBlockPos(): number {
+      let found = -1;
+      current?.state.doc.descendants((n, p) => {
+        if (n.type.name === 'codeBlock') found = p;
+      });
+      return found;
+    }
+
+    it('highlights {code:java} inside the node view, in the shared frame', async () => {
+      const { container } = render(
+        <Harness content={wikiDoc('{code:java}\npublic class X {}\n{code}')} />,
+      );
+      await screen.findByLabelText('Code language');
+      expect(container.querySelector('pre code .hljs-keyword')).not.toBeNull();
+      const frame = container.querySelector('.wiki-code');
+      expect(frame?.classList.contains('not-prose')).toBe(true);
+    });
+
+    it('keeps {noformat} and bare {code} plain', async () => {
+      const a = render(<Harness content={wikiDoc('{noformat}\npublic class X {}\n{noformat}')} />);
+      await screen.findByText('Noformat');
+      expect(a.container.querySelector('[class*="hljs-"]')).toBeNull();
+      a.unmount();
+      const b = render(<Harness content={wikiDoc('{code}\npublic class X {}\n{code}')} />);
+      await screen.findByLabelText('Code language');
+      expect(b.container.querySelector('[class*="hljs-"]')).toBeNull();
+    });
+
+    it('re-highlights when the language changes and clears on None', async () => {
+      const { container } = render(
+        <Harness content={wikiDoc('{code:java}\ndef f(): pass\n{code}')} />,
+      );
+      await screen.findByLabelText('Code language');
+      act(() => {
+        setCodeLanguage(current as NonNullable<typeof current>, codeBlockPos(), null);
+      });
+      expect(container.querySelector('[class*="hljs-"]')).toBeNull();
+      act(() => {
+        setCodeLanguage(current as NonNullable<typeof current>, codeBlockPos(), 'python');
+      });
+      expect(container.querySelector('pre code .hljs-keyword')).not.toBeNull();
+    });
   });
 });
 

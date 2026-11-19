@@ -22,6 +22,7 @@ import {
   WikiSpelling,
 } from '@/lib/wiki/editor/schema';
 import { WIKI_PROSE_CLASSES } from '@/lib/wiki/prose';
+import { codeHighlightPlugin } from './code-highlight';
 import { WikiGapKeeper } from './gap-keeper';
 import { WikiHostBridge } from './host';
 import { WikiInputRules } from './input-rules';
@@ -59,6 +60,7 @@ export function buildEditorExtensions(views: WikiNodeViews = {}) {
     StarterKit.configure({ ...STARTER_KIT_OPTIONS, codeBlock: false }),
     CodeBlock.extend({
       addNodeView: codeBlock ? () => codeBlock : undefined,
+      addProseMirrorPlugins: () => [codeHighlightPlugin()],
     }),
     Table,
     TableRow,
