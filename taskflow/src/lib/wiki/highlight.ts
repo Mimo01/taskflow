@@ -105,13 +105,35 @@ export function hljsLanguageFor(wiki: string | null | undefined): string | null 
   return typeof lang === 'string' ? lang : null;
 }
 
+/** Blocks longer than this render plain (sync tokenising cost on every render / edit). */
+export const MAX_HIGHLIGHT_CHARS = 100_000;
+/**
+ * Any single line longer than this renders the block plain: hljs is quadratic on one long
+ * token (a 20k-char blob took ~600 ms, 100k ~13 s; 100k chars of normal Java ~10 ms).
+ */
+export const MAX_HIGHLIGHT_LINE = 2_000;
+
+function tooLongToHighlight(text: string): boolean {
+  if (text.length > MAX_HIGHLIGHT_CHARS) return true;
+  let start = 0;
+  while (start <= text.length) {
+    const nl = text.indexOf('\n', start);
+    const end = nl === -1 ? text.length : nl;
+    if (end - start > MAX_HIGHLIGHT_LINE) return true;
+    start = end + 1;
+  }
+  return false;
+}
+
 /** hast children for the code, or null = render plain. Never auto-detects. */
 export function highlightWikiCode(
   wiki: string | null | undefined,
   text: string,
 ): Root['children'] | null {
   const lang = hljsLanguageFor(wiki);
-  return lang ? lowlight.highlight(lang, text).children : null;
+  // Tokenising is synchronous: oversized blocks stay plain rather than freeze the UI.
+  if (!lang || tooLongToHighlight(text)) return null;
+  return lowlight.highlight(lang, text).children;
 }
 
 function textOf(nodes: ElementContent[]): string {

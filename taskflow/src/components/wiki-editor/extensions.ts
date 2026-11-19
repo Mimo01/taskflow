@@ -60,7 +60,10 @@ export function buildEditorExtensions(views: WikiNodeViews = {}) {
     StarterKit.configure({ ...STARTER_KIT_OPTIONS, codeBlock: false }),
     CodeBlock.extend({
       addNodeView: codeBlock ? () => codeBlock : undefined,
-      addProseMirrorPlugins: () => [codeHighlightPlugin()],
+      // Keep the parent's plugins (VS Code paste handler) — overriding without this.parent drops them.
+      addProseMirrorPlugins() {
+        return [...(this.parent?.() ?? []), codeHighlightPlugin()];
+      },
     }),
     Table,
     TableRow,

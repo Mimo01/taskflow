@@ -130,6 +130,25 @@ describe('CodeBlockView', () => {
       expect(frame?.classList.contains('not-prose')).toBe(true);
     });
 
+    it('nests token spans like the renderer (subst inside string, not merged classes)', async () => {
+      const { container } = render(
+        // biome-ignore lint/suspicious/noTemplateCurlyInString: JS template literal under test
+        <Harness content={wikiDoc('{code:javascript}\nconst s = `a ${b} c`;\n{code}')} />,
+      );
+      await screen.findByLabelText('Code language');
+      const subst = container.querySelector('pre code .hljs-string .hljs-subst');
+      expect(subst?.textContent).toBe(`$${'{'}b}`);
+      expect(subst?.classList.contains('hljs-string')).toBe(false);
+    });
+
+    it("keeps CodeBlock's own plugins (VS Code paste handler) alongside the highlighter", async () => {
+      render(<Harness content={wikiDoc('{code:java}\nint x;\n{code}')} />);
+      await screen.findByLabelText('Code language');
+      const keys = current?.state.plugins.map((p) => (p as unknown as { key: string }).key) ?? [];
+      expect(keys.some((k) => k.startsWith('codeBlockVSCodeHandler'))).toBe(true);
+      expect(keys.some((k) => k.startsWith('wikiCodeHighlight'))).toBe(true);
+    });
+
     it('keeps {noformat} and bare {code} plain', async () => {
       const a = render(<Harness content={wikiDoc('{noformat}\npublic class X {}\n{noformat}')} />);
       await screen.findByText('Noformat');

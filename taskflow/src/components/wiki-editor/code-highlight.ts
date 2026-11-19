@@ -12,23 +12,26 @@ type Span = { from: number; to: number; cls: string };
  * unchanged blocks keep identity and skip re-tokenising. Not read during React render. */
 const CACHE = new WeakMap<PMNode, Span[]>();
 
-function flatten(
-  nodes: Root['children'],
-  classes: string[],
-  state: { offset: number },
-  out: Span[],
-) {
+/**
+ * One span per hast element (outer before inner), each later rendered as its own nested <span>
+ * via `nodeName`, so the editor DOM nests exactly like the renderer's and descendant selectors
+ * (`.hljs-meta .hljs-string`) plus specificity behave identically — merging nested classes onto
+ * one element let e.g. `hljs-string hljs-subst` take the string colour.
+ */
+function collect(nodes: Root['children'], state: { offset: number }, out: Span[]) {
   for (const n of nodes) {
     if (n.type === 'text') {
-      const end = state.offset + n.value.length;
-      if (classes.length > 0 && end > state.offset) {
-        out.push({ from: state.offset, to: end, cls: classes.join(' ') });
-      }
-      state.offset = end;
+      state.offset += n.value.length;
     } else if (n.type === 'element') {
       const cls = n.properties?.className;
-      const next = Array.isArray(cls) ? [...classes, ...cls.map(String)] : classes;
-      flatten(n.children, next, state, out);
+      // Pushed before its children so the outer decoration wraps the inner ones.
+      const span: Span | null =
+        Array.isArray(cls) && cls.length > 0
+          ? { from: state.offset, to: state.offset, cls: cls.join(' ') }
+          : null;
+      if (span) out.push(span);
+      collect(n.children, state, out);
+      if (span) span.to = state.offset;
     }
   }
 }
@@ -43,7 +46,7 @@ function spansFor(node: PMNode): Span[] {
       typeof node.attrs.language === 'string' ? node.attrs.language : null,
       node.textContent,
     );
-    if (tree) flatten(tree, [], { offset: 0 }, spans);
+    if (tree) collect(tree, { offset: 0 }, spans);
   }
   CACHE.set(node, spans);
   return spans;
@@ -54,7 +57,10 @@ function build(doc: PMNode): DecorationSet {
   doc.descendants((node, pos) => {
     if (node.type.name !== 'codeBlock') return true;
     for (const s of spansFor(node)) {
-      decos.push(Decoration.inline(pos + 1 + s.from, pos + 1 + s.to, { class: s.cls }));
+      if (s.to <= s.from) continue;
+      decos.push(
+        Decoration.inline(pos + 1 + s.from, pos + 1 + s.to, { nodeName: 'span', class: s.cls }),
+      );
     }
     return false;
   });

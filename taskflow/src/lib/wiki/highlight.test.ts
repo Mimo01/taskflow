@@ -1,7 +1,12 @@
 import type { Element, Root } from 'hast';
 import { describe, expect, it } from 'vitest';
 import { CODE_LANGUAGES } from '@/components/wiki-editor/languages';
-import { highlightWikiCode, hljsLanguageFor } from './highlight';
+import {
+  highlightWikiCode,
+  hljsLanguageFor,
+  MAX_HIGHLIGHT_CHARS,
+  MAX_HIGHLIGHT_LINE,
+} from './highlight';
 
 type Child = Root['children'][number];
 
@@ -56,6 +61,15 @@ describe('highlightWikiCode', () => {
   it('never emits the bare `hljs` container class', () => {
     const out = highlightWikiCode('java', 'public class X {}') ?? [];
     expect(classes(out).filter((c) => c === 'hljs')).toEqual([]);
+  });
+
+  it('leaves blocks over the size caps plain', () => {
+    const line = 'int x = 1;\n';
+    const big = line.repeat(Math.ceil((MAX_HIGHLIGHT_CHARS + 1) / line.length));
+    expect(highlightWikiCode('java', big)).toBeNull();
+    expect(highlightWikiCode('java', line.repeat(100))).not.toBeNull();
+    expect(highlightWikiCode('java', `int x;\n${'x'.repeat(MAX_HIGHLIGHT_LINE + 1)}`)).toBeNull();
+    expect(highlightWikiCode('java', `int x;\n${'x'.repeat(MAX_HIGHLIGHT_LINE)}`)).not.toBeNull();
   });
 
   it('returns null (plain) for no or unmapped language, never auto-detecting', () => {
