@@ -44,3 +44,9 @@ root_cause: horizontalRule is not allowed in listItem / table cell content (sche
 fix: insert-items.ts blockingContainerEnd/insertBlock — when the caret's container can't hold the block, insert it after the enclosing list/table (all insert items: rule, code, noformat, table, panels); caret moves into the new block, stays put for a rule (954a9087)
 verification: 15 new insert-items tests fail on HEAD~ and pass after; wiki-editor + lib/wiki 1187/1187, tsc clean
 files_changed: [taskflow/src/components/wiki-editor/insert-items.ts, taskflow/src/components/wiki-editor/insert-items.test.ts]
+
+## Reopened 2026-11-19 — still happens (caret inside a code block, toolbar Insert)
+
+- The first sweep's code/code-language.wiki hits were dismissed as fence false positives; they were this bug: a rule mid-code split the code block in two.
+- Fix a382c589: blockingContainerEnd treats a code block as a container to insert after; panels directly in a table cell are skipped (emit spells them on the cell's one line, so a rule there failed to save).
+- Verification: 14 new tests fail on 954a9087 and pass after (54 insert-items tests total); a rule inserted at ~1450 caret positions across the test documents fails to save in only one, the inline/heading-no-space fixture (pre-existing, odd `h2.  ` spacing); wiki suites 1201/1201, tsc clean.
