@@ -127,11 +127,19 @@ describe('requestLabel', () => {
   it('prefers a trimmed operation', () => {
     expect(requestLabel({ operation: '  Epics ', url: 'https://x/a/b' })).toBe('Epics');
   });
-  it('falls back to the last two decoded segments', () => {
-    expect(requestLabel({ url: 'https://x/rest/api/2/issue/PROJ-1/remotelink' })).toBe(
-      'PROJ-1/remotelink',
+  it('falls back to a readable resource name, skipping ids and version segments', () => {
+    expect(requestLabel({ url: 'https://g/api/v4/projects/17/merge_requests?state=opened' })).toBe(
+      'Merge requests',
     );
-    expect(requestLabel({ operation: '  ', url: 'https://x/a%20b/c' })).toBe('a b/c');
+    expect(requestLabel({ url: 'https://g/api/v4/projects/17/pipelines' })).toBe('Pipelines');
+    expect(requestLabel({ url: 'https://t/rest/tempo-timesheets/4/worklogs' })).toBe('Worklogs');
+    expect(requestLabel({ operation: '  ', url: 'https://x/rest/api/2/search' })).toBe('Search');
+  });
+  it('appends an issue key when the path has one', () => {
+    expect(requestLabel({ url: 'https://x/rest/api/2/issue/PROJ-1/remotelink' })).toBe(
+      'Remotelink · PROJ-1',
+    );
+    expect(requestLabel({ url: 'https://x/rest/api/2/issue/PROJ-1' })).toBe('Issue · PROJ-1');
   });
   it('handles empty path and decode failure', () => {
     expect(requestLabel({ url: 'https://x' })).toBe('/');

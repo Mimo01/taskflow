@@ -205,7 +205,8 @@ function LoadGroup({
             </>
           )}
         </span>
-        <span className="pr-4 text-right text-muted-foreground/80 tabular-nums">
+        {/* justify-self-end + nowrap: a time wider than the duration column grows leftwards, never wraps */}
+        <span className="justify-self-end whitespace-nowrap pr-4 text-right text-muted-foreground/80 tabular-nums">
           {new Date(load.start).toLocaleTimeString()}
         </span>
       </button>

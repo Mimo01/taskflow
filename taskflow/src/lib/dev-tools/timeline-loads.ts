@@ -124,7 +124,15 @@ function decodedPath(url: string): string {
   }
 }
 
-/** Row label: the operation when present, else the last two path segments. */
+const ISSUE_KEY = /^[A-Z][A-Z0-9]+-\d+$/;
+/** Segments that are ids or API plumbing rather than the resource being fetched. */
+const NOISE_SEGMENT = /^(\d+|v\d+|rest|api|agile|latest)$/i;
+
+/**
+ * Row label: the operation when present, else the resource the path names in plain words
+ * ("Merge requests", "Worklogs"), with an issue key appended when the path has one
+ * ("Remotelink · PROJ-1").
+ */
 export function requestLabel(e: Pick<ApiLogEntry, 'operation' | 'url'>): string {
   const op = e.operation?.trim();
   if (op) return op;
@@ -136,7 +144,13 @@ export function requestLabel(e: Pick<ApiLogEntry, 'operation' | 'url'>): string 
     return path;
   }
   const seg = decoded.split('/').filter(Boolean);
-  return seg.length === 0 ? '/' : seg.slice(-2).join('/');
+  if (seg.length === 0) return '/';
+  const key = seg.find((s) => ISSUE_KEY.test(s));
+  const resource = [...seg].reverse().find((s) => !ISSUE_KEY.test(s) && !NOISE_SEGMENT.test(s));
+  if (!resource) return key ?? seg[seg.length - 1];
+  const words = resource.replace(/[_-]+/g, ' ').trim();
+  const name = words.charAt(0).toUpperCase() + words.slice(1);
+  return key ? `${name} · ${key}` : name;
 }
 
 export function rowStatus(
