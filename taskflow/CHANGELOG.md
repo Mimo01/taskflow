@@ -8,13 +8,11 @@ Rich text saves more reliably and code blocks get highlighting.
 
 ### New
 - Code blocks are syntax highlighted in the editor and in views
-- Developer Tools shows a page-load timeline
-- Developer Tools explains why an editor save failed
 
 ### Improved
 - Editor toolbar fits its buttons to the space available
 - Drafts button shows a notebook icon with a soft count badge
-- Developer Tools tabs share one list and inspector layout
+- Developer Tools has a page-load timeline and clearer save errors
 
 ### Fixed
 - Bold text inside monospace now saves
