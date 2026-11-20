@@ -2,6 +2,27 @@
 
 All notable changes to Taskflow are documented here.
 
+## [1.15.1] — 2026-11-20
+
+Rich text saves more reliably and code blocks get highlighting.
+
+### New
+- Code blocks are syntax highlighted in the editor and in views
+- Developer Tools shows a page-load timeline
+- Developer Tools explains why an editor save failed
+
+### Improved
+- Editor toolbar fits its buttons to the space available
+- Drafts button shows a notebook icon with a soft count badge
+- Developer Tools tabs share one list and inspector layout
+
+### Fixed
+- Bold text inside monospace now saves
+- Line breaks and blank lines no longer block saving
+- Inserting a block no longer splits a list, table or code block
+- Code blocks no longer end up inside list items or table cells
+- The caret moves right away after editing blocks
+
 ## [1.15.0] — 2026-11-19
 
 Write in a rich editor that keeps your Jira formatting intact.
